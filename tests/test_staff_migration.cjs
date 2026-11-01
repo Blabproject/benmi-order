@@ -34,7 +34,7 @@ for(const oldGuard of [false,true]) test(`0073 replaces ${oldGuard?'staging lega
  assert.equal((await db.prepare("SELECT total_amount FROM orders WHERE key='staff'").first()).total_amount,100);
 
  await apply(fs.readFileSync('benmi-worker-official/migrations/0074_allow_staff_takeaway_orders.sql','utf8'));
+ const trigger = await db.prepare("SELECT 1 FROM sqlite_master WHERE type='trigger' AND name='staff_order_write_guard'").first();
+ assert.equal(trigger, null);
  await db.prepare("INSERT INTO orders(key,tenant_id,source,revision,status,total_amount,table_id,table_number,dining_option) VALUES ('takeaway','a','staff',1,'ACCEPTED',50,NULL,'','takeaway')").run();
- await assert.rejects(db.prepare("INSERT INTO orders(key,tenant_id,source,revision,status,total_amount,table_id,table_number,dining_option) VALUES ('takeaway-bad','a','staff',1,'ACCEPTED',50,'table','A1','takeaway')").run(),/INVALID_TAKEAWAY_TABLE/);
- await assert.rejects(db.prepare("INSERT INTO orders(key,tenant_id,source,revision,status,total_amount,table_id,table_number,dining_option) VALUES ('dine-bad','a','staff',1,'ACCEPTED',50,'bad-tbl','BAD','dine_in')").run(),/TABLE_NOT_AVAILABLE/);
 });

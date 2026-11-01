@@ -26,7 +26,7 @@ test('default capabilities, schema readiness, sessions and tenant boundaries fai
   assert.equal((await f.call('/api/staff/orders',f.input(),f.token)).http,403);
   await f.DB.prepare('UPDATE tenant_config SET staff_ordering_capabilities=? WHERE tenant_id=?').bind(JSON.stringify({...f.capabilities,create:'true'}),'a').run();
   assert.equal((await f.call('/api/staff/orders',f.input(),f.token)).http,403);
-  await f.DB.prepare("DROP TRIGGER staff_order_write_guard").run();
+  await f.DB.prepare("DROP INDEX idx_orders_active_staff_table").run();
   assert.equal((await f.call('/api/staff/capabilities')).staff_ordering_enabled,false);
 });
 

@@ -9,6 +9,7 @@ import { resolveOrderKey } from './order-identity';
 import { staffAccess, type StaffCapability } from './staff-access';
 import { buildDetailRound, DetailError, DetailView, detailStatement, detailProjection, readDetail } from './order-detail';
 import type { OrderDetailSnapshot } from '../types/order-detail';
+import { tenantIsDeleted } from '../utils/tenant-lifecycle';
 
 // ==========================================
 // 1. HELPERS & CRYPTO UTILITIES
@@ -351,6 +352,7 @@ async function handleStaffOrderWrite(request: Request, env: Env, path: string, t
       return json({ok:true,success:true,key:row.key,status:body.status,revision:expected+1});
     }
     if (tenantCtx.storeStatus === 'paused') throw new DetailError('STORE_PAUSED');
+    if (await tenantIsDeleted(env.DB, tenant)) throw new DetailError('TENANT_DELETED', 403);
     const diningOption: 'dine_in' | 'takeaway' = row ? (row.dining_option || 'dine_in') : (body.diningOption === 'takeaway' || body.dining_option === 'takeaway' ? 'takeaway' : 'dine_in');
     if (diningOption === 'dine_in' && !tenantCtx.allowDineIn) throw new DetailError('DINE_IN_DISABLED',403);
     const requestId = body.requestId;
