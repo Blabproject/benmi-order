@@ -505,6 +505,7 @@ function calculateCategoryBundleSubtotal(rule, items) {
 }
 
 function updateTotal() {
+    window.LinePayCheckout?.onCartChange?.();
     if (typeof updateCustomizationThresholdUI === 'function') {
         updateCustomizationThresholdUI();
     }

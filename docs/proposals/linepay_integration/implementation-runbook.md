@@ -45,4 +45,4 @@ Tất cả API cần tenant_id hoặc X-Tenant-ID; tất cả phản hồi payme
 
 ## Giới hạn bản đầu
 
-Đơn mang đi mới, TWD nguyên dương, không sửa giá/gọi thêm với đơn LINE Pay, không hoàn một phần, không offline. Client giữ checkout hiện hành trong localStorage cùng origin để phục hồi; không lưu access token LINE. Tenant chưa có connection dùng tiền mặt như trước. Chỉ mở pilot thật sau khi các bước sandbox và đối chiếu ở trên đạt.
+Đơn mang đi mới, TWD nguyên dương, không sửa giá/gọi thêm với đơn LINE Pay, không hoàn một phần, không offline. Client giữ checkout chưa xác minh trong localStorage cùng origin để phục hồi; checkout đã trả tiền được dọn khi mở lại menu hoặc bắt đầu giỏ mới, phản hồi cũ không ghi đè phiên mới; không lưu access token LINE. Tenant chưa có connection dùng tiền mặt như trước. Chỉ mở pilot thật sau khi các bước sandbox và đối chiếu ở trên đạt.

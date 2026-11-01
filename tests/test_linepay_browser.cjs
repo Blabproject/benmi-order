@@ -118,3 +118,74 @@ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('LINE 
   assert.equal(await page.evaluate(()=>sessionStorage.getItem('staff_session_token_a')),'valid-two');
  }finally{await browser.close();}
 });
+async function cartPaymentFixture(browser,{completed=false,restoreQty=1,defer=false}={}) {
+ const page=await browser.newPage();
+ await page.route('https://fixture.test/**',route=>route.fulfill({contentType:'text/html',body:'<main><section id="sec-checkout"><div id="cart-summary"></div></section><button id="add-meal" onclick="updateQty(\'food\',\'Meal\',1)">Add meal</button></main>'}));
+ await page.goto('https://fixture.test/?tenant_id=a&lang=vi&payment_id=old-payment&transactionId=old-transaction&orderId=old-order#menu');
+ await page.evaluate(({completed,restoreQty,defer})=>{
+  window.WORKER_BASE='https://api.test';window.getTenantIdFromUrl=()=> 'a';window.currentLocale='vi';
+  window.cart=restoreQty?{food_Meal:restoreQty}:{};window.customizeData={};window.comboDrinkData={};window.bundleCartData={};
+  window.bootstrapData={catalog:[{slug:'food',items:[{id:'meal',name:'Meal',price:100}]}],customizations:[]};
+  window.resolveCatalogItem=()=>({origName:'Meal',displayName:'Meal',basePrice:100});window.shouldAutoOpenItemOptions=()=>false;
+  window.escapeHtml=value=>String(value);window.detailCompleted=0;window.DetailCheckout={completed:()=>detailCompleted++};
+  window.payCalls=[];window.deferConfirm=defer;window.confirmStarted=false;
+  if(completed||defer)localStorage.setItem('linepay_checkout:a',JSON.stringify({id:'old-payment',token:'b'.repeat(64),completed}));
+  window.fetch=async(url,opts)=>{
+   payCalls.push({url,token:opts?.headers?.['X-Payment-Token'],body:opts?.body?JSON.parse(opts.body):null});
+   if(url.includes('/config'))return new Response(JSON.stringify({linePay:{enabled:true}}));
+   if(url.includes('/request'))return new Response(JSON.stringify({id:'payment-'+payCalls.filter(c=>c.url.includes('/request')).length,status:'PENDING'}));
+   const paid={id:'old-payment',status:'PAID',paidAt:Date.now(),amount:100,displayKey:'OLD-001'};
+   if(deferConfirm){confirmStarted=true;return new Promise(resolve=>{window.resolveConfirm=()=>resolve(new Response(JSON.stringify(paid)));});}
+   return new Response(JSON.stringify(paid));
+  };
+ },{completed,restoreQty,defer});
+ await page.addScriptTag({content:fs.readFileSync('js/client-cart.js','utf8')});
+ await page.addScriptTag({content:client});
+ return page;
+}
+for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('LINE Pay '+name+': new carts retire paid receipts and stale callbacks cannot erase or relabel them',async()=>{
+ const browser=await engine.launch({headless:true});try{
+  const page=await cartPaymentFixture(browser);await page.waitForSelector('#payment-method');
+  await page.evaluate(()=>LinePayCheckout.start({detailVersion:1,dining_option:'takeaway',operationId:'first-operation-id'}));
+  const firstToken=await page.evaluate(()=>JSON.parse(localStorage.getItem('linepay_checkout:a')).token);
+  await page.evaluate(()=>LinePayCheckout.resume());await page.locator('.payment-receipt-key').filter({hasText:'OLD-001'}).waitFor();
+  assert.deepEqual(await page.evaluate(()=>cart),{});
+  await page.locator('#add-meal').click();
+  assert.equal(await page.locator('#payment-result').count(),0);assert.equal(await page.evaluate(()=>LinePayCheckout.blocked()),false);
+  assert.equal(await page.evaluate(()=>cart.food_Meal),1);
+  assert.equal(await page.evaluate(()=>localStorage.getItem('linepay_checkout:a')),null);
+  await page.evaluate(()=>LinePayCheckout.start({detailVersion:1,dining_option:'takeaway',operationId:'second-operation-id'}));
+  const requests=await page.evaluate(()=>payCalls.filter(c=>c.url.includes('/request')));
+  assert.equal(requests.length,2);assert.notEqual(requests[1].token,firstToken);
+  assert.equal(requests[1].body.operationId,'second-operation-id');
+  assert.doesNotMatch(await page.locator('#payment-result').innerText(),/OLD-001|Thanh toán thành công/);
+  await page.close();
+
+  // Migrate sessions already marked completed by older deployed clients on reload.
+  const restored=await cartPaymentFixture(browser,{completed:true,restoreQty:3});await restored.waitForSelector('#payment-method');
+  assert.equal(await restored.locator('#payment-result').count(),0);
+  assert.equal(await restored.evaluate(()=>cart.food_Meal),3);
+  assert.equal(await restored.evaluate(()=>payCalls.filter(c=>!c.url.includes('/config')).length),0);
+  const url=new URL(restored.url());assert.equal(url.searchParams.get('lang'),'vi');assert.equal(url.hash,'#menu');
+  for(const param of ['payment_id','transactionId','orderId'])assert.equal(url.searchParams.has(param),false);
+  await restored.close();
+
+  // A response for a replaced checkout must not recreate an old receipt or clear a new cart.
+  const stale=await cartPaymentFixture(browser,{restoreQty:3,defer:true});await stale.waitForFunction(()=>confirmStarted);
+  await stale.evaluate(()=>{localStorage.setItem('linepay_checkout:a',JSON.stringify({id:'new-payment',token:'c'.repeat(64)}));resolveConfirm();});
+  await stale.waitForSelector('#payment-method');
+  assert.equal(await stale.locator('#payment-result').count(),0);assert.equal(await stale.evaluate(()=>cart.food_Meal),3);
+  assert.equal(await stale.evaluate(()=>JSON.parse(localStorage.getItem('linepay_checkout:a')).id),'new-payment');
+  await stale.close();
+
+  // Preserve a changed draft even when the late paid response belongs to this same session.
+  const late=await cartPaymentFixture(browser);await late.waitForSelector('#payment-method');
+  await late.evaluate(()=>LinePayCheckout.start({detailVersion:1,dining_option:'takeaway',operationId:'late-operation-id'}));
+  await late.evaluate(()=>{deferConfirm=true;window.lateResume=LinePayCheckout.resume();});await late.waitForFunction(()=>confirmStarted);
+  await late.locator('#add-meal').click();
+  assert.equal(await late.evaluate(()=>LinePayCheckout.blocked()),true);
+  await late.evaluate(()=>resolveConfirm());await late.evaluate(()=>lateResume);
+  assert.equal(await late.evaluate(()=>cart.food_Meal),2);assert.equal(await late.locator('#payment-result').count(),0);
+  assert.equal(await late.evaluate(()=>LinePayCheckout.blocked()),false);await late.close();
+ }finally{await browser.close();}
+});

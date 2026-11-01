@@ -7,10 +7,35 @@ window.LinePayCheckout = (function () {
   function read() { try { return JSON.parse(localStorage.getItem(key()) || 'null'); } catch (_) { return null; } }
   function save(value) { pending = value; localStorage.setItem(key(), JSON.stringify(value)); }
   function selected() { return document.getElementById('payment-method')?.value === 'line_pay'; }
-  function blocked() { return !!read(); }
-  async function api(path, body) {
+  function hasCartItems() { return Object.values(window.cart || {}).some(qty => Number(qty) > 0); }
+  function cartSignature() {
+    return JSON.stringify({cart:window.cart || {},customizeData:window.customizeData || {},
+      comboDrinkData:window.comboDrinkData || {},bundleCartData:window.bundleCartData || {}},
+      (_,value) => value && typeof value === 'object' && !Array.isArray(value)
+        ? Object.fromEntries(Object.keys(value).sort().map(name => [name,value[name]])) : value);
+  }
+  function sameSession(session) { return !!session && read()?.token === session.token; }
+  function cleanCallbackUrl() {
+    const url = new URL(location.href);
+    for (const name of ['payment_id','transactionId','orderId']) url.searchParams.delete(name);
+    history.replaceState(history.state,'',url.pathname + url.search + url.hash);
+  }
+  function discard(session) {
+    if (!sameSession(session)) return;
+    clearTimeout(pollTimer); pollTimer=null;
+    localStorage.removeItem(key()); pending=null;
+    document.getElementById('payment-result')?.remove();
+    cleanCallbackUrl();
+    if (typeof DetailCheckout !== 'undefined') DetailCheckout.completed();
+  }
+  function onCartChange() {
+    const saved=read();
+    if (saved?.completed && hasCartItems()) discard(saved);
+  }
+  function blocked() { onCartChange(); return !!read() && !read()?.completed; }
+  async function api(path, body, session) {
     const res = await fetch(WORKER_BASE + path + '?tenant_id=' + encodeURIComponent(getTenantIdFromUrl()), {
-      method: body === undefined ? 'GET' : 'POST', headers: { 'Content-Type': 'application/json', 'X-Payment-Token': pending.token },
+      method: body === undefined ? 'GET' : 'POST', headers: { 'Content-Type': 'application/json', 'X-Payment-Token': session.token },
       body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(65000)
     });
     const data = await res.json(); if (!res.ok) throw new Error(data.code || 'PAYMENT_FAILED'); return data;
@@ -67,7 +92,8 @@ window.LinePayCheckout = (function () {
     } else body.append(element('p', 'payment-receipt-note', OrderDetailView.text(snapshot)));
     details.append(body); return details;
   }
-  function render(data) {
+  function render(data, session) {
+    if (!sameSession(session)) return;
     const el = panel(); el.replaceChildren();
     const paid = data?.paidAt, terminal = ['CANCELLED','FAILED'].includes(data?.status);
     el.classList.add('payment-result-card');
@@ -96,14 +122,20 @@ window.LinePayCheckout = (function () {
     button.textContent = paid || terminal ? text('返回菜單', 'Quay lại menu') : data?.paymentUrl
       ? text('開啟 LINE Pay', 'Mở LINE Pay') : text('重新確認付款', 'Kiểm tra lại thanh toán');
     button.onclick = () => {
-      if (paid || terminal) { localStorage.removeItem(key()); pending=null; el.remove(); history.replaceState(null,'',location.pathname+'?tenant_id='+encodeURIComponent(getTenantIdFromUrl())); }
+      if (paid || terminal) discard(session);
       else if(data?.paymentUrl) launch(data);
       else resume();
     };
     el.append(button); el.scrollIntoView({block:'center',behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
-    if (paid && !pending?.completed) {
+    if (paid || terminal) cleanCallbackUrl();
+    if (paid && !session.completed) {
       // Only clear the purchased cart once; a refreshed receipt must not clear a new cart.
-      save({...pending, completed:true});
+      save({...session, completed:true});
+      // The customer may have edited the cart while the provider was processing.
+      // Retire the paid session without erasing a different draft.
+      if (session.cartSignature && hasCartItems() && cartSignature() !== session.cartSignature) {
+        discard(read()); return;
+      }
       if(typeof cart!=='undefined') {cart={};window.cart=cart;}
       if(typeof customizeData!=='undefined') {customizeData={};window.customizeData=customizeData;}
       if(typeof comboDrinkData!=='undefined') {comboDrinkData={};window.comboDrinkData=comboDrinkData;}
@@ -117,29 +149,39 @@ window.LinePayCheckout = (function () {
     location.assign(inLine && data.appUrl ? data.appUrl : data.paymentUrl);
   }
   async function resume(openPayment) {
-    if(busy)return; pending=read();if(!pending)return;busy=true;
+    if(busy)return;
+    const session=read();
+    if(!session)return;
+    if(session.completed){discard(session);return;}
+    pending=session;busy=true;
     try {
       let data;
-      if(!pending.id) {
+      if(!session.id) {
         const lineAccessToken=typeof liff!=='undefined' && liff.isLoggedIn() ? liff.getAccessToken() : undefined;
-        data=await api('/api/payments/linepay/request',{...pending.payload,lineAccessToken});save({...pending,id:data.id});}
-      else data=await api('/api/payments/'+pending.id+'/confirm',{});
-      render(data);
+        data=await api('/api/payments/linepay/request',{...session.payload,lineAccessToken},session);
+        if(!sameSession(session))return;
+        session.id=data.id;save(session);
+      } else data=await api('/api/payments/'+session.id+'/confirm',{},session);
+      if(!sameSession(session))return;
+      render(data,session);
       clearTimeout(pollTimer);
+      if(!sameSession(session))return;
       if(openPayment && data.paymentUrl) {launch(data);return;}
       if(!data.paidAt && !['CANCELLED','FAILED'].includes(data.status))pollTimer=setTimeout(()=>{if(!document.hidden)resume();},5000);
-    }catch(_){render(null);}finally{busy=false;}
+    }catch(_){if(sameSession(session))render(null,session);}finally{busy=false;}
   }
   async function start(payload) {
+    const saved=read();if(saved?.completed)discard(saved);
     if(read()) {await resume();return;}
     if(payload.dining_option!=='takeaway'||payload.detailVersion!==1)throw new Error(text('LINE Pay 僅支援新的外帶訂單。','LINE Pay chỉ hỗ trợ đơn mang đi mới.'));
     const token=Array.from(crypto.getRandomValues(new Uint8Array(32)), b=>b.toString(16).padStart(2,'0')).join('');
     // Persist before POST, so a lost response reuses the exact operation and payload.
-    save({token,payload});await resume(true);
+    save({token,payload,cartSignature:cartSignature()});await resume(true);
   }
   async function init() {
     const sec=document.getElementById('sec-checkout');if(!sec)return;
-    pending=read(); if(pending)await resume();
+    pending=read(); if(pending?.completed)discard(pending);
+    else if(pending)await resume();
     else if(new URLSearchParams(location.search).has('payment_id')) {
       panel().textContent=text('請返回原本的點餐視窗查詢付款，請勿重複下單。','Vui lòng quay lại cửa sổ đặt món ban đầu để kiểm tra thanh toán, chưa đặt lại đơn.');
     }
@@ -156,5 +198,5 @@ window.LinePayCheckout = (function () {
     }catch(_){}
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else setTimeout(init,0);
-  return {selected,blocked,start,resume};
+  return {selected,blocked,start,resume,onCartChange};
 })();
