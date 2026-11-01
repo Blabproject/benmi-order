@@ -7,7 +7,7 @@
   <title id="pos-page-title">Blab POS</title>
   <base href="/" />
   <script src="js/orders-display.js?v=20261007_dev_main_sync_v1"></script>
-  <link rel="stylesheet" href="css/orders.css?v=20261101_staff_takeaway_v1" />
+  <link rel="stylesheet" href="css/orders.css?v=20261102_hide_staff_order_v1" />
   <link rel="stylesheet" href="css/orders-menu.css?v=20261027_menu_mobile_v3" />
     <script>
       (function () {
@@ -150,7 +150,7 @@
         </button>
 
         <!-- 4. Staff Ordering (Shown when enabled) -->
-        <button type="button" class="sidebar-nav-item" id="tab-staff-order" data-tab="staff-order" onclick="switchTab('staff-order')" style="display: none;" aria-label="桌邊點餐">
+        <button type="button" class="sidebar-nav-item" id="tab-staff-order" data-tab="staff-order" onclick="switchTab('staff-order')" style="display: none !important;" hidden aria-label="桌邊點餐">
           <div class="nav-item-icon">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"></path>
@@ -2923,7 +2923,7 @@
 
   <!-- Benmi POS Modular Architecture Scripts -->
   <script src="js/orders-i18n.js?v=20261101_payment_auth_v3"></script>
-  <script src="js/orders-core.js?v=20261101_staff_takeaway_v1"></script>
+  <script src="js/orders-core.js?v=20261102_hide_staff_order_v1"></script>
   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
   <script src="js/order-detail-view.js?v=20261017_order_detail_v1"></script>

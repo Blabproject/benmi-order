@@ -188,6 +188,13 @@ button.sidebar-nav-item.mini-btn {
   box-shadow: none !important;
 }
 
+.sidebar-nav-item[hidden],
+.sidebar-nav-item.is-hidden,
+.sidebar-nav-item[style*="display: none"],
+.sidebar-nav-item[style*="display:none"] {
+  display: none !important;
+}
+
 .sidebar-nav-item:hover,
 button.sidebar-nav-item:hover {
   background: #f3f4f6 !important;
