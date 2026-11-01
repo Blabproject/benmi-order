@@ -50,6 +50,11 @@ test('callback parameters are never redirected, including primary LIFF state',as
 });
 test('tenant conflict, unavailable config, assets and POST do not redirect',async()=>{
   assert.equal((await dispatch('/tenant-a?tenant_id=other')).response.status,400);
+  for(const path of ['/payment-result?tenant_id=tenant-a&payment_id=p1','/staff-order?tenant_id=tenant-a']) {
+    const r=await dispatch(path,'blabfood');
+    assert.equal(await r.response.text(),'next');
+    assert.equal(r.configs.length,0);
+  }
   assert.equal((await dispatch('/tenant-a','legacy','GET',true)).response.status,503);
   for(const [path,method] of [['/js/client-core.js','GET'],['/tenant-a','POST']]) {
     const r=await dispatch(path,'legacy',method);

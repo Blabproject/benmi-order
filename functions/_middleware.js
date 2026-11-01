@@ -56,6 +56,8 @@ const RESERVED_POS_PATHS = new Set([
   "marketplace.html",
   "landing",
   "landing.html",
+  "payment-result",
+  "staff-order",
   "favicon.ico",
   "robots.txt",
   "manifest.json",
