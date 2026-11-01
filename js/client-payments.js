@@ -21,19 +21,78 @@ window.LinePayCheckout = (function () {
       el.setAttribute('aria-live', 'polite'); document.getElementById('sec-checkout')?.prepend(el); }
     return el;
   }
+  function element(tag, className, value) {
+    const el = document.createElement(tag); el.className = className;
+    if (value !== undefined) el.textContent = value;
+    return el;
+  }
+  // Lucide check / clock / credit-card geometry, MIT license; no decorative emoji.
+  function icon(kind) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    for (const [key, value] of Object.entries({viewBox:'0 0 24 24',width:'20',height:'20',fill:'none',stroke:'currentColor','stroke-width':'1.8','stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true'})) svg.setAttribute(key, value);
+    const paths = kind === 'check' ? ['M20 6 9 17l-5-5'] : kind === 'clock'
+      ? ['M12 8v4l3 2', 'M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0']
+      : ['M2 8h20', 'M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2'];
+    for (const d of paths) { const path = document.createElementNS(svg.namespaceURI, 'path'); path.setAttribute('d', d); svg.append(path); }
+    return svg;
+  }
+  function receiptDetails(snapshot) {
+    const details = element('details', 'payment-receipt-details');
+    const summary = element('summary', 'payment-receipt-toggle', text('查看訂單明細', 'Xem chi tiết đơn'));
+    details.append(summary);
+    const body = element('div', 'payment-receipt-body');
+    if (OrderDetailView.isSnapshot?.(snapshot)) {
+      const choices = OrderDetailView.globalChoices(snapshot);
+      if (choices.length) {
+        const list = element('dl', 'payment-receipt-choices');
+        for (const choice of choices) {
+          const row = element('div', 'payment-receipt-choice');
+          row.append(element('dt', '', choice.label), element('dd', '', choice.value)); list.append(row);
+        }
+        body.append(list);
+      }
+      const items = element('ul', 'payment-receipt-items');
+      for (const line of OrderDetailView.lines(snapshot)) {
+        const item = element('li', 'payment-receipt-item');
+        const heading = element('div', 'payment-receipt-line');
+        heading.append(element('span', 'payment-receipt-name', line.quantity + ' × ' + line.name),
+          element('span', 'payment-receipt-price', '$' + line.subtotal)); item.append(heading);
+        for (const option of line.options) item.append(element('p', 'payment-receipt-note', option.choice));
+        if (line.note) item.append(element('p', 'payment-receipt-note', line.note));
+        items.append(item);
+      }
+      body.append(items);
+      const note = OrderDetailView.notes(snapshot);
+      if (note) body.append(element('p', 'payment-receipt-note', note));
+    } else body.append(element('p', 'payment-receipt-note', OrderDetailView.text(snapshot)));
+    details.append(body); return details;
+  }
   function render(data) {
     const el = panel(); el.replaceChildren();
-    const title = document.createElement('p');
     const paid = data?.paidAt, terminal = ['CANCELLED','FAILED'].includes(data?.status);
-    title.textContent = paid ? text('付款成功，門市已收到訂單。', 'Thanh toán thành công, quán đã nhận đơn.') : terminal
-      ? text('尚未付款，請返回購物車。', 'Chưa thanh toán. Bạn có thể quay lại giỏ hàng.')
-      : text('正在確認付款，請勿重複下單。', 'Đang xác minh thanh toán. Vui lòng chưa đặt lại đơn.');
-    el.append(title);
-    if (data?.displayKey) { const receipt = document.createElement('p'); receipt.textContent = '#'+data.displayKey+' · TWD '+data.amount; el.append(receipt); }
-    if (data?.receipt && window.OrderDetailView) {
-      const details = document.createElement('pre'); details.style.whiteSpace = 'pre-wrap'; details.textContent = OrderDetailView.text(data.receipt); el.append(details);
+    el.classList.add('payment-result-card');
+    el.dataset.state = paid ? 'paid' : terminal ? 'cancelled' : 'pending';
+    const heading = element('div', 'payment-result-heading');
+    const mark = element('span', 'payment-result-mark'); mark.append(icon(paid ? 'check' : 'clock'));
+    const titles = element('div', 'payment-result-titles');
+    titles.append(element('h3', 'payment-result-title', paid ? text('付款成功', 'Thanh toán thành công')
+      : terminal ? text('尚未付款', 'Chưa thanh toán') : text('正在確認付款', 'Đang xác minh thanh toán')));
+    titles.append(element('p', 'payment-result-description', paid ? text('門市已收到您的訂單。', 'Quán đã nhận đơn của bạn.')
+      : terminal ? text('您可以返回購物車重新選擇。', 'Bạn có thể quay lại giỏ hàng.')
+      : text('請稍候，暫時無需重新下單。', 'Vui lòng chờ, chưa cần đặt lại đơn.')));
+    heading.append(mark, titles); el.append(heading);
+    if (data?.displayKey) {
+      const meta = element('div', 'payment-receipt-meta');
+      const identity = element('div', 'payment-receipt-identity');
+      identity.append(element('span', 'payment-receipt-label', text('訂單編號', 'Mã đơn')),
+        element('strong', 'payment-receipt-key', '#' + data.displayKey));
+      const amount = element('div', 'payment-receipt-amount');
+      amount.append(element('span', 'payment-receipt-label', paid ? text('已付金額', 'Đã thanh toán') : text('訂單金額', 'Giá trị đơn')),
+        element('strong', 'payment-receipt-total', 'TWD ' + data.amount));
+      meta.append(identity, amount); el.append(meta);
     }
-    const button = document.createElement('button'); button.type='button';button.className='payment-button';
+    if (data?.receipt && window.OrderDetailView) el.append(receiptDetails(data.receipt));
+    const button = element('button', 'payment-button payment-result-button'); button.type='button';
     button.textContent = paid || terminal ? text('返回菜單', 'Quay lại menu') : data?.paymentUrl
       ? text('開啟 LINE Pay', 'Mở LINE Pay') : text('重新確認付款', 'Kiểm tra lại thanh toán');
     button.onclick = () => {
@@ -41,7 +100,7 @@ window.LinePayCheckout = (function () {
       else if(data?.paymentUrl) launch(data);
       else resume();
     };
-    el.append(button); el.scrollIntoView({block:'center',behavior:'smooth'});
+    el.append(button); el.scrollIntoView({block:'center',behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
     if (paid && !pending?.completed) {
       // Only clear the purchased cart once; a refreshed receipt must not clear a new cart.
       save({...pending, completed:true});
@@ -87,9 +146,9 @@ window.LinePayCheckout = (function () {
     try {
       const res=await fetch(WORKER_BASE+'/api/payments/config?tenant_id='+encodeURIComponent(getTenantIdFromUrl()));
       const config=await res.json();if(!config.linePay?.enabled)return;
-      const group=document.createElement('div');group.className='payment-panel';
-      const label=document.createElement('label');label.htmlFor='payment-method';label.textContent=text('付款方式','Phương thức thanh toán');
-      const select=document.createElement('select');select.id='payment-method';select.className='payment-button';
+      const group=document.createElement('div');group.className='payment-method-section';
+      const label=document.createElement('label');label.htmlFor='payment-method';label.className='payment-method-label';label.append(icon('card'));label.append(document.createTextNode(text('付款方式','Phương thức thanh toán')));
+      const select=document.createElement('select');select.id='payment-method';select.className='payment-method-select';
       for(const [value,title] of [['cash',text('取餐時付款','Trả tại quầy')],['line_pay','LINE Pay']]) {
         const option=document.createElement('option');option.value=value;option.textContent=title;select.append(option);
       }

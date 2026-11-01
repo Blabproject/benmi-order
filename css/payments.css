@@ -8,3 +8,45 @@
 .payment-dialog::backdrop{background:#0008}
 .payment-dialog label{display:block;margin:12px 0 6px}
 .payment-dialog input,.payment-dialog textarea{display:block;box-sizing:border-box;width:100%;min-height:48px;padding:12px;font:inherit;border:1px solid #64748b;border-radius:8px}
+
+/* Customer checkout: quiet surfaces, clear type and one brand accent. */
+#sec-checkout .payment-method-section{margin:0 0 18px}
+#sec-checkout .payment-method-label{display:flex;align-items:center;gap:8px;margin:0 0 10px;color:var(--text,#1f2937);font-size:15px;font-weight:700}
+#sec-checkout .payment-method-label svg{flex:none;color:var(--primary,#059669)}
+#sec-checkout .payment-method-select{appearance:none;-webkit-appearance:none;box-sizing:border-box;width:100%;min-height:48px;padding:12px 40px 12px 14px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafb url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center;color:var(--text,#1f2937);font:inherit;font-size:14px;cursor:pointer;transition:border-color .15s,background-color .15s}
+#sec-checkout .payment-method-select:hover{border-color:#cbd5e1;background-color:#fff}
+#sec-checkout .payment-method-select:focus-visible{outline:2px solid var(--primary,#059669);outline-offset:3px}
+#sec-checkout .payment-result-card{padding:18px;margin:0 0 22px;border:1px solid #e8edf0;border-radius:14px;background:#fafcfb;font-family:inherit;line-height:1.5}
+#sec-checkout .payment-result-heading{display:flex;align-items:flex-start;gap:10px}
+#sec-checkout .payment-result-mark{display:flex;align-items:center;justify-content:center;flex:0 0 30px;width:30px;height:30px;border-radius:50%;background:#f1f5f9;color:#64748b}
+#sec-checkout [data-state="paid"] .payment-result-mark{background:#e7f5ee;color:#047857}
+#sec-checkout .payment-result-titles{min-width:0}
+#sec-checkout .payment-result-title{margin:0;font-size:15px;font-weight:750;letter-spacing:-.15px;color:#1f2937}
+#sec-checkout .payment-result-description{margin:4px 0 0;font-size:12.5px;font-weight:400;line-height:1.65;color:#64748b}
+#sec-checkout .payment-receipt-meta{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid #e5ebe8}
+#sec-checkout .payment-receipt-identity,#sec-checkout .payment-receipt-amount{display:flex;flex-direction:column;gap:4px;min-width:0}
+#sec-checkout .payment-receipt-amount{margin-left:auto;text-align:right}
+#sec-checkout .payment-receipt-label{font-size:11.5px;color:#64748b}
+#sec-checkout .payment-receipt-key{font-size:13px;font-weight:600;overflow-wrap:anywhere;color:#334155;font-variant-numeric:tabular-nums}
+#sec-checkout .payment-receipt-total{font-size:19px;font-weight:750;letter-spacing:-.35px;font-variant-numeric:tabular-nums;color:#1f2937}
+#sec-checkout .payment-receipt-details{margin-top:12px;border-top:1px solid #e5ebe8}
+#sec-checkout .payment-receipt-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:48px;padding:8px 0;list-style:none;cursor:pointer;font-size:12.5px;font-weight:500;color:#475569}
+#sec-checkout .payment-receipt-toggle::-webkit-details-marker{display:none}
+#sec-checkout .payment-receipt-toggle::after{content:'';width:6px;height:6px;margin-right:3px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);flex:none}
+#sec-checkout .payment-receipt-details[open] .payment-receipt-toggle::after{transform:rotate(225deg)}
+#sec-checkout .payment-receipt-toggle:focus-visible{outline:2px solid var(--primary,#059669);outline-offset:2px;border-radius:4px}
+#sec-checkout .payment-receipt-body{padding:0 0 12px;font-family:inherit;font-size:13px;overflow-wrap:anywhere}
+#sec-checkout .payment-receipt-choices{margin:0 0 12px;font-size:12px;color:#64748b}
+#sec-checkout .payment-receipt-choice{display:flex;justify-content:space-between;gap:12px;padding:3px 0}
+#sec-checkout .payment-receipt-choice dt{font-weight:400}
+#sec-checkout .payment-receipt-choice dd{margin:0;text-align:right;color:#475569}
+#sec-checkout .payment-receipt-items{padding:0;margin:0;list-style:none}
+#sec-checkout .payment-receipt-item+.payment-receipt-item{margin-top:10px}
+#sec-checkout .payment-receipt-line{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+#sec-checkout .payment-receipt-name{font-weight:500;color:#334155}
+#sec-checkout .payment-receipt-price{flex:none;color:#475569;font-variant-numeric:tabular-nums}
+#sec-checkout .payment-receipt-note{margin:4px 0 0;font-family:inherit;font-size:12px;line-height:1.65;color:#64748b;white-space:pre-wrap}
+#sec-checkout .payment-result-button{width:100%;margin-top:4px;border-color:#dce5e0;border-radius:10px;background:#fff;font-size:13px;font-weight:600;color:#334155;transition:border-color .15s,background-color .15s}
+#sec-checkout .payment-result-button:hover{background:#f3f7f5;border-color:#b8cec2}
+#sec-checkout .payment-result-button:focus-visible{outline-color:var(--primary,#059669)}
+@media(prefers-reduced-motion:reduce){#sec-checkout .payment-method-select,#sec-checkout .payment-result-button{transition:none}}

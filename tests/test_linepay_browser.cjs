@@ -16,9 +16,10 @@ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('LINE 
     calls.push({url,method:opts?.method});
     if(url.includes('/config'))return new Response(JSON.stringify({linePay:{enabled:true,configured:true}}));
     if(url.includes('/request'))return new Response(JSON.stringify({id:'11111111-1111-4111-8111-111111111111',status:'UNKNOWN'}));
-    return new Response(JSON.stringify({id:'11111111-1111-4111-8111-111111111111',status:'PAID',paidAt:Date.now(),amount:100,displayKey:'A001'}));
+    return new Response(JSON.stringify({id:'11111111-1111-4111-8111-111111111111',status:'PAID',paidAt:Date.now(),amount:100,displayKey:'A001',receipt:{schemaVersion:1,total:100,rounds:[{roundNumber:1,groups:[],note:'',items:[{lineId:'meal',itemId:'meal',name:'Meal',quantity:1,unitPrice:100,subtotal:100,portions:[{portionIndex:0,groups:[],note:''}],note:''}]}]}}));
    };
   });
+  await page.addScriptTag({content:fs.readFileSync('js/order-detail-view.js','utf8')});
   await page.addScriptTag({content:client});
   await page.waitForSelector('#payment-method');
   await page.selectOption('#payment-method','line_pay');
@@ -28,6 +29,14 @@ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('LINE 
   await page.evaluate(()=>LinePayCheckout.resume());
   assert.match(await page.locator('#payment-result').innerText(),/Thanh toán thành công/);
   assert.deepEqual(await page.evaluate(()=>window.cart),{});
+  assert.equal(await page.locator('.payment-receipt-details').evaluate(el=>el.open),false);
+  await page.locator('.payment-receipt-toggle').click();
+  assert.equal(await page.locator('.payment-receipt-details').evaluate(el=>el.open),true);
+  assert.match(await page.locator('.payment-receipt-items').innerText(),/1 × Meal/);
+  assert.equal(await page.locator('#payment-result pre').count(),0);
+  const methodBox=await page.locator('#payment-method').boundingBox();assert.ok(methodBox.height>=48);
+  const resultBox=await page.locator('#payment-result').boundingBox();assert.ok(resultBox.width<=390);
+
   assert.equal(await page.evaluate(()=>calls.filter(x=>x.url.includes('/request')).length),1);
   await page.locator('#payment-result button').click();
   assert.equal(await page.evaluate(()=>LinePayCheckout.blocked()),false);
