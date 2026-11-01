@@ -30,6 +30,7 @@ const I18N = {
     tabLive: "即時",
     tabHistory: "歷史",
     tabReports: "報表",
+    tabStaffOrder: "桌邊點餐",
     tabSound: "測試音效",
     tabPrinter: "印表機",
     tabMenu: "菜單",
@@ -1028,6 +1029,7 @@ const I18N = {
     tabLive: "Trực tiếp",
     tabHistory: "Lịch sử",
     tabReports: "Báo cáo",
+    tabStaffOrder: "Nhận đơn tại bàn",
     tabSound: "Thử âm thanh",
     tabPrinter: "Máy in",
     tabMenu: "Thực đơn",
@@ -2114,6 +2116,11 @@ function applyLanguageToDOM() {
   } else {
     const tabMenu = document.getElementById("tab-menu");
     if (tabMenu) tabMenu.innerText = dict.tabMenu;
+  }
+
+  const labelStaffOrder = document.getElementById("i18n-tab-staff-order");
+  if (labelStaffOrder) {
+    labelStaffOrder.innerText = dict.tabStaffOrder || (currentLang === "vi" ? "Nhận đơn tại bàn" : "桌邊點餐");
   }
 
   const labelPrinter = document.getElementById("i18n-tab-printer");

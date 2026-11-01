@@ -135,7 +135,7 @@ body.staff-body {
   gap: 10px;
 }
 
-.btn-lang-toggle, .btn-logout {
+.btn-lang-toggle, .btn-logout, .btn-back-pos {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -151,7 +151,13 @@ body.staff-body {
   transition: all 0.15s ease;
 }
 
-.btn-lang-toggle:hover, .btn-logout:hover {
+.btn-back-pos {
+  background: #f1f5f9;
+  color: #1e293b;
+  border-color: #cbd5e1;
+}
+
+.btn-lang-toggle:hover, .btn-logout:hover, .btn-back-pos:hover {
   background: #e2e8f0;
 }
 

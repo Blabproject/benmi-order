@@ -1650,6 +1650,10 @@ async function checkStaffOrderingCapability() {
       if (btnPill) {
         btnPill.style.display = data.capabilities?.pos_entry ? "inline-flex" : "none";
       }
+      const sideStaffTab = document.getElementById("tab-staff-order");
+      if (sideStaffTab) {
+        sideStaffTab.style.display = data.capabilities?.pos_entry ? "inline-flex" : "none";
+      }
       const lockedBody = document.getElementById("setting-tables-locked-body");
       const unlockedBody = document.getElementById("setting-tables-unlocked-body");
       const addBtn = document.getElementById("i18n-table-add-btn");
@@ -1948,11 +1952,15 @@ async function toggleTableActive(tableId, newActive) {
 }
 
 function openStaffOrderWindow() {
+  if (typeof switchTab === "function") {
+    switchTab("staff-order");
+    return;
+  }
   const tenantId = (typeof getTenantIdFromUrl === "function" && getTenantIdFromUrl()) || "";
   if (!tenantId) return;
   const environment = WORKER_BASE.includes("-staging.") ? "staging" : WORKER_BASE.includes("-dev.") ? "dev" : "prod";
   const url = `staff-order.html?tenant_id=${encodeURIComponent(tenantId)}&env=${environment}`;
-  window.open(url, "_blank");
+  window.location.href = url;
 }
 
 window.checkStaffOrderingCapability = checkStaffOrderingCapability;

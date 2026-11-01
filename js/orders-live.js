@@ -663,6 +663,8 @@ function updateNewAlert() {
 
   if (totalCount <= 0) {
     alertEl.style.display = "none";
+    const toast = document.getElementById("staff-order-alert-toast");
+    if (toast) toast.style.display = "none";
     newAlertSnoozeUntilMs = 0;
     snoozedNewOrderKeys = new Set();
     if (typeof newAlertSnoozeTimerId !== 'undefined' && newAlertSnoozeTimerId) {
@@ -679,6 +681,8 @@ function updateNewAlert() {
     const hasBrandNewAppend = (typeof unacknowledgedAppends !== "undefined") && Array.from(unacknowledgedAppends.keys()).some(k => !snoozedNewOrderKeys.has(k));
     if (!hasBrandNew && !hasBrandNewAppend) {
       alertEl.style.display = "none";
+      const toast = document.getElementById("staff-order-alert-toast");
+      if (toast) toast.style.display = "none";
       if (typeof stopContinuousAlarm === "function") stopContinuousAlarm();
       return;
     }
@@ -699,9 +703,38 @@ function updateNewAlert() {
     if (subEl) subEl.innerText = t("alertSub");
   }
 
+  if (typeof activeTab !== "undefined" && activeTab === "staff-order") {
+    alertEl.style.display = "none";
+    if (typeof showStaffOrderMiniToast === "function") {
+      showStaffOrderMiniToast(totalCount);
+    }
+    return;
+  }
+
   alertEl.style.display = "flex";
   if (typeof startContinuousAlarm === "function") startContinuousAlarm();
 }
+
+function showStaffOrderMiniToast(count) {
+  let toast = document.getElementById("staff-order-alert-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "staff-order-alert-toast";
+    toast.style.cssText = "position:fixed; top:12px; right:16px; z-index:9999; background:#0f172a; color:#fff; padding:10px 16px; border-radius:10px; display:flex; align-items:center; gap:12px; box-shadow:0 4px 16px rgba(0,0,0,0.2); font-size:14px; font-weight:700;";
+    document.body.appendChild(toast);
+  }
+  const lang = window.currentLang || (typeof currentLang !== "undefined" ? currentLang : "zh-TW");
+  const msg = lang === "vi" ? `Có ${count} đơn mới đang chờ duyệt` : `有 ${count} 筆新訂單待審核`;
+  const btnText = lang === "vi" ? "Xem ngay" : "查看";
+  toast.innerHTML = `
+    <span>🔔 ${msg}</span>
+    <button type="button" style="background:var(--primary, #10b981); color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:800; cursor:pointer;" onclick="switchTab('live'); if (typeof reviewNextNewOrder==='function') reviewNextNewOrder();">
+      ${btnText}
+    </button>
+  `;
+  toast.style.display = "flex";
+}
+window.showStaffOrderMiniToast = showStaffOrderMiniToast;
 
 function dismissNewAlert() {
   newAlertSnoozeUntilMs = Date.now() + 30_000;
@@ -715,6 +748,8 @@ function dismissNewAlert() {
   }
   const alertEl = document.getElementById("new-alert");
   if (alertEl) alertEl.style.display = "none";
+  const toast = document.getElementById("staff-order-alert-toast");
+  if (toast) toast.style.display = "none";
   if (typeof stopContinuousAlarm === "function") stopContinuousAlarm();
 
   if (typeof newAlertSnoozeTimerId !== 'undefined' && newAlertSnoozeTimerId) {

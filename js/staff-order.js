@@ -32,6 +32,7 @@
   // --- 2. I18N DICTIONARY ---
   const I18N = {
     "vi": {
+      backPos: "Quay lại POS",
       customerPlaceholder:"Ví dụ: Anh Nam, Chị Linh", notePlaceholder:"Ví dụ: Làm nhanh, ít hành",
       invalidSelections:"Vui lòng kiểm tra món hết hàng và chọn đủ tùy chọn trước khi gửi.",
       configureOptions:"Chọn tùy chọn", networkError:"Không thể kết nối. Vui lòng thử lại.", submitFailed:"Gửi đơn thất bại. Vui lòng kiểm tra lại.",
@@ -97,6 +98,7 @@
       flavorCartHeader: "Vị chung cho bàn:"
     },
     "zh-TW": {
+      backPos: "返回訂單",
       customerPlaceholder:"例如：王先生、林小姐", notePlaceholder:"例如：少蔥、儘快出餐",
       invalidSelections:"請檢查售完餐點並完成必選選項後再送出。",
       configureOptions:"設定選項", networkError:"無法連線，請稍後重試。", submitFailed:"訂單送出失敗，請重新確認。",
@@ -212,6 +214,13 @@
   async function initApp() {
     const params = new URLSearchParams(window.location.search);
     state.tenantId = params.get("tenant_id") || params.get("tenant") || (typeof localStorage !== "undefined" && localStorage.getItem("pos_device_tenant_id")) || "";
+    const isEmbedded = params.get("embedded") === "1" || window.self !== window.top;
+
+    if (isEmbedded) {
+      document.body.classList.add("is-embedded-pos");
+      const btnBack = document.getElementById("btn-back-pos");
+      if (btnBack) btnBack.style.display = "inline-flex";
+    }
 
     applyI18nLabels();
 
@@ -247,6 +256,15 @@
     }
   }
 
+  function handleBackToPos() {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "SWITCH_POS_TAB", tab: "live" }, "*");
+    } else {
+      const tenantId = state.tenantId || "";
+      window.location.href = `orders.html?tenant=${encodeURIComponent(tenantId)}`;
+    }
+  }
+
   // --- 5. I18N & LANGUAGE TOGGLE ---
   function applyI18nLabels() {
     document.documentElement.lang = state.currentLang;
@@ -257,6 +275,7 @@
 
     const mapping = {
       "i18n-staff-badge": "staffBadge",
+      "i18n-back-pos": "backPos",
       "i18n-login-title": "loginTitle",
       "i18n-login-desc": "loginDesc",
       "i18n-label-pin": "labelPin",
@@ -1494,6 +1513,15 @@
           roundCount: data.roundCount || 1,
           total: data.total || data.grandTotal || 0
         });
+
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({
+            type: "STAFF_ORDER_SUBMITTED",
+            orderKey: data.orderKey || data.key || data.orderId,
+            displayKey: data.displayKey,
+            roundCount: data.roundCount || 1
+          }, "*");
+        }
       } else {
         if (res.status < 500) sessionStorage.removeItem(pendingKey);
         alert(t("submitFailed"));
@@ -1624,6 +1652,7 @@
   window.changeCartItemQty = changeCartItemQty;
   window.removeCartItem = removeCartItem;
   window.submitStaffOrder = submitStaffOrder;
+  window.handleBackToPos = handleBackToPos;
   window.handleSuccessBackToTables = handleSuccessBackToTables;
   window.handleResolveConflict = handleResolveConflict;
 

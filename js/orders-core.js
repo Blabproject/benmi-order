@@ -372,7 +372,7 @@ async function ensureTenantCustomizations() {
 window.ensureTenantCustomizations = ensureTenantCustomizations;
 
 // Global POS State
-var VALID_POS_TABS = ["live", "history", "menu", "reports", "settings"];
+var VALID_POS_TABS = ["live", "history", "menu", "reports", "settings", "staff-order"];
 
 function getInitialTab() {
   if (typeof window === "undefined") return "live";
@@ -756,12 +756,14 @@ function switchTab(tab) {
   const tabReports = document.getElementById("tab-reports");
   const tabMenu = document.getElementById("tab-menu");
   const tabSettings = document.getElementById("tab-settings");
+  const tabStaffOrder = document.getElementById("tab-staff-order");
 
   if (tabLive) tabLive.classList.toggle("active", tab === "live");
   if (tabHistory) tabHistory.classList.toggle("active", tab === "history");
   if (tabReports) tabReports.classList.toggle("active", tab === "reports");
   if (tabMenu) tabMenu.classList.toggle("active", tab === "menu");
   if (tabSettings) tabSettings.classList.toggle("active", tab === "settings");
+  if (tabStaffOrder) tabStaffOrder.classList.toggle("active", tab === "staff-order");
 
   document.querySelectorAll(".mini-btn").forEach(t => t.classList.remove("active"));
 
@@ -774,12 +776,14 @@ function switchTab(tab) {
   const viewReports = document.getElementById("view-reports");
   const viewSettings = document.getElementById("view-settings");
   const viewMenu = document.getElementById("view-menu");
+  const viewStaffOrder = document.getElementById("view-staff-order");
 
   if (viewLive) viewLive.style.display = tab === "live" ? "flex" : "none";
   if (viewHistory) viewHistory.style.display = tab === "history" ? "block" : "none";
   if (viewReports) viewReports.style.display = tab === "reports" ? "block" : "none";
   if (viewSettings) viewSettings.style.display = tab === "settings" ? "block" : "none";
   if (viewMenu) viewMenu.style.display = tab === "menu" ? "block" : "none";
+  if (viewStaffOrder) viewStaffOrder.style.display = tab === "staff-order" ? "block" : "none";
 
   syncStoreStatusPlacement(tab);
 
@@ -808,6 +812,10 @@ function switchTab(tab) {
     if (typeof openSettings === "function") {
       openSettings();
     }
+  } else if (tab === "staff-order") {
+    if (typeof initStaffOrderFrame === "function") {
+      initStaffOrderFrame();
+    }
   }
 }
 window.switchTab = switchTab;
@@ -821,6 +829,45 @@ if (typeof window !== "undefined" && typeof window.addEventListener === "functio
         switchTab(targetTab);
       }
     } catch (e) {}
+  });
+}
+
+function initStaffOrderFrame() {
+  const frame = document.getElementById("staff-order-iframe");
+  if (!frame) return;
+  const tenantId = (typeof getTenantIdFromUrl === "function" && getTenantIdFromUrl()) || "";
+  if (!tenantId) return;
+
+  const currentSrc = frame.getAttribute("src") || "";
+  if (!currentSrc || currentSrc === "about:blank") {
+    const environment = (typeof WORKER_BASE !== "undefined" && WORKER_BASE.includes("-staging."))
+      ? "staging"
+      : (typeof WORKER_BASE !== "undefined" && WORKER_BASE.includes("-dev."))
+        ? "dev"
+        : "prod";
+    frame.src = `staff-order.html?tenant_id=${encodeURIComponent(tenantId)}&env=${environment}&embedded=1`;
+  }
+}
+window.initStaffOrderFrame = initStaffOrderFrame;
+
+if (typeof window !== "undefined" && !window.__staffOrderMessageListenerBound) {
+  window.__staffOrderMessageListenerBound = true;
+  window.addEventListener("message", (event) => {
+    if (!event || !event.data) return;
+    const data = event.data;
+    if (data.type === "SWITCH_POS_TAB" && data.tab) {
+      if (typeof switchTab === "function") {
+        switchTab(data.tab);
+      }
+    } else if (data.type === "STAFF_ORDER_SUBMITTED") {
+      if (typeof fetchOrders === "function") {
+        fetchOrders();
+      }
+      if (typeof showToast === "function") {
+        const msg = (typeof t === "function" && t("staffOrderSubmittedToast", { key: data.displayKey || "" })) || `Bàn đã gửi đơn thành công! #${data.displayKey || ""}`;
+        showToast(msg, "success");
+      }
+    }
   });
 }
 
@@ -930,9 +977,9 @@ async function fetchOrders() {
     const newStaffArrivals = newArrivals.filter(o => o && o.source === "staff" && o.status === "ACCEPTED");
     const hasNewStaffOrders = !isFirstLoad && newStaffArrivals.length > 0;
 
-    // NEW orders, newly appended rounds, modified orders, or new staff arrivals => alert sound
+    // NEW orders, newly appended rounds, modified orders => alert sound (Staff orders are accepted and do NOT alarm)
     pendingNewOrders = latestOrders.filter(o => o && o.status === "NEW").slice().sort(sortByPickupTimeAsc);
-    if (!isFirstLoad && ((newArrivals.length > 0 && pendingNewOrders.length > 0) || hasNewStaffOrders || hasNewlyAppendedRound || hasNewlyModifiedOrder || unacknowledgedAppends.size > 0)) {
+    if (!isFirstLoad && ((newArrivals.length > 0 && pendingNewOrders.length > 0) || hasNewlyAppendedRound || hasNewlyModifiedOrder || unacknowledgedAppends.size > 0)) {
       if (typeof startContinuousAlarm === "function") startContinuousAlarm();
     }
 
@@ -1239,7 +1286,8 @@ function updatePageMainTitle(tabName) {
     "history": currentLangCode === "vi" ? "Lịch sử đơn" : "歷史訂單",
     "menu": currentLangCode === "vi" ? "Quản lý thực đơn" : "菜單管理",
     "settings": currentLangCode === "vi" ? "Cài đặt hệ thống" : "系統設定",
-    "reports": currentLangCode === "vi" ? "Báo cáo doanh thu" : "營業報表"
+    "reports": currentLangCode === "vi" ? "Báo cáo doanh thu" : "營業報表",
+    "staff-order": currentLangCode === "vi" ? "Nhận đơn tại bàn" : "桌邊點餐"
   };
   titleEl.textContent = titles[tabName] || (currentLangCode === "vi" ? "Đơn hàng" : "訂單");
 

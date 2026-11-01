@@ -147,6 +147,20 @@
           <span class="sidebar-label" id="i18n-tab-menu">菜單管理</span>
         </button>
 
+        <!-- 4. Staff Ordering (Shown when enabled) -->
+        <button type="button" class="sidebar-nav-item" id="tab-staff-order" data-tab="staff-order" onclick="switchTab('staff-order')" style="display: none;" aria-label="桌邊點餐">
+          <div class="nav-item-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"></path>
+              <path d="M15 2v10"></path>
+              <path d="M15 14v8"></path>
+              <path d="M6 2v20"></path>
+              <path d="M6 2a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3"></path>
+            </svg>
+          </div>
+          <span class="sidebar-label" id="i18n-tab-staff-order">桌邊點餐</span>
+        </button>
+
 
 
         <!-- 5. Settings -->
@@ -1591,6 +1605,11 @@
       </section>
       </div>
     </div>
+
+    <!-- Staff In-Store Table Ordering Embedded Workspace -->
+    <div class="content" id="view-staff-order" style="display:none; width:100%; height:calc(100vh - 64px); padding:0; margin:0; background:#f8fafc;">
+      <iframe id="staff-order-iframe" src="about:blank" style="width:100%; height:100%; border:none; display:block;" title="桌邊點餐 / Nhận đơn tại bàn"></iframe>
+    </div>
     </main>
   </div>
 
@@ -2901,17 +2920,17 @@
   </section>
 
   <!-- Benmi POS Modular Architecture Scripts -->
-  <script src="js/orders-i18n.js?v=20261029_staff_rebase_v1"></script>
-  <script src="js/orders-core.js?v=20261029_staff_rebase_v1"></script>
+  <script src="js/orders-i18n.js?v=20261101_staff_spa_v1"></script>
+  <script src="js/orders-core.js?v=20261101_staff_spa_v1"></script>
   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261017_order_detail_v1"></script>
   <script src="js/order-detail-view.js?v=20261017_order_detail_v1"></script>
-  <script src="js/printer-service.js?v=20261029_staff_rebase_v1"></script>
-  <script src="js/orders-live.js?v=20261029_staff_rebase_v1"></script>
+  <script src="js/printer-service.js?v=20261101_staff_spa_v1"></script>
+  <script src="js/orders-live.js?v=20261101_staff_spa_v1"></script>
   <script src="js/orders-modals.js?v=20261012_support_modal_v1"></script>
   <script src="js/orders-history.js?v=20261027_history_ui_fix_v1"></script>
   <script src="js/orders-reports.js?v=20261007_dev_main_sync_v1"></script>
-  <script src="js/orders-settings.js?v=20261029_staff_rebase_v1"></script>
+  <script src="js/orders-settings.js?v=20261101_staff_spa_v1"></script>
   <script src="js/orders-menu.js?v=20261027_menu_mobile_v3"></script>
   <script src="js/orders-bundle-wizard.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/orders-option-groups.js?v=20261027_menu_mobile_v3"></script>
