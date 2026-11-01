@@ -118,6 +118,12 @@ body.staff-body {
   background: #e2e8f0;
 }
 
+.active-table-badge.takeaway {
+  background: var(--primary-light);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: var(--primary-hover);
+}
+
 .btn-change-table {
   background: none;
   border: none;
@@ -339,6 +345,112 @@ body.staff-body {
   font-size: 14px;
   color: var(--text-muted);
   margin-top: 2px;
+}
+
+.view-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-takeaway-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--text-main);
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13.5px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  min-height: var(--touch-min);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15);
+  transition: all 0.15s ease;
+}
+
+.btn-takeaway-header:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+}
+
+.btn-takeaway-header:active {
+  transform: scale(0.98);
+}
+
+/* Takeaway Action Card */
+.takeaway-banner-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 68px;
+  user-select: none;
+}
+
+.takeaway-banner-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.takeaway-banner-card:active {
+  transform: scale(0.99);
+}
+
+.takeaway-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.takeaway-banner-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--primary-light);
+  color: var(--primary-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.takeaway-banner-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.takeaway-banner-desc {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.btn-takeaway-cta {
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .takeaway-banner-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .btn-takeaway-cta {
+    width: 100%;
+  }
 }
 
 .tables-toolbar {
@@ -594,6 +706,11 @@ body.staff-body {
 .order-mode-pill.append {
   background: var(--warning-light);
   color: #b45309;
+}
+
+.order-mode-pill.takeaway {
+  background: #ede9fe;
+  color: #6d28d9;
 }
 
 .banner-subtext {

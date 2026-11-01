@@ -864,7 +864,12 @@ if (typeof window !== "undefined" && !window.__staffOrderMessageListenerBound) {
         fetchOrders();
       }
       if (typeof showToast === "function") {
-        const msg = (typeof t === "function" && t("staffOrderSubmittedToast", { key: data.displayKey || "" })) || `Bàn đã gửi đơn thành công! #${data.displayKey || ""}`;
+        const isTakeaway = data.diningOption === "takeaway";
+        const toastKey = isTakeaway ? "staffTakeawayOrderSubmittedToast" : "staffOrderSubmittedToast";
+        const fallback = isTakeaway
+          ? `Đơn mang đi đã gửi thành công! #${data.displayKey || ""}`
+          : `Bàn đã gửi đơn thành công! #${data.displayKey || ""}`;
+        const msg = (typeof t === "function" && t(toastKey, { key: data.displayKey || "" })) || fallback;
         showToast(msg, "success");
       }
     }

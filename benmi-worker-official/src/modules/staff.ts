@@ -351,10 +351,11 @@ async function handleStaffOrderWrite(request: Request, env: Env, path: string, t
       return json({ok:true,success:true,key:row.key,status:body.status,revision:expected+1});
     }
     if (tenantCtx.storeStatus === 'paused') throw new DetailError('STORE_PAUSED');
-    if (!tenantCtx.allowDineIn) throw new DetailError('DINE_IN_DISABLED',403);
+    const diningOption: 'dine_in' | 'takeaway' = row ? (row.dining_option || 'dine_in') : (body.diningOption === 'takeaway' || body.dining_option === 'takeaway' ? 'takeaway' : 'dine_in');
+    if (diningOption === 'dine_in' && !tenantCtx.allowDineIn) throw new DetailError('DINE_IN_DISABLED',403);
     const requestId = body.requestId;
     if (typeof requestId !== 'string' || requestId.length < 16 || requestId.length > 128) throw new DetailError('INVALID_REQUEST_ID');
-    const hash = await sha256Hex(JSON.stringify({kind:create?'create':'append',table:body.tableId,key:row?.key,
+    const hash = await sha256Hex(JSON.stringify({kind:create?'create':'append',diningOption,table:body.tableId,key:row?.key,
       revision:expected,items:body.items,orderSelections:body.orderSelections,note:body.note,customer:body.customer,total:body.total}));
     const replay = async () => {
       const prior = await env.DB.prepare('SELECT request_hash,response_json FROM staff_order_requests WHERE tenant_id=? AND request_id=?')
@@ -367,7 +368,7 @@ async function handleStaffOrderWrite(request: Request, env: Env, path: string, t
     if (row && FINAL.includes(row.status)) throw new DetailError('ORDER_FINALIZED',409);
     if (row && row.revision !== expected) throw new DetailError('REVISION_CONFLICT',409);
     let table: any = null;
-    if (create) {
+    if (create && diningOption === 'dine_in') {
       table = await env.DB.prepare('SELECT id,label FROM restaurant_tables WHERE tenant_id=? AND id=? AND is_active=1').bind(tenant,body.tableId || '').first();
       if (!table) throw new DetailError('TABLE_NOT_AVAILABLE',404);
       if (await env.DB.prepare(`SELECT 1 FROM orders WHERE tenant_id=? AND table_id=? AND source='staff'
@@ -385,20 +386,22 @@ async function handleStaffOrderWrite(request: Request, env: Env, path: string, t
     const revision = Number(row?.revision || 0)+1;
     let key = row?.key, orderId = row?.order_id, displayKey = row?.display_key;
     if (create) {
-      const next = await getNextDailyOrderSeq(env,tenant,'dine_in',new Date(),resolveTenantOrderPrefix(tenantCtx,tenant));
+      const next = await getNextDailyOrderSeq(env,tenant,diningOption,new Date(),resolveTenantOrderPrefix(tenantCtx,tenant));
       orderId = crypto.randomUUID(); displayKey = next.key;
       key = await env.DB.prepare('SELECT 1 FROM orders WHERE key=?').bind(displayKey).first() ? orderId : displayKey;
     }
-    const response = {ok:true,success:true,key,orderId,displayKey,status:'ACCEPTED',roundCount:roundNumber,revision,detailRevision,
-      total:snapshot.total,tableId:table?.id || row?.table_id,tableNumber:table?.label || row?.table_number,
+    const customerDisplayName = String(body.customer || (diningOption === 'dine_in' ? (table?.label || '') : '外帶顧客')).slice(0,100);
+    const pickupTimeStr = (body.pickupTime || body.pickup_time || (new Date(Date.now()+8*3600000).toISOString().slice(11,16))).trim();
+    const response = {ok:true,success:true,key,orderId,displayKey,status:'ACCEPTED',diningOption,roundCount:roundNumber,revision,detailRevision,
+      total:snapshot.total,tableId:table?.id || row?.table_id || null,tableNumber:table?.label || row?.table_number || '',
       detailSnapshot:snapshot,appendedTotal:round.total};
     const statements: D1PreparedStatement[] = [];
     if (create) statements.push(env.DB.prepare(`INSERT INTO orders
       (key,order_id,display_key,business_date,tenant_id,customer_name,pickup_time,status,total_amount,order_content,note,
        dining_option,table_number,table_id,source,revision,round_count,created_at,updated_at)
-      VALUES (?,?,?,?,?,?,?,'ACCEPTED',0,'','','dine_in',?,?,'staff',0,0,datetime('now'),datetime('now'))`)
+      VALUES (?,?,?,?,?,?,?,'ACCEPTED',0,'','',?,?,?,'staff',0,0,datetime('now'),datetime('now'))`)
       .bind(key,orderId,displayKey,new Date(Date.now()+8*3600000).toISOString().slice(0,10),tenant,
-        String(body.customer || table.label).slice(0,100),new Date(Date.now()+8*3600000).toISOString().slice(11,16),table.label,table.id));
+        customerDisplayName,pickupTimeStr,diningOption,diningOption === 'dine_in' ? table.label : '',diningOption === 'dine_in' ? table.id : null));
     statements.push(detailStatement(env,tenant,key,detailRevision,requestId,hash,snapshot,create?'create':'append'));
     statements.push(env.DB.prepare(`UPDATE orders SET revision=CASE WHEN revision=? AND status NOT IN
       ('PAID','REJECTED','PICKED_UP','EXPIRED','FORCE_REJECT') THEN revision+1 ELSE -1 END,

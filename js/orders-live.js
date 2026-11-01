@@ -727,7 +727,13 @@ function showStaffOrderMiniToast(count) {
   const msg = lang === "vi" ? `Có ${count} đơn mới đang chờ duyệt` : `有 ${count} 筆新訂單待審核`;
   const btnText = lang === "vi" ? "Xem ngay" : "查看";
   toast.innerHTML = `
-    <span>🔔 ${msg}</span>
+    <span style="display:inline-flex; align-items:center; gap:8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+      </svg>
+      <span>${msg}</span>
+    </span>
     <button type="button" style="background:var(--primary, #10b981); color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:800; cursor:pointer;" onclick="switchTab('live'); if (typeof reviewNextNewOrder==='function') reviewNextNewOrder();">
       ${btnText}
     </button>

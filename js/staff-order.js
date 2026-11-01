@@ -95,7 +95,22 @@
       optItemNotePlaceholder: "Ví dụ: ít đường, không đá, ít cay...",
       flavorNavTitle: "Chọn vị",
       flavorSectionTitle: "Chọn vị & Tùy chọn chung",
-      flavorCartHeader: "Vị chung cho bàn:"
+      flavorCartHeader: "Vị chung cho bàn:",
+      btnTakeawayHeader: "Đơn mang đi",
+      takeawayCardTitle: "Đơn mang đi",
+      takeawayCardDesc: "Tạo đơn mang về cho khách không ngồi bàn",
+      btnTakeawayCta: "Mở đơn mang đi",
+      takeawayBadge: "Mang đi",
+      btnChangeMode: "Đổi",
+      takeawayBannerTitle: "Đơn mang đi",
+      takeawayBannerPill: "Mở đơn mang đi",
+      takeawayBannerSub: "Đơn mang đi mới. Chọn món và nhấn xem giỏ hàng để gửi đơn.",
+      takeawayCartDesc: "Đơn mang đi",
+      labelCustomerTakeaway: "Tên khách / SĐT (ngoài bàn)",
+      customerTakeawayPlaceholder: "Ví dụ: Anh Nam - 0912...",
+      labelPickupTime: "Giờ lấy món",
+      successTakeawayDesc: "Đơn mang đi đã được gửi tới POS.",
+      successReceiptTable: "Bàn / Kiểu đơn:"
     },
     "zh-TW": {
       backPos: "返回訂單",
@@ -161,7 +176,22 @@
       optItemNotePlaceholder: "例如：微糖、去冰、少辣...",
       flavorNavTitle: "口味選擇",
       flavorSectionTitle: "口味與客製化選擇",
-      flavorCartHeader: "整單口味："
+      flavorCartHeader: "整單口味：",
+      btnTakeawayHeader: "外帶點餐",
+      takeawayCardTitle: "外帶點餐",
+      takeawayCardDesc: "建立外帶自取訂單，無需綁定桌號",
+      btnTakeawayCta: "開啟外帶新單",
+      takeawayBadge: "外帶",
+      btnChangeMode: "更換",
+      takeawayBannerTitle: "外帶點餐",
+      takeawayBannerPill: "外帶新單",
+      takeawayBannerSub: "新外帶訂單。選取餐點後點擊購物車送出。",
+      takeawayCartDesc: "外帶點餐",
+      labelCustomerTakeaway: "顧客姓名 / 電話 (外帶)",
+      customerTakeawayPlaceholder: "例如：王先生 0912...",
+      labelPickupTime: "取餐時間",
+      successTakeawayDesc: "外帶訂單已送達 POS。",
+      successReceiptTable: "桌號 / 類型："
     }
   };
 
@@ -172,6 +202,7 @@
     brandName: "",
     storeStatus: "open",
     allowDineIn: true,
+    diningOption: "dine_in",
     tables: [],
     tableFilter: "all",
     tableSearchQuery: "",
@@ -293,6 +324,11 @@
       "i18n-cart-title": "cartTitle",
       "i18n-label-customer": "labelCustomer",
       "i18n-label-note": "labelNote",
+      "i18n-btn-takeaway-header": "btnTakeawayHeader",
+      "i18n-takeaway-card-title": "takeawayCardTitle",
+      "i18n-takeaway-card-desc": "takeawayCardDesc",
+      "i18n-btn-takeaway-cta": "btnTakeawayCta",
+      "i18n-label-pickup-time": "labelPickupTime",
       "i18n-summary-subtotal": "summarySubtotal",
       "i18n-summary-total": "summaryTotal",
       "i18n-btn-continue-ordering": "btnContinueOrdering",
@@ -301,7 +337,7 @@
       "i18n-success-title": "successTitle",
       "success-desc-text":"successDesc",
       "i18n-success-order-key": "successOrderKey",
-      "i18n-success-table": "successTable",
+      "i18n-success-table": "successReceiptTable",
       "i18n-success-round": "successRound",
       "i18n-success-total": "successTotal",
       "i18n-btn-success-back": "btnSuccessBack",
@@ -313,8 +349,13 @@
       if (el) el.innerText = t(key);
     }
 
-    document.getElementById("cart-customer-name").placeholder=t("customerPlaceholder");
-    document.getElementById("cart-order-note").placeholder=t("notePlaceholder");
+    const isTakeaway = state.diningOption === "takeaway";
+    const custInp = document.getElementById("cart-customer-name");
+    const custLabel = document.getElementById("i18n-label-customer");
+    if (custInp) custInp.placeholder = isTakeaway ? t("customerTakeawayPlaceholder") : t("customerPlaceholder");
+    if (custLabel) custLabel.innerText = isTakeaway ? t("labelCustomerTakeaway") : t("labelCustomer");
+    const noteInp = document.getElementById("cart-order-note");
+    if (noteInp) noteInp.placeholder = t("notePlaceholder");
     const searchInp = document.getElementById("inp-table-search");
     if (searchInp) searchInp.placeholder = t("searchPlaceholder");
   }
@@ -326,7 +367,7 @@
     } catch (e) {}
     applyI18nLabels();
 
-    if (state.currentTable) {
+    if (state.diningOption === "takeaway" || state.currentTable) {
       updateOrderBanner();
     }
     renderTablesGrid();
@@ -536,11 +577,21 @@
     }).join("");
   }
 
-  // --- 8. SELECT TABLE & ENTER MENU ORDERING ---
+  // --- 8. SELECT TABLE / TAKEAWAY & ENTER MENU ORDERING ---
+  async function handleStartTakeawayOrder() {
+    state.diningOption = "takeaway";
+    state.currentTable = null;
+
+    loadDraftCart("takeaway");
+    stopTablePolling();
+    await showMenuView();
+  }
+
   async function handleSelectTable(tableId) {
     const table = state.tables.find(t => t.id === tableId);
     if (!table) return;
 
+    state.diningOption = "dine_in";
     state.currentTable = table;
 
     // Load draft cart and draft global flavor for this table
@@ -551,10 +602,13 @@
   }
 
   function goToTableSelection() {
-    if (state.currentTable) {
+    if (state.diningOption === "takeaway") {
+      saveDraftCart("takeaway");
+    } else if (state.currentTable) {
       saveDraftCart(state.currentTable.id);
     }
     state.currentTable = null;
+    state.diningOption = "dine_in";
     showTablesView();
   }
 
@@ -565,12 +619,34 @@
     document.getElementById("view-menu").style.display = "block";
     document.getElementById("btn-logout").style.display = "inline-flex";
 
+    const isTakeaway = state.diningOption === "takeaway";
+
     // Header table badge
     const headBadge = document.getElementById("header-table-badge");
     const headLabel = document.getElementById("header-table-label");
-    if (headBadge && headLabel && state.currentTable) {
-      headLabel.innerText = `${state.currentLang === "vi" ? "Bàn" : "桌號"}: ${state.currentTable.label}`;
-      headBadge.style.display = "inline-flex";
+    const headIcon = document.getElementById("header-table-icon");
+    const headChangeBtn = document.getElementById("i18n-btn-change-table");
+
+    if (headBadge && headLabel) {
+      if (isTakeaway) {
+        headBadge.className = "active-table-badge takeaway";
+        headLabel.innerText = t("takeawayBadge");
+        if (headIcon) {
+          headIcon.innerHTML = `<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path>`;
+        }
+        if (headChangeBtn) headChangeBtn.innerText = t("btnChangeMode");
+        headBadge.style.display = "inline-flex";
+      } else if (state.currentTable) {
+        headBadge.className = "active-table-badge";
+        headLabel.innerText = `${state.currentLang === "vi" ? "Bàn" : "桌號"}: ${state.currentTable.label}`;
+        if (headIcon) {
+          headIcon.innerHTML = `<path d="M3 3h18v18H3zM3 9h18M9 21V9"/>`;
+        }
+        if (headChangeBtn) headChangeBtn.innerText = t("btnChangeTable");
+        headBadge.style.display = "inline-flex";
+      } else {
+        headBadge.style.display = "none";
+      }
     }
 
     updateOrderBanner();
@@ -587,11 +663,25 @@
   }
 
   function updateOrderBanner() {
-    if (!state.currentTable) return;
-    const isAppend = !!state.currentTable.active_order_key;
+    const isTakeaway = state.diningOption === "takeaway";
     const nameEl = document.getElementById("banner-table-name");
     const pillEl = document.getElementById("banner-mode-pill");
     const subEl = document.getElementById("banner-subtext");
+    const backBtn = document.getElementById("i18n-btn-back-tables");
+
+    if (isTakeaway) {
+      if (nameEl) nameEl.innerText = t("takeawayBannerTitle");
+      if (pillEl) {
+        pillEl.className = "order-mode-pill takeaway";
+        pillEl.innerText = t("takeawayBannerPill");
+      }
+      if (subEl) subEl.innerText = t("takeawayBannerSub");
+      if (backBtn) backBtn.innerText = t("btnChangeMode");
+      return;
+    }
+
+    if (!state.currentTable) return;
+    const isAppend = !!state.currentTable.active_order_key;
 
     if (nameEl) nameEl.innerText = `${state.currentLang === "vi" ? "Bàn" : "桌號"} ${state.currentTable.label}`;
 
@@ -599,6 +689,8 @@
       pillEl.className = `order-mode-pill ${isAppend ? 'append' : 'new'}`;
       pillEl.innerText = isAppend ? t("modeAppend") : t("modeNew");
     }
+
+    if (backBtn) backBtn.innerText = t("btnBackTables");
 
     if (subEl) {
       if (isAppend) {
@@ -667,7 +759,8 @@
             line.name = product.name;
             line.options = window.OrderDetailView.choices(line.groups).map(c=>({name:c.value,price:c.price}));
           });
-          saveDraftCart(state.currentTable?.id);
+          const targetDraftKey = state.diningOption === 'takeaway' ? 'takeaway' : state.currentTable?.id;
+          saveDraftCart(targetDraftKey);
         }
 
         // Initialize default global flavor selections if not set from draft
@@ -1262,8 +1355,9 @@
     };
 
     state.cart.push(cartItem);
-    if (state.currentTable) {
-      saveDraftCart(state.currentTable.id);
+    const draftKey = state.diningOption === 'takeaway' ? 'takeaway' : state.currentTable?.id;
+    if (draftKey) {
+      saveDraftCart(draftKey);
     }
 
     updateCardActionUI(state.selectedItem.id);
@@ -1280,7 +1374,7 @@
     const totalCount = state.cart.reduce((sum, item) => sum + item.quantity, 0);
     const totalPrice = staffTotal();
 
-    if (totalCount > 0 && state.currentTable) {
+    if (totalCount > 0 && (state.currentTable || state.diningOption === "takeaway")) {
       bar.style.display = "block";
       document.getElementById("cart-total-count").innerText = totalCount;
       document.getElementById("cart-total-price").innerText = `$${totalPrice}`;
@@ -1302,10 +1396,29 @@
   }
 
   function renderCartDrawer() {
+    const isTakeaway = state.diningOption === "takeaway";
     const contextEl = document.getElementById("cart-order-context-desc");
-    if (contextEl && state.currentTable) {
-      const isAppend = !!state.currentTable.active_order_key;
-      contextEl.innerText = `${state.currentLang === "vi" ? "Bàn" : "桌號"} ${state.currentTable.label} • ${isAppend ? t("modeAppend") : t("modeNew")}`;
+    const custLabel = document.getElementById("i18n-label-customer");
+    const custInp = document.getElementById("cart-customer-name");
+    const pickupGroup = document.getElementById("cart-pickup-time-group");
+
+    if (contextEl) {
+      if (isTakeaway) {
+        contextEl.innerText = t("takeawayCartDesc");
+      } else if (state.currentTable) {
+        const isAppend = !!state.currentTable.active_order_key;
+        contextEl.innerText = `${state.currentLang === "vi" ? "Bàn" : "桌號"} ${state.currentTable.label} • ${isAppend ? t("modeAppend") : t("modeNew")}`;
+      }
+    }
+
+    if (custLabel) {
+      custLabel.innerText = isTakeaway ? t("labelCustomerTakeaway") : t("labelCustomer");
+    }
+    if (custInp) {
+      custInp.placeholder = isTakeaway ? t("customerTakeawayPlaceholder") : t("customerPlaceholder");
+    }
+    if (pickupGroup) {
+      pickupGroup.style.display = isTakeaway ? "block" : "none";
     }
 
     // Render flavor summary in cart
@@ -1325,7 +1438,10 @@
     }
 
     const submit = document.getElementById("btn-submit-order");
-    if (submit) submit.disabled = state.submitting || !state.capabilities?.[state.currentTable?.active_order_key ? "append" : "create"];
+    const canSubmit = isTakeaway
+      ? !!state.capabilities?.create
+      : !!state.capabilities?.[state.currentTable?.active_order_key ? "append" : "create"];
+    if (submit) submit.disabled = state.submitting || !canSubmit;
     const listEl = document.getElementById("cart-items-list");
     if (!listEl) return;
 
@@ -1373,8 +1489,9 @@
     if (state.cart[index].quantity <= 0) {
       state.cart.splice(index, 1);
     }
-    if (state.currentTable) {
-      saveDraftCart(state.currentTable.id);
+    const draftKey = state.diningOption === 'takeaway' ? 'takeaway' : state.currentTable?.id;
+    if (draftKey) {
+      saveDraftCart(draftKey);
     }
     renderCartDrawer();
     updateCardActionUI(itemId);
@@ -1386,8 +1503,9 @@
     if (!state.cart[index]) return;
     const itemId = state.cart[index].itemId;
     state.cart.splice(index, 1);
-    if (state.currentTable) {
-      saveDraftCart(state.currentTable.id);
+    const draftKey = state.diningOption === 'takeaway' ? 'takeaway' : state.currentTable?.id;
+    if (draftKey) {
+      saveDraftCart(draftKey);
     }
     renderCartDrawer();
     updateCardActionUI(itemId);
@@ -1395,24 +1513,24 @@
     updateStickyCartBar();
   }
 
-  function saveDraftCart(tableId) {
-    if (!tableId || typeof sessionStorage === "undefined") return;
-    sessionStorage.setItem(`staff_cart_${state.tenantId}_${tableId}`, JSON.stringify(state.cart));
-    sessionStorage.setItem(`staff_flavor_${state.tenantId}_${tableId}`, JSON.stringify(state.orderSelections || []));
+  function saveDraftCart(targetKey) {
+    if (!targetKey || typeof sessionStorage === "undefined") return;
+    sessionStorage.setItem(`staff_cart_${state.tenantId}_${targetKey}`, JSON.stringify(state.cart));
+    sessionStorage.setItem(`staff_flavor_${state.tenantId}_${targetKey}`, JSON.stringify(state.orderSelections || []));
   }
 
-  function loadDraftCart(tableId) {
-    if (!tableId || typeof sessionStorage === "undefined") {
+  function loadDraftCart(targetKey) {
+    if (!targetKey || typeof sessionStorage === "undefined") {
       state.cart = [];
       state.selectedGlobalCustomizations = initDefaultGlobalCustomizations();
       refreshAllCardActionUIs();
       return;
     }
     try {
-      const raw = sessionStorage.getItem(`staff_cart_${state.tenantId}_${tableId}`);
+      const raw = sessionStorage.getItem(`staff_cart_${state.tenantId}_${targetKey}`);
       state.cart = raw ? JSON.parse(raw) : [];
 
-      const rawFlavor = sessionStorage.getItem(`staff_flavor_${state.tenantId}_${tableId}`);
+      const rawFlavor = sessionStorage.getItem(`staff_flavor_${state.tenantId}_${targetKey}`);
       state.orderSelections = rawFlavor ? JSON.parse(rawFlavor) : window.UnifiedOptions.restore(state.orderRule || {groups:[]});
     } catch (e) {
       state.cart = [];
@@ -1421,10 +1539,10 @@
     refreshAllCardActionUIs();
   }
 
-  function clearDraftCart(tableId) {
-    if (!tableId || typeof sessionStorage === "undefined") return;
-    sessionStorage.removeItem(`staff_cart_${state.tenantId}_${tableId}`);
-    sessionStorage.removeItem(`staff_flavor_${state.tenantId}_${tableId}`);
+  function clearDraftCart(targetKey) {
+    if (!targetKey || typeof sessionStorage === "undefined") return;
+    sessionStorage.removeItem(`staff_cart_${state.tenantId}_${targetKey}`);
+    sessionStorage.removeItem(`staff_flavor_${state.tenantId}_${targetKey}`);
     state.cart = [];
     state.orderSelections = window.UnifiedOptions.restore(state.orderRule || {groups:[]});
     refreshAllCardActionUIs();
@@ -1432,7 +1550,14 @@
 
   // --- 12. SUBMIT STAFF ORDER (NEW OR APPEND ROUND) ---
   async function submitStaffOrder() {
-    if (!state.currentTable || state.cart.length === 0 || state.submitting || !state.capabilities?.[state.currentTable.active_order_key ? "append" : "create"]) return;
+    const isTakeaway = state.diningOption === "takeaway";
+    if (!isTakeaway && !state.currentTable) return;
+    if (state.cart.length === 0 || state.submitting) return;
+
+    const canSubmit = isTakeaway
+      ? !!state.capabilities?.create
+      : !!state.capabilities?.[state.currentTable?.active_order_key ? "append" : "create"];
+    if (!canSubmit) return;
 
     const invalid = state.cart.some(line=> {
       const product=state.catalog.find(item=>item.id===line.itemId);
@@ -1447,18 +1572,22 @@
 
     const customerInp = document.getElementById("cart-customer-name");
     const noteInp = document.getElementById("cart-order-note");
+    const pickupInp = document.getElementById("cart-pickup-time");
     const customer = customerInp ? customerInp.value.trim() : "";
     const note = noteInp ? noteInp.value.trim() : "";
+    const pickupTime = (isTakeaway && pickupInp && pickupInp.value) ? pickupInp.value.trim() : undefined;
 
     if (state.submitting) return;
     state.submitting = true;
-    const isAppend = !!state.currentTable.active_order_key;
+    const isAppend = !isTakeaway && !!state.currentTable.active_order_key;
+    const draftKey = isTakeaway ? "takeaway" : state.currentTable.id;
 
     const payload = {
       detailVersion: 1,
+      diningOption: state.diningOption || 'dine_in',
       total: staffTotal(),
       orderSelections: state.orderSelections || [],
-      tableId: state.currentTable.id,
+      tableId: isTakeaway ? undefined : state.currentTable.id,
       customer,
       note,
       items: state.cart.map(c => ({
@@ -1470,6 +1599,7 @@
         bundleSelections: {portions:Array.from({length:c.quantity}, (_,i)=>({portionIndex:i,groups:c.groups || []}))}
       }))
     };
+    if (pickupTime) payload.pickupTime = pickupTime;
 
     try {
       let endpoint = `${WORKER_BASE}/api/staff/orders?tenant_id=${encodeURIComponent(state.tenantId)}`;
@@ -1478,7 +1608,7 @@
         payload.expectedRevision = state.currentTable.active_revision || 0;
       }
 
-      const pendingKey = `staff_pending_${state.tenantId}_${state.currentTable.id}`;
+      const pendingKey = `staff_pending_${state.tenantId}_${draftKey}`;
       const signature = JSON.stringify({endpoint,payload});
       const pending = JSON.parse(sessionStorage.getItem(pendingKey) || 'null');
       payload.requestId = pending?.signature === signature ? pending.requestId : crypto.randomUUID();
@@ -1503,15 +1633,16 @@
 
       if (res.ok && data && data.ok) {
         sessionStorage.removeItem(pendingKey);
-        clearDraftCart(state.currentTable.id);
+        clearDraftCart(draftKey);
         closeCartModal();
         updateStickyCartBar();
 
         showSuccessModal({
           displayKey: data.displayKey || data.orderId || "---",
-          tableName: state.currentTable.label,
+          tableName: isTakeaway ? t("takeawayBadge") : state.currentTable.label,
           roundCount: data.roundCount || 1,
-          total: data.total || data.grandTotal || 0
+          total: data.total || data.grandTotal || 0,
+          isTakeaway
         });
 
         if (window.parent && window.parent !== window) {
@@ -1519,6 +1650,7 @@
             type: "STAFF_ORDER_SUBMITTED",
             orderKey: data.orderKey || data.key || data.orderId,
             displayKey: data.displayKey,
+            diningOption: state.diningOption,
             roundCount: data.roundCount || 1
           }, "*");
         }
@@ -1531,18 +1663,25 @@
     } finally {
       state.submitting = false;
       if (btnSubmit) {
-        btnSubmit.disabled = !state.capabilities?.[state.currentTable?.active_order_key ? "append" : "create"];
+        const canSubmitNow = isTakeaway
+          ? !!state.capabilities?.create
+          : !!state.capabilities?.[state.currentTable?.active_order_key ? "append" : "create"];
+        btnSubmit.disabled = !canSubmitNow;
         btnSubmit.innerText = t("btnConfirmOrder");
       }
     }
   }
 
   // --- 13. SUCCESS & CONFLICT MODALS ---
-  function showSuccessModal({ displayKey, tableName, roundCount, total }) {
+  function showSuccessModal({ displayKey, tableName, roundCount, total, isTakeaway }) {
     document.getElementById("success-display-key").innerText = `#${displayKey}`;
     document.getElementById("success-table-name").innerText = tableName;
     document.getElementById("success-round-count").innerText = state.currentLang === "vi" ? `Lượt ${roundCount}` : `第 ${roundCount} 輪`;
     document.getElementById("success-total-amount").innerText = `$${total}`;
+    const descEl = document.getElementById("success-desc-text");
+    if (descEl) {
+      descEl.innerText = isTakeaway ? t("successTakeawayDesc") : t("successDesc");
+    }
 
     document.getElementById("successModal").style.display = "flex";
   }
@@ -1564,7 +1703,9 @@
     const submit = document.getElementById('btn-submit-order');
     if (submit) submit.disabled = true;
     try {
-      if (state.currentTable) {
+      if (state.diningOption === "takeaway") {
+        await loadBootstrapMenu(true);
+      } else if (state.currentTable) {
         await loadTablesData();
         await loadBootstrapMenu(true);
         const updatedTable = state.tables.find(table=>table.id===state.currentTable.id);
@@ -1623,7 +1764,10 @@
         options:window.OrderDetailView.choices(groups).map(c=>({name:c.value,price:c.price}))});
       updateCardActionUI(optionItem.id);
     }
-    saveDraftCart(state.currentTable?.id);
+    const draftKey = state.diningOption === 'takeaway' ? 'takeaway' : state.currentTable?.id;
+    if (draftKey) {
+      saveDraftCart(draftKey);
+    }
     renderCartDrawer();
     updateStickyCartBar();
   };
@@ -1635,6 +1779,7 @@
   window.loadTablesData = loadTablesData;
   window.setTableFilter = setTableFilter;
   window.handleTableSearch = handleTableSearch;
+  window.handleStartTakeawayOrder = handleStartTakeawayOrder;
   window.handleSelectTable = handleSelectTable;
   window.goToTableSelection = goToTableSelection;
   window.selectCategory = scrollToCategory;

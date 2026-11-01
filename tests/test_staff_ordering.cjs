@@ -48,6 +48,32 @@ test('table CRUD, snapshots, replay, metadata and guarded legacy endpoints',asyn
   const legacy=await updateOrder(new Request('https://local.test/api/update?tenant_id=a',{method:'POST',body:JSON.stringify({key:first.key,status:'PAID'})}),f.env,undefined,f.context('a'));
   assert.equal(legacy.status,403);
   const customer=await writeDetailedOrder(f.env,'a',{detailVersion:1,operationId:crypto.randomUUID(),parent_order_key:first.key,expectedDetailRevision:2},'append');assert.equal(customer.status,403);
+
+  // Staff takeaway order creation without tableId
+  const takeawayReq = {requestId:crypto.randomUUID(),diningOption:'takeaway',total:100,orderSelections:[],items:[{itemId:'meal-a',quantity:1}],customer:'Anh Nam',pickupTime:'18:30',note:'Cho xin tương ớt'};
+  const takeawayOrder = await f.call('/api/staff/orders',takeawayReq,f.token);
+  assert.equal(takeawayOrder.http,201,JSON.stringify(takeawayOrder));
+  assert.equal(takeawayOrder.diningOption,'takeaway');
+  assert.equal(takeawayOrder.tableId,null);
+  assert.equal(takeawayOrder.tableNumber,'');
+  assert.ok(takeawayOrder.displayKey.includes('-T'));
+  const tRow = await f.DB.prepare('SELECT * FROM orders WHERE key=?').bind(takeawayOrder.key).first();
+  assert.equal(tRow.dining_option,'takeaway');
+  assert.equal(tRow.table_id,null);
+  assert.equal(tRow.customer_name,'Anh Nam');
+  assert.equal(tRow.pickup_time,'18:30');
+  assert.equal(tRow.note,'Cho xin tương ớt');
+
+  // Verify second takeaway order succeeds without conflicting
+  const takeawayReq2 = {requestId:crypto.randomUUID(),diningOption:'takeaway',total:100,orderSelections:[],items:[{itemId:'meal-a',quantity:1}],customer:'Chị Lan'};
+  const takeawayOrder2 = await f.call('/api/staff/orders',takeawayReq2,f.token);
+  assert.equal(takeawayOrder2.http,201,JSON.stringify(takeawayOrder2));
+  assert.notEqual(takeawayOrder2.key, takeawayOrder.key);
+
+  // Verify tables list has no active_order_key assigned to any table from takeaway orders
+  const tablesAfterTakeaway = (await f.call('/api/staff/tables',null,f.token)).tables;
+  assert.equal(tablesAfterTakeaway.find(x=>x.id==='table-a').active_order_key, first.key);
+  assert.equal(tablesAfterTakeaway.find(x=>x.id===table.table.id).active_order_key, null);
   const paid=await f.call(`/api/staff/orders/${first.key}/status`,{status:'PAID',expectedRevision:2},f.token,'PATCH');assert.equal(paid.http,200);
   assert.equal((await f.call(`/api/staff/orders/${first.key}/rounds`,f.input({expectedRevision:3}),f.token)).error,'ORDER_FINALIZED');
   assert.equal((await f.call('/api/staff/tables',null,f.token)).tables.find(x=>x.id==='table-a').active_order_key,null);

@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/client-option-groups.css?v=20261101_staff_spa_v1">
-  <link rel="stylesheet" href="css/staff-order.css?v=20261101_staff_spa_v1">
+  <link rel="stylesheet" href="css/client-option-groups.css?v=20261101_staff_takeaway_v1">
+  <link rel="stylesheet" href="css/staff-order.css?v=20261101_staff_takeaway_v1">
 </head>
 <body class="staff-body">
 
@@ -20,7 +20,7 @@
         <span class="staff-mode-badge" id="i18n-staff-badge">Nhận đơn tại bàn</span>
       </div>
       <div class="active-table-badge" id="header-table-badge" style="display: none;" onclick="goToTableSelection()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <svg id="header-table-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 3h18v18H3zM3 9h18M9 21V9"/>
         </svg>
         <span id="header-table-label">Bàn: --</span>
@@ -96,13 +96,46 @@
           <h2 class="view-title" id="i18n-tables-title">Chọn bàn phục vụ</h2>
           <p class="view-desc" id="i18n-tables-desc">Chọn bàn trống để mở đơn hoặc bàn đang phục vụ để gọi thêm món</p>
         </div>
-        <button type="button" class="btn btn-ghost btn-refresh" onclick="loadTablesData()" title="Làm mới / 重新整理">
+        <div class="view-header-actions">
+          <button type="button" class="btn btn-takeaway-header" id="btn-takeaway-header" onclick="handleStartTakeawayOrder()" title="Đơn mang đi / 外帶點餐">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <path d="M16 10a4 4 0 0 1-8 0"></path>
+            </svg>
+            <span id="i18n-btn-takeaway-header">Đơn mang đi</span>
+          </button>
+          <button type="button" class="btn btn-ghost btn-refresh" onclick="loadTablesData()" title="Làm mới / 重新整理">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            <span id="i18n-btn-refresh">Làm mới</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Takeaway Fast Action Card -->
+      <div class="takeaway-banner-card" id="takeaway-banner-card" onclick="handleStartTakeawayOrder()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();handleStartTakeawayOrder()}">
+        <div class="takeaway-banner-left">
+          <div class="takeaway-banner-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <path d="M16 10a4 4 0 0 1-8 0"></path>
+            </svg>
+          </div>
+          <div class="takeaway-banner-text">
+            <div class="takeaway-banner-title" id="i18n-takeaway-card-title">Đơn mang đi</div>
+            <div class="takeaway-banner-desc" id="i18n-takeaway-card-desc">Tạo đơn mang về cho khách không ngồi bàn</div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary btn-takeaway-cta" id="i18n-btn-takeaway-cta" tabindex="-1">
+          <span>Mở đơn mang đi</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="23 4 23 10 17 10"></polyline>
-            <polyline points="1 20 1 14 7 14"></polyline>
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            <polyline points="9 18 15 12 9 6"></polyline>
           </svg>
-          <span id="i18n-btn-refresh">Làm mới</span>
         </button>
       </div>
 
@@ -231,6 +264,10 @@
               <label for="cart-customer-name" id="i18n-label-customer">Tên khách (không bắt buộc)</label>
               <input type="text" id="cart-customer-name" placeholder="Ví dụ: Anh Nam, Chị Linh..." autocomplete="off">
             </div>
+            <div class="form-group" id="cart-pickup-time-group" style="display: none; min-width: 140px;">
+              <label for="cart-pickup-time" id="i18n-label-pickup-time">Giờ lấy món</label>
+              <input type="time" id="cart-pickup-time">
+            </div>
           </div>
           <div class="form-row">
             <div class="form-group flex-1">
@@ -284,7 +321,7 @@
           <span class="val highlight" id="success-display-key">#---</span>
         </div>
         <div class="receipt-row">
-          <span class="label" id="i18n-success-table">Bàn:</span>
+          <span class="label" id="i18n-success-table">Bàn / Loại đơn:</span>
           <span class="val" id="success-table-name">--</span>
         </div>
         <div class="receipt-row">
@@ -324,8 +361,8 @@
     </div>
   </div>
 
-  <script src="js/order-detail-view.js?v=20261101_staff_spa_v1"></script>
-  <script src="js/client-option-groups.js?v=20261101_staff_spa_v1"></script>
-  <script src="js/staff-order.js?v=20261101_staff_spa_v1"></script>
+  <script src="js/order-detail-view.js?v=20261101_staff_takeaway_v1"></script>
+  <script src="js/client-option-groups.js?v=20261101_staff_takeaway_v1"></script>
+  <script src="js/staff-order.js?v=20261101_staff_takeaway_v1"></script>
 </body>
 </html>
