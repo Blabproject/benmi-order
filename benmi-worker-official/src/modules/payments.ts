@@ -104,7 +104,7 @@ export async function reconcilePayment(env:Env,id:string,tenant:string,initialRe
   const key=await secret(env,c),call=(path:string,data?:unknown,query?:string)=>linePayCall(c,key,path,data,query);
   if(initialRequest && p.status==='REQUESTING' && !p.transaction_id) {
    // Intent has already been committed. Never repeat this call after a lost response.
-   const returnUrl=new URL(c.return_url);returnUrl.searchParams.set('tenant_id',tenant);returnUrl.searchParams.set('payment_id',p.id);
+   const returnUrl=new URL('/payment-result',c.return_url);returnUrl.searchParams.set('tenant_id',tenant);returnUrl.searchParams.set('payment_id',p.id);
    const result=await call('/v4/payments/request',{amount:p.amount,currency:p.currency,orderId:p.provider_order_id,
     packages:[{id:p.id,amount:p.amount,products:[{name:'Order '+p.order_key,quantity:1,price:p.amount}]}],
     options:{payment:{capture:true}},redirectUrls:{confirmUrl:returnUrl.href,cancelUrl:returnUrl.href}});
@@ -289,9 +289,11 @@ export async function handlePaymentRoute(request:Request,env:Env,tenant:TenantCo
    if(match[2]==='confirm'&&request.method==='POST')p=await reconcilePayment(env,p.id,tenantId);
    else if(request.method!=='GET'||match[2])throw new PaymentError('METHOD_NOT_ALLOWED',405);
   }
-  const order=await env.DB.prepare('SELECT display_key,status FROM orders WHERE key=? AND tenant_id=?').bind(p.order_key,tenantId).first<any>();
+  const order=await env.DB.prepare('SELECT display_key,status,pickup_time FROM orders WHERE key=? AND tenant_id=?').bind(p.order_key,tenantId).first<any>();
   const detail=p.paid_at?await readDetail(env,tenantId,p.order_key):null;
-  return reply({...projection(p),displayKey:order?.display_key,orderStatus:order?.status,receipt:detail?.snapshot||null});
+  const connection=await env.DB.prepare('SELECT return_url FROM tenant_payment_connections WHERE id=? AND tenant_id=? AND environment=?').bind(p.connection_id,tenantId,environment(env)).first<{return_url:string}>();
+  return reply({...projection(p),displayKey:order?.display_key,orderStatus:order?.status,pickupTime:order?.pickup_time,
+   merchant:{brandName:tenant.brandName,logoUrl:tenant.logoUrl||null,locale:tenant.locale},menuUrl:connection?.return_url,receipt:detail?.snapshot||null});
  }catch(e){const code=e instanceof Error?e.message:'PAYMENT_FAILED';console.warn('[Payment]',{code:code.slice(0,100)});
   return reply({code:e instanceof PaymentError?e.code:code,error:code},e instanceof PaymentError?e.status:code.startsWith('ORDER_')||code.startsWith('OPTION_')?409:500);}
 }

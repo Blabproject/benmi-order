@@ -17,7 +17,7 @@ const vm = require("vm");
 const { execSync } = require("child_process");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
-const HTML_FILES = ["orders.html", "index.html", "marketplace.html", "staff-order.html"];
+const HTML_FILES = ["orders.html", "index.html", "marketplace.html", "staff-order.html", "payment-result.html"];
 
 const COLORS = {
   reset: "\x1b[0m",
@@ -146,6 +146,7 @@ HTML_FILES.forEach(htmlFile => {
     removeEventListener: () => {},
     window: {},
     document: {
+      readyState: 'loading',
       addEventListener: () => {},
       removeEventListener: () => {},
       documentElement: { style: { setProperty: () => {} }, setAttribute: () => {} },
@@ -189,7 +190,7 @@ HTML_FILES.forEach(htmlFile => {
       })
     },
     getComputedStyle: () => ({ display: "block" }),
-    location: { hostname: "localhost", search: "?tenant=blab_demo" },
+    location: { hostname: "localhost", search: "?tenant=blab_demo", href: "http://localhost/?tenant=blab_demo", origin: "http://localhost" },
     navigator: { clipboard: { writeText: async () => {} }, userAgent: "Mozilla/5.0" },
     localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
     sessionStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },

@@ -1,6 +1,6 @@
 # LINE Pay v4 — vận hành và nghiệm thu
 
-Triển khai cục bộ, tắt mặc định. Chưa có credential merchant được cung cấp trong phiên này; chưa gọi LINE Pay thật, chưa apply migration hoặc deploy remote. Các test tự động dùng SQLite và provider giả lập; kiểm thử Chromium/WebKit không thay thế ứng dụng LINE trên thiết bị.
+Tính năng được bật theo tenant/môi trường. Các test tự động dùng SQLite và provider giả lập; kiểm thử Chromium/WebKit không thay thế ứng dụng LINE trên thiết bị.
 
 ## Cấu hình và phát hành
 
@@ -28,7 +28,7 @@ Tất cả API cần tenant_id hoặc X-Tenant-ID; tất cả phản hồi payme
 
 ## Quy trình sandbox bắt buộc
 
-- Sandbox luôn dùng paymentUrl.web, kể cả khi menu mở trong LINE; paymentUrl.app chỉ dùng cho production theo FAQ LINE Pay. Trước tiên thử bằng Safari/Chrome: chọn món, LINE Pay, đăng nhập LINE cá nhân, xác thực trên màn hình sandbox, quay lại menu, có biên lai và đúng một đơn NEW trên POS. Kiểm tra deep link trên thiết bị thật khi merchant production sẵn sàng.
+- Sandbox luôn dùng paymentUrl.web, kể cả khi menu mở trong LINE; paymentUrl.app chỉ dùng cho production theo FAQ LINE Pay. Trước tiên thử bằng Safari/Chrome: chọn món, LINE Pay, đăng nhập LINE cá nhân, xác thực trên màn hình sandbox, quay lại `/payment-result`, có biên lai và đúng một đơn NEW trên POS. Trang kết quả không tự chuyển về menu; khách bấm “Đặt đơn mới” để tiếp tục. Kiểm tra deep link trên thiết bị thật khi merchant production sẵn sàng.
 - Safari/Chrome: cùng luồng, back/reload, tab mới. Khách quay lại một browser context không có capability được hướng dẫn về cửa sổ đặt món ban đầu; backend vẫn đối soát, không nhận callback URL làm quyền truy cập payment.
 - Xác minh thời hạn màn hình thực tế và kết quả hết hạn trong thị trường/merchant đang dùng. Không thêm đồng hồ 10–20 giây. Help Center nêu 20 phút nhưng không hardcode để kết luận tiền chưa thu.
 - Quán bấm nhận, hoàn tất và giao đơn đã thu; từ chối hiển thị chưa hoàn. Nút hoàn mở modal có số tiền và lý do. Hoàn xong chỉ đổi trạng thái tiền.
@@ -45,4 +45,13 @@ Tất cả API cần tenant_id hoặc X-Tenant-ID; tất cả phản hồi payme
 
 ## Giới hạn bản đầu
 
-Đơn mang đi mới, TWD nguyên dương, không sửa giá/gọi thêm với đơn LINE Pay, không hoàn một phần, không offline. Client giữ checkout chưa xác minh trong localStorage cùng origin để phục hồi; checkout đã trả tiền được dọn khi mở lại menu hoặc bắt đầu giỏ mới, phản hồi cũ không ghi đè phiên mới; không lưu access token LINE. Tenant chưa có connection dùng tiền mặt như trước. Chỉ mở pilot thật sau khi các bước sandbox và đối chiếu ở trên đạt.
+Đơn mang đi mới, TWD nguyên dương, không sửa giá/gọi thêm với đơn LINE Pay, không hoàn một phần, không offline. Client giữ checkout chưa xác minh trong localStorage cùng origin để phục hồi; checkout đã trả tiền được tách khỏi giỏ hàng, capability đọc biên lai được lưu riêng cùng origin để tải lại trang kết quả; phản hồi cũ không ghi đè phiên mới; không lưu access token LINE. Tenant chưa có connection dùng tiền mặt như trước. Chỉ mở pilot thật sau khi các bước sandbox và đối chiếu ở trên đạt.
+
+## Trang kết quả thanh toán
+
+- Provider redirect về `/payment-result?tenant_id=…&payment_id=…`; menu cũ có callback tự chuyển sang trang này để tương thích giao dịch đang mở. `returnUrl` trong connection vẫn là URL menu, không cần migration cấu hình merchant.
+- Trang độc lập không khởi tạo LIFF hoặc tải menu. Backend cung cấp tên quán, giờ lấy món, trạng thái phục vụ và biên lai qua API payment đã xác thực. Chỉ `paidAt` từ backend xác nhận đã thu tiền; query callback không quyết định kết quả.
+- Thành công: hiển thị mã đơn, số tiền và trạng thái quán; “Đặt đơn mới” về menu sạch. Đơn NEW hiển thị đang chờ quán xác nhận.
+- Hủy/hết hạn đã xác minh: “Quay lại giỏ hàng” khôi phục bản nháp và bỏ operationId cũ. UNKNOWN/lỗi mạng: giữ checkout, cho kiểm tra lại, không tạo payment mới.
+- Callback `transactionId`/`orderId` được dọn khỏi thanh địa chỉ. Giữ `payment_id` để tải lại biên lai; capability chỉ nằm trong localStorage và header, không đưa lên URL. HTML no-store/noindex/no-referrer.
+- Kiểm tra tải lại, callback cũ, back, nhiều tab, giỏ mới khác bản nháp cũ và quay về browser không có capability. Khi phát hành, đợi frontend có trang kết quả trước khi deploy Worker tạo callback mới.

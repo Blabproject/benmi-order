@@ -21,3 +21,11 @@
   Cache-Control: public, max-age=0, must-revalidate
 /marketplace
   Cache-Control: public, max-age=0, must-revalidate
+/payment-result
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer
+  X-Robots-Tag: noindex, nofollow
+/payment-result.html
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer
+  X-Robots-Tag: noindex, nofollow
