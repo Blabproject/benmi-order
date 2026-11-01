@@ -214,11 +214,14 @@ async function paymentStaffSession(request:Request,env:Env,tenantId:string) {
  const valid=await verifyStaffSession(request,env,tenantId);
  if(!valid)return null;
  const context=await resolveTenantContext(tenantId,env);
- return await getStoredPassword(env,tenantId,context)==='12345678'?null:valid;
+ if(await getStoredPassword(env,tenantId,context)==='12345678')throw new PaymentError('PAYMENT_PIN_CHANGE_REQUIRED',409);
+ return valid;
 }
 async function session(request:Request,env:Env,tenant:TenantContext) {
  const input:any=await request.json(),stored=await getStoredPassword(env,tenant.tenantId,tenant);
- if(stored==='12345678'||typeof input.password!=='string'||await sha256Hex(input.password)!==await sha256Hex(stored)) throw new PaymentError('INVALID_PASSWORD',401);
+ const password=typeof input.password==='string'?input.password.trim():'';
+ if(!password||await sha256Hex(password)!==await sha256Hex(stored))throw new PaymentError('INVALID_PASSWORD',401);
+ if(stored==='12345678')throw new PaymentError('PAYMENT_PIN_CHANGE_REQUIRED',409);
  const token=generateBearerToken();
  await env.DB.prepare(`INSERT INTO staff_sessions(token_hash,tenant_id,pin_hash,expires_at,created_at)
  VALUES(?,?,?,datetime('now','+8 hours'),datetime('now'))`).bind(await sha256Hex(token),tenant.tenantId,await sha256Hex(stored)).run();
@@ -238,6 +241,10 @@ export async function handlePaymentRoute(request:Request,env:Env,tenant:TenantCo
    const rate=await env.DB.prepare(`INSERT INTO payment_rate_limits(scope,window,count) VALUES(?,?,1)
     ON CONFLICT(scope) DO UPDATE SET count=CASE WHEN window=excluded.window THEN count+1 ELSE 1 END,window=excluded.window RETURNING count`).bind(scope,window).first<{count:number}>();
    if(!rate||rate.count>(path.endsWith('session')?10:60))throw new PaymentError('PAYMENT_RATE_LIMIT',429);
+  }
+  if(path==='/api/payments/session'&&request.method==='GET') {
+   if(!await paymentStaffSession(request,env,tenantId))throw new PaymentError('SESSION_REQUIRED',401);
+   return reply({ok:true});
   }
   if(path==='/api/payments/session'&&request.method==='POST')return await session(request,env,tenant);
   if(path==='/api/payments/linepay/request'&&request.method==='POST')return await create(request,env,tenant);

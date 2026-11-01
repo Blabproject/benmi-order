@@ -2,10 +2,19 @@ window.PaymentPOS = (function () {
   const tenant=()=>getTenantIdFromUrl();
   const sessionKey=()=> 'staff_session_token_'+tenant();
   const label=p=>t('payment'+p.status);
-  function dialog(title, fields, action) {
+  let dialogSequence=0;
+  function errorText(error) {
+    const keys={INVALID_PASSWORD:'paymentInvalidPIN',PAYMENT_PIN_CHANGE_REQUIRED:'paymentDefaultPIN',
+      SESSION_REQUIRED:'paymentSessionExpired',PAYMENT_RATE_LIMIT:'paymentRateLimited'};
+    return t(keys[error?.code]||'paymentError');
+  }
+  function cancelledAuth() {const error=new Error('PAYMENT_AUTH_CANCELLED');error.code='PAYMENT_AUTH_CANCELLED';return error;}
+
+  function dialog(title, fields, action, hint) {
     return new Promise(resolve=>{
       const d=document.createElement('dialog');d.className='payment-dialog';
-      const h=document.createElement('h2');h.id='payment-dialog-title';h.textContent=title;d.setAttribute('aria-labelledby',h.id);d.append(h);
+      const h=document.createElement('h2');h.id='payment-dialog-title-'+(++dialogSequence);h.textContent=title;d.setAttribute('aria-labelledby',h.id);d.append(h);
+      if(hint){const description=document.createElement('p');description.textContent=hint;d.append(description);}
       const form=document.createElement('form');form.method='dialog';
       const inputs={};
       for(const field of fields) {
@@ -20,7 +29,7 @@ window.PaymentPOS = (function () {
       const actions=document.createElement('div');actions.className='payment-actions';actions.append(cancel,submit);form.append(actions);
       form.onsubmit=async e=>{e.preventDefault();submit.disabled=true;
         try {const value=await action(Object.fromEntries(Object.entries(inputs).map(([k,v])=>[k,v.value])));resolve(value);d.close();}
-        catch(_){error.textContent=t('paymentError');}finally{submit.disabled=false;}
+        catch(err){if(err.code!=='PAYMENT_AUTH_CANCELLED')error.textContent=errorText(err);}finally{submit.disabled=false;}
       };
       d.addEventListener('close',()=>{resolve(null);d.remove();});d.append(form);document.body.append(d);d.showModal();
     });
@@ -31,13 +40,27 @@ window.PaymentPOS = (function () {
       body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(95000)
     });
     if(response.status===401)sessionStorage.removeItem(sessionKey());
-    const data=await response.json();if(!response.ok)throw new Error(data.code);return data;
+    const data=await response.json();if(!response.ok){const error=new Error(data.code);error.code=data.code;error.status=response.status;throw error;}return data;
   }
-  async function token() {
-    const old=sessionStorage.getItem(sessionKey());if(old)return old;
+  async function token(forcePrompt=false) {
+    const old=forcePrompt?null:sessionStorage.getItem(sessionKey());
+    if(old){try{await api('/api/payments/session',undefined,old);return old;}
+      catch(error){if(error.status!==401)throw error;}}
+
     return dialog(t('paymentLogin'),[{key:'password',label:t('paymentPIN'),type:'password'}],async values=>{
       const data=await api('/api/payments/session',values);sessionStorage.setItem(sessionKey(),data.token);return data.token;
-    });
+    },t('paymentLoginHint'));
+  }
+  async function authorized(path,body) {
+    let bearer=await token();if(!bearer)throw cancelledAuth();
+    try{return await api(path,body,bearer);}
+    catch(error){
+      // Retry only an explicit authentication rejection, before any money mutation.
+      // Retain the same refund operation ID; never retry network/timeout failures here.
+      if(error.status!==401)throw error;
+      bearer=await token(true);if(!bearer)throw cancelledAuth();
+      return api(path,body,bearer);
+    }
   }
   function badge(order) {
     if(!order.payment)return '';
@@ -55,11 +78,13 @@ window.PaymentPOS = (function () {
     if(p.status==='PAID') {
       const button=document.createElement('button');button.type='button';button.className='payment-button';button.textContent=t('paymentRefund');
       button.onclick=async()=>{
-        const bearer=await token();if(!bearer)return;
-        await dialog(t('paymentRefund')+' #'+(order.displayKey||order.key)+' · TWD '+p.amount,
+        try {
+          if(!await token())return;
+          await dialog(t('paymentRefund')+' #'+(order.displayKey||order.key)+' · TWD '+p.amount,
           [{key:'reason',label:t('paymentReason'),type:'textarea'}],async values=>{
-            order.payment=await api('/api/payments/'+p.id+'/refunds',{...values,operationId:crypto.randomUUID()},bearer);mount(order);await fetchOrders();return true;
+            order.payment=await authorized('/api/payments/'+p.id+'/refunds',{...values,operationId:crypto.randomUUID()});mount(order);await fetchOrders();return true;
           });
+        }catch(error){if(error.code!=='PAYMENT_AUTH_CANCELLED')alert(errorText(error));}
       };el.append(button);
     }
     if(['UNKNOWN','REFUND_PENDING','REFUND_FAILED'].includes(p.status)) {
@@ -68,17 +93,16 @@ window.PaymentPOS = (function () {
   }
   async function attention() {
     try{
-      const bearer=await token();if(!bearer)return;
-      const rows=await api('/api/payments/attention',undefined,bearer);
+      const rows=await authorized('/api/payments/attention');
       let panel=document.getElementById('payment-attention');if(!panel){panel=document.createElement('section');panel.id='payment-attention';panel.className='payment-panel';document.querySelector('main')?.prepend(panel);}
       panel.replaceChildren();
-      const totals=await api('/api/payments/summary',undefined,bearer);
+      const totals=await authorized('/api/payments/summary');
       const money=document.createElement('p');money.textContent=t('paymentCollected')+': TWD '+totals.collected+' · '+t('paymentRefundedTotal')+': TWD '+totals.refunded+' · '+t('paymentNet')+': TWD '+totals.net;panel.append(money);
       const title=document.createElement('h2');title.textContent=t('paymentAttention');panel.append(title);
       if(!rows.length){const empty=document.createElement('p');empty.textContent=t('paymentNone');panel.append(empty);}
       for(const p of rows){const row=document.createElement('p');row.textContent=p.orderKey+' · TWD '+p.amount+' · '+label(p)+' ';
-        const check=document.createElement('button');check.className='payment-button';check.textContent=t('paymentCheck');check.onclick=async()=>{check.disabled=true;try{await api('/api/payments/'+p.id+'/reconcile',{},bearer);await attention();}catch(_){alert(t('paymentError'));}finally{check.disabled=false;}};row.append(check);panel.append(row);}
-    }catch(_){alert(t('paymentError'));}
+        const check=document.createElement('button');check.className='payment-button';check.textContent=t('paymentCheck');check.onclick=async()=>{check.disabled=true;try{await authorized('/api/payments/'+p.id+'/reconcile',{});await attention();}catch(error){if(error.code!=='PAYMENT_AUTH_CANCELLED')alert(errorText(error));}finally{check.disabled=false;}};row.append(check);panel.append(row);}
+    }catch(error){if(error.code!=='PAYMENT_AUTH_CANCELLED')alert(errorText(error));}
   }
   async function init(){try{
     const res=await fetch(WORKER_BASE+'/api/payments/config?tenant_id='+encodeURIComponent(tenant()));const data=await res.json();

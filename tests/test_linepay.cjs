@@ -153,3 +153,22 @@ test('verified LINE identity gets an atomic paid receipt; client userId cannot c
  assert.equal(f.db.prepare('SELECT count(*) n FROM line_order_receipts').get().n,1);
  }finally{global.fetch=original;f.db.close();}
 });
+test('payment sessions validate current PIN, distinguish default PIN, and reject stale or cross-tenant sessions',async()=>{
+ const f=await fixture();try{
+  let stored='87654321';const oldGet=f.env.ORDER_STATE.get;
+  f.env.ORDER_STATE.get=async key=>key.endsWith(':password')?stored:oldGet(key);
+  assert.equal((await f.route('/api/payments/session')).status,401);
+  const login=await f.route('/api/payments/session',{password:' 87654321 '});assert.ok(login.token);
+  const session=await f.route('/api/payments/session',undefined,f.token,tenant,login.token);assert.equal(session.ok,true);
+  assert.equal((await f.route('/api/payments/session',undefined,f.token,{...tenant,tenantId:'b'},login.token)).status,401);
+  stored='87654322';
+  assert.equal((await f.route('/api/payments/session',undefined,f.token,tenant,login.token)).status,401);
+  const fresh=await f.route('/api/payments/session',{password:stored});assert.ok(fresh.token);
+  f.db.exec("UPDATE staff_sessions SET revoked_at=datetime('now')");
+  assert.equal((await f.route('/api/payments/session',undefined,f.token,tenant,fresh.token)).status,401);
+  stored='12345678';
+  const defaultLogin=await f.route('/api/payments/session',{password:stored});
+  assert.equal(defaultLogin.status,409);assert.equal(defaultLogin.code,'PAYMENT_PIN_CHANGE_REQUIRED');
+  assert.equal((await f.route('/api/payments/session',{password:'wrong'})).status,401);
+ }finally{f.db.close();}
+});

@@ -4,6 +4,12 @@
 
 const I18N = {
   "zh-TW": {
+    paymentInvalidPIN: "PIN 碼不正確，請使用目前門市與環境的管理 PIN 碼。",
+    paymentDefaultPIN: "請先為門市設定專用管理 PIN 碼，再使用 LINE Pay 管理功能。",
+    paymentSessionExpired: "驗證已過期，請重新輸入門市管理 PIN 碼。",
+    paymentRateLimited: "驗證次數過多，請稍候一分鐘再試。",
+    paymentLoginHint: "請使用目前門市的管理 PIN 碼。",
+
     paymentCollected: "今日實收", paymentRefundedTotal: "今日退款", paymentNet: "今日淨收",
     paymentPAID: "已付款",
     paymentREFUND_PENDING: "退款處理中",
@@ -1024,6 +1030,12 @@ const I18N = {
     tableSaveFail: "桌號儲存失敗，請重試",
   },
   "vi": {
+    paymentInvalidPIN: "PIN không đúng. Hãy dùng PIN quản lý hiện tại của đúng quán và môi trường.",
+    paymentDefaultPIN: "Cần thiết lập PIN quản lý riêng cho quán trước khi sử dụng quản lý LINE Pay.",
+    paymentSessionExpired: "Phiên xác thực đã hết hạn. Vui lòng nhập lại PIN quản lý quán.",
+    paymentRateLimited: "Bạn đã thử quá nhiều lần. Vui lòng chờ một phút rồi thử lại.",
+    paymentLoginHint: "Sử dụng PIN quản lý hiện tại của quán.",
+
     paymentCollected: "Đã thu hôm nay", paymentRefundedTotal: "Đã hoàn hôm nay", paymentNet: "Thu ròng hôm nay",
     paymentPAID: "Đã thanh toán",
     paymentREFUND_PENDING: "Đang hoàn tiền",

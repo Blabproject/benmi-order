@@ -19,7 +19,8 @@ Tất cả API cần tenant_id hoặc X-Tenant-ID; tất cả phản hồi payme
 - GET `/api/payments/config`: khả năng công khai; enabled chỉ cho giao dịch mới, configured giúp giữ công cụ POS khi tắt tính năng.
 - POST `/api/payments/linepay/request`: payload checkout detailVersion=1, operationId, dining_option=takeaway; header X-Payment-Token là capability 256 bit hex do client lưu trước POST. Cùng operationId phải cùng payload; token LINE là tùy chọn, không lưu trong payment. Backend tính lại giá và xác minh token/channel trước khi nhận userId cho receipt.
 - POST `/api/payments/:id/confirm`, GET `/api/payments/:id`: capability cùng payment hoặc staff bearer token đúng tenant. Không nhận amount/transaction ID quyết định từ callback.
-- POST `/api/payments/session`: PIN hiện hành của quán, trả staff bearer token. Tối đa 10 lần/phút/tenant; token sống 8 giờ, xác minh PIN hiện hành khi dùng, thu hồi qua staff session hiện có.
+- GET `/api/payments/session`: kiểm tra phiên POS hiện hành trước khi dùng lại token; phiên hết hạn/thu hồi trả 401, PIN mặc định trả 409 `PAYMENT_PIN_CHANGE_REQUIRED`. POS yêu cầu đăng nhập lại khi phiên hết hạn.
+- POST `/api/payments/session`: PIN hiện hành của đúng tenant/môi trường, trả staff bearer token. Sai PIN trả 401; PIN đúng nhưng vẫn là mặc định trả 409 với hướng dẫn thiết lập PIN riêng. Tối đa 10 lần/phút/tenant; token sống 8 giờ, xác minh PIN hiện hành khi dùng, thu hồi qua staff session hiện có.
 - POST `/api/payments/:id/refunds`: staff bearer, operationId và reason bắt buộc; backend hoàn toàn bộ số tiền đã thu. Không đổi trạng thái phục vụ, không tự hoàn khi từ chối.
 - GET `/api/payments/attention`: giao dịch UNKNOWN, hoàn đang chờ/thất bại và đơn đã hủy chưa hoàn.
 - GET `/api/payments/summary?date=YYYY-MM-DD`: tổng thu, hoàn và thu ròng theo ngày giao dịch UTC+8; tách khỏi báo cáo món bán.
