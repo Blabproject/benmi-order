@@ -14,7 +14,8 @@ const _isDev = (
   _coreHostname.startsWith("dev.") ||
   _coreHostname.includes(".dev.") ||
   _coreHostname.includes("-dev.") ||
-  _coreHostname.startsWith("dev-")
+  _coreHostname.startsWith("dev-") ||
+  (!_forcedEnv && _coreHostname.endsWith(".pages.dev") && !["benmi-order.pages.dev","staging.benmi-order.pages.dev"].includes(_coreHostname))
 );
 const _isStaging = (
   _forcedEnv === "staging" ||
@@ -364,6 +365,9 @@ async function initTenantBranding() {
           renderAll();
         }
       }
+      if (typeof checkStaffOrderingCapability === "function") {
+        checkStaffOrderingCapability();
+      }
     }
   } catch(e) {}
 }
@@ -406,7 +410,7 @@ async function ensureTenantCustomizations() {
 window.ensureTenantCustomizations = ensureTenantCustomizations;
 
 // Global POS State
-var VALID_POS_TABS = ["live", "history", "menu", "reports", "settings"];
+var VALID_POS_TABS = ["live", "history", "menu", "reports", "settings", "staff-order"];
 
 function getInitialTab() {
   if (typeof window === "undefined") return "live";
@@ -909,12 +913,14 @@ function switchTab(tab) {
   const tabReports = document.getElementById("tab-reports");
   const tabMenu = document.getElementById("tab-menu");
   const tabSettings = document.getElementById("tab-settings");
+  const tabStaffOrder = document.getElementById("tab-staff-order");
 
   if (tabLive) tabLive.classList.toggle("active", tab === "live");
   if (tabHistory) tabHistory.classList.toggle("active", tab === "history");
   if (tabReports) tabReports.classList.toggle("active", tab === "reports");
   if (tabMenu) tabMenu.classList.toggle("active", tab === "menu");
   if (tabSettings) tabSettings.classList.toggle("active", tab === "settings");
+  if (tabStaffOrder) tabStaffOrder.classList.toggle("active", tab === "staff-order");
 
   document.querySelectorAll(".mini-btn").forEach(t => t.classList.remove("active"));
 
@@ -927,12 +933,14 @@ function switchTab(tab) {
   const viewReports = document.getElementById("view-reports");
   const viewSettings = document.getElementById("view-settings");
   const viewMenu = document.getElementById("view-menu");
+  const viewStaffOrder = document.getElementById("view-staff-order");
 
   if (viewLive) viewLive.style.display = tab === "live" ? "flex" : "none";
   if (viewHistory) viewHistory.style.display = tab === "history" ? "block" : "none";
   if (viewReports) viewReports.style.display = tab === "reports" ? "block" : "none";
   if (viewSettings) viewSettings.style.display = tab === "settings" ? "block" : "none";
   if (viewMenu) viewMenu.style.display = tab === "menu" ? "block" : "none";
+  if (viewStaffOrder) viewStaffOrder.style.display = tab === "staff-order" ? "block" : "none";
 
   syncStoreStatusPlacement(tab);
 
@@ -961,6 +969,10 @@ function switchTab(tab) {
     if (typeof openSettings === "function") {
       openSettings();
     }
+  } else if (tab === "staff-order") {
+    if (typeof initStaffOrderFrame === "function") {
+      initStaffOrderFrame();
+    }
   }
 }
 window.switchTab = switchTab;
@@ -974,6 +986,50 @@ if (typeof window !== "undefined" && typeof window.addEventListener === "functio
         switchTab(targetTab);
       }
     } catch (e) {}
+  });
+}
+
+function initStaffOrderFrame() {
+  const frame = document.getElementById("staff-order-iframe");
+  if (!frame) return;
+  const tenantId = (typeof getTenantIdFromUrl === "function" && getTenantIdFromUrl()) || "";
+  if (!tenantId) return;
+
+  const currentSrc = frame.getAttribute("src") || "";
+  if (!currentSrc || currentSrc === "about:blank") {
+    const environment = (typeof WORKER_BASE !== "undefined" && WORKER_BASE.includes("-staging."))
+      ? "staging"
+      : (typeof WORKER_BASE !== "undefined" && WORKER_BASE.includes("-dev."))
+        ? "dev"
+        : "prod";
+    frame.src = `staff-order.html?tenant_id=${encodeURIComponent(tenantId)}&env=${environment}&embedded=1`;
+  }
+}
+window.initStaffOrderFrame = initStaffOrderFrame;
+
+if (typeof window !== "undefined" && !window.__staffOrderMessageListenerBound) {
+  window.__staffOrderMessageListenerBound = true;
+  window.addEventListener("message", (event) => {
+    if (!event || !event.data) return;
+    const data = event.data;
+    if (data.type === "SWITCH_POS_TAB" && data.tab) {
+      if (typeof switchTab === "function") {
+        switchTab(data.tab);
+      }
+    } else if (data.type === "STAFF_ORDER_SUBMITTED") {
+      if (typeof fetchOrders === "function") {
+        fetchOrders();
+      }
+      if (typeof showToast === "function") {
+        const isTakeaway = data.diningOption === "takeaway";
+        const toastKey = isTakeaway ? "staffTakeawayOrderSubmittedToast" : "staffOrderSubmittedToast";
+        const fallback = isTakeaway
+          ? `Đơn mang đi đã gửi thành công! #${data.displayKey || ""}`
+          : `Bàn đã gửi đơn thành công! #${data.displayKey || ""}`;
+        const msg = (typeof t === "function" && t(toastKey, { key: data.displayKey || "" })) || fallback;
+        showToast(msg, "success");
+      }
+    }
   });
 }
 
@@ -1024,6 +1080,7 @@ async function fetchOrders() {
 
     // Track round count increases on existing orders (Appended rounds)
     let hasNewlyAppendedRound = false;
+    const newlyAppendedOrders = [];
     latestOrders.forEach(o => {
       if (o?.key) {
         const currentRound = Number(o.round_count || o.roundCount) || 1;
@@ -1031,6 +1088,7 @@ async function fetchOrders() {
           const prevRound = knownOrderRounds.get(o.key);
           if (currentRound > prevRound) {
             hasNewlyAppendedRound = true;
+            newlyAppendedOrders.push({ order: o, fromRound: prevRound + 1, toRound: currentRound });
             if (typeof localOverrides !== "undefined" && localOverrides[o.key]) {
               delete localOverrides[o.key];
             }
@@ -1076,15 +1134,26 @@ async function fetchOrders() {
       }
     });
 
-    // NEW orders, newly appended rounds, or modified orders => alert sound
+    // Check for new staff arrivals (which arrive directly as ACCEPTED)
+    if (latestOrders.some(o=>o.source === "staff") && typeof checkStaffOrderingCapability === "function") await checkStaffOrderingCapability();
+    const newStaffArrivals = newArrivals.filter(o => o && o.source === "staff" && o.status === "ACCEPTED");
+    const hasNewStaffOrders = !isFirstLoad && newStaffArrivals.length > 0;
+
+    // NEW orders, newly appended rounds, modified orders => alert sound (Staff orders are accepted and do NOT alarm)
     pendingNewOrders = latestOrders.filter(o => o && o.status === "NEW").slice().sort(sortByPickupTimeAsc);
     if (!isFirstLoad && ((newArrivals.length > 0 && pendingNewOrders.length > 0) || hasNewlyAppendedRound || hasNewlyModifiedOrder || unacknowledgedAppends.size > 0)) {
       if (typeof startContinuousAlarm === "function") startContinuousAlarm();
     }
 
-    // Auto-print newly arrived orders (with built-in deduplication)
-    if (typeof PrinterService !== "undefined" && pendingNewOrders.length > 0) {
-      PrinterService.handleIncomingOrders(pendingNewOrders);
+    // Auto-print newly arrived orders and newly appended rounds (with built-in deduplication)
+    if (typeof PrinterService !== "undefined") {
+      const ordersToPrint = [...pendingNewOrders, ...newStaffArrivals];
+      if (ordersToPrint.length > 0) {
+        PrinterService.handleIncomingOrders(ordersToPrint);
+      }
+      if (newlyAppendedOrders.length > 0 && typeof PrinterService.handleAppendedRounds === "function") {
+        PrinterService.handleAppendedRounds(newlyAppendedOrders);
+      }
     }
 
     isFirstLoad = false;
@@ -1379,7 +1448,8 @@ function updatePageMainTitle(tabName) {
     "history": currentLangCode === "vi" ? "Lịch sử đơn" : "歷史訂單",
     "menu": currentLangCode === "vi" ? "Quản lý thực đơn" : "菜單管理",
     "settings": currentLangCode === "vi" ? "Cài đặt hệ thống" : "系統設定",
-    "reports": currentLangCode === "vi" ? "Báo cáo doanh thu" : "營業報表"
+    "reports": currentLangCode === "vi" ? "Báo cáo doanh thu" : "營業報表",
+    "staff-order": currentLangCode === "vi" ? "Nhận đơn tại bàn" : "桌邊點餐"
   };
   titleEl.textContent = titles[tabName] || (currentLangCode === "vi" ? "Đơn hàng" : "訂單");
 

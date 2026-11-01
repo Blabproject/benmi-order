@@ -1,0 +1,126 @@
+// Real local D1; all rows are synthetic. Never calls a remote API.
+const {test} = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const {execFileSync} = require('node:child_process');
+const ts = require('../benmi-worker-official/node_modules/typescript');
+require.extensions['.ts'] = (mod,file) => mod._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{
+  compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,file);
+const {Miniflare,convertV4MiniflareOptions} = require('../benmi-worker-official/node_modules/miniflare');
+const {schemaTrueFixture} = require('./helpers/option-groups.cjs');
+const {handleStaffRoute,verifyStaffSession} = require('../benmi-worker-official/src/modules/staff.ts');
+const {STAFF_CAPABILITIES} = require('../benmi-worker-official/src/modules/staff-access.ts');
+const {updateOrder,getOrders} = require('../benmi-worker-official/src/modules/orders.ts');
+const {writeDetailedOrder} = require('../benmi-worker-official/src/modules/order-detail-write.ts');
+const {handleAuthChange} = require('../benmi-worker-official/src/modules/auth.ts');
+const {readDetail} = require('../benmi-worker-official/src/modules/order-detail.ts');
+const {fixture} = require('./helpers/staff-ordering.cjs');
+
+test('default capabilities, schema readiness, sessions and tenant boundaries fail closed',async t=>{
+  const f=await fixture(t);
+  assert.equal((await f.call('/api/staff/session',{pin:'wrong'})).http,401);
+  assert.equal((await f.call('/api/staff/tables',null,f.token,'GET','b')).http,401);
+  assert.equal((await f.call('/api/staff/session',{pin:'1234'},null,'POST','b')).http,403);
+  const caps=await f.call('/api/staff/capabilities');assert.equal(caps.capabilities.create,true);
+  await f.DB.prepare("UPDATE tenant_config SET staff_ordering_capabilities='{}' WHERE tenant_id='a'").run();
+  assert.equal((await f.call('/api/staff/orders',f.input(),f.token)).http,403);
+  await f.DB.prepare('UPDATE tenant_config SET staff_ordering_capabilities=? WHERE tenant_id=?').bind(JSON.stringify({...f.capabilities,create:'true'}),'a').run();
+  assert.equal((await f.call('/api/staff/orders',f.input(),f.token)).http,403);
+  await f.DB.prepare("DROP INDEX idx_orders_active_staff_table").run();
+  assert.equal((await f.call('/api/staff/capabilities')).staff_ordering_enabled,false);
+});
+
+test('table CRUD, snapshots, replay, metadata and guarded legacy endpoints',async t=>{
+  const f=await fixture(t);
+  const table=await f.call('/api/staff/tables',{label:'A2',sort_order:1},f.token);assert.equal(table.http,201);
+  assert.equal((await f.call('/api/staff/tables',{label:'A2'},f.token)).http,409);
+  const req=f.input();const first=await f.call('/api/staff/orders',req,f.token);assert.equal(first.http,201,JSON.stringify(first));
+  const repeated=await f.call('/api/staff/orders',req,f.token);assert.equal(repeated.idempotent,true);
+  assert.equal((await f.call('/api/staff/orders',{...req,note:'different'},f.token)).error,'REQUEST_COLLISION');
+  assert.equal((await f.call('/api/staff/tables/table-a',{label:'renamed'},f.token,'PATCH')).http,400);
+  assert.equal((await f.call('/api/staff/tables/table-a',{is_active:0},f.token,'PATCH')).http,400);
+  const append=f.input({expectedRevision:1});const added=await f.call(`/api/staff/orders/${first.orderId}/rounds`,append,f.token);
+  assert.equal(added.http,200,JSON.stringify(added));assert.equal(added.total,200);assert.equal(added.revision,2);assert.equal(added.detailRevision,2);
+  assert.equal((await f.call(`/api/staff/orders/${first.key}/rounds`,append,f.token)).idempotent,true);
+  const detail=await readDetail(f.env,'a',first.key);assert.equal(detail.snapshot.rounds.length,2);
+  const live=await getOrders(new Request('https://local.test/api/orders?tenant_id=a'),f.env);
+  const found=(await live.json()).find(o=>o.key===first.key);assert.equal(found.source,'staff');assert.equal(found.revision,2);assert.equal(found.detailSnapshot.total,200);
+  const legacy=await updateOrder(new Request('https://local.test/api/update?tenant_id=a',{method:'POST',body:JSON.stringify({key:first.key,status:'PAID'})}),f.env,undefined,f.context('a'));
+  assert.equal(legacy.status,403);
+  const customer=await writeDetailedOrder(f.env,'a',{detailVersion:1,operationId:crypto.randomUUID(),parent_order_key:first.key,expectedDetailRevision:2},'append');assert.equal(customer.status,403);
+
+  // Staff takeaway order creation without tableId
+  const takeawayReq = {requestId:crypto.randomUUID(),diningOption:'takeaway',total:100,orderSelections:[],items:[{itemId:'meal-a',quantity:1}],customer:'Anh Nam',pickupTime:'18:30',note:'Cho xin tương ớt'};
+  const takeawayOrder = await f.call('/api/staff/orders',takeawayReq,f.token);
+  assert.equal(takeawayOrder.http,201,JSON.stringify(takeawayOrder));
+  assert.equal(takeawayOrder.diningOption,'takeaway');
+  assert.equal(takeawayOrder.tableId,null);
+  assert.equal(takeawayOrder.tableNumber,'');
+  assert.ok(takeawayOrder.displayKey.includes('-T'));
+  const tRow = await f.DB.prepare('SELECT * FROM orders WHERE key=?').bind(takeawayOrder.key).first();
+  assert.equal(tRow.dining_option,'takeaway');
+  assert.equal(tRow.table_id,null);
+  assert.equal(tRow.customer_name,'Anh Nam');
+  assert.equal(tRow.pickup_time,'18:30');
+  assert.equal(tRow.note,'Cho xin tương ớt');
+
+  // Verify second takeaway order succeeds without conflicting
+  const takeawayReq2 = {requestId:crypto.randomUUID(),diningOption:'takeaway',total:100,orderSelections:[],items:[{itemId:'meal-a',quantity:1}],customer:'Chị Lan'};
+  const takeawayOrder2 = await f.call('/api/staff/orders',takeawayReq2,f.token);
+  assert.equal(takeawayOrder2.http,201,JSON.stringify(takeawayOrder2));
+  assert.notEqual(takeawayOrder2.key, takeawayOrder.key);
+
+  // Verify tables list has no active_order_key assigned to any table from takeaway orders
+  const tablesAfterTakeaway = (await f.call('/api/staff/tables',null,f.token)).tables;
+  assert.equal(tablesAfterTakeaway.find(x=>x.id==='table-a').active_order_key, first.key);
+  assert.equal(tablesAfterTakeaway.find(x=>x.id===table.table.id).active_order_key, null);
+  const paid=await f.call(`/api/staff/orders/${first.key}/status`,{status:'PAID',expectedRevision:2},f.token,'PATCH');assert.equal(paid.http,200);
+  assert.equal((await f.call(`/api/staff/orders/${first.key}/rounds`,f.input({expectedRevision:3}),f.token)).error,'ORDER_FINALIZED');
+  assert.equal((await f.call('/api/staff/tables',null,f.token)).tables.find(x=>x.id==='table-a').active_order_key,null);
+});
+
+test('server rejects forged prices, cross-tenant items, missing choices and projection failures atomically',async t=>{
+  const f=await fixture(t);
+  assert.equal((await f.call('/api/staff/orders',f.input({total:1}),f.token)).http,409);
+  assert.equal((await f.call('/api/staff/orders',f.input({items:[{itemId:'meal-b',quantity:1}]}),f.token)).http,400);
+  await f.apply(`INSERT INTO modifier_groups(id,tenant_id,name,selection_type,is_required,min_selection,max_selection,scope)
+    VALUES('required-a','a','Sauce','single',1,1,1,'item');
+    INSERT INTO modifier_options(id,tenant_id,group_id,name,price) VALUES('sauce-a','a','required-a','Sauce',10);
+    INSERT INTO item_modifier_links(tenant_id,item_id,group_id) VALUES('a','meal-a','required-a');`);
+  assert.equal((await f.call('/api/staff/orders',f.input(),f.token)).http,400);
+  const req=f.input({total:110,items:[{itemId:'meal-a',quantity:1,bundleSelections:{portions:[{groups:[{groupId:'required-a',items:[{optionId:'sauce-a',quantity:1}]}]}]}}]});
+  const first=await f.call('/api/staff/orders',req,f.token);assert.equal(first.http,201,JSON.stringify(first));
+  await f.apply("CREATE TRIGGER fail_staff_projection BEFORE INSERT ON order_items BEGIN SELECT RAISE(ABORT,'injected'); END;");
+  const rejected=await f.call(`/api/staff/orders/${first.key}/rounds`,{...req,requestId:crypto.randomUUID(),expectedRevision:1},f.token);assert.equal(rejected.http,500);
+  const order=await f.DB.prepare('SELECT revision,total_amount,detail_revision FROM orders WHERE key=?').bind(first.key).first();
+  assert.deepEqual(order,{revision:1,total_amount:110,detail_revision:1});
+  assert.equal((await f.DB.prepare('SELECT COUNT(*) n FROM staff_order_requests').first()).n,1);
+});
+
+test('twenty races each: same-table create, concurrent append, append versus payment',async t=>{
+  const f=await fixture(t);
+  for(let i=0;i<20;i++) {
+    const tableId='race-'+i;await f.DB.prepare('INSERT INTO restaurant_tables(id,tenant_id,label) VALUES (?,\'a\',?)').bind(tableId,tableId).run();
+    const open=await Promise.all([f.call('/api/staff/orders',f.input({tableId}),f.token),f.call('/api/staff/orders',f.input({tableId}),f.token)]);
+    assert.deepEqual(open.map(x=>x.http).sort(),[201,409]);const key=open.find(x=>x.http===201).key;
+    const rounds=await Promise.all([f.call(`/api/staff/orders/${key}/rounds`,f.input({expectedRevision:1}),f.token),f.call(`/api/staff/orders/${key}/rounds`,f.input({expectedRevision:1}),f.token)]);
+    assert.deepEqual(rounds.map(x=>x.http).sort(),[200,409]);
+    const paid=await Promise.all([f.call(`/api/staff/orders/${key}/rounds`,f.input({expectedRevision:2}),f.token),f.call(`/api/staff/orders/${key}/status`,{expectedRevision:2,status:'PAID'},f.token,'PATCH')]);
+    assert.deepEqual(paid.map(x=>x.http).sort(),[200,409]);
+    const row=await f.DB.prepare('SELECT * FROM orders WHERE key=?').bind(key).first();
+    const snapshot=await readDetail(f.env,'a',key);assert.equal(row.total_amount,snapshot.snapshot.total);assert.equal(row.total_amount,row.round_count*100);
+    if(row.status==='PAID') assert.equal(row.total_amount,200);
+  }
+});
+
+test('PIN changes revoke sessions, logout is tenant scoped',async t=>{
+  const f=await fixture(t);
+  const request=new Request('https://local.test/api/staff/tables?tenant_id=a',{headers:{Authorization:'Bearer '+f.token}});
+  assert(await verifyStaffSession(request,f.env,'a'));
+  const changed=await handleAuthChange(new Request('https://local.test/api/auth/change?tenant_id=a',{method:'POST',body:JSON.stringify({current:'1234',newPassword:'5678'})}),f.env,f.context('a'));
+  assert.equal(changed.status,200);assert.equal(await verifyStaffSession(request,f.env,'a'),null);
+  const next=await f.call('/api/staff/session',{pin:'5678'});assert.equal(next.http,200);
+  await f.call('/api/staff/session',null,next.token,'DELETE','b');
+  assert.equal((await f.call('/api/staff/tables',null,next.token)).http,200);
+  await f.call('/api/staff/session',null,next.token,'DELETE');assert.equal((await f.call('/api/staff/tables',null,next.token)).http,401);
+});

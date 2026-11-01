@@ -1,6 +1,10 @@
 # Staff ordering — Theo dõi release và xác nhận
 
-## Quy tắc thực hiện
+## Cập nhật 29/10/2026
+
+Người dùng đã yêu cầu tích hợp toàn bộ WIP, giữ nghiệp vụ và sửa UI theo production, sau đó force-push `dev` và migrate database dev. Phạm vi này thay thế quy trình dừng sau từng R-task cho lần tích hợp này. Các dòng R00–R25 phía dưới là lịch sử; xem [báo cáo tích hợp và runbook](./rebase-main-20261029.md) cho trạng thái mới. PR #77/R02 đã merge vào main. Chưa có tenant nào được cho phép bật capability trong lần đồng bộ này.
+
+## Quy tắc thực hiện (lịch sử)
 
 - Làm đúng một task mỗi lượt; dừng sau báo cáo để người dùng xác nhận kết quả và task kế tiếp.
 - Chưa có xác nhận thì không bắt đầu task tiếp theo.

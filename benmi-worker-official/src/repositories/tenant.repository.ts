@@ -296,7 +296,7 @@ export function createTenantRepository(
       if (!db) return [];
       const { results } = await db.prepare(
         `SELECT t.id, t.name, tc.brand_name, tc.brand_color, tc.liff_id, tc.liff_url,
-                tc.ai_order_redirect_enabled, tc.is_active, tc.created_at, tc.updated_at
+                tc.ai_order_redirect_enabled, tc.staff_ordering_enabled, tc.is_active, tc.created_at, tc.updated_at
          FROM tenants t
          LEFT JOIN tenant_config tc ON t.id = tc.tenant_id
          WHERE NOT EXISTS(SELECT 1 FROM tenant_lifecycle l WHERE l.tenant_id=t.id AND l.state<>'active')
@@ -390,6 +390,11 @@ export function createTenantRepository(
         input.google_sheets_url || null,
         input.is_active ?? 1
       ).run();
+
+      if (input.staff_ordering_enabled !== undefined && input.staff_ordering_enabled !== null) {
+        await db.prepare('UPDATE tenant_config SET staff_ordering_enabled=? WHERE tenant_id=?')
+          .bind(input.staff_ordering_enabled ? 1 : 0, input.tenant_id).run();
+      }
 
       await invalidateCache(input.tenant_id);
     },

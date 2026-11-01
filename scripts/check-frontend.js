@@ -17,7 +17,7 @@ const vm = require("vm");
 const { execSync } = require("child_process");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
-const HTML_FILES = ["orders.html", "index.html", "marketplace.html"];
+const HTML_FILES = ["orders.html", "index.html", "marketplace.html", "staff-order.html"];
 
 const COLORS = {
   reset: "\x1b[0m",

@@ -63,6 +63,7 @@ export async function writeDetailedOrder(env: Env, tenant: string, input: any, k
       key = found;
       row = await env.DB.prepare('SELECT * FROM orders WHERE tenant_id=? AND key=?').bind(tenant, key).first<any>();
       if (!row) throw new DetailError('ORDER_NOT_FOUND', 404);
+      if (row.source === 'staff') throw new DetailError('STAFF_ORDER_RESTRICTED',403);
       if ((kind === 'modify' && row.status !== 'WAITING_CUSTOMER_CHANGE') ||
         (kind === 'append' && ['PICKED_UP','REJECTED','PAID','EXPIRED','FORCE_REJECT'].includes(row.status))) throw new DetailError('ORDER_LOCKED', 409);
       if (!Number.isInteger(input.expectedDetailRevision) || input.expectedDetailRevision !== row.detail_revision)

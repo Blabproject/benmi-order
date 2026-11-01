@@ -12289,7 +12289,7 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
      Mobile Order Review Modal Refinements
      ------------------------------------------------------------- */
   .order-detail-page-container {
-    padding: 8px 8px max(60px, calc(36px + env(safe-area-inset-bottom, 24px))) 8px !important;
+    padding: 8px 8px max(96px, calc(64px + env(safe-area-inset-bottom, 32px))) 8px !important;
   }
 
   .order-detail-topbar {
@@ -12561,4 +12561,23 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
   font-size: var(--pos-text-meta);
   font-weight: 400;
   color: inherit;
+}
+
+/* Table management uses the same touch targets as the POS workspace. */
+#setting-card-tables button, #tableEditorModal button, #tableEditorModal input,
+#btn-staff-order-pill { min-height:48px; }
+#btn-staff-order-pill { border:1px solid var(--border); border-radius:12px; gap:8px; align-items:center; padding:8px 14px; }
+/* Long receipt identities and translated actions must fit the tablet card. */
+#view-live:not(.live-adaptive-stations) .tile-order-key {
+  box-sizing:border-box;
+  min-width:0;
+  max-width:100%;
+  white-space:normal !important;
+  overflow-wrap:anywhere;
+}
+#view-live:not(.live-adaptive-stations) .tile-action-btn > span {
+  max-width:100%;
+  white-space:normal !important;
+  overflow-wrap:anywhere;
+  overflow:visible;
 }

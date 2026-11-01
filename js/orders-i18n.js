@@ -30,6 +30,7 @@ const I18N = {
     tabLive: "即時",
     tabHistory: "歷史",
     tabReports: "報表",
+    tabStaffOrder: "桌邊點餐",
     tabSound: "測試音效",
     tabPrinter: "印表機",
     tabMenu: "菜單",
@@ -962,7 +963,46 @@ const I18N = {
     quickTagHot: "熱銷",
     quickTagRecommend: "推薦",
     quickTagNew: "新品",
-    quickTagSpicy: "辣"
+    quickTagSpicy: "辣",
+    promptStaffPin: "請輸入門市管理 PIN 碼：",
+    staffLoading: "載入中…",
+    staffNeedsPin: "請先驗證 PIN 碼。",
+    staffRetry: "重試",
+    staffNoTables: "尚未新增桌號，請先新增桌號。",
+    staffNetworkError: "無法連線，請重試。",
+    staffStatusConflict: "訂單已更新，請確認最新內容後再操作。",
+    staffFeatureClosed: "桌邊點餐尚未啟用",
+    staffFeatureClosedHelp: "此門市尚未開放桌邊點餐權限。",
+    staffOrderSubmittedToast: "桌號已送出點餐！#{key}",
+    staffTakeawayOrderSubmittedToast: "外帶訂單已送出成功！#{key}",
+    staffContact: "聯絡支援",
+    tableDisable: "停用",
+    tableEnable: "啟用",
+    tableEditorAddTitle: "新增桌號",
+    tableEditorEditTitle: "編輯桌號",
+    btnStaffOrder: "桌邊點餐",
+    btnStaffOrderDesc: "開啟專用點餐頁面",
+    tabTables: "桌號管理",
+    tabTablesSub: "管理店內桌號、排序與啟用狀態",
+    tableAddBtn: "新增桌號",
+    tableName: "桌號名稱",
+    tableNamePlaceholder: "例：A-01, 1號桌...",
+    tableSort: "排序",
+    tableSortPlaceholder: "數字越小排越前",
+    tableStatus: "狀態",
+    tableStatusActive: "啟用中",
+    tableStatusDisabled: "已停用",
+    tableAction: "操作",
+    tableEdit: "編輯",
+    tableSave: "儲存",
+    tableCancel: "取消",
+    tableOccupied: "使用中",
+    tableEmpty: "空桌",
+    tableHasActiveOrder: "該桌尚有未結帳訂單，無法修改或停用",
+    tableDeleteDisabledHint: "系統保留桌號以維護歷史報表完整性，僅支援停用",
+    tableConfirmDisable: "確定要停用此桌號嗎？",
+    tableSaveSuccess: "桌號儲存成功",
+    tableSaveFail: "桌號儲存失敗，請重試",
   },
   "vi": {
     detailRound: "Đợt {n}",
@@ -991,6 +1031,7 @@ const I18N = {
     tabLive: "Trực tiếp",
     tabHistory: "Lịch sử",
     tabReports: "Báo cáo",
+    tabStaffOrder: "Nhận đơn tại bàn",
     tabSound: "Thử âm thanh",
     tabPrinter: "Máy in",
     tabMenu: "Thực đơn",
@@ -1923,7 +1964,46 @@ const I18N = {
     quickTagHot: "Bán chạy",
     quickTagRecommend: "Khuyên dùng",
     quickTagNew: "Món mới",
-    quickTagSpicy: "Cay"
+    quickTagSpicy: "Cay",
+    promptStaffPin: "Nhập mã PIN cửa hàng:",
+    staffLoading: "Đang tải…",
+    staffNeedsPin: "Vui lòng xác thực mã PIN.",
+    staffRetry: "Thử lại",
+    staffNoTables: "Chưa có bàn. Hãy thêm bàn mới.",
+    staffNetworkError: "Không thể kết nối. Vui lòng thử lại.",
+    staffStatusConflict: "Đơn đã thay đổi. Vui lòng kiểm tra lại trước khi thao tác.",
+    staffFeatureClosed: "Chưa bật nhận đơn tại bàn",
+    staffFeatureClosedHelp: "Cửa hàng chưa được bật quyền nhận đơn tại bàn.",
+    staffOrderSubmittedToast: "Bàn đã gửi đơn thành công! #{key}",
+    staffTakeawayOrderSubmittedToast: "Đơn mang đi đã gửi thành công! #{key}",
+    staffContact: "Liên hệ hỗ trợ",
+    tableDisable: "Ngừng dùng",
+    tableEnable: "Kích hoạt",
+    tableEditorAddTitle: "Thêm bàn",
+    tableEditorEditTitle: "Sửa bàn",
+    btnStaffOrder: "Nhận đơn tại bàn",
+    btnStaffOrderDesc: "Mở trang nhận đơn chuyên biệt",
+    tabTables: "Quản lý bàn",
+    tabTablesSub: "Quản lý danh sách bàn, thứ tự và trạng thái sử dụng",
+    tableAddBtn: "Thêm bàn mới",
+    tableName: "Tên bàn",
+    tableNamePlaceholder: "Ví dụ: Bàn 01, Tầng 1...",
+    tableSort: "Thứ tự",
+    tableSortPlaceholder: "Số nhỏ hiển thị trước",
+    tableStatus: "Trạng thái",
+    tableStatusActive: "Đang sử dụng",
+    tableStatusDisabled: "Ngừng sử dụng",
+    tableAction: "Thao tác",
+    tableEdit: "Sửa",
+    tableSave: "Lưu",
+    tableCancel: "Hủy",
+    tableOccupied: "Có khách",
+    tableEmpty: "Bàn trống",
+    tableHasActiveOrder: "Bàn đang có đơn chưa thanh toán, không thể sửa hoặc ngừng sử dụng",
+    tableDeleteDisabledHint: "Hệ thống lưu giữ bàn để bảo toàn lịch sử báo cáo, chỉ hỗ trợ ngừng sử dụng",
+    tableConfirmDisable: "Bạn có chắc chắn muốn ngừng sử dụng bàn này?",
+    tableSaveSuccess: "Lưu thông tin bàn thành công",
+    tableSaveFail: "Lưu thông tin bàn thất bại, vui lòng thử lại",
   }
 };
 
@@ -2040,6 +2120,11 @@ function applyLanguageToDOM() {
   } else {
     const tabMenu = document.getElementById("tab-menu");
     if (tabMenu) tabMenu.innerText = dict.tabMenu;
+  }
+
+  const labelStaffOrder = document.getElementById("i18n-tab-staff-order");
+  if (labelStaffOrder) {
+    labelStaffOrder.innerText = dict.tabStaffOrder || (currentLang === "vi" ? "Nhận đơn tại bàn" : "桌邊點餐");
   }
 
   const labelPrinter = document.getElementById("i18n-tab-printer");
@@ -2410,6 +2495,24 @@ function applyLanguageToDOM() {
   if (tocRep) tocRep.innerText = dict.tocReports;
   const tocStoreP = document.getElementById("i18n-toc-store-pairing");
   if (tocStoreP) tocStoreP.innerText = dict.tocStorePairing;
+  const tocTables = document.getElementById("i18n-toc-tables");
+  if (tocTables) tocTables.innerText = dict.tabTables;
+  const btnStaffOrder = document.getElementById("i18n-btn-staff-order");
+  if (btnStaffOrder) btnStaffOrder.innerText = dict.btnStaffOrder;
+  const setTablesT = document.getElementById("i18n-setting-tables-title");
+  if (setTablesT) setTablesT.innerText = dict.tabTables;
+  const setTablesS = document.getElementById("i18n-setting-tables-sub");
+  if (setTablesS) setTablesS.innerText = dict.tabTablesSub;
+  const btnAddTable = document.getElementById("i18n-table-add-btn");
+  if (btnAddTable) btnAddTable.innerText = dict.tableAddBtn;
+  const thTableName = document.getElementById("i18n-th-table-name");
+  if (thTableName) thTableName.innerText = dict.tableName;
+  const thTableSort = document.getElementById("i18n-th-table-sort");
+  if (thTableSort) thTableSort.innerText = dict.tableSort;
+  const thTableStatus = document.getElementById("i18n-th-table-status");
+  if (thTableStatus) thTableStatus.innerText = dict.tableStatus;
+  const thTableAction = document.getElementById("i18n-th-table-action");
+  if (thTableAction) thTableAction.innerText = dict.tableAction;
   if (typeof updateSettingsPanelHeaderTitle === "function") {
     updateSettingsPanelHeaderTitle();
   }
@@ -3165,3 +3268,11 @@ function applyLanguageToDOM() {
 }
 
 window.I18N = I18N;
+
+const originalStaffLanguageDOM = applyLanguageToDOM;
+applyLanguageToDOM = function () {
+  originalStaffLanguageDOM();
+  document.querySelectorAll('[data-staff-i18n]').forEach(el=>{el.textContent=t(el.dataset.staffI18n);});
+  const tableLabel=document.getElementById('table-editor-label');
+  if (tableLabel) tableLabel.placeholder=t('tableNamePlaceholder');
+};

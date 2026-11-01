@@ -22,6 +22,7 @@ export interface TenantConfigRow extends OrderDomainRow {
   groq_model?: string | null;
   openrouter_api_key?: string | null;
   openrouter_model?: string | null;
+  staff_ordering_enabled?: boolean | number | null;
   ai_order_redirect_enabled?: number | boolean | null;
   quick_replies?: string | null;
   default_password?: string | null;
@@ -45,6 +46,7 @@ export interface TenantAdminSummaryRow {
   brand_color?: string | null;
   liff_id?: string | null;
   liff_url?: string | null;
+  staff_ordering_enabled?: boolean | number | null;
   ai_order_redirect_enabled?: number | null;
   is_active?: number | null;
   created_at?: string;
@@ -75,6 +77,7 @@ export interface SaveAdminTenantInput {
   groq_model?: string | null;
   openrouter_api_key?: string | null;
   openrouter_model?: string | null;
+  staff_ordering_enabled?: boolean | number | null;
   ai_order_redirect_enabled?: boolean | number | null;
   brand_name: string;
   brand_color?: string | null;

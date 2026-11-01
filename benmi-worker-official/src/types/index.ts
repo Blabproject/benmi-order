@@ -44,12 +44,36 @@ export interface Order {
   note?: string;
   diningOption?: DiningOption;
   tableNumber?: string | null;
+  tableId?: string | null;
+  table_id?: string | null;
+  source?: 'legacy' | 'staff' | string;
+  revision?: number;
   roundCount?: number;
   round_count?: number;
   lastAppendedAt?: string | null;
   last_appended_at?: string | null;
   is_modified?: number;
   isModified?: boolean;
+}
+
+export interface RestaurantTable {
+  id: string;
+  tenant_id: string;
+  label: string;
+  sort_order: number;
+  is_active: number | boolean;
+  created_at?: string;
+  updated_at?: string;
+  active_order_key?: string | null;
+  active_order_id?: string | null;
+  active_display_key?: string | null;
+  active_order_status?: string | null;
+  active_total_amount?: number | null;
+  active_round_count?: number | null;
+  active_revision?: number | null;
+  active_customer_name?: string | null;
+  active_created_at?: string | null;
+  active_last_appended_at?: string | null;
 }
 
 export interface AppendOrderPayload {

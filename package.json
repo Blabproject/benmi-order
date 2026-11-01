@@ -19,6 +19,7 @@
     "test:pos-contract": "node --experimental-sqlite --test tests/test_pos_option_groups_contract.cjs",
     "test:smoke:dev": "node scripts/smoke-test-live-worker.mjs --env dev",
     "test:smoke:staging": "node scripts/smoke-test-live-worker.mjs --env staging",
+    "test:staff-ordering": "node --test tests/test_staff_ordering.cjs tests/test_staff_migration.cjs tests/test_staff_print.cjs tests/test_staff_pos.cjs",
     "test:order-identity": "node tests/test_order_identity.cjs",
     "test:line-order-receipts": "node --test scripts/test-line-order-receipts.cjs",
     "test:line-order-layout": "node --test tests/test_line_order_layout.cjs tests/test_order_item_note_dedup.cjs tests/test_bundle_display_all_touchpoints.cjs tests/test_item_customization_note.cjs tests/test_customization_price_e2e.cjs",
@@ -41,7 +42,8 @@
     "build": "npm run check && node scripts/build-metadata.cjs",
     "check:cache-busters": "node scripts/check-cache-busters.mjs",
     "test:menu:local": "node scripts/check-release-baseline.mjs --menu",
-    "test:menu:dev": "node scripts/menu-qa/dev.mjs"
+    "test:menu:dev": "node scripts/menu-qa/dev.mjs",
+    "test:staff-browser": "node --test tests/test_staff_ordering_browser.cjs"
   },
   "keywords": [
     "pos",

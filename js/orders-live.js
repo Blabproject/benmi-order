@@ -663,6 +663,8 @@ function updateNewAlert() {
 
   if (totalCount <= 0) {
     alertEl.style.display = "none";
+    const toast = document.getElementById("staff-order-alert-toast");
+    if (toast) toast.style.display = "none";
     newAlertSnoozeUntilMs = 0;
     snoozedNewOrderKeys = new Set();
     if (typeof newAlertSnoozeTimerId !== 'undefined' && newAlertSnoozeTimerId) {
@@ -679,6 +681,8 @@ function updateNewAlert() {
     const hasBrandNewAppend = (typeof unacknowledgedAppends !== "undefined") && Array.from(unacknowledgedAppends.keys()).some(k => !snoozedNewOrderKeys.has(k));
     if (!hasBrandNew && !hasBrandNewAppend) {
       alertEl.style.display = "none";
+      const toast = document.getElementById("staff-order-alert-toast");
+      if (toast) toast.style.display = "none";
       if (typeof stopContinuousAlarm === "function") stopContinuousAlarm();
       return;
     }
@@ -699,9 +703,44 @@ function updateNewAlert() {
     if (subEl) subEl.innerText = t("alertSub");
   }
 
+  if (typeof activeTab !== "undefined" && activeTab === "staff-order") {
+    alertEl.style.display = "none";
+    if (typeof showStaffOrderMiniToast === "function") {
+      showStaffOrderMiniToast(totalCount);
+    }
+    return;
+  }
+
   alertEl.style.display = "flex";
   if (typeof startContinuousAlarm === "function") startContinuousAlarm();
 }
+
+function showStaffOrderMiniToast(count) {
+  let toast = document.getElementById("staff-order-alert-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "staff-order-alert-toast";
+    toast.style.cssText = "position:fixed; top:12px; right:16px; z-index:9999; background:#0f172a; color:#fff; padding:10px 16px; border-radius:10px; display:flex; align-items:center; gap:12px; box-shadow:0 4px 16px rgba(0,0,0,0.2); font-size:14px; font-weight:700;";
+    document.body.appendChild(toast);
+  }
+  const lang = window.currentLang || (typeof currentLang !== "undefined" ? currentLang : "zh-TW");
+  const msg = lang === "vi" ? `Có ${count} đơn mới đang chờ duyệt` : `有 ${count} 筆新訂單待審核`;
+  const btnText = lang === "vi" ? "Xem ngay" : "查看";
+  toast.innerHTML = `
+    <span style="display:inline-flex; align-items:center; gap:8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+      </svg>
+      <span>${msg}</span>
+    </span>
+    <button type="button" style="background:var(--primary, #10b981); color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:800; cursor:pointer;" onclick="switchTab('live'); if (typeof reviewNextNewOrder==='function') reviewNextNewOrder();">
+      ${btnText}
+    </button>
+  `;
+  toast.style.display = "flex";
+}
+window.showStaffOrderMiniToast = showStaffOrderMiniToast;
 
 function dismissNewAlert() {
   newAlertSnoozeUntilMs = Date.now() + 30_000;
@@ -715,6 +754,8 @@ function dismissNewAlert() {
   }
   const alertEl = document.getElementById("new-alert");
   if (alertEl) alertEl.style.display = "none";
+  const toast = document.getElementById("staff-order-alert-toast");
+  if (toast) toast.style.display = "none";
   if (typeof stopContinuousAlarm === "function") stopContinuousAlarm();
 
   if (typeof newAlertSnoozeTimerId !== 'undefined' && newAlertSnoozeTimerId) {
@@ -1603,11 +1644,22 @@ async function updateStatus(key, status, extra = {}, btn = null) {
   }
 
   try {
-    const response = await fetch(`${WORKER_BASE}/api/update?tenant_id=${getTenantIdFromUrl()}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key, status, ...extra })
+    const order = latestOrders.find(o=>o.key===key);
+    const staff = order?.source === 'staff';
+    const token = staff ? await getStaffSessionToken() : null;
+    if (staff && !token) return;
+    const endpoint = staff ? `/api/staff/orders/${encodeURIComponent(key)}/status` : '/api/update';
+    const response = await fetch(`${WORKER_BASE}${endpoint}?tenant_id=${getTenantIdFromUrl()}`, {
+      method: staff ? 'PATCH' : 'POST',
+      headers: { 'Content-Type':'application/json', ...(staff ? {Authorization:`Bearer ${token}`} : {}) },
+      body: JSON.stringify({key,status,...extra,...(staff ? {expectedRevision:order.revision} : {})})
     });
+    if (response.status === 409 && staff) {
+      delete localOverrides[key];
+      await fetchOrders();
+      alert(t('staffStatusConflict'));
+      return;
+    }
     if (!response.ok) throw new Error(`update failed: ${response.status}`);
 
     // Apply local override immediately for responsiveness

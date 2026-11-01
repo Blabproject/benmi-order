@@ -7,7 +7,7 @@ import { createTenantRepository } from '../repositories';
 
 export const DEFAULT_PASSWORD = "12345678";
 
-async function getStoredPassword(env: Env, tenantId: string, tenantCtx?: TenantContext | null): Promise<string> {
+export async function getStoredPassword(env: Env, tenantId: string, tenantCtx?: TenantContext | null): Promise<string> {
   const repo = createTenantRepository(env.DB, env.ORDER_STATE, env);
   return repo.getStorePassword(tenantId, tenantCtx?.defaultPassword || DEFAULT_PASSWORD);
 }
@@ -66,6 +66,17 @@ export async function handleAuthChange(request: Request, env: Env, tenantCtx?: T
   if (newPassword.length < 4) return json({ ok: false, error: "Password too short" }, 400);
   
   await repo.setStorePassword(tenantId, newPassword);
+  // Revoke all active staff sessions for this tenant when store PIN changes
+  if (env.DB) {
+    try {
+      await env.DB.prepare(
+        "UPDATE staff_sessions SET revoked_at = datetime('now') WHERE tenant_id = ? AND revoked_at IS NULL"
+      ).bind(tenantId).run();
+    } catch (e) {
+      console.warn(`[handleAuthChange] Failed to revoke staff sessions for ${tenantId}:`, e);
+    }
+  }
+
   return json({ ok: true });
 }
 

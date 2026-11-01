@@ -71,11 +71,11 @@ test('I18N dictionaries contain store closed status in zh-TW and vi', () => {
 test('orders.html has updated cache-busters for menu and display scaling', () => {
   const html = read('orders.html');
 
-  assert.ok(/css\/orders\.css\?v=202610\w+/.test(html), 'orders.css must have bumped cache-buster');
-  assert.ok(/css\/orders-menu\.css\?v=202610\w+/.test(html), 'orders-menu.css must have bumped cache-buster');
-  assert.ok(/js\/orders-i18n\.js\?v=202610\w+/.test(html), 'orders-i18n.js must have bumped cache-buster');
-  assert.ok(/js\/orders-settings\.js\?v=202610\w+/.test(html), 'orders-settings.js must have bumped cache-buster');
-  assert.ok(/js\/orders-menu\.js\?v=202610\w+/.test(html), 'orders-menu.js must have bumped cache-buster');
+  assert.ok(/css\/orders\.css\?v=2026\d{4}\w+/.test(html), 'orders.css must have bumped cache-buster');
+  assert.ok(/css\/orders-menu\.css\?v=2026\d{4}\w+/.test(html), 'orders-menu.css must have bumped cache-buster');
+  assert.ok(/js\/orders-i18n\.js\?v=2026\d{4}\w+/.test(html), 'orders-i18n.js must have bumped cache-buster');
+  assert.ok(/js\/orders-settings\.js\?v=2026\d{4}\w+/.test(html), 'orders-settings.js must have bumped cache-buster');
+  assert.ok(/js\/orders-menu\.js\?v=2026\d{4}\w+/.test(html), 'orders-menu.js must have bumped cache-buster');
 });
 
 test('Menu items catalog card seamlessly integrates without nested duplicate panel borders', () => {

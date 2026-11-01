@@ -298,6 +298,12 @@
         const key = order.key;
         const legacyKey = order.legacyKey;
 
+        if (order.source === 'staff') {
+          await this.handleStaffRounds(order,1,1,'auto_print_new');
+          const latestRound = Number(order.round_count || order.roundCount || order.detailSnapshot?.rounds?.at(-1)?.roundNumber) || 1;
+          if (latestRound > 1) await this.handleStaffRounds(order,2,latestRound,'auto_print_round');
+          continue;
+        }
         if (status !== 'NEW') continue;
         if (this.isOrderAlreadyPrinted(key) || (legacyKey && this.isOrderAlreadyPrinted(legacyKey))) continue;
         if (this._inFlightOrderKeys.has(key) || (legacyKey && this._inFlightOrderKeys.has(legacyKey))) continue;
@@ -318,6 +324,49 @@
           this._inFlightOrderKeys.delete(key);
           if (legacyKey) this._inFlightOrderKeys.delete(legacyKey);
         }
+      }
+    }
+
+    async handleAppendedRounds(appendedList) {
+      if (!this.getSettings().autoPrintNewOrders || !Array.isArray(appendedList)) return;
+      for (const entry of appendedList) {
+        if (entry.order?.source === 'staff') await this.handleStaffRounds(entry.order,entry.fromRound,entry.toRound,'auto_print_round');
+      }
+    }
+
+    async handleStaffRounds(order, from, to, capability) {
+      if (!this.getSettings().autoPrintNewOrders || !window.staffOrderingCapabilities?.[capability]) return;
+      const settings = this.getSettings();
+      const snapshot = order.detailSnapshot;
+      if (!snapshot?.rounds?.length) return;
+      this._inFlightOrderKeys ||= new Set();
+      this._inFlightStaffRounds ||= new Set();
+      for (const round of snapshot.rounds.filter(r=>r.roundNumber >= from && r.roundNumber <= to)) {
+        if (round.legacyContent !== undefined) continue;
+        const roundKey = `${this.getTenantId()}:${order.orderId || order.key}:${round.roundNumber}`;
+        if (this._inFlightStaffRounds.has(roundKey)) continue;
+        this._inFlightStaffRounds.add(roundKey);
+        try {
+        const detailSnapshot = {schemaVersion:1,rounds:[round],total:round.total};
+        const ticket = {...order,detailSnapshot,total:round.total,content:window.OrderDetailView.text(detailSnapshot),
+          items:(order.items || []).filter(i=>Number(i.round_number) === round.roundNumber)};
+        for (const station of ['cashier','kitchen']) {
+          if (!this.isStationConfigured(station,settings[station])) continue;
+          const key = `staff:${this.getTenantId()}:${order.orderId || order.key}:round:${round.roundNumber}:${station}`;
+          if (this.isOrderAlreadyPrinted(key) || this._inFlightOrderKeys.has(key)) continue;
+          this._inFlightOrderKeys.add(key);
+          try {
+            if (station === 'cashier') await this.printCashierReceipt(ticket,settings.cashier);
+            else await this.printKitchenTicket(ticket,settings.kitchen);
+          } catch (error) {
+            console.error('[StaffPrint]',{key,error});
+          } finally {
+            // A failed bridge may have printed partially. Retry is an explicit manual action.
+            this.markOrderAsPrinted(key);
+            this._inFlightOrderKeys.delete(key);
+          }
+        }
+        } finally { this._inFlightStaffRounds.delete(roundKey); }
       }
     }
 
