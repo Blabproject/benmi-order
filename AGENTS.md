@@ -26,6 +26,7 @@ graph TD
 - **`docs/proposals/`**: Principal Design Proposals (PDP) for major feature architectures.
 - **`.agents/`**: Repository-specific AI Agent Rules and Skills.
 - **Bản đồ chỉ mục hàm & file (Đọc đầu tiên để định vị code tức thì, không cần grep)**: Xem chi tiết tại [codebase-map.md](file:///.agents/rules/codebase-map.md).
+- **Graphify Knowledge Graph (`graphify-out/`)**: Đồ thị kiến trúc AST toàn hệ thống (13,700+ nodes, 18,200+ edges). Dùng `graphify explain "<symbol>"`, `graphify query "<question>"`, hoặc `graphify path "<A>" "<B>"` để tra cứu tức thì thay vì grep thủ công.
 
 ---
 
@@ -66,6 +67,14 @@ graph TD
 - **Tránh Xung Đột Dữ Liệu 2 Tầng (No Schema Hybrid Pollution)**:
   - Toàn bộ menu quán mới hoặc quán sửa đổi phải dùng chuẩn Unified Option Groups (`modifier_groups`, `modifier_options` và `item_modifier_links`).
   - Khi quán đã dùng `modifier_groups`, không gán danh mục modifier cũ qua `menu_categories.applied_modifiers` để tránh sinh ra 2 nhóm tùy biến trùng nhau cho cùng một món.
+
+### E. Tái Sử Dụng Context & Định Vị Qua Graphify (Zero Redundant Search)
+- **CẤM Tìm Kiếm Dư Thừa**: Khi vị trí file, hàm hoặc selector đã được xác định ở lượt trước trong hội thoại hoặc đã có trong `codebase-map.md`, tuyệt đối **không chạy lại chuỗi lệnh grep/find mò mẫm**.
+- **Ưu tiên Graphify Knowledge Graph**:
+  - Với câu hỏi về quan hệ, kiến trúc, luồng gọi hàm: dùng `graphify explain "<tên_hàm>"`, `graphify path "<node_A>" "<node_B>"` hoặc `graphify query "<câu_hỏi>"`.
+  - Giúp lấy đúng ngữ cảnh mục tiêu mà không đọc tràn lan các file không liên quan, tiết kiệm token và thời gian.
+- **Đồng bộ đồ thị AST sau khi code**: Sau khi hoàn thành sửa đổi code, chạy `npm run graphify:update` (hoặc `graphify update .`) để giữ `graphify-out/graph.json` luôn cập nhật (hoàn toàn miễn phí, không tốn LLM API).
+- **Chỉnh sửa Tức thì khi Sửa Gấp (Surgical Fast-Fixes)**: Khi người dùng yêu cầu sửa nhanh hoặc sửa gấp, đi thẳng vào các điểm cần sửa, thay đổi tối thiểu, chạy kiểm thử Cấp 1 (`npm run check`) và kết thúc lượt, không kéo dài phân tích.
 
 ---
 

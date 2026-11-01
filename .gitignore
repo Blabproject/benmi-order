@@ -41,3 +41,10 @@ backup_*.sql
 # Build provenance and menu QA evidence
 _build.json
 artifacts/menu-qa/
+
+# Graphify machine-specific caches and local state
+graphify-out/cache/
+graphify-out/converted/
+graphify-out/manifest.json
+graphify-out/cost.json
+graphify-out/.graphify_*

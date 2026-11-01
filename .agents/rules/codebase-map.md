@@ -2,6 +2,11 @@
 
 Tài liệu này giúp AI Agent định vị **tức thì** file và hàm cần đọc/sửa theo từng màn hình và luồng nghiệp vụ mà **không cần chạy nhiều lệnh `grep` mò mẫm**.
 
+> [!IMPORTANT]
+> **Quy Tắc Tái Sử Dụng Context & Không Search Lặp Lại (Zero Redundant Search)**:
+> 1. **Tận dụng tối đa Context sẵn có**: Khi vị trí file, tên hàm hoặc dòng code đã xuất hiện ở các lượt trước trong cuộc hội thoại (hoặc đã có trong bảng chỉ mục dưới đây), **CẤM chạy lại `grep` hoặc tìm kiếm lại từ đầu**. Hãy đọc/sửa trực tiếp ngay vào dòng mục tiêu.
+> 2. **Ưu tiên Sửa Nhanh / Tối Giản (Surgical Edits)**: Khi người dùng yêu cầu sửa nhanh/gấp hoặc bật/tắt UI, thực hiện thay đổi ngắn gọn, trực diện nhất tại đúng điểm đích, không tự ý mở rộng phạm vi phân tích sang các module không cần thiết.
+
 ---
 
 ## 1. Kiến Trúc Tải File & Phạm Vi Biến (Global Scope Architecture)
@@ -100,3 +105,5 @@ Thứ tự load trong `orders.html` (từ dòng ~2788):
 | **Lỗi in hóa đơn / in tem nhãn / dịch mã ID tùy chọn** | `js/printer-service.js` (`formatPrintOptions`, `parseOrderItems`) + `js/order-legacy-adapter.js` |
 | **Lỗi tạo/sửa nhóm tùy chọn trên POS** | `js/orders-option-groups.js` + `benmi-worker-official/src/modules/option-groups.ts` |
 | **Lỗi tin nhắn biên lai LINE Flex Message** | `benmi-worker-official/src/modules/line/templates/order-receipt.ts` |
+| **Ẩn/hiện Tab Sidebar POS & Chuyển Tab (`#live`, `#menu`, `#staff-order`)** | `orders.html` (sidebar buttons) + `css/orders.css` (`.sidebar-nav-item` dùng `display: flex !important`) + `js/orders-core.js` (`VALID_POS_TABS`, `getInitialTab`, `switchTab`) |
+| **Cấu hình & Quyền Staff Ordering (Nhận đơn tại bàn)** | `benmi-worker-official/src/modules/staff-access.ts` + `src/modules/staff.ts` + `js/orders-settings.js` (`checkStaffOrderingCapability`) + `js/staff-order.js` |

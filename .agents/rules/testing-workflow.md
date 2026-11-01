@@ -12,6 +12,8 @@
 ---
 
 ### Cấp 2: Kiểm thử Mục tiêu theo Module (Targeted Tests - 0.5s đến 3s)
+**CẤM** chạy các bài test trình duyệt Playwright nặng (`test_*_browser.cjs`, tốn 20–40s) khi chỉ chỉnh sửa nhỏ CSS, ẩn/hiện tab hoặc sửa logic JS đơn giản. Chỉ chạy đúng file unit test nhẹ (< 1s):
+
 Chỉ chạy test suite của đúng module vừa thay đổi:
 
 1. **Sửa Thực đơn / Tùy chọn / Combo / Catalog**:
@@ -43,6 +45,11 @@ Chỉ chạy test suite của đúng module vừa thay đổi:
    - Kiểm tra snapshot schema:
      ```bash
      npm run test:order-details
+     ```
+6. **Sửa Điều hướng Tab POS (`switchTab`, `getInitialTab`, URL Hash)**:
+   - Kiểm tra nhanh logic tab (< 0.5s, không mở trình duyệt):
+     ```bash
+     node --test tests/test_pos_tab_persistence.cjs
      ```
 
 ---
