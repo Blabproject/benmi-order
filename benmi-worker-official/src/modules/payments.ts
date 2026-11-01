@@ -111,7 +111,7 @@ export async function reconcilePayment(env:Env,id:string,tenant:string,initialRe
    if(result.returnCode==='0000'&&/^\d+$/.test(String(result.info?.transactionId))) {
     const url=String(result.info.paymentUrl?.web||'');
     const parsed=new URL(url);if(parsed.protocol!=='https:'||!['web-pay.line.me','sandbox-web-pay.line.me'].includes(parsed.hostname)) throw new Error('PAYMENT_URL_INVALID');
-    const app=String(result.info.paymentUrl?.app||'');
+    const app=c.mode==='production'?String(result.info.paymentUrl?.app||''):'';
     if(app) {const deep=new URL(app);if(deep.protocol!=='line:'||deep.hostname!=='pay'||!deep.pathname.startsWith('/payment/')||deep.username||deep.password)throw new Error('PAYMENT_URL_INVALID');}
     await env.DB.prepare("UPDATE payments SET transaction_id=?,payment_url=?,app_url=?,status='PENDING',updated_at=?,next_attempt_at=? WHERE id=? AND lease_token=?")
      .bind(String(result.info.transactionId),url,app||null,Date.now(),Date.now()+30000,id,lease).run();

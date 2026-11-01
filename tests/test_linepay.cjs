@@ -44,7 +44,7 @@ function provider(f,{check='0110',lostConfirm=false,lostRequest=false,lostRefund
  global.fetch=async(url,options)=>{
  const path=new URL(url).pathname;calls.push(path);
  const out=data=>new Response(JSON.stringify(data));
- if(path.endsWith('/request')){if(lostRequest)throw Error('network');return new Response('{"returnCode":"0000","info":{"transactionId":2023042201206549310,"paymentUrl":{"web":"https://sandbox-web-pay.line.me/web/payment/test"}}}');}
+ if(path.endsWith('/request')){if(lostRequest)throw Error('network');return new Response('{"returnCode":"0000","info":{"transactionId":2023042201206549310,"paymentUrl":{"web":"https://sandbox-web-pay.line.me/web/payment/test","app":"line://pay/payment/test"}}}');}
  const p=f.db.prepare('SELECT * FROM payments').get();
  if(path.endsWith('/check'))return out({returnCode:check});
  if(path.endsWith('/confirm')){paid=true;if(lostConfirm)throw Error('network');return out({returnCode:'0000',info:{orderId:p.provider_order_id,transactionId:p.transaction_id}});}
@@ -58,7 +58,7 @@ test('lossless IDs and HMAC match provider contract',async()=>{
 });
 test('create, duplicate, authorize and publish once; pending hidden from POS',async()=>{
  const f=await fixture();const original=fetch;try{
- const calls=provider(f);const created=await f.route('/api/payments/linepay/request',f.payload);assert.equal(created.status,'PENDING');
+ const calls=provider(f);const created=await f.route('/api/payments/linepay/request',f.payload);assert.equal(created.status,'PENDING');assert.equal(created.appUrl,null);
  assert.equal(f.db.prepare('SELECT transaction_id FROM payments').get().transaction_id,'2023042201206549310');
  const live=await getOrders(new Request('https://api.test/api/orders?tenant_id=a'),f.env);assert.deepEqual(await live.json(),[]);
  const repeat=await f.route('/api/payments/linepay/request',f.payload);assert.equal(repeat.id,created.id);assert.equal(calls.filter(x=>x.endsWith('/request')).length,1);

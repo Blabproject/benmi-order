@@ -27,7 +27,7 @@ Tất cả API cần tenant_id hoặc X-Tenant-ID; tất cả phản hồi payme
 
 ## Quy trình sandbox bắt buộc
 
-- iOS/Android trong LINE: chọn món, LINE Pay, xác thực, quay lại menu, có biên lai và đúng một đơn NEW trên POS. Kiểm tra deep link trong LINE và web URL ngoài LINE.
+- Sandbox luôn dùng paymentUrl.web, kể cả khi menu mở trong LINE; paymentUrl.app chỉ dùng cho production theo FAQ LINE Pay. Trước tiên thử bằng Safari/Chrome: chọn món, LINE Pay, đăng nhập LINE cá nhân, xác thực trên màn hình sandbox, quay lại menu, có biên lai và đúng một đơn NEW trên POS. Kiểm tra deep link trên thiết bị thật khi merchant production sẵn sàng.
 - Safari/Chrome: cùng luồng, back/reload, tab mới. Khách quay lại một browser context không có capability được hướng dẫn về cửa sổ đặt món ban đầu; backend vẫn đối soát, không nhận callback URL làm quyền truy cập payment.
 - Xác minh thời hạn màn hình thực tế và kết quả hết hạn trong thị trường/merchant đang dùng. Không thêm đồng hồ 10–20 giây. Help Center nêu 20 phút nhưng không hardcode để kết luận tiền chưa thu.
 - Quán bấm nhận, hoàn tất và giao đơn đã thu; từ chối hiển thị chưa hoàn. Nút hoàn mở modal có số tiền và lý do. Hoàn xong chỉ đổi trạng thái tiền.
