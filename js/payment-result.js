@@ -36,6 +36,7 @@
     else if(terminal){title=text('尚未付款','Chưa thanh toán');description=data?.status==='CANCELLED'
       ?text('付款已取消或逾時。您可以返回購物車繼續下單。','Thanh toán đã hủy hoặc hết hạn. Bạn có thể quay lại giỏ hàng để tiếp tục.')
       :text('付款未完成。請返回購物車確認後再試。','Thanh toán chưa hoàn tất. Hãy quay lại giỏ hàng để kiểm tra và thử lại.');}
+    else if(data?.cancelRequestedAt){title=text('正在確認取消結果','Đang kiểm tra trước khi hủy');description=PaymentActions.message(data);}
     else {title=text('正在確認付款','Đang xác minh thanh toán');description=text('請稍候。確認完成前，請勿重複下單或付款。','Vui lòng chờ. Chưa đặt lại đơn hoặc thanh toán lại khi chưa có kết quả.');}
     document.documentElement.lang=locale;document.title=title;
     el.dataset.state=paid?'paid':terminal?'cancelled':'pending';
@@ -53,6 +54,11 @@
     else if(terminal){actions.append(button(text('返回購物車','Quay lại giỏ hàng'),()=>navigateMenu(session,true),true));}
     else if(missing){actions.append(button(text('返回菜單','Quay lại menu'),()=>location.assign(menuUrl())));}
     else {
+      if(data?.canCancel)actions.append(button(text('取消舊付款流程','Hủy phiên cũ'),async()=>{
+        clearTimeout(timer);const result=await PaymentActions.cancel(session,data);
+        if(result){latest=result;render(result,session);if(!result.paidAt&&!['CANCELLED','FAILED'].includes(result.status))refresh();}
+        else refresh();
+      }));
       if(data?.paymentUrl)actions.append(button(text('繼續 LINE Pay 付款','Tiếp tục LINE Pay'),()=>{const inLine=typeof liff!=='undefined'&&liff.isInClient();location.assign(inLine&&data.appUrl?data.appUrl:data.paymentUrl);},true));
       actions.append(button(text('重新查詢','Kiểm tra lại'),()=>refresh(),!data?.paymentUrl));
       actions.append(button(text('返回菜單','Quay lại menu'),()=>location.assign(menuUrl())));
@@ -68,7 +74,7 @@
       const brand=document.getElementById('payment-brand-name');brand.textContent=data.merchant?.brandName||text('訂單付款','Thanh toán đơn hàng');
       const logo=document.getElementById('payment-brand-logo');if(data.merchant?.logoUrl){try{const url=new URL(data.merchant.logoUrl,location.origin);if(url.protocol==='https:'){logo.src=url.href;logo.hidden=false;logo.onerror=()=>{logo.hidden=true;};}}catch{}}
       if(data.paidAt)S.paid(session);
-      else if(['CANCELLED','FAILED'].includes(data.status)){const finished={...session,terminal:true};if(S.matches(session))S.save(finished);else S.remember(finished);}
+      else if(['CANCELLED','FAILED'].includes(data.status))S.terminal({...session,terminal:true});
       render(data,session);S.cleanUrl(true);
       if(!data.paidAt&&!['CANCELLED','FAILED'].includes(data.status))timer=setTimeout(()=>{if(!document.hidden)refresh();},5000);
     }catch(error){render(null,session,error.status===403||error.status===404);if(![403,404].includes(error.status))timer=setTimeout(()=>{if(!document.hidden)refresh();},10000);}

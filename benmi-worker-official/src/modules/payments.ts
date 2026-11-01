@@ -15,6 +15,7 @@ import { paymentHash, linePayCall } from './line-pay-client';
 interface Connection { id:string;tenant_id:string;environment:string;mode:string;channel_id:string;encrypted_secret:string;key_version:string;return_url:string;enabled:number }
 interface Payment { id:string;tenant_id:string;order_key:string;connection_id:string;operation_id:string;request_hash:string;capability_hash:string;
  provider_order_id:string;transaction_id:string|null;amount:number;currency:string;status:string;payment_url:string|null;app_url:string|null;
+ confirmation_guard_version:number;confirmation_started_at:number|null;cancel_requested_at:number|null;
  result_code:string|null;paid_at:number|null;refunded_at:number|null;lease_token:string|null;lease_until:number;attempts:number;created_at:number;updated_at:number }
 class PaymentError extends Error { constructor(readonly code:string,readonly status=400){super(code);} }
 const noStore={'Cache-Control':'no-store'};
@@ -43,8 +44,10 @@ async function secret(env:Env,c:Connection) {
  } catch {throw new PaymentError('PAYMENT_CREDENTIALS_UNAVAILABLE',503);}
 }
 function projection(p:Payment) {return {id:p.id,method:'line_pay',status:p.status,amount:p.amount,currency:p.currency,
+ cancelRequestedAt:p.cancel_requested_at,canCancel:!p.paid_at&&activeStatuses.includes(p.status)&&!p.cancel_requested_at,
+ cancellationReason:p.paid_at?'ALREADY_PAID':p.cancel_requested_at?'VERIFYING':p.confirmation_guard_version!==1?'LEGACY_VERIFICATION':p.confirmation_started_at?'CONFIRM_STARTED':null,
  paidAt:p.paid_at,refundedAmount:p.refunded_at?p.amount:0,orderKey:p.order_key,
- paymentUrl:p.status==='PENDING'?p.payment_url:null,appUrl:p.status==='PENDING'?p.app_url:null,resultCode:p.result_code,needsAttention:p.status==='REFUND_FAILED'||
+ paymentUrl:p.status==='PENDING'&&!p.cancel_requested_at?p.payment_url:null,appUrl:p.status==='PENDING'&&!p.cancel_requested_at?p.app_url:null,resultCode:p.result_code,needsAttention:p.status==='REFUND_FAILED'||
  (activeStatuses.includes(p.status)&&Date.now()-p.created_at>300000)};}
 async function get(env:Env,id:string,tenant:string) {
  const p=await env.DB.prepare('SELECT * FROM payments WHERE id=? AND tenant_id=?').bind(id,tenant).first<Payment>();
@@ -96,7 +99,7 @@ export async function reconcilePayment(env:Env,id:string,tenant:string,initialRe
   WHERE id=? AND tenant_id=? AND lease_until<? AND status IN ('REQUESTING','PENDING','CONFIRMING','UNKNOWN','REFUND_PENDING')`)
   .bind(lease,now+180000,id,tenant,now).run();
  if(!locked.meta.changes) return p;
- p={...p,lease_token:lease,attempts:p.attempts+1};
+ p=await get(env,id,tenant);
  try {
   const c=await env.DB.prepare('SELECT * FROM tenant_payment_connections WHERE id=? AND tenant_id=? AND environment=?')
    .bind(p.connection_id,tenant,environment(env)).first<Connection>();
@@ -151,13 +154,19 @@ export async function reconcilePayment(env:Env,id:string,tenant:string,initialRe
    else if(p.transaction_id) {
     const check=await call(`/v4/payments/requests/${p.transaction_id}/check`);
     if(check.returnCode==='0110') {
-     await set(env,p,'CONFIRMING','0110');
+     // One atomic winner: cancellation or durable permission to send Confirm.
+     const intent=await env.DB.prepare(`UPDATE payments SET confirmation_started_at=?,status='CONFIRMING',updated_at=?
+      WHERE id=? AND lease_token=? AND lease_until>? AND cancel_requested_at IS NULL
+      AND confirmation_started_at IS NULL AND status IN ('PENDING','UNKNOWN','REQUESTING')`)
+      .bind(Date.now(),Date.now(),id,lease,Date.now()).run();
+     if(!intent.meta.changes){await set(env,p,'UNKNOWN','CONFIRM_OR_CANCEL_VERIFY');return await get(env,id,tenant);}
+     await event(env,id,'CONFIRM_STARTED');
      const confirmed=await call(`/v4/payments/${p.transaction_id}/confirm`,{amount:p.amount,currency:p.currency});
      if(confirmed.returnCode==='0000' && confirmed.info?.orderId===p.provider_order_id && String(confirmed.info?.transactionId)===p.transaction_id)
       await publish(env,p,p.transaction_id);
      else await set(env,p,'UNKNOWN',String(confirmed.returnCode));
     } else if(check.returnCode==='0121'||check.returnCode==='0122') await set(env,p,check.returnCode==='0121'?'CANCELLED':'FAILED',check.returnCode);
-    else await set(env,p,check.returnCode==='0000'?'PENDING':'UNKNOWN',String(check.returnCode));
+    else await set(env,p,check.returnCode==='0000'&&!p.cancel_requested_at&&!p.confirmation_started_at?'PENDING':'UNKNOWN',String(check.returnCode));
    } else await set(env,p,'UNKNOWN','REQUEST_RESPONSE_MISSING');
   }
  } catch {
@@ -204,11 +213,34 @@ async function create(request:Request,env:Env,tenant:TenantContext) {
  detailStatement(env,tenant.tenantId,orderId,1,operation,hash,snapshot,'create'),
  env.DB.prepare('UPDATE orders SET detail_revision=1 WHERE key=? AND tenant_id=?').bind(orderId,tenant.tenantId),
  ...detailProjection(env,tenant.tenantId,orderId,snapshot),
- env.DB.prepare(`INSERT INTO payments(id,tenant_id,order_key,connection_id,operation_id,request_hash,capability_hash,provider_order_id,amount,status,next_attempt_at,created_at,updated_at)
- VALUES(?,?,?,?,?,?,?,?,?,'REQUESTING',?,?,?)`).bind(id,tenant.tenantId,orderId,c.id,operation,hash,await paymentHash(capability),'BLAB-'+id,round.total,now,now,now)
+ env.DB.prepare(`INSERT INTO payments(id,tenant_id,order_key,connection_id,operation_id,request_hash,capability_hash,provider_order_id,amount,status,next_attempt_at,created_at,updated_at,confirmation_guard_version)
+ VALUES(?,?,?,?,?,?,?,?,?,'REQUESTING',?,?,?,1)`).bind(id,tenant.tenantId,orderId,c.id,operation,hash,await paymentHash(capability),'BLAB-'+id,round.total,now,now,now)
  ]);}catch(error){const replay=await env.DB.prepare('SELECT * FROM payments WHERE tenant_id=? AND operation_id=?').bind(tenant.tenantId,operation).first<Payment>();
  if(replay){await customer(request,replay);if(replay.request_hash!==hash)throw new PaymentError('PAYMENT_OPERATION_REUSED',409);return reply(projection(replay));}throw error;}
  return reply(projection(await reconcilePayment(env,id,tenant.tenantId,true)));
+}
+/** Cancellation and Confirm share a D1 compare-and-set boundary, not a browser flag. */
+async function cancelPayment(env:Env,p:Payment) {
+ const now=Date.now();
+ await env.DB.prepare(`UPDATE payments SET cancel_requested_at=COALESCE(cancel_requested_at,?),updated_at=?,next_attempt_at=?,
+  status=CASE WHEN confirmation_guard_version=1 AND confirmation_started_at IS NULL THEN 'CANCELLED' WHEN status='CONFIRMING' THEN 'UNKNOWN' ELSE status END,
+  result_code=CASE WHEN confirmation_guard_version=1 AND confirmation_started_at IS NULL THEN 'CUSTOMER_CANCELLED' ELSE result_code END,
+  lease_token=CASE WHEN confirmation_guard_version=1 AND confirmation_started_at IS NULL THEN NULL ELSE lease_token END,
+  lease_until=CASE WHEN confirmation_guard_version=1 AND confirmation_started_at IS NULL THEN 0 ELSE lease_until END
+  WHERE id=? AND tenant_id=? AND paid_at IS NULL AND status IN ('REQUESTING','PENDING','CONFIRMING','UNKNOWN')`)
+  .bind(now,now,now,p.id,p.tenant_id).run();
+ p=await get(env,p.id,p.tenant_id);
+ await event(env,p.id,'CANCEL_REQUESTED',p.status);
+ if(activeStatuses.includes(p.status)&&!p.paid_at)p=await reconcilePayment(env,p.id,p.tenant_id);
+ if(p.paid_at)await event(env,p.id,'CANCEL_ALREADY_PAID');
+ return p;
+}
+async function customerProjection(env:Env,p:Payment,tenant:TenantContext) {
+ const order=await env.DB.prepare('SELECT display_key,status,pickup_time FROM orders WHERE key=? AND tenant_id=?').bind(p.order_key,p.tenant_id).first<any>();
+ const detail=p.paid_at?await readDetail(env,p.tenant_id,p.order_key):null;
+ const connection=await env.DB.prepare('SELECT return_url FROM tenant_payment_connections WHERE id=? AND tenant_id=? AND environment=?').bind(p.connection_id,p.tenant_id,environment(env)).first<{return_url:string}>();
+ return {...projection(p),displayKey:order?.display_key,orderStatus:order?.status,pickupTime:order?.pickup_time,
+  merchant:{brandName:tenant.brandName,logoUrl:tenant.logoUrl||null,locale:tenant.locale},menuUrl:connection?.return_url,receipt:detail?.snapshot||null};
 }
 async function paymentStaffSession(request:Request,env:Env,tenantId:string) {
  const valid=await verifyStaffSession(request,env,tenantId);
@@ -248,6 +280,12 @@ export async function handlePaymentRoute(request:Request,env:Env,tenant:TenantCo
   }
   if(path==='/api/payments/session'&&request.method==='POST')return await session(request,env,tenant);
   if(path==='/api/payments/linepay/request'&&request.method==='POST')return await create(request,env,tenant);
+  if(path==='/api/payments/checkout'&&request.method==='GET') {
+   const operation=new URL(request.url).searchParams.get('operationId')||'';
+   const p=await env.DB.prepare('SELECT * FROM payments WHERE tenant_id=? AND operation_id=?').bind(tenantId,operation).first<Payment>();
+   if(!p)throw new PaymentError('PAYMENT_NOT_FOUND',404);
+   await customer(request,p);return reply(await customerProjection(env,p,tenant));
+  }
   if(path==='/api/payments/summary'&&request.method==='GET') {
    if(!await paymentStaffSession(request,env,tenantId))throw new PaymentError('SESSION_REQUIRED',401);
    const day=new URL(request.url).searchParams.get('date')||new Date(Date.now()+8*3600000).toISOString().slice(0,10);
@@ -261,13 +299,18 @@ export async function handlePaymentRoute(request:Request,env:Env,tenant:TenantCo
   if(path==='/api/payments/attention'&&request.method==='GET') {
    if(!await paymentStaffSession(request,env,tenantId))throw new PaymentError('SESSION_REQUIRED',401);
    const {results}=await env.DB.prepare(`SELECT p.* FROM payments p JOIN orders o ON o.key=p.order_key AND o.tenant_id=p.tenant_id
-    WHERE p.tenant_id=? AND (p.status IN ('UNKNOWN','REFUND_PENDING','REFUND_FAILED') OR
+    WHERE p.tenant_id=? AND (p.status IN ('UNKNOWN','REFUND_PENDING','REFUND_FAILED') OR (p.cancel_requested_at IS NOT NULL AND p.status NOT IN ('CANCELLED','FAILED','REFUNDED')) OR
      (p.status='PAID' AND o.status IN ('REJECTED','FORCE_REJECT','EXPIRED'))) ORDER BY p.created_at LIMIT 100`).bind(tenantId).all<Payment>();
    return reply(results.map(projection));
   }
-  const match=path.match(/^\/api\/payments\/([a-f0-9-]{36})(?:\/(confirm|refunds|reconcile))?$/);
+  const match=path.match(/^\/api\/payments\/([a-f0-9-]{36})(?:\/(confirm|refunds|reconcile|cancel))?$/);
   if(!match)throw new PaymentError('PAYMENT_ROUTE_NOT_FOUND',404);
   let p=await get(env,match[1],tenantId);
+  if(match[2]==='cancel') {
+   if(request.method!=='POST')throw new PaymentError('METHOD_NOT_ALLOWED',405);
+   await customer(request,p);p=await cancelPayment(env,p);
+   return reply({...await customerProjection(env,p,tenant),outcome:p.paid_at?'already_paid':['CANCELLED','FAILED'].includes(p.status)?'cancelled':'verifying'});
+  }
   const staff=await paymentStaffSession(request,env,tenantId);
   if(match[2]==='refunds'&&request.method==='POST') {
    if(!staff)throw new PaymentError('SESSION_REQUIRED',401);
@@ -289,11 +332,7 @@ export async function handlePaymentRoute(request:Request,env:Env,tenant:TenantCo
    if(match[2]==='confirm'&&request.method==='POST')p=await reconcilePayment(env,p.id,tenantId);
    else if(request.method!=='GET'||match[2])throw new PaymentError('METHOD_NOT_ALLOWED',405);
   }
-  const order=await env.DB.prepare('SELECT display_key,status,pickup_time FROM orders WHERE key=? AND tenant_id=?').bind(p.order_key,tenantId).first<any>();
-  const detail=p.paid_at?await readDetail(env,tenantId,p.order_key):null;
-  const connection=await env.DB.prepare('SELECT return_url FROM tenant_payment_connections WHERE id=? AND tenant_id=? AND environment=?').bind(p.connection_id,tenantId,environment(env)).first<{return_url:string}>();
-  return reply({...projection(p),displayKey:order?.display_key,orderStatus:order?.status,pickupTime:order?.pickup_time,
-   merchant:{brandName:tenant.brandName,logoUrl:tenant.logoUrl||null,locale:tenant.locale},menuUrl:connection?.return_url,receipt:detail?.snapshot||null});
+  return reply(await customerProjection(env,p,tenant));
  }catch(e){const code=e instanceof Error?e.message:'PAYMENT_FAILED';console.warn('[Payment]',{code:code.slice(0,100)});
   return reply({code:e instanceof PaymentError?e.code:code,error:code},e instanceof PaymentError?e.status:code.startsWith('ORDER_')||code.startsWith('OPTION_')?409:500);}
 }

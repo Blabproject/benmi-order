@@ -8,13 +8,13 @@ const root=path.resolve(__dirname,'..');
 const draft={cart:{meal:1},customizeData:{},comboDrinkData:{},bundleCartData:{}};
 const receipt={schemaVersion:1,total:100,rounds:[{roundNumber:1,groups:[],note:'',items:[{lineId:'meal',itemId:'meal',name:'Meal',quantity:1,unitPrice:100,subtotal:100,portions:[{portionIndex:0,groups:[],note:''}],note:''}]}]};
 const paid={id,status:'PAID',paidAt:123,amount:100,displayKey:'A001',orderStatus:'NEW',pickupTime:'2026-11-01 12:00',receipt,merchant:{brandName:'Store <safe>',locale:'vi'},menuUrl:'https://fixture.test/?tenant_id=a'};
-const menu=`<!doctype html><html lang="vi"><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/payments.css"></head><body><main><div id="sec-checkout"></div><button id="add">Add meal</button></main><script>
+const menu=`<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/payments.css"></head><body><main><div id="sec-checkout"></div><button id="add">Add meal</button><button id="btn-submit" onclick="handleFooterAction()">確認下單</button></main><script>
 window.WORKER_BASE='https://api.test';window.getTenantIdFromUrl=()=> 'a';window.currentLocale='vi';
 const saved=JSON.parse(localStorage.getItem('cart_save_a')||'null');
 window.cart=saved?.cart||{};window.customizeData=saved?.customizeData||{};window.comboDrinkData=saved?.comboDrinkData||{};window.bundleCartData=saved?.bundleCartData||{};
-window.updateTotal=()=>{};window.DetailCheckout={completed:()=>sessionStorage.removeItem('order_detail_pending:a')};
+window.isSubmitting=false;window.updateTotal=()=>{};window.DetailCheckout={completed:()=>sessionStorage.removeItem('order_detail_pending:a')};
 document.getElementById('add').onclick=()=>{cart.meal=(cart.meal||0)+1;LinePayCheckout.onCartChange();};
-</script><script src="/js/payment-session.js"></script><script src="/js/payment-view.js"></script><script src="/js/client-payments.js"></script></body></html>`;
+</script><script src="/js/client-checkout.js"></script><script src="/js/payment-session.js"></script><script src="/js/payment-view.js"></script><script src="/js/payment-actions.js"></script><script src="/js/client-payments.js"></script></body></html>`;
 async function fixture(browser,options={}){
  const context=await browser.newContext({viewport:{width:390,height:844}}),calls=[],errors=[];
  const model={data:paid,...options};
@@ -34,6 +34,7 @@ async function fixture(browser,options={}){
   if(url.pathname.startsWith('/api/payments/')){
    calls.push({url:url.href,path:url.pathname,method:req.method(),headers:req.headers(),body:req.postData()});
    if(model.delay&&url.pathname.endsWith('/confirm'))await model.delay;
+   if(url.pathname.endsWith('/cancel')&&model.cancelReply&&!model.offline)model.data=model.cancelReply;
    const data=url.pathname.endsWith('/config')?{linePay:{enabled:true}}:url.pathname.endsWith('/request')?{id,status:'PENDING',paymentUrl:'https://sandbox-web-pay.line.me/web/payment/test'}:model.data;
    const offline=model.offline&&!url.pathname.endsWith('/config');
    return route.fulfill({status:offline?503:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify(offline?{code:'UNAVAILABLE'}:data)});
@@ -128,3 +129,34 @@ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]]){
   }finally{await browser.close();}
  });
 }
+
+for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('LINE Pay '+name+': cancel from real checkout gate retains edited cart and permits fresh payment',async()=>{
+ const browser=await engine.launch({headless:true});try{
+  const pending={id,status:'PENDING',amount:100,displayKey:'A001',canCancel:true};
+  const f=await fixture(browser,{data:pending,cancelReply:{...pending,status:'CANCELLED',canCancel:false,outcome:'cancelled',cancelRequestedAt:123}});
+  await f.page.goto('https://fixture.test/?tenant_id=a&lang=vi');await f.page.waitForSelector('#payment-method');
+  const other=await f.context.newPage();await other.goto('https://fixture.test/?tenant_id=a&lang=vi');await other.waitForSelector('#payment-method');
+  await f.page.locator('#add').click();await f.page.locator('#add').click();
+  const originalURL=f.page.url();assert.equal(await f.page.locator('#btn-submit').textContent(),'Xử lý thanh toán đang chờ');
+  await f.page.locator('#btn-submit').click();await f.page.locator('#payment-choice-dialog').waitFor();assert.equal(f.page.url(),originalURL);
+  await f.page.locator('#payment-choice-dialog').getByRole('button',{name:'Hủy phiên cũ',exact:true}).click();
+  if(process.env.PAYMENT_RESULT_SCREENSHOT_DIR){fs.mkdirSync(process.env.PAYMENT_RESULT_SCREENSHOT_DIR,{recursive:true});await f.page.screenshot({path:path.join(process.env.PAYMENT_RESULT_SCREENSHOT_DIR,'cancel-'+name+'.png'),fullPage:true});}
+  await f.page.getByRole('button',{name:'Xác nhận hủy',exact:true}).click();await f.page.waitForSelector('#payment-cancel-dialog',{state:'detached'});
+  await other.waitForFunction(()=>!LinePayCheckout.blocked());assert.equal(await other.evaluate(()=>sessionStorage.getItem('order_detail_pending:a')),null);assert.equal(await other.evaluate(()=>cart.meal),1);await other.close();
+  assert.equal(await f.page.evaluate(()=>cart.meal),3);assert.equal(await f.page.evaluate(()=>LinePayCheckout.blocked()),false);assert.equal(await f.page.evaluate(()=>LinePayCheckout.selected()),false);
+  assert.equal(await f.page.evaluate(()=>JSON.parse(localStorage.getItem('cart_save_a')).cart.meal),3);
+  assert.equal(await f.page.evaluate(()=>sessionStorage.getItem('order_detail_pending:a')),null);
+  assert.equal(f.calls.filter(c=>c.path.endsWith('/request')).length,0);assert.equal(f.calls.filter(c=>c.path.endsWith('/cancel')).length,1);
+  await f.page.selectOption('#payment-method','line_pay');await f.page.evaluate(()=>LinePayCheckout.start({detailVersion:1,dining_option:'takeaway',operationId:'new-operation-after-cancel'}));await f.page.waitForURL('https://sandbox-web-pay.line.me/**');
+  assert.equal(f.calls.filter(c=>c.path.endsWith('/request')).length,1);assert.notEqual(f.calls.find(c=>c.path.endsWith('/request')).headers['x-payment-token'],'a'.repeat(64));await f.close();
+  // A missing ID is resolved without reissuing Request. Network errors leave the checkout locked.
+  const missing=await fixture(browser,{session:{id:null},data:pending,cancelReply:{...pending,status:'UNKNOWN',cancelRequestedAt:123,outcome:'verifying'}});
+  await missing.page.goto('https://fixture.test/?tenant_id=a&lang=vi');await missing.page.waitForSelector('#payment-method');
+  await missing.page.getByRole('button',{name:'Hủy phiên cũ',exact:true}).click();missing.model.offline=true;
+  await missing.page.getByRole('button',{name:'Xác nhận hủy',exact:true}).click();await missing.page.locator('dialog [role=status]').filter({hasText:'Chưa xác nhận'}).waitFor();
+  assert.equal(await missing.page.evaluate(()=>LinePayCheckout.blocked()),true);
+  missing.model.offline=false;await missing.page.getByRole('button',{name:'Xác nhận hủy',exact:true}).click();await missing.page.waitForSelector('#payment-cancel-dialog',{state:'detached'});
+  assert.equal(await missing.page.evaluate(()=>LinePayCheckout.blocked()),true);assert.match(await missing.page.locator('#payment-result').textContent(),/Đang kiểm tra trước khi hủy/);
+  assert.ok(missing.calls.some(c=>c.path.endsWith('/checkout')&&c.method==='GET'));assert.equal(missing.calls.filter(c=>c.path.endsWith('/request')).length,0);await missing.close();
+ }finally{await browser.close();}
+});

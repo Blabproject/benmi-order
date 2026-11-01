@@ -55,3 +55,14 @@ Tất cả API cần tenant_id hoặc X-Tenant-ID; tất cả phản hồi payme
 - Hủy/hết hạn đã xác minh: “Quay lại giỏ hàng” khôi phục bản nháp và bỏ operationId cũ. UNKNOWN/lỗi mạng: giữ checkout, cho kiểm tra lại, không tạo payment mới.
 - Callback `transactionId`/`orderId` được dọn khỏi thanh địa chỉ. Giữ `payment_id` để tải lại biên lai; capability chỉ nằm trong localStorage và header, không đưa lên URL. HTML no-store/noindex/no-referrer.
 - Kiểm tra tải lại, callback cũ, back, nhiều tab, giỏ mới khác bản nháp cũ và quay về browser không có capability. Khi phát hành, đợi frontend có trang kết quả trước khi deploy Worker tạo callback mới.
+
+## Hủy phiên và đổi giỏ hàng (0076)
+
+- Apply migration 0076 trước Worker. Backend mới lưu `confirmation_started_at` trước POST Confirm và dùng cùng điều kiện D1 với cancellation. Không rollback Worker về bản bỏ qua cancel/Confirm guard.
+- Deploy Worker trước frontend; chờ ít nhất một chu kỳ lease 180 giây để các tác vụ phiên bản trước hoàn tất trước khi công bố nút hủy. Sau đó mới push frontend/cache-buster.
+- POST `/api/payments/:id/cancel` yêu cầu capability của khách đúng tenant; kết quả `cancelled`, `verifying`, `already_paid`. Lặp lại không tạo refund. `cancelRequestedAt`, `canCancel`, `cancellationReason` bổ sung trong projection.
+- GET `/api/payments/checkout?operationId=…&tenant_id=…` tra cứu chỉ đọc bằng capability, phục hồi ID khi Request mất phản hồi. 404 chưa chứng minh Request không còn đang chạy: giữ trạng thái xác minh, không tự tạo lại giao dịch.
+- Phiên mới chưa bắt đầu Confirm có thể hủy ngay tại Benmi; Request đang chạy không có khả năng tự thu tiền. Hủy làm mất lease và đóng trạng thái, nên phản hồi muộn không khôi phục phiên. Đường dẫn provider có thể còn mở nhưng Benmi không xác nhận thu tiền cho phiên này.
+- Phiên cũ trước migration không được suy diễn là chưa gửi Confirm. Yêu cầu hủy chặn Confirm mới và đợi provider xác nhận trạng thái dứt điểm. Các dấu vết UNKNOWN/CONFIRMING cũ được bảo toàn thành intent chưa rõ kết quả.
+- Menu hiển thị phiên chờ và lựa chọn tiếp tục/hủy; nút checkout mở lựa chọn tại chỗ. Hủy thành công giữ giỏ hiện tại, bỏ operation cũ và không tự đặt đơn. Đồng bộ archive giữa các tab để bỏ khóa và operation đã kết thúc.
+- Payment attention bao gồm yêu cầu hủy chưa giải quyết và đã thu sau yêu cầu hủy. Đối chiếu `cancel_requested_at`, `confirmation_started_at`, `paid_at` cùng payment_events; không đổi trạng thái tiền thủ công hoặc tự refund để che sai lệch.

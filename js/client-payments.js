@@ -2,23 +2,72 @@
 window.LinePayCheckout = (function () {
   const S=PaymentSession;
   const text=(zh,vi)=>(typeof currentLocale!=='undefined'?currentLocale:document.documentElement.lang)==='vi'?vi:zh;
-  let busy=false,lastSession=null;
+  let busy=false,lastSession=null,latest=null,pollTimer=null;
   function selected(){return document.getElementById('payment-method')?.value==='line_pay';}
   function removeBanner(){document.getElementById('payment-result')?.remove();}
   function retireCompleted(){const saved=S.active();if(saved?.completed){S.detach(saved);S.completeDetail();removeBanner();S.cleanUrl();}}
-  function onCartChange(){if(Object.values(window.cart||{}).some(qty=>Number(qty)>0))retireCompleted();}
-  function blocked(){onCartChange();return !!S.active()&&!S.active()?.completed;}
+  function onCartChange(){if(Object.values(window.cart||{}).some(qty=>Number(qty)>0))retireCompleted();syncButtons();}
+  function blocked(){return !!S.active()&&!S.active()?.completed;}
+  function syncButtons(){
+    for(const id of ['btn-submit','submit-btn','btn-desktop-submit']){
+      const button=document.getElementById(id);if(!button)continue;
+      if(blocked()){if(!button.dataset.paymentLabel)button.dataset.paymentLabel=button.textContent;button.textContent=text('處理待確認付款','Xử lý thanh toán đang chờ');}
+      else if(button.dataset.paymentLabel){button.textContent=button.dataset.paymentLabel;delete button.dataset.paymentLabel;}
+    }
+  }
+  function notice(message,session){
+    removeBanner();const panel=PaymentView.element('section','payment-panel',message);panel.id='payment-result';panel.setAttribute('role','status');
+    if(session?.id)panel.append(PaymentActions.button(text('查看訂單','Xem đơn'),()=>{location.assign(S.resultUrl(session.id));}));
+    document.getElementById('sec-checkout')?.prepend(panel);syncButtons();
+  }
+  async function cancelCurrent(){
+    const session=S.active();if(!session)return;S.preserveDraft(session);
+    const data=await PaymentActions.cancel(session,latest);
+    if(!data)return;
+    if(S.active()&&!S.matches(session)){latest=null;showResume();inspect();return;}
+    if(data.paidAt){notice(PaymentActions.message(data),session);return;}
+    if(['CANCELLED','FAILED'].includes(data.status)){latest=null;notice(text('已取消舊付款流程，餐點已保留。','Đã hủy phiên cũ. Các món đang chọn được giữ lại.'));}
+    else {latest=data;showResume();}
+  }
+  async function inspect(){
+    clearTimeout(pollTimer);const session=S.active();if(!session)return;
+    try{
+      const data=await S.resolve(session);if(!S.matches(session))return;latest=data;
+      if(data.paidAt){S.paid(session);notice(PaymentActions.message(data),session);return;}
+      if(['CANCELLED','FAILED'].includes(data.status)){S.terminal({...S.active(),terminal:true});latest=null;notice(text('舊付款已結束，您可以繼續下單。','Phiên cũ đã kết thúc. Bạn có thể tiếp tục đặt đơn.'));return;}
+      showResume();
+    }catch{if(S.matches(session))showResume();}
+    if(S.matches(session))pollTimer=setTimeout(()=>{if(!document.hidden)inspect();},8000);
+  }
+  function manage(){
+    const session=S.active();if(!session)return;S.preserveDraft(session);showResume();
+    if(document.getElementById('payment-choice-dialog'))return;
+    const dialog=PaymentView.element('dialog','payment-cancel-dialog');dialog.id='payment-choice-dialog';dialog.setAttribute('aria-label',text('待確認付款','Thanh toán đang chờ'));
+    dialog.append(PaymentView.element('h2','',text('處理待確認付款','Xử lý thanh toán đang chờ')),PaymentView.element('p','',PaymentActions.message(latest)));
+    const actions=PaymentView.element('div','payment-dialog-actions');
+    actions.append(PaymentActions.button(text('繼續舊訂單','Tiếp tục đơn cũ'),()=>{dialog.close();resume();}),PaymentActions.button(text('取消舊付款流程','Hủy phiên cũ'),()=>{dialog.close();cancelCurrent();}),PaymentActions.button(text('返回菜單','Quay lại menu'),()=>dialog.close()));
+    dialog.append(actions);dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.append(dialog);dialog.showModal();
+  }
   function showResume(){
     const session=S.active();if(!session)return;
     removeBanner();const panel=PaymentView.element('section','payment-panel');panel.id='payment-result';panel.setAttribute('aria-live','polite');
-    panel.append(PaymentView.element('p','',text('您有一筆付款尚待確認。','Bạn có một thanh toán chưa xác minh xong.')));
-    const button=PaymentView.element('button','payment-button',text('查看付款結果','Kiểm tra thanh toán'));button.type='button';button.onclick=()=>resume();panel.append(button);document.getElementById('sec-checkout')?.prepend(panel);
+    panel.append(PaymentView.element('p','',PaymentActions.message(latest)));
+    if(latest?.displayKey)panel.append(PaymentView.element('p','payment-pending-meta','#'+latest.displayKey+' · TWD '+latest.amount));
+    panel.append(PaymentActions.button(text('繼續舊訂單','Tiếp tục đơn cũ'),()=>resume()));
+    if(!latest?.cancelRequestedAt)panel.append(PaymentActions.button(text('取消舊付款流程','Hủy phiên cũ'),()=>cancelCurrent()));
+    else panel.append(PaymentActions.button(text('重新查詢','Kiểm tra lại'),()=>inspect()));
+    document.getElementById('sec-checkout')?.prepend(panel);syncButtons();
   }
   function launch(data){const inLine=typeof liff!=='undefined'&&liff.isInClient();location.assign(inLine&&data.appUrl?data.appUrl:data.paymentUrl);}
   async function resume(openPayment){
     if(busy)return;const session=S.active();if(!session)return;if(session.completed){retireCompleted();return;}
     lastSession=session;
-    if(session.id){location.assign(S.resultUrl(session.id));return;}
+    if(session.id){S.preserveDraft(session);location.assign(S.resultUrl(session.id));return;}
+    if(!openPayment){
+      S.preserveDraft(session);
+      try{const data=await S.resolve(session);if(S.matches(session))location.assign(S.resultUrl(data.id));}catch{notice(text('付款仍在確認中。請稍後查詢，勿重新付款。','Thanh toán vẫn đang được xác minh. Hãy kiểm tra lại sau, chưa thanh toán lại.'));}
+      return;
+    }
     busy=true;
     try{
       const lineAccessToken=typeof liff!=='undefined'&&liff.isLoggedIn()?liff.getAccessToken():undefined;
@@ -29,7 +78,7 @@ window.LinePayCheckout = (function () {
     }catch{if(S.matches(session))showResume();}finally{busy=false;}
   }
   async function start(payload){
-    retireCompleted();if(S.active()){await resume();return;}
+    retireCompleted();if(S.active()){manage();return;}
     if(payload.dining_option!=='takeaway'||payload.detailVersion!==1)throw new Error(text('LINE Pay 僅支援新的外帶訂單。','LINE Pay chỉ hỗ trợ đơn mang đi mới.'));
     const token=Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
     const draft=S.draft();S.save({token,payload,draft,cartSignature:S.signature(draft)});await resume(true);
@@ -39,17 +88,19 @@ window.LinePayCheckout = (function () {
     if(receipt?.completed&&(!current||S.same(current,lastSession))){
       if(lastSession.cartSignature===S.signature(S.draft())){
         window.cart={};window.customizeData={};window.comboDrinkData={};window.bundleCartData={};
-        S.completeDetail();if(typeof updateTotal==='function')updateTotal();
+        S.completeDetail(lastSession);if(typeof updateTotal==='function')updateTotal();
       }
       S.detach(lastSession);removeBanner();
     }
+    else if(receipt?.terminal&&(!current||S.same(current,lastSession))){S.completeDetail(lastSession);S.detach(lastSession);removeBanner();syncButtons();}
     else if(current&&!current.completed)showResume();
+    else {removeBanner();syncButtons();}
   }
   async function init(){
     if(!document.getElementById('sec-checkout'))return;
     const params=new URL(location.href).searchParams;
     if(params.has('payment_id')){location.replace(S.resultUrl(params.get('payment_id'),params));return;}
-    retireCompleted();lastSession=S.active();if(lastSession)showResume();
+    retireCompleted();lastSession=S.active();if(lastSession){showResume();inspect();}
     try{
       const config=await(await fetch(WORKER_BASE+'/api/payments/config?tenant_id='+encodeURIComponent(getTenantIdFromUrl()))).json();if(!config.linePay?.enabled)return;
       const group=PaymentView.element('div','payment-method-section');
@@ -59,8 +110,10 @@ window.LinePayCheckout = (function () {
       group.append(label,select);document.getElementById('sec-checkout').prepend(group);
     }catch{}
   }
-  window.addEventListener('pageshow',onPageShow);
-  window.addEventListener('storage',event=>{if(event.key?.startsWith('linepay_receipt:'))onPageShow();});
+  window.addEventListener('pageshow',event=>{onPageShow();if(event.persisted)inspect();});
+  window.addEventListener('storage',event=>{if(event.key?.startsWith('linepay_receipt:')||event.key?.startsWith('linepay_checkout:')){onPageShow();inspect();}});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else setTimeout(init,0);
-  return {selected,blocked,start,resume,onCartChange};
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)inspect();});
+  window.addEventListener('pagehide',()=>clearTimeout(pollTimer));
+  return {selected,blocked,start,resume,manage,syncButtons,onCartChange};
 })();

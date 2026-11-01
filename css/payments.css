@@ -50,3 +50,13 @@
 #sec-checkout .payment-result-button:hover{background:#f3f7f5;border-color:#b8cec2}
 #sec-checkout .payment-result-button:focus-visible{outline-color:var(--primary,#059669)}
 @media(prefers-reduced-motion:reduce){#sec-checkout .payment-method-select,#sec-checkout .payment-result-button{transition:none}}
+.payment-cancel-dialog{box-sizing:border-box;width:calc(100% - 32px);max-width:440px;max-height:85dvh;overflow:auto;padding:24px;border:1px solid #e2e8f0;border-radius:18px;color:#1f2937;background:#fff;font:inherit;line-height:1.65}
+.payment-cancel-dialog::backdrop{background:rgb(15 23 42 / .35)}
+.payment-cancel-dialog h2{font-size:19px;margin:0 0 12px}
+.payment-dialog-actions{display:flex;flex-direction:column;gap:10px;margin-top:20px}
+.payment-cancel-dialog .payment-button{margin:0;min-height:48px;font:inherit;cursor:pointer}
+.payment-action-message,.payment-pending-meta{font-size:14px;color:#64748b}
+.payment-button:focus-visible{outline:2px solid #059669;outline-offset:3px}
+.payment-button:disabled{opacity:.6;cursor:wait}
+
+.payment-panel > .payment-button{margin:6px 8px 0 0}

@@ -23,7 +23,7 @@ async function fixture(){
  CREATE TABLE daily_order_counters(tenant_id TEXT,order_date TEXT,dining_option TEXT,last_seq INTEGER,PRIMARY KEY(tenant_id,order_date,dining_option));
  CREATE TABLE staff_sessions(token_hash TEXT PRIMARY KEY,tenant_id TEXT,pin_hash TEXT,expires_at TEXT,created_at TEXT,revoked_at TEXT);
  `);
- for(const name of ['0032_create_order_items.sql','0065_line_order_receipts.sql','0069_order_detail_snapshots.sql','0075_line_pay_v4.sql'])f.db.exec(fs.readFileSync('benmi-worker-official/migrations/'+name,'utf8'));
+ for(const name of ['0032_create_order_items.sql','0065_line_order_receipts.sql','0069_order_detail_snapshots.sql','0075_line_pay_v4.sql','0076_payment_cancellation.sql'])f.db.exec(fs.readFileSync('benmi-worker-official/migrations/'+name,'utf8'));
  // Real SQLite, with D1 metadata and atomic batches.
  f.env.DB={prepare(sql){let args=[];const s={bind(...a){args=a;return s;},async first(){return f.db.prepare(sql).get(...args)||null;},async all(){return {results:f.db.prepare(sql).all(...args)};},async run(){return {meta:{changes:Number(f.db.prepare(sql).run(...args).changes)}}},sql,get args(){return args;}};return s;},async batch(statements){f.db.exec('BEGIN');try{const out=statements.map(s=>/^\s*SELECT/i.test(s.sql)?{success:true,results:f.db.prepare(s.sql).all(...s.args)}:{success:true,meta:{changes:Number(f.db.prepare(s.sql).run(...s.args).changes)}});f.db.exec('COMMIT');return out;}catch(e){f.db.exec('ROLLBACK');throw e;}}};
  f.env.BUILD_ENVIRONMENT='dev';
@@ -172,4 +172,56 @@ test('payment sessions validate current PIN, distinguish default PIN, and reject
   assert.equal(defaultLogin.status,409);assert.equal(defaultLogin.code,'PAYMENT_PIN_CHANGE_REQUIRED');
   assert.equal((await f.route('/api/payments/session',{password:'wrong'})).status,401);
  }finally{f.db.close();}
+});
+test('cancel fences pending checkout, lookup is read-only and old callbacks cannot capture',async()=>{
+ const f=await fixture(),original=fetch;try{
+  const calls=provider(f,{check:'0000'}),p=await f.route('/api/payments/linepay/request',f.payload);
+  const lookup=await handlePaymentRoute(new Request('https://api.test/api/payments/checkout?operationId='+f.payload.operationId,{headers:{'X-Payment-Token':f.token}}),f.env,tenant,'/api/payments/checkout');
+  assert.equal((await lookup.json()).id,p.id);assert.equal(calls.length,1);
+  assert.equal((await f.route('/api/payments/'+p.id+'/cancel',{},'b'.repeat(64))).status,403);
+  assert.equal((await f.route('/api/payments/'+p.id+'/cancel',{},f.token,{...tenant,tenantId:'b'})).status,404);
+  const cancelled=await f.route('/api/payments/'+p.id+'/cancel',{});assert.equal(cancelled.outcome,'cancelled');assert.equal(cancelled.status,'CANCELLED');assert.equal(cancelled.paymentUrl,null);
+  assert.equal((await f.route('/api/payments/'+p.id+'/cancel',{})).outcome,'cancelled');
+  const after=provider(f);await Promise.all([reconcilePayment(f.env,p.id,'a'),f.route('/api/payments/'+p.id+'/confirm',{})]);
+  assert.equal(after.length,0);assert.equal(f.db.prepare('SELECT status FROM orders').get().status,'PENDING_PAYMENT');
+  assert.throws(()=>f.db.prepare("UPDATE payments SET status='PENDING' WHERE id=?").run(p.id),/PAYMENT_CANCELLED/);
+  assert.equal(f.db.prepare("SELECT count(*) n FROM payment_events WHERE event='publish'").get().n,0);
+ }finally{fetch=original;f.db.close();}
+});
+test('cancel wins while Request or authentication query is in flight',async()=>{
+ for(const phase of ['request','check']){
+  const f=await fixture(),original=fetch;try{
+   provider(f);const baseFetch=fetch;let release,entered;
+   const started=new Promise(r=>entered=r),gate=new Promise(r=>release=r);let confirms=0;
+   global.fetch=async(url,options)=>{const response=await baseFetch(url,options);if(new URL(url).pathname.endsWith('/confirm'))confirms++;if(new URL(url).pathname.endsWith('/'+phase)){entered();await gate;}return response;};
+   let p,work;
+   if(phase==='request'){work=f.route('/api/payments/linepay/request',f.payload);await started;p=f.db.prepare('SELECT * FROM payments').get();}
+   else {p=await f.route('/api/payments/linepay/request',f.payload);work=f.route('/api/payments/'+p.id+'/confirm',{});await started;}
+   assert.equal((await f.route('/api/payments/'+p.id+'/cancel',{})).outcome,'cancelled');release();await work;
+   assert.equal(confirms,0);assert.equal(f.db.prepare('SELECT status FROM payments').get().status,'CANCELLED');
+  }finally{fetch=original;f.db.close();}
+ }
+});
+test('Confirm wins cancellation race: stay verifying, recover capture once, never auto-refund',async()=>{
+ const f=await fixture(),original=fetch;try{
+  const calls=provider(f);const baseFetch=fetch;let release,entered;const gate=new Promise(r=>release=r),started=new Promise(r=>entered=r);
+  global.fetch=async(url,options)=>{const response=await baseFetch(url,options);if(new URL(url).pathname.endsWith('/confirm')){entered();await gate;}return response;};
+  const p=await f.route('/api/payments/linepay/request',f.payload);const confirming=f.route('/api/payments/'+p.id+'/confirm',{});await started;
+  assert.ok(f.db.prepare('SELECT confirmation_started_at FROM payments').get().confirmation_started_at);
+  const cancel=await f.route('/api/payments/'+p.id+'/cancel',{});assert.equal(cancel.outcome,'verifying');assert.ok(cancel.cancelRequestedAt);
+  release();assert.equal((await confirming).status,'PAID');assert.equal((await f.route('/api/payments/'+p.id+'/cancel',{})).outcome,'already_paid');
+  assert.equal(calls.filter(p=>p.endsWith('/confirm')).length,1);assert.equal(calls.filter(p=>p.endsWith('/refund')).length,0);
+  assert.equal(f.db.prepare('SELECT status FROM orders').get().status,'NEW');
+ }finally{fetch=original;f.db.close();}
+});
+test('legacy and missing Confirm responses cannot be treated as safe local cancellation',async()=>{
+ for(const legacy of [true,false]){
+  const f=await fixture(),original=fetch;try{
+   const calls=provider(f);const p=await f.route('/api/payments/linepay/request',f.payload);
+   f.db.prepare('UPDATE payments SET confirmation_guard_version=?,confirmation_started_at=?,status=? WHERE id=?').run(legacy?0:1,legacy?null:Date.now(),'UNKNOWN',p.id);
+   assert.equal((await f.route('/api/payments/'+p.id+'/cancel',{})).outcome,'verifying');
+   await f.route('/api/payments/'+p.id+'/confirm',{});assert.equal(calls.filter(p=>p.endsWith('/confirm')).length,0);
+   provider(f,{check:'0121'});assert.equal((await f.route('/api/payments/'+p.id+'/confirm',{})).status,'CANCELLED');
+  }finally{fetch=original;f.db.close();}
+ }
 });
