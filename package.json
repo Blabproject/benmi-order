@@ -43,7 +43,8 @@
     "check:cache-busters": "node scripts/check-cache-busters.mjs",
     "test:menu:local": "node scripts/check-release-baseline.mjs --menu",
     "test:menu:dev": "node scripts/menu-qa/dev.mjs",
-    "test:staff-browser": "node --test tests/test_staff_ordering_browser.cjs"
+    "test:staff-browser": "node --test tests/test_staff_ordering_browser.cjs",
+    "test:payments": "node --experimental-sqlite --test tests/test_linepay.cjs && node --test tests/test_linepay_browser.cjs"
   },
   "keywords": [
     "pos",

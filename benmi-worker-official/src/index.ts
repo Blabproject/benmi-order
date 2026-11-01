@@ -1,3 +1,4 @@
+import { handlePaymentRoute, processPayments } from './modules/payments';
 import { tenantIsDeleted } from './utils/tenant-lifecycle';
 import { getOptionCatalog, saveOptionEntity } from './modules/option-groups';
 import { getModifierLibrary } from './modules/modifier-library';
@@ -22,6 +23,7 @@ import { recordLiffClientError } from './modules/line-client-telemetry';
 export default {
   async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(processPendingOrderReceipts(env));
+    ctx.waitUntil(processPayments(env));
   },
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     try {
@@ -67,6 +69,8 @@ export default {
       if (path.startsWith('/api/') && !['/api/health','/api/marketplace','/api/marketplace/tenants'].includes(path)
         && await tenantIsDeleted(env.DB, tenantId)) return json({ error: 'TENANT_DELETED' }, 410, { 'Cache-Control': 'no-store' });
       const tenantCtx = await resolveTenantContext(tenantId, env);
+
+      if (path.startsWith('/api/payments/')) return handlePaymentRoute(request, env, tenantCtx, path);
 
       // 4. Staff API Routes
       if (path.startsWith("/api/staff")) {

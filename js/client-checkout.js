@@ -1900,6 +1900,10 @@ async function validateCartStockBeforeSubmit() {
 
 // 10. Hàm nội bộ thực thi POST dữ liệu
 async function doSubmitOrderExecution(dateInput, timeInput) {
+    if (window.LinePayCheckout && LinePayCheckout.blocked()) { await LinePayCheckout.resume(); return; }
+    if (window.LinePayCheckout && LinePayCheckout.selected() && (window.isEditOrderMode || window.isAppendOrderMode)) {
+        customAlert('LINE Pay 僅支援新的外帶訂單。'); return;
+    }
     let orderSubmittedSuccessfully = false;
     isSubmitting = true;
     setAllSubmitButtonsState(true, '驗證餐點中...', { cursor: 'not-allowed', opacity: '0.7' });
@@ -2417,6 +2421,13 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
             line_delivery_mode: deliveryDiagnostic.deliveryMode
         };
 
+        if (window.LinePayCheckout && (LinePayCheckout.selected() || LinePayCheckout.blocked())) {
+            clearTimeout(timeoutId);
+            const preparedPayment = await DetailCheckout.prepare(orderPayload);
+            await LinePayCheckout.start(preparedPayment);
+            return;
+        }
+
         const res = await fetch(`${WORKER_BASE}/api/create?tenant_id=${tenantId}`, {
             method: "POST",
             headers: {
@@ -2533,6 +2544,10 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
 
     } catch (err) {
         clearTimeout(timeoutId);
+        if (window.LinePayCheckout && (LinePayCheckout.selected() || LinePayCheckout.blocked())) {
+            customAlert('LINE Pay: ' + String(err.message || '請重新確認付款 / Vui lòng kiểm tra lại thanh toán').replace(/[<>&]/g, ''));
+            return;
+        }
         if (err.serverRejected) {
             const details = err.details || {};
             const code = String(details.code || '');

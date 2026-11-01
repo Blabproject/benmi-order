@@ -212,7 +212,7 @@ export function buildOrderFlexMessage(
           layout: "horizontal",
           alignItems: "center",
           contents: [
-            { type: "text", text: "總金額", size: "sm", weight: "bold", color: "#64748B", flex: 0 },
+            { type: "text", text: order.payment?.status === "PAID" ? (tenantCtx?.locale === "vi" ? "LINE Pay · Đã thanh toán" : "LINE Pay · 已付款") : "總金額", size: "sm", weight: "bold", color: "#64748B", flex: 0 },
             { type: "text", text: `$${order.total}`, size: "xl", weight: "bold", color: "#059669", align: "end", flex: 1 }
           ]
         }

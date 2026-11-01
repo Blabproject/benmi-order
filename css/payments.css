@@ -1,0 +1,10 @@
+.payment-panel{padding:16px;margin:12px 0;border:1px solid #cbd5e1;border-radius:12px;background:#fff;color:#0f172a;line-height:1.6}
+.payment-panel label{display:block;margin-bottom:8px;font-weight:600}
+.payment-button{min-height:48px;min-width:48px;padding:10px 16px;border:1px solid #64748b;border-radius:8px;background:#fff;color:#0f172a;font:inherit;cursor:pointer}
+.payment-button:focus-visible{outline:3px solid #2563eb;outline-offset:3px}
+.payment-button:disabled{opacity:.55;cursor:wait}
+.payment-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+.payment-dialog{border:0;border-radius:16px;padding:24px;max-width:min(480px,90vw);box-shadow:0 12px 48px #0004;color:#0f172a;background:#fff}
+.payment-dialog::backdrop{background:#0008}
+.payment-dialog label{display:block;margin:12px 0 6px}
+.payment-dialog input,.payment-dialog textarea{display:block;box-sizing:border-box;width:100%;min-height:48px;padding:12px;font:inherit;border:1px solid #64748b;border-radius:8px}

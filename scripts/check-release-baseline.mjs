@@ -49,6 +49,8 @@ const suites = [
   ['staff-print', ['--test', 'tests/test_staff_print.cjs', 'tests/test_staff_pos.cjs']],
   ['staff-capability-schema', ['--test', 'tests/test_staff_capability_schema.cjs']],
   ['order-identity', ['tests/test_order_identity.cjs']],
+  ['linepay-runtime', ['--test', 'tests/test_linepay.cjs']],
+  ['linepay-browser', ['--test', 'tests/test_linepay_browser.cjs']],
   ['line-receipts', ['--test', 'scripts/test-line-order-receipts.cjs']],
   ['line-portion-layout', ['--test', 'tests/test_line_order_layout.cjs', 'tests/test_order_item_note_dedup.cjs', 'tests/test_bundle_display_all_touchpoints.cjs', 'tests/test_item_customization_note.cjs', 'tests/test_customization_price_e2e.cjs']],
   ['liff-retry', ['--test', 'scripts/test-liff-message-retry.cjs']],

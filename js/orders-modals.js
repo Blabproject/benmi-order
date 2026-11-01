@@ -118,6 +118,7 @@ function openReview(orderKey) {
   const order = (latestOrders || []).find(o => o && o.key === orderKey) || (typeof lastHistoryOrders !== "undefined" ? (lastHistoryOrders || []).find(o => o && o.key === orderKey) : null);
   if (!order) return;
   reviewingOrder = order;
+  if (window.PaymentPOS) PaymentPOS.mount(order);
 
   const detailTopbar = document.querySelector(".order-detail-topbar");
   if (detailTopbar) detailTopbar.classList.remove("topbar-hidden", "is-scrolled");

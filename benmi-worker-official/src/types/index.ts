@@ -1,6 +1,7 @@
 export type DiningOption = 'takeaway' | 'dine_in';
 
 export type OrderStatus =
+  | 'PENDING_PAYMENT'
   | 'NEW'
   | 'ACCEPTED'
   | 'DONE'
@@ -13,6 +14,7 @@ export type OrderStatus =
   | 'FORCE_REJECT';
 
 export interface Order {
+  payment?: { id: string; method: string; status: string; amount: number; currency: string; paidAt: number | null; refundedAmount: number };
   detailSnapshot?: import('./order-detail').OrderDetailSnapshot;
   detailRevision?: number;
   items?: Array<{

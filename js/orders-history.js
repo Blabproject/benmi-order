@@ -391,6 +391,7 @@ function renderHistory(orders) {
             <span class="history-tile-key">#${escapeHtml(order.displayKey || order.key)}</span>
             ${diningBadge}
             ${appendBadge}
+            ${window.PaymentPOS ? PaymentPOS.badge(order) : ''}
             ${modifiedBadge}
             ${badge}
           </div>

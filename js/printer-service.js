@@ -1022,6 +1022,7 @@
       if (!isKitchen) {
         divider();
         row('應收總計', 48, '$' + (order.total ?? 0), 'bold');
+        if (order.payment) row('LINE Pay · ' + (typeof t === 'function' ? t('payment' + order.payment.status) : order.payment.status), 29, '', 'normal');
         divider();
         // Keep the Chinese greeting and attribution on separate centered rows.
         // Sharing one row made both strings wrap on narrow 58 mm paper.

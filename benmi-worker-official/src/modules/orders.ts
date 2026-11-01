@@ -1,3 +1,5 @@
+import { attachPayments } from './payments';
+import { verifyStaffSession } from './staff';
 import { writeDetailedOrder } from './order-detail-write';
 import { attachOrderDetails, detailReads, detailWrites } from './order-detail';
 import { unifiedMenuEnabled, validateUnifiedOrderItems } from './option-groups';
@@ -1022,6 +1024,10 @@ export async function updateOrder(
   ).bind(await resolveOrderKey(env, tenantCtx?.tenantId || getTenantId(request), data.key), tenantCtx?.tenantId || getTenantId(request)).first<any>();
   if (!orderRow) return json({ error: "order not found" }, 404);
 
+  const paymentProtected = await env.DB.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='payments'").first()
+    && await env.DB.prepare('SELECT 1 FROM payments WHERE tenant_id=? AND order_key=?').bind(orderRow.tenant_id,orderRow.key).first();
+  if (paymentProtected && !await verifyStaffSession(request,env,orderRow.tenant_id)) return json({code:'SESSION_REQUIRED'},401);
+  if (paymentProtected && ['WAITING_CUSTOMER_CHANGE','PAID'].includes(data.status)) return json({code:'PAYMENT_ORDER_LOCKED'},409);
   if (orderRow.source === 'staff') return json({code:'STAFF_ORDER_RESTRICTED'},403);
 
   const effectiveTenantId = orderRow.tenant_id || tenantCtx?.tenantId || getTenantId(request);
@@ -1423,7 +1429,7 @@ export async function getOrders(request: Request, env: Env): Promise<Response> {
     const { results } = await env.DB.prepare(
       `SELECT key, order_id, display_key, business_date, legacy_key, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, table_id, source, revision, round_count, last_appended_at, created_at, is_modified
        FROM orders 
-       WHERE tenant_id = ? 
+       WHERE tenant_id = ? AND status <> 'PENDING_PAYMENT'
          AND (status IN ('NEW', 'ACCEPTED', 'WAITING_CUSTOMER_CHANGE', 'WAITING_CUSTOMER_REJECT', 'DONE') 
               OR created_at >= ?)
        ORDER BY created_at DESC LIMIT 500`
@@ -1432,6 +1438,7 @@ export async function getOrders(request: Request, env: Env): Promise<Response> {
     const orders = mapOrderRows(results || []);
     await attachOrderPrintItems(env, tenantId, orders);
     await attachOrderDetails(env, tenantId, orders);
+    await attachPayments(env, tenantId, orders);
     return jsonWithETag(orders, currentVersion);
   } catch (e: any) {
     console.error("[getOrders] D1 error:", e);
@@ -1493,6 +1500,7 @@ export async function getOrdersByDate(request: Request, env: Env): Promise<Respo
     const orders = mapOrderRows(results || []);
     await attachOrderPrintItems(env, tenantId, orders);
     await attachOrderDetails(env, tenantId, orders);
+    await attachPayments(env, tenantId, orders);
     return json(orders);
   } catch (e: any) {
     console.error("[getOrdersByDate] D1 error:", e);
@@ -1517,6 +1525,7 @@ export async function getHistoryAll(request: Request, env: Env): Promise<Respons
     const orders = mapOrderRows(results || []);
     await attachOrderPrintItems(env, tenantId, orders);
     await attachOrderDetails(env, tenantId, orders);
+    await attachPayments(env, tenantId, orders);
     return json(orders);
   } catch (e: any) {
     console.error("[getHistoryAll] D1 error:", e);

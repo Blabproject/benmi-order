@@ -544,6 +544,7 @@ function renderListLeft(orders) {
           <span class="tile-customer" title="${escapeHtml(order.customer || t('defaultCustomer'))}">${escapeHtml(order.customer || t('defaultCustomer'))}</span>
           <span class="tile-order-key">#${escapeHtml(order.displayKey || order.key)}</span>
           ${newBadge}
+          ${window.PaymentPOS ? PaymentPOS.badge(order) : ''}
           ${modifiedBadge}
           ${diningBadge}
           ${appendBadge}
@@ -626,6 +627,7 @@ function renderListRight(orders) {
         <div class="tile-top">
           <span class="tile-customer" title="${escapeHtml(order.customer || t('defaultCustomer'))}">${escapeHtml(order.customer || t('defaultCustomer'))}</span>
           <span class="tile-order-key">#${escapeHtml(order.displayKey || order.key)}</span>
+          ${window.PaymentPOS ? PaymentPOS.badge(order) : ''}
           ${modifiedBadge}
           ${diningBadge}
           ${appendBadge}
@@ -1646,12 +1648,12 @@ async function updateStatus(key, status, extra = {}, btn = null) {
   try {
     const order = latestOrders.find(o=>o.key===key);
     const staff = order?.source === 'staff';
-    const token = staff ? await getStaffSessionToken() : null;
-    if (staff && !token) return;
+    const token = staff ? await getStaffSessionToken() : order?.payment ? await PaymentPOS.token() : null;
+    if ((staff || order?.payment) && !token) return;
     const endpoint = staff ? `/api/staff/orders/${encodeURIComponent(key)}/status` : '/api/update';
     const response = await fetch(`${WORKER_BASE}${endpoint}?tenant_id=${getTenantIdFromUrl()}`, {
       method: staff ? 'PATCH' : 'POST',
-      headers: { 'Content-Type':'application/json', ...(staff ? {Authorization:`Bearer ${token}`} : {}) },
+      headers: { 'Content-Type':'application/json', ...(token ? {Authorization:`Bearer ${token}`} : {}) },
       body: JSON.stringify({key,status,...extra,...(staff ? {expectedRevision:order.revision} : {})})
     });
     if (response.status === 409 && staff) {
