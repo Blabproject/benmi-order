@@ -1,17 +1,17 @@
 # Graph Report - benmi-order  (2026-11-02)
 
 ## Corpus Check
-- 1031 files · ~1,300,854 words
+- 1031 files · ~1,301,092 words
 - Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 119 file(s) not represented in the graph (top: .csv 53, .apk 23, (none) 13)
+- Unclassified: 120 file(s) not represented in the graph (top: .csv 53, .apk 23, (none) 14)
 
 ## Summary
-- 13728 nodes · 18277 edges · 1043 communities (798 shown, 245 thin omitted)
+- 13730 nodes · 18280 edges · 1041 communities (795 shown, 246 thin omitted)
 - Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 772 edges (avg confidence: 0.92)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `69f97802`
+- Built from commit: `518d5421`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -36,8 +36,8 @@
 - src/index.ts
 - orders-option-groups.js
 - csv
-- test-menu-safety.cjs
-- ref_node_path
+- ref_node_vm
+- browser.mjs
 - json
 - staff.ts
 - Kế hoạch copy dữ liệu menu cũ sang schema mới
@@ -55,7 +55,7 @@
 - slide_search_core.py
 - Tailwind CSS Utility Reference
 - design_system.py
-- staff-ordering.cjs
+- test-menu-safety.cjs
 - TenantRepository
 - ref_assert
 - orders-core.js
@@ -98,7 +98,7 @@
 - Changelog
 - PDP: Đề xuất Chuyển đổi và Tối ưu hóa Benmi sang mô hình SaaS Đa Hộ Thuê (Multi-Tenant SaaS)
 - test_printer_system.js
-- test_pos_menu_bug_fixes.cjs
+- test_menu_global_group_order.cjs
 - test_bill_and_ui_optimizations.js
 - cloudflare-d1.cjs
 - client-option-groups.js
@@ -178,7 +178,7 @@
 - Durable Objects Rules & Best Practices
 - tenants
 - PDP: Hỗ Trợ Đơn Lấy Mang Đi (Takeaway) & Ăn Tại Quán (Dine-in)
-- PDP: Dine-In Order UUID Tracking & Automatic Append Engine
+- bundle-rules.test.cjs
 - PDP: Chuyển hoàn toàn dữ liệu tuỳ chọn menu sang canonical schema
 - PDP: Multi-Tenant Config, Images, Passwords & D1 Menu Sync [Refactor/Fix]
 - Specification: Go Backend Refactor & PostgreSQL Migration
@@ -223,7 +223,6 @@
 - Binding Gotchas and Troubleshooting
 - Bot Management Patterns
 - Cloudflare Containers Skill Reference
-- do-storage/README.md
 - Flagship
 - Flagship Configuration
 - Flagship Patterns & Best Practices
@@ -278,7 +277,7 @@
 - test_pos_display.cjs
 - test_sold_out_order_modification.js
 - test_zhadantongxue_no_bundle_duplication.cjs
-- agents-sdk/SKILL.md
+- Browse the Web (Experimental)
 - Banner Design - Multi-Format Creative Banner System
 - Messaging Framework
 - Brand Voice Framework
@@ -312,7 +311,7 @@
 - Element
 - Headers
 - SubtleCrypto
-- line-order-layout.cjs
+- Customer order domain rollout
 - PDP: Dual-Identifier Architecture with Dining-Type Daily Sequential Order ID (`MMDD-[D|T]XXX`) & Atomic SQLite Counter [New/Refactor]
 - PDP: LINE Pay Online API v4 — New
 - PDP: Menu Write Integrity [Replace]
@@ -399,7 +398,7 @@
 - API Reference
 - Cloudflare Network Interconnect (CNI)
 - Configuration
-- Bindings Reference
+- client-payments.js
 - Cloudflare Pages
 - r2-data-catalog/configuration.md
 - R2 SQL API Reference
@@ -442,7 +441,7 @@
 - D1 Configuration
 - Common Errors
 - Common Errors
-- SendEmail Binding
+- Worker Runtime API
 - Email Workers Configuration
 - Common Errors
 - Configuration
@@ -493,7 +492,7 @@
 - AI Gateway Troubleshooting
 - AI Search Configuration
 - Analytics Engine API Reference
-- Analytics Engine Configuration
+- PDP: Desktop Web Order LINE Confirmation & Flex Message Dispatch
 - Configuration
 - Cloudflare Bot Management
 - C3 (create-cloudflare)
@@ -523,9 +522,9 @@
 - Patterns
 - Cloudflare Secrets Store
 - Smart Placement Configuration
-- WorkerEntrypoint
-- Cloudflare Static Assets Skill Reference
+- Các task nhỏ
 - Configuration
+- apply
 - Stream Configuration
 - Stream Gotchas
 - Stream Patterns
@@ -553,7 +552,7 @@
 - PDP: Cloudflare Edge Caching Strategy [Performance/Infrastructure]
 - D. Kế hoạch theo bước
 - copy_tenant_prod_to_dev.mjs
-- test-liff-message-retry.cjs
+- document
 - Client SDK
 - Think (Experimental)
 - sync-brand-to-tokens.cjs
@@ -590,7 +589,7 @@
 - Configuration
 - Common Errors
 - Common Patterns
-- Smart Placement API
+- test_order_detail_groups.cjs
 - Cloudflare Snippets Skill Reference
 - Common Errors
 - Cloudflare Tail Workers
@@ -602,12 +601,12 @@
 - Workers AI Configuration
 - Workers Playground API
 - Workers Playground Patterns
-- Properties
+- HTMLRewriter
 - Workflow Configuration
 - Cloudflare Wrangler
 - Zaraz Gotchas
 - Cloudflare Zaraz
-- 1. Input Contract & The 3-Level F&B Choice Hierarchy
+- 3. Kiến trúc đề xuất
 - Cloudflare Worker Backend (`benmi-worker-official`) - AI Agent Instructions
 - ByteLengthQueuingStrategy
 - DurableObjectTransaction
@@ -624,7 +623,7 @@
 - 3. Proposed Architecture
 - 2. Giải pháp kiến trúc toàn diện (Architecture Specification)
 - Benmi & Multi-Tenant Order Platform Architecture & Deployment Guide
-- test-modifier-library.cjs
+- test_pickup_eta.cjs
 - doc
 - test_order_identity_print.cjs
 - test_receipt_canvas_height.js
@@ -638,7 +637,7 @@
 - C3 Generated Configuration
 - C3 Usage Patterns
 - DDoS Protection Patterns
-- Concurrency Model (CRITICAL)
+- Workflows Integration
 - Configuration
 - Gotchas & Best Practices
 - CNI Configuration
@@ -656,7 +655,7 @@
 - TURN Gotchas & Troubleshooting
 - Vectorize API Reference
 - Web Analytics Gotchas
-- Web Platform APIs
+- containers/gotchas.md
 - Workers AI Patterns
 - Zaraz Patterns
 - input
@@ -666,7 +665,7 @@
 - 2. Step-by-Step Execution Workflow
 - Type Validation
 - AiSearchInstance
-- R2Bucket
+- DO Storage Configuration
 - Vectorize
 - Thiết kế API & Logic Báo Hết Hàng (Out-of-Stock API Design)
 - 1. So sánh Cấu trúc Bảng Hiện tại vs Đích
@@ -678,7 +677,7 @@
 - Multi-Tenant Scalability & Architecture Rules (Quy Tắc Thiết Kế Mở Rộng 1,000+ Tenants)
 - Callable Methods
 - Configuration
-- Queue & Retries
+- agents-sdk/SKILL.md
 - Routing
 - Server-Driven Messages (Trigger Patterns)
 - AI Search Gotchas
@@ -693,10 +692,11 @@
 - Common Errors
 - Miniflare
 - CNI Gotchas & Troubleshooting
-- Common Patterns
+- Quy Chuẩn Kiểm Thử Tinh Gọn Khi Phát Triển (Tiered Testing Workflow)
 - Endpoints
 - Common Errors
-- static-assets/gotchas.md
+- TCP Sockets API Reference
+- Critical Pitfalls
 - Troubleshooting
 - Common Mistakes
 - Troubleshooting
@@ -727,22 +727,22 @@
 - renderListRight
 - render
 - smoke-test-live-worker.mjs
-- test_order_detail_mobile_scroll.cjs
+- MessagePort
 - Human-in-the-Loop
-- Observability
+- Order detail snapshots
 - Voice (Experimental)
-- References
+- line-order-layout.cjs
 - Cloudflare API Shield Reference
 - Common Errors
-- Cron Triggers Gotchas
+- Durable Execution
 - Cloudflare DDoS Protection
-- Worker Runtime API
-- Methods
+- Monitoring Deliverability
+- Communication
 - FlagDefinition Schema
 - Common Errors
 - Programmatic API
 - API Errors
-- Common Errors
+- Lifecycle Hooks
 - R2 SQL Gotchas
 - Common Errors
 - Resource-Specific Gotchas
@@ -750,7 +750,7 @@
 - Observability
 - $type
 - Slides
-- Configuration
+- SendEmail Binding
 - AiSearchItem
 - AiSearchItems
 - D1PreparedStatement
@@ -777,9 +777,9 @@
 - Cloud-Specific Issues
 - Common Errors
 - Gotchas & Troubleshooting
-- Requirements & Limitations
-- Response Behavior
-- Performance Tips
+- getStoreModifiersList
+- Startup Methods
+- 8. Verification & Test Plan
 - Script Loading
 - Debugging
 - Critical Rules
@@ -815,7 +815,7 @@
 - TextEncoder
 - TransformStreamDefaultController
 - Production migration to Cloudflare cf — 2026-10-07
-- 4. Chuyển đổi, link cũ và rollback
+- Gotchas & Debugging
 - Danh sách Task nhỏ cần thực hiện
 - 1. Executive Summary & Objectives
 - R02 — Schema capability staff mặc định đóng
@@ -826,13 +826,11 @@
 - Core Operations
 - Workers Integration
 - BOLA Detection
-- Debugging
 - Remote Bindings Issues
 - Smart Placement Issues
 - Troubleshooting & Best Practices
 - Wrangler Configuration
 - Wrangler Commands
-- Advanced Usage
 - Wrangler Configuration
 - Expression Syntax
 - Features
@@ -962,23 +960,23 @@
 3. `PrinterService` - 53 edges
 4. `fetch()` - 44 edges
 5. `getTenantId()` - 44 edges
-6. `syncMenuDataFromDOM()` - 39 edges
-7. `scripts` - 39 edges
+6. `scripts` - 41 edges
+7. `syncMenuDataFromDOM()` - 39 edges
 8. `handleLineWebhook()` - 38 edges
 9. `renderMenuCategoryEditor()` - 37 edges
 10. `renderMenuCategories()` - 36 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `3.4 Classifier — `src/modules/aiIntent.ts` (mới)` --references--> `callAI()`  [INFERRED]
-  docs/proposals/clef-flash-intent-classifier/pdp.md → benmi-worker-official/src/integrations/groq.ts
-- `4.1 Deployment Workflow` --references--> `invalidateBootstrapCache()`  [INFERRED]
-  docs/proposals/instant_hydration_multi_tenant_bootstrap/pdp_instant_hydration_multi_tenant_bootstrap.md → benmi-worker-official/src/modules/bootstrap.ts
-- `A. Zero-Trust Pricing Validation (Chống Giả Mạo Giá Server-Side)` --references--> `validateBundleOrderItems()`  [INFERRED]
-  docs/proposals/unified_bundle_and_customization_architecture/PDP_Unified_Bundle_and_Customization_Architecture.md → benmi-worker-official/src/modules/bundle-rules.ts
-- `B. Mục Tiêu Trọng Tâm (Goals - In-Scope)` --references--> `validateBundleOrderItems()`  [INFERRED]
-  docs/proposals/unified_bundle_and_customization_architecture/PDP_Unified_Bundle_and_Customization_Architecture.md → benmi-worker-official/src/modules/bundle-rules.ts
-- `[ ] Task 1.3: Cô lập Ảnh trong `image.ts` (`src/modules/image.ts`)` --references--> `getImageList()`  [INFERRED]
-  docs/proposals/menu_proposal/task_1_backend_menu_sync.md → benmi-worker-official/src/modules/image.ts
+- `D. Chuẩn Kiến Trúc Tùy Chọn Món (Unified Option Groups vs Legacy Modifiers)` --references--> `resolveOptionDisplayName()`  [INFERRED]
+  AGENTS.md → js/client-checkout.js
+- `What Smart Placement Affects` --references--> `WorkerEntrypoint`  [INFERRED]
+  .agents/skills/cloudflare/references/smart-placement/configuration.md → benmi-worker-official/worker-configuration.d.ts
+- `RPC Methods Not Affected (Critical Limitation)` --references--> `WorkerEntrypoint`  [INFERRED]
+  .agents/skills/cloudflare/references/smart-placement/gotchas.md → benmi-worker-official/worker-configuration.d.ts
+- `Frontend + Backend Split (Service Bindings)` --references--> `WorkerEntrypoint`  [INFERRED]
+  .agents/skills/cloudflare/references/smart-placement/patterns.md → benmi-worker-official/worker-configuration.d.ts
+- `Use service bindings for Worker-to-Worker communication` --references--> `WorkerEntrypoint`  [INFERRED]
+  .agents/skills/workers-best-practices/references/rules.md → benmi-worker-official/worker-configuration.d.ts
 
 ## Import Cycles
 - 2-file cycle: `benmi-worker-official/src/modules/line.ts -> benmi-worker-official/src/modules/orders.ts -> benmi-worker-official/src/modules/line.ts`
@@ -998,7 +996,7 @@
 - 4-file cycle: `benmi-worker-official/src/modules/line-order-receipts.ts -> benmi-worker-official/src/modules/line.ts -> benmi-worker-official/src/modules/orders.ts -> benmi-worker-official/src/modules/payments.ts -> benmi-worker-official/src/modules/line-order-receipts.ts`
 - 4-file cycle: `benmi-worker-official/src/modules/bootstrap.ts -> benmi-worker-official/src/modules/order-detail.ts -> benmi-worker-official/src/modules/option-groups.ts -> benmi-worker-official/src/modules/menu.ts -> benmi-worker-official/src/modules/bootstrap.ts`
 
-## Communities (1043 total, 245 thin omitted)
+## Communities (1041 total, 246 thin omitted)
 
 ### Community 0 - "worker-configuration.d.ts"
 Cohesion: 0.00
@@ -1006,11 +1004,11 @@ Nodes (771): Ai_Cf_Ai4Bharat_Indictrans2_En_Indic_1B_Input, Ai_Cf_Ai4Bharat_Indi
 
 ### Community 1 - "ref_node_fs"
 Cohesion: 0.03
-Nodes (47): fs, source, source, assert, fs, test, vm, assert (+39 more)
+Nodes (58): fs, createClientEnvironment(), __dirname, ROOT_DIR, assert, fs, path, test (+50 more)
 
 ### Community 2 - "Element"
-Cohesion: 0.04
-Nodes (35): decode(), Element, fs, setup(), context, doc, vm, { webcrypto } (+27 more)
+Cohesion: 0.03
+Nodes (39): data, id, iv, keyBytes, url, decode(), Element, fs (+31 more)
 
 ### Community 3 - "DesignSystemGenerator"
 Cohesion: 0.06
@@ -1022,11 +1020,11 @@ Nodes (61): addShift(), attachPrinterAutoSave(), checkStaffOrderingCapability(),
 
 ### Community 5 - "staff-order.js"
 Cohesion: 0.08
-Nodes (66): applyI18nLabels(), changeCartItemQty(), changeModalQty(), clearDraftCart(), closeCartModal(), closeItemModal(), confirmAddItemToCart(), createItemCardHtml() (+58 more)
+Nodes (65): applyI18nLabels(), changeCartItemQty(), changeModalQty(), clearDraftCart(), closeCartModal(), closeItemModal(), confirmAddItemToCart(), createItemCardHtml() (+57 more)
 
 ### Community 6 - "line.ts"
 Cohesion: 0.07
-Nodes (59): 1. Quy Trình Điều Tra Codebase (Investigation Phase), 1. Architecture & Multi-Tenant Routing, scheduled(), formatOperatingHoursForDisplay(), getLineToken(), handleLineWebhook(), handleQuickReply(), normalizeLineText() (+51 more)
+Nodes (59): 1. Quy Trình Điều Tra Codebase (Investigation Phase), 1. Architecture & Multi-Tenant Routing, scheduled(), syncToGoogleSheets(), buildMessages(), callAI(), callGroq(), callOpenRouterFallback() (+51 more)
 
 ### Community 7 - "ShadcnInstaller"
 Cohesion: 0.05
@@ -1045,20 +1043,20 @@ Cohesion: 0.06
 Nodes (50): applyCopy(), applyToDev(), __dirname, __filename, REPO_ROOT, __dirname, __filename, applyToProduction() (+42 more)
 
 ### Community 11 - "env.ts"
-Cohesion: 0.08
-Nodes (42): buildMessages(), callAI(), callGroq(), callOpenRouterFallback(), FewShotExample, handleAdminRoute(), verifyAdminAuth(), parseOperatingHours() (+34 more)
+Cohesion: 0.12
+Nodes (25): handleAdminRoute(), verifyAdminAuth(), parseOperatingHours(), getConfig(), updateConfig(), getMarketplaceTenants(), invalidateMarketplaceCache(), isStoreCurrentlyOpen() (+17 more)
 
 ### Community 12 - "ref_node_assert"
-Cohesion: 0.05
-Nodes (41): assert, fs, guardWrite(), target, verifyIdentity(), { DatabaseSync }, fixture(), fs (+33 more)
+Cohesion: 0.04
+Nodes (50): handleStaffRoute(), assert, fs, guardWrite(), target, verifyIdentity(), { DatabaseSync }, fs (+42 more)
 
 ### Community 13 - "orders.ts"
-Cohesion: 0.06
-Nodes (55): syncToGoogleSheets(), BundleCheck, BundleGroup, BundleSource, loadBundleCatalog(), money(), normalizeBundleConfig(), positiveInt() (+47 more)
+Cohesion: 0.04
+Nodes (78): prepareOrderReceipt(), pushOrderReceiptInBackground(), attachOrderDetails(), detailReads(), attachOrderPrintItems(), appendOrder(), createOrder(), executeAppendOrderInternal() (+70 more)
 
 ### Community 14 - "orders-menu.js"
-Cohesion: 0.05
-Nodes (44): addCustomizationGroup(), addNewMenuItem(), applyMenuItemFilters(), closeCreationTypeModal(), closeStockModal(), collapsedMenuSections, commitMenuDisplayRanks(), currentLibraryOptionGroups (+36 more)
+Cohesion: 0.04
+Nodes (44): addCustomizationGroup(), addNewMenuItem(), applyMenuItemFilters(), closeAddCategoryModal(), closeCreationTypeModal(), closeStockModal(), collapsedMenuSections, commitMenuDisplayRanks() (+36 more)
 
 ### Community 15 - "ThermalPrinterPlugin.java"
 Cohesion: 0.05
@@ -1070,7 +1068,7 @@ Nodes (7): Báo cáo readiness: dev lên main, Kiểm tra đã đạt, Rollback,
 
 ### Community 17 - "src/index.ts"
 Cohesion: 0.12
-Nodes (51): fetch(), DEFAULT_PASSWORD, handleAuth(), handleAuthChange(), handleCreateTempLink(), handleVerifyTempLink(), invalidateBootstrapCache(), getConfig() (+43 more)
+Nodes (46): fetch(), DEFAULT_PASSWORD, handleAuth(), handleAuthChange(), handleCreateTempLink(), handleVerifyTempLink(), invalidateBootstrapCache(), BundleCheck (+38 more)
 
 ### Community 18 - "orders-option-groups.js"
 Cohesion: 0.09
@@ -1080,28 +1078,28 @@ Nodes (53): Best Practices, Dynamic Reconfiguration, Event System, getPlatformPr
 Cohesion: 0.05
 Nodes (11): BM25, detect_domain(), get_cip_brief(), _load_csv(), search(), search_all(), _search_csv(), _rows() (+3 more)
 
-### Community 20 - "test-menu-safety.cjs"
+### Community 20 - "ref_node_vm"
 Cohesion: 0.04
-Nodes (32): assert, backend, { DatabaseSync }, fs, migration0061Sql, migration0063Sql, migration0064Sql, source (+24 more)
+Nodes (36): source, assert, client(), context, fs, messages, path, { test } (+28 more)
 
-### Community 21 - "ref_node_path"
-Cohesion: 0.06
-Nodes (40): assert, bundleModule, categories, fs, items, modifierOptions, Module, path (+32 more)
+### Community 21 - "browser.mjs"
+Cohesion: 0.21
+Nodes (17): action(), browserSession(), drawer(), editGroup(), field(), newGroup(), newProduct(), playwright (+9 more)
 
 ### Community 22 - "json"
 Cohesion: 0.07
 Nodes (13): test_sync_parses_bundled_starter_template(), format_brief(), format_results(), main(), main(), _run(), test_flags_hardcoded_hex_sharing_line_with_token(), test_token_only_line_reports_no_violation() (+5 more)
 
 ### Community 23 - "staff.ts"
-Cohesion: 0.08
-Nodes (43): OptionCatalog, amount(), buildDetailRound(), DetailError, detailProjection(), detailStatement(), detailWrites(), fail() (+35 more)
+Cohesion: 0.12
+Nodes (31): OptionCatalog, amount(), buildDetailRound(), DetailError, detailProjection(), detailStatement(), detailWrites(), fail() (+23 more)
 
 ### Community 24 - "Kế hoạch copy dữ liệu menu cũ sang schema mới"
-Cohesion: 0.06
-Nodes (48): Bộ kiểm tra bắt buộc của công cụ copy, Chính sách đối với canonical đã tồn tại, Context đầy đủ cho session tiếp theo, Các cột bổ sung dự kiến, Các task nhỏ, Danh sách file cần đọc trước khi viết script, Dữ liệu được copy, Hợp đồng công cụ và đầu ra đề xuất (+40 more)
+Cohesion: 0.11
+Nodes (17): Bộ kiểm tra bắt buộc của công cụ copy, Chính sách đối với canonical đã tồn tại, Context đầy đủ cho session tiếp theo, Các cột bổ sung dự kiến, Danh sách file cần đọc trước khi viết script, Dữ liệu được copy, Kế hoạch copy dữ liệu menu cũ sang schema mới, Lưu ý đã xác nhận từ code (+9 more)
 
 ### Community 25 - "bootstrap.ts"
-Cohesion: 0.09
+Cohesion: 0.08
 Nodes (45): 2. Backend Cloudflare Worker (`benmi-worker-official/src/`), Non-Negotiable Unified Menu Rules, BENMI_TRANSLATIONS, BOOTSTRAP_VERSION, BootstrapBundleGroup, BootstrapBundleRule, BootstrapResponse, getTenantBootstrap() (+37 more)
 
 ### Community 26 - "Configuration Patterns"
@@ -1113,20 +1111,20 @@ Cohesion: 0.05
 Nodes (44): Analytics API, CreateSpectrumAppRequest, Go SDK, Python SDK, Request/Response Schemas, REST API Endpoints, See Also, SpectrumApp Response (+36 more)
 
 ### Community 28 - "payments.ts"
-Cohesion: 0.10
-Nodes (44): Conversation flow, Hard scope boundary: DO NOT ask the user about, Recovery flow: respect existing widget configuration, The frontend-edit contract, Things you must NOT do, getStoredPassword(), linePayCall(), linePaySignature() (+36 more)
+Cohesion: 0.11
+Nodes (42): getStoredPassword(), linePayCall(), linePaySignature(), parseLinePay(), paymentHash(), activeStatuses, cancelPayment(), Connection (+34 more)
 
 ### Community 29 - "test_design_system_mode.py"
 Cohesion: 0.07
 Nodes (14): _contrast_ratio(), _derive_dark_palette(), _filter_anti_patterns_for_mode(), _palette_is_dark(), _query_wants_dark(), _relative_luminance(), _resolve_color_mode(), _select_palette_for_mode() (+6 more)
 
 ### Community 30 - "syncMenuDataFromDOM"
-Cohesion: 0.11
-Nodes (48): Bước 3: Cải Tiến Render Hàng Món, addCustomizationOption(), cancelNewCustomizationGroup(), cancelRenameCustomizationGroup(), closeAddCategoryModal(), closeCategoriesManager(), confirmAddCategory(), confirmLeaveMenu() (+40 more)
+Cohesion: 0.13
+Nodes (44): Bước 3: Cải Tiến Render Hàng Món, addCustomizationOption(), cancelNewCustomizationGroup(), cancelRenameCustomizationGroup(), confirmAddCategory(), confirmLeaveMenu(), deleteCategoryAtIndex(), duplicateMenuItemAt() (+36 more)
 
 ### Community 31 - "test_return_context.cjs"
 Cohesion: 0.05
-Nodes (35): createCheckoutEnvironment(), sandbox, assert, { DatabaseSync }, FIXTURE_CLUSTER1_NEW_SCHEMA, fs, path, setupFrontendSandbox() (+27 more)
+Nodes (35): assert, createCheckoutEnvironment(), sandbox, fs, path, { test }, vm, setupFrontendSandbox() (+27 more)
 
 ### Community 32 - "argparse"
 Cohesion: 0.07
@@ -1156,9 +1154,9 @@ Nodes (43): Arbitrary Values, Aspect Ratio, Background Colors, Border Color, Bor
 Cohesion: 0.06
 Nodes (16): ansi_ljust(), _detect_page_type(), format_ascii_box(), format_markdown(), format_master_md(), format_page_override_md(), generate_design_system(), _generate_intelligent_overrides() (+8 more)
 
-### Community 39 - "staff-ordering.cjs"
-Cohesion: 0.05
-Nodes (31): STAFF_CAPABILITIES, { execFileSync }, path, root, assert, {execFileSync}, fixture(), call() (+23 more)
+### Community 39 - "test-menu-safety.cjs"
+Cohesion: 0.06
+Nodes (21): assert, backend, { DatabaseSync }, fs, migration0061Sql, migration0063Sql, migration0064Sql, source (+13 more)
 
 ### Community 40 - "TenantRepository"
 Cohesion: 0.05
@@ -1170,11 +1168,11 @@ Nodes (33): assert, cssContent, fs, assert, coreJs, css, escPosJava, fs (+25 mor
 
 ### Community 42 - "orders-core.js"
 Cohesion: 0.09
-Nodes (29): Cấp 2: Kiểm thử Mục tiêu theo Module (Targeted Tests - 0.5s đến 3s), applyTenantBranding(), _coreParams, ensureTenantCustomizations(), formatDineInElapsedTime(), formatDineInTimeDisplay(), formatEta(), formatOrderSubmissionTime() (+21 more)
+Nodes (28): applyTenantBranding(), _coreParams, ensureTenantCustomizations(), formatDineInElapsedTime(), formatDineInTimeDisplay(), formatEta(), formatOrderSubmissionTime(), formatSubmissionElapsedTime() (+20 more)
 
 ### Community 43 - "ref_node_test"
-Cohesion: 0.05
-Nodes (28): assert, fs, path, test, assert, fs, path, { test } (+20 more)
+Cohesion: 0.06
+Nodes (20): source, assert, fs, test, vm, action, assert, fs (+12 more)
 
 ### Community 44 - "Humanizer: remove AI writing patterns"
 Cohesion: 0.05
@@ -1186,15 +1184,15 @@ Nodes (38): devDependencies, cf@1.0.0-beta.12, @cloudflare/workers-types@5.20261
 
 ### Community 46 - "test_payment_result_browser.cjs"
 Cohesion: 0.05
-Nodes (32): resultUrl(), assert, {chromium,webkit}, fs, pos, {test}, assert, {chromium,webkit} (+24 more)
+Nodes (35): resultUrl(), devDependencies, playwright@1.64.1, playwright, assert, {chromium,webkit}, fs, pos (+27 more)
 
 ### Community 47 - "client-core.js"
-Cohesion: 0.15
-Nodes (36): 4. Exact 64-Function Mapping Table, 3.2 Target Directory & Module Mapping, applyPickupConfig(), applyTenantTheme(), buildModifierPriceMap(), checkDesktopAuthGuard(), checkStoreStatus(), closeAndExitLiff() (+28 more)
+Cohesion: 0.14
+Nodes (37): 4. Exact 64-Function Mapping Table, 3.2 Target Directory & Module Mapping, applyPickupConfig(), applyTenantTheme(), buildModifierPriceMap(), checkDesktopAuthGuard(), checkStoreStatus(), closeAndExitLiff() (+29 more)
 
 ### Community 48 - "scripts"
 Cohesion: 0.05
-Nodes (39): scripts, build, check, check:cache-busters, check:frontend, check:pos, test, test:cluster1 (+31 more)
+Nodes (41): scripts, build, check, check:cache-busters, check:frontend, check:pos, graphify, graphify:update (+33 more)
 
 ### Community 49 - "Brand Guidelines v1.0"
 Cohesion: 0.05
@@ -1293,12 +1291,12 @@ Cohesion: 0.06
 Nodes (30): 1. Giữ Trọn Vẹn Khả Năng Kéo Thả (Drag & Drop) Sidebar, 1. Tóm Tắt Điều Hành & Mục Tiêu (Executive Summary & Objectives), 2. Bối Cảnh & Kiến Trúc Hiện Tại (Current Architecture Context), 2. Điểm Vào Khởi Tạo Hợp Nhất (Unified Header Action), 3. Form Nhập Liệu Chi Tiết Bước 2, 3. Kiến Trúc Đề Xuất (Target Architecture & Data Model), 4. Thiết Kế Giao Diện & Trải Nghiệm Thao Tác (UI / UX Flow), 5. Chuẩn Hoá Snapshot Đơn Hàng & In Bếp POS (`order_items`) (+22 more)
 
 ### Community 73 - "check-release-baseline.mjs"
-Cohesion: 0.07
-Nodes (23): assetReferences(), cacheBusterErrors(), checkCacheBusters(), changedSourceFiles, directory, menuOnly, report, root (+15 more)
+Cohesion: 0.09
+Nodes (20): assetReferences(), cacheBusterErrors(), checkCacheBusters(), changedSourceFiles, directory, menuOnly, report, root (+12 more)
 
 ### Community 74 - "checkMenuDirty"
-Cohesion: 0.09
-Nodes (29): 1. Bối Cảnh & Vấn Đề Hiện Tại (Problem Statement), 2. Kết Quả Thống Nhất Qua Phỏng Vấn `/grill-me` & Double-Check Kỹ Thuật, 3.1. Cấu trúc Hàng Món Ăn Mới (Streamlined Item Row), 3.2. Cấu Trúc Hub Modal — Trung Tâm Thiết Lập Món (`#itemDetailModal`), 3. Thiết Kế Chi Tiết Giao Diện (Detailed UI/UX Design), 4.1. File `orders.html`, 4.2. File `css/orders.css`, 4.3. File `js/orders-menu.js` (+21 more)
+Cohesion: 0.07
+Nodes (38): 1. Bối Cảnh & Vấn Đề Hiện Tại (Problem Statement), 2. Kết Quả Thống Nhất Qua Phỏng Vấn `/grill-me` & Double-Check Kỹ Thuật, 3.1. Cấu trúc Hàng Món Ăn Mới (Streamlined Item Row), 3.2. Cấu Trúc Hub Modal — Trung Tâm Thiết Lập Món (`#itemDetailModal`), 3. Thiết Kế Chi Tiết Giao Diện (Detailed UI/UX Design), 4.1. File `orders.html`, 4.2. File `css/orders.css`, 4.3. File `js/orders-menu.js` (+30 more)
 
 ### Community 75 - "Logo Usage Rules"
 Cohesion: 0.07
@@ -1328,17 +1326,17 @@ Nodes (27): 1. Tóm tắt dự án & Mục tiêu, 2. Bối cảnh & Kiến trúc
 Cohesion: 0.07
 Nodes (26): assert, cashierPng, customSettings, defaultSettings, dims100x150, dims40x30, dimsCustom, expandedItems (+18 more)
 
-### Community 82 - "test_pos_menu_bug_fixes.cjs"
-Cohesion: 0.07
-Nodes (20): data, id, iv, keyBytes, url, assert, fs, path (+12 more)
+### Community 82 - "test_menu_global_group_order.cjs"
+Cohesion: 0.12
+Nodes (13): fixture(), assert, customerMenu(), doc, fs, setup(), { test }, vm (+5 more)
 
 ### Community 83 - "test_bill_and_ui_optimizations.js"
 Cohesion: 0.07
 Nodes (27): assert, diningOp, document, domElements, drawnOperations, extractedFlavors, flavorHeaderOp, flavorItemOp (+19 more)
 
 ### Community 84 - "cloudflare-d1.cjs"
-Cohesion: 0.09
-Nodes (20): CF_BIN, { execFileSync }, executeD1(), executeD1File(), executeD1Query(), fs, os, parseQueryResults() (+12 more)
+Cohesion: 0.05
+Nodes (35): CF_BIN, { execFileSync }, executeD1(), executeD1File(), executeD1Query(), fs, os, parseQueryResults() (+27 more)
 
 ### Community 85 - "client-option-groups.js"
 Cohesion: 0.20
@@ -1353,8 +1351,8 @@ Cohesion: 0.08
 Nodes (25): Common Pitfalls, Core Prompt Structure, Detailed Brief, Eco/Sustainable, Effective Keywords by Style, Fashion Brand, Healthcare, Industry-Specific Prompts (+17 more)
 
 ### Community 88 - "resolveTenantContext"
-Cohesion: 0.14
-Nodes (17): applyLineProjection(), decode(), decryptRuntimeSecret(), handleLineWebhookProbe(), LineProjection, lineRuntimeEnabled(), LineRuntimeError, readBody() (+9 more)
+Cohesion: 0.08
+Nodes (35): applyLineProjection(), decode(), decryptRuntimeSecret(), handleLineWebhookProbe(), LineProjection, lineRuntimeEnabled(), LineRuntimeError, readBody() (+27 more)
 
 ### Community 89 - "pr_agent_job"
 Cohesion: 0.08
@@ -1393,8 +1391,8 @@ Cohesion: 0.12
 Nodes (22): idx_order_items_order_key, idx_order_items_tenant_created, idx_order_items_tenant_item, order_items, lifecycle_order_items_insert, lifecycle_order_items_update, payment_connection_current, payment_events (+14 more)
 
 ### Community 98 - "types/index.ts"
-Cohesion: 0.09
-Nodes (22): PrintItem, AppendOrderPayload, DiningOption, ItemAnalyticsSummary, Menu, Order, OrderBundleGroupSelection, OrderBundleItemSelection (+14 more)
+Cohesion: 0.13
+Nodes (17): AppendOrderPayload, DiningOption, ItemAnalyticsSummary, Menu, Order, OrderBundleGroupSelection, OrderBundleItemSelection, OrderBundlePortion (+9 more)
 
 ### Community 99 - "client-menu.js"
 Cohesion: 0.13
@@ -1429,8 +1427,8 @@ Cohesion: 0.08
 Nodes (19): COLORS, { execSync }, fs, HTML_FILES, jsDir, path, ROOT_DIR, vm (+11 more)
 
 ### Community 107 - "Socket"
-Cohesion: 0.09
-Nodes (15): Complete Example, Core Function: `connect()`, Parameters, Quick Reference, Returns, See Also, `SocketAddress`, `SocketOptions` (+7 more)
+Cohesion: 0.12
+Nodes (11): Core Function: `connect()`, Parameters, Returns, `SocketAddress`, `SocketOptions`, Certificate Validation, StartTLS Timing, TLS/SSL Issues (+3 more)
 
 ### Community 108 - "Gotchas and Troubleshooting"
 Cohesion: 0.09
@@ -1449,8 +1447,8 @@ Cohesion: 0.09
 Nodes (22): @apply Directive, Best Practices, Color Customization, Complete Tailwind Config, Configuration Examples, Content Configuration, Custom Color Palette, Custom Font Sizes (+14 more)
 
 ### Community 112 - "TransformStream"
-Cohesion: 0.09
-Nodes (10): Request & Response Handling, Stream request and response bodies, Use waitUntil for work after the response, CompressionStream, DecompressionStream, FixedLengthStream, IdentityTransformStream, TextDecoderStream (+2 more)
+Cohesion: 0.10
+Nodes (7): CompressionStream, DecompressionStream, FixedLengthStream, IdentityTransformStream, TextDecoderStream, TextEncoderStream, TransformStream
 
 ### Community 113 - "0067_tenant_lifecycle.sql"
 Cohesion: 0.12
@@ -1489,16 +1487,16 @@ Cohesion: 0.09
 Nodes (21): 1. Executive Summary & Objectives, 2. Context & Current Architecture, 3. Proposed Architecture, 4. Migration & Rollout Strategy, 5. Alternatives Considered & Trade-offs, 6. Cross-Cutting Concerns, 7. Step-by-Step Execution Plan, 8. Verification & Test Plan (+13 more)
 
 ### Community 123 - "PDP: Dine-In Order Append & Multi-Round Ordering Architecture (加點餐點架構)"
-Cohesion: 0.09
-Nodes (21): 1.1 Problem Statement, 1.2 Goals (In-Scope), 1.3 Non-Goals (Out-of-Scope), 1. Executive Summary & Objectives, 2.1 Current Flow, 2.2 Shortcomings of Current Flow, 2. Context & Current Architecture, 3.1 End-to-End Sequence Diagram (Append Order Flow) (+13 more)
+Cohesion: 0.10
+Nodes (20): 1.1 Problem Statement, 1.2 Goals (In-Scope), 1.3 Non-Goals (Out-of-Scope), 1. Executive Summary & Objectives, 2.1 Current Flow, 2.2 Shortcomings of Current Flow, 2. Context & Current Architecture, 3.1 End-to-End Sequence Diagram (Append Order Flow) (+12 more)
 
 ### Community 124 - "PDP: Mở rộng Benmi cho chuỗi suất ăn ký túc xá và bếp trung tâm [New]"
 Cohesion: 0.09
 Nodes (21): 10. Bằng chứng mã nguồn, 1. Kết luận và mục tiêu, 2. Đối chiếu từng yêu cầu với hiện trạng, 3.1. Ranh giới dữ liệu, 3.2. Mô hình dữ liệu dự kiến, 3.3. API và các luồng nghiệp vụ, 3.4. Giao dịch tiền và nhiều thiết bị, 3.5. Đối soát và nhận diện doanh thu (+13 more)
 
 ### Community 125 - "line-order-presentation.js"
-Cohesion: 0.18
-Nodes (20): Mapping field cần hiện thực, 2. So sánh schema hiện tại và schema đích, Phần schema cần bổ sung tối thiểu, 1.2. Bảng Lựa chọn Chi tiết (`modifier_options`), bundlePortions(), choice(), choiceText(), extra() (+12 more)
+Cohesion: 0.19
+Nodes (19): Mapping field cần hiện thực, 2. So sánh schema hiện tại và schema đích, Phần schema cần bổ sung tối thiểu, bundlePortions(), choice(), choiceText(), extra(), flex() (+11 more)
 
 ### Community 126 - "PDP: Instant Hydration, Zero-Flash Multi-Tenant Bootstrap & Safe LIFF Initialization Architecture"
 Cohesion: 0.09
@@ -1509,20 +1507,20 @@ Cohesion: 0.09
 Nodes (20): Kiểm chứng tự động, Kết quả triển khai LINE receipt theo từng phần, Phần còn lại trước phát hành, Thay đổi đã hoàn tất, 1. Mục tiêu và phạm vi, 3.1 Presentation model dành riêng cho LINE, 3.2 Quy tắc layout, 3.3 Quy tắc gộp phần giống nhau (+12 more)
 
 ### Community 128 - "renderBundleEditorSidebar"
-Cohesion: 0.13
-Nodes (22): addBundleGroup(), autoCommitItemDetailFields(), canonicalMenuSnapshot(), clean(), clearBundleConfig(), closeBundleEditorModal(), computeEligibleItemsCount(), deleteBundleGroup() (+14 more)
+Cohesion: 0.18
+Nodes (16): addBundleGroup(), computeEligibleItemsCount(), deleteBundleGroup(), openBundleEditorModal(), renderBundleEditorSidebar(), renderBundleEligiblePreview(), renderBundleGroupConfigPanel(), renderBundleSourcesSection() (+8 more)
 
 ### Community 129 - "test_customization_price_e2e.cjs"
 Cohesion: 0.09
 Nodes (20): assert, cheeseOption, computedTotal, context, domElements, files, foodSubtotal, fs (+12 more)
 
 ### Community 130 - "Analytics Engine Patterns"
-Cohesion: 0.10
-Nodes (17): Analytics Engine Patterns, Anti-Patterns, API Metering (Billing), Best Practices, Error Tracking, Performance Monitoring, Schema Template, Use Cases (+9 more)
+Cohesion: 0.07
+Nodes (26): Analytics Engine Configuration, Cost, Data Point Limits, Environment-Specific, Monitoring, Query Limits, Setup, TypeScript (+18 more)
 
 ### Community 131 - "Durable Objects"
-Cohesion: 0.10
-Nodes (18): Concurrency Control, "Race Condition Despite Single-Threading", Alarms, Anti-Patterns (NEVER), Basic Durable Object Pattern, Core Principles, Critical Rules, Do NOT Use For (+10 more)
+Cohesion: 0.11
+Nodes (17): "Race Condition Despite Single-Threading", Alarms, Anti-Patterns (NEVER), Basic Durable Object Pattern, Core Principles, Critical Rules, Do NOT Use For, Durable Objects (+9 more)
 
 ### Community 132 - "Cloudflare Workers KV"
 Cohesion: 0.10
@@ -1549,12 +1547,12 @@ Cohesion: 0.20
 Nodes (17): A. Trang Thực Đơn Khách Hàng (`index.html` — Mobile / LINE LIFF First), DetailChoice, 2. Kết quả khảo sát code hiện tại, items(), prepare(), register(), selections(), setContext() (+9 more)
 
 ### Community 138 - "containers/api.md"
-Cohesion: 0.10
-Nodes (15): Communication, Container Class API, containerFetch() - HTTP only (no WebSocket), External state check, fetch() - HTTP with WebSocket support, Internal state check, Lifecycle Hooks, Routing (+7 more)
+Cohesion: 0.22
+Nodes (7): Container Class API, External state check, Internal state check, Routing, Scheduling, State Inspection, ⚠️ Don't Override alarm() When Using schedule()
 
 ### Community 139 - "ServiceWorkerGlobalScope"
-Cohesion: 0.12
-Nodes (6): Available APIs, Encoding, Performance, HTMLRewriter, ServiceWorkerGlobalScope, client()
+Cohesion: 0.11
+Nodes (13): Available APIs, Console, Encoding, Fetch, HTMLRewriter (HTML Parsing/Transformation), Node.js Compat (`nodejs_compat` flag), Performance, Server-Sent Events (EventSource) (+5 more)
 
 ### Community 140 - "Routing by Task Type"
 Cohesion: 0.10
@@ -1585,8 +1583,8 @@ Cohesion: 0.10
 Nodes (19): 1.1 Problem Statement, 1.2 Objectives & Key Results (In-Scope), 1.3 Non-Goals (Out-of-Scope), 1. Executive Summary & Objectives, 2.1 Monolith Dissection, 2.2 Shared State Inventory, 2. Context & Codebase Audit, 3.1 Structural System Diagram (+11 more)
 
 ### Community 149 - "applyLanguageToDOM"
-Cohesion: 0.12
-Nodes (14): Cấp 1: Kiểm thử Tức thì (Instant Feedback - Dưới 1 giây), Cấp 3: Menu Gate Cục bộ (Local Menu QA - Khi sửa lớn UI/Layout Menu), Cấp 4: Full Release Baseline (Pre-Release Gate - ~115 giây), Quy Chuẩn Kiểm Thử Tinh Gọn Khi Phát Triển (Tiered Testing Workflow), 1. Bảng Quản Lý Đơn Hàng (`orders.html` / `orders.css` / Dashboard POS), 2. Trang Thực Đơn & Đặt Món Cho Khách (`index.html` / `index.css` / Menu LIFF), 3. Phong Cách Thiết Kế Tối Giản & Quy Chuẩn Icon (Minimalist Iconography), Triết Lý Thiết Kế Giao Diện (UI/UX Design Philosophy) (+6 more)
+Cohesion: 0.16
+Nodes (10): Cấp 1: Kiểm thử Tức thì (Instant Feedback - Dưới 1 giây), 1. Bảng Quản Lý Đơn Hàng (`orders.html` / `orders.css` / Dashboard POS), 2. Trang Thực Đơn & Đặt Món Cho Khách (`index.html` / `index.css` / Menu LIFF), 3. Phong Cách Thiết Kế Tối Giản & Quy Chuẩn Icon (Minimalist Iconography), Triết Lý Thiết Kế Giao Diện (UI/UX Design Philosophy), Bước 2: Chuẩn Hóa I18N, applyLanguageToDOM(), I18N (+2 more)
 
 ### Community 150 - "Asset Organization Guide"
 Cohesion: 0.11
@@ -1597,7 +1595,7 @@ Cohesion: 0.13
 Nodes (17): Architecture, Email Handler, Gotchas, Key Design Points, Parsing Emails, Receive and Store, Receiving & Routing Inbound Email, Reply Later (+9 more)
 
 ### Community 152 - "Email Workers Gotchas"
-Cohesion: 0.11
+Cohesion: 0.10
 Nodes (19): Address Parsing, API Behavior, Character Encoding, Common Errors, CPU Limit, Critical Issues, ctx.waitUntil() Errors Silent, DMARC for Replies (+11 more)
 
 ### Community 153 - "RealtimeKit Configuration"
@@ -1625,8 +1623,8 @@ Cohesion: 0.11
 Nodes (19): $type, $value, $type, $value, $type, $value, $type, $value (+11 more)
 
 ### Community 159 - "Durable Objects Rules & Best Practices"
-Cohesion: 0.11
-Nodes (17): Alarms, Concurrency, Design & Sharding, Durable Objects Rules & Best Practices, Error Handling, Explicit init() Method, Input/Output Gates, Location Hints (+9 more)
+Cohesion: 0.13
+Nodes (14): Alarms, Design & Sharding, Durable Objects Rules & Best Practices, Error Handling, Explicit init() Method, Location Hints, Migrations, Model Around Coordination Atoms (+6 more)
 
 ### Community 160 - "tenants"
 Cohesion: 0.13
@@ -1636,9 +1634,9 @@ Nodes (15): idx_pending_actions_tenant_user, pending_actions, idx_tenant_config_
 Cohesion: 0.11
 Nodes (18): 1.1 Problem Statement, 1.2 Goals (In-Scope), 1.3 Non-Goals (Out-of-Scope), 1. Executive Summary & Objectives, 2. Context & Current Architecture, 3.1 Luồng Tương Tác Hệ Thống (Mermaid Diagram), 3.2.1 D1 Database Migration (`0020_add_dining_options.sql`), 3.2.2 Cập Nhật TypeScript Types (`src/types/index.ts`, `src/types/tenant.ts`) (+10 more)
 
-### Community 162 - "PDP: Dine-In Order UUID Tracking & Automatic Append Engine"
-Cohesion: 0.11
-Nodes (18): 1. Executive Summary & Objectives, 2. Context & Current Architecture, 3. Proposed Architecture (Kiến Trúc Đề Xuất), 4.1 Database Schema Migration (`0029_add_order_uuid.sql`), 4.2 Backend Worker Design, 4.3 Frontend Menu LIFF Design (`client-checkout.js`), 4. Chi Tiết Thiết Kế Kỹ Thuật, 5. Alternatives Considered & Trade-offs (+10 more)
+### Community 162 - "bundle-rules.test.cjs"
+Cohesion: 0.12
+Nodes (13): assert, bundleModule, categories, fs, items, modifierOptions, Module, path (+5 more)
 
 ### Community 163 - "PDP: Chuyển hoàn toàn dữ liệu tuỳ chọn menu sang canonical schema"
 Cohesion: 0.11
@@ -1662,7 +1660,7 @@ Nodes (18): assert, forbiddenEmojis, fs, historyJs, i18nContext, i18nJs, menuJs,
 
 ### Community 168 - "Cloudflare Agents SDK"
 Cohesion: 0.12
-Nodes (16): Agent Methods for Workflows, AgentWorkflow Base Class, Human-in-the-Loop, Lifecycle Callbacks, Overview, Workflows Integration, Wrangler Configuration, Agent Class (+8 more)
+Nodes (16): Overview, Agent Class, Background Processing, Capabilities, Chat & Streaming, Cloudflare Agents SDK, Core, Core APIs (+8 more)
 
 ### Community 169 - "3. Logo Usage"
 Cohesion: 0.11
@@ -1673,12 +1671,12 @@ Cohesion: 0.11
 Nodes (17): Audit Frequency, Brand Consistency Checklist, Channel Audit, Collateral, Colors, Common Issues, Email, Imagery (+9 more)
 
 ### Community 171 - "Binding Types"
-Cohesion: 0.11
-Nodes (7): Binding Types, Generated Env Interface, TypeScript Types, Ai, Hyperdrive, Queue, RateLimit
+Cohesion: 0.06
+Nodes (15): Binding Types, Generated Env Interface, TypeScript Types, Bindings Reference, ASSETS Binding, Method Signatures, Type Definition, Ai (+7 more)
 
 ### Community 172 - "DurableObjectStorage"
-Cohesion: 0.14
-Nodes (5): "Async in transactionSync", Breaking Gates (DANGER), Core APIs, Race Conditions with External I/O, DurableObjectStorage
+Cohesion: 0.11
+Nodes (8): "Async in transactionSync", Breaking Gates (DANGER), Core APIs, Concurrency, Input/Output Gates, Race Conditions with External I/O, Write Coalescing, DurableObjectStorage
 
 ### Community 173 - "GraphQL Analytics API Gotchas & Troubleshooting"
 Cohesion: 0.11
@@ -1713,24 +1711,24 @@ Cohesion: 0.11
 Nodes (17): Compression & Minification, Detect Framework & Bundler, FIRST: Verify MCP Tools Available, Key Guidelines, Output Format, Phase 1: Performance Trace, Phase 2: Core Web Vitals Analysis, Phase 3: Network Analysis (+9 more)
 
 ### Community 181 - "Workers Best Practices — Rules"
-Cohesion: 0.11
-Nodes (17): Always await or waitUntil Promises, Architecture, Be aware of platform limits, Code Patterns, Development & Testing, Do not store request-scoped state in global scope, Enable Workers Logs and Traces, Explicit error handling over passThroughOnException (+9 more)
+Cohesion: 0.07
+Nodes (26): Always await or waitUntil Promises, Architecture, Be aware of platform limits, Code Patterns, Configuration, Development & Testing, Do not store request-scoped state in global scope, Enable nodejs_compat (+18 more)
 
 ### Community 182 - "Blab POS - Universal Multi-Tenant Android POS Tablet App"
-Cohesion: 0.11
-Nodes (17): 1. Tính Năng Nổi Bật, 2. Kiến Trúc Universal Multi-Tenant POS Platform, 3. Cấu Trúc Thư Mục Dự Án, 4. Hướng Dẫn Cài Đặt & Phát Triển (Development Setup), 5. Hướng Dẫn Kích Hoạt & Cấu Hình Máy In Trong Ứng Dụng, 6. Lịch Sử Các Phiên Bản (Changelog), A. Kích Hoạt Điểm Bán Lần Đầu (Store Activation), A. Yêu Cầu Môi Trường (Prerequisites) (+9 more)
+Cohesion: 0.12
+Nodes (15): 1. Tính Năng Nổi Bật, 2. Kiến Trúc Universal Multi-Tenant POS Platform, 3. Cấu Trúc Thư Mục Dự Án, 4. Hướng Dẫn Cài Đặt & Phát Triển (Development Setup), 5. Hướng Dẫn Kích Hoạt & Cấu Hình Máy In Trong Ứng Dụng, A. Kích Hoạt Điểm Bán Lần Đầu (Store Activation), A. Yêu Cầu Môi Trường (Prerequisites), B. Cài Đặt Thư Viện (+7 more)
 
 ### Community 183 - "EventTarget"
-Cohesion: 0.11
-Nodes (4): AbortSignal, EventTarget, MessagePort, WorkerGlobalScope
+Cohesion: 0.14
+Nodes (3): AbortSignal, EventTarget, WorkerGlobalScope
 
 ### Community 184 - "PDP: Hệ thống Quản lý Thực đơn Đa hộ thuê & Báo Hết hàng (Cloudflare D1 & KV)"
 Cohesion: 0.11
 Nodes (17): 1. Tóm tắt Dự án & Mục tiêu, 2. Bối cảnh & Kiến trúc hiện tại, 3. Kiến trúc Đề xuất, 4. Phân chia các Tài liệu Thiết kế Chi tiết & Kế hoạch, 5. Đánh giá Giải pháp Thay thế & Đánh đổi, 6. Lộ trình Thực hiện (Roadmap), 7. Kế hoạch Kiểm thử & Xác minh (Verification Plan), Kiểm thử Thủ công (Manual Testing) (+9 more)
 
 ### Community 185 - "PDP: Orders Live Query Row Read Optimization [Fix/Optimize]"
-Cohesion: 0.11
-Nodes (17): 1. Executive Summary & Objectives, 2. Context & Current Architecture, 3. Proposed Architecture, 4. Bảng So Sánh Hiệu Năng & Chi Phí (Performance & Cost Analysis), 5. Alternatives Considered & Trade-offs, 6. Chi Tiết Thực Hiện (Implementation Diff), 7. Execution & Verification Plan, Execution Steps: (+9 more)
+Cohesion: 0.12
+Nodes (16): 1. Executive Summary & Objectives, 2. Context & Current Architecture, 3. Proposed Architecture, 4. Bảng So Sánh Hiệu Năng & Chi Phí (Performance & Cost Analysis), 5. Alternatives Considered & Trade-offs, 6. Chi Tiết Thực Hiện (Implementation Diff), 7. Execution & Verification Plan, Execution Steps: (+8 more)
 
 ### Community 186 - "PDP: Structured Customizations, Flavor Taxonomy & Hybrid Order Schema Architecture"
 Cohesion: 0.11
@@ -1746,10 +1744,10 @@ Nodes (7): Accessing from Workers, Class Structure, Core Concepts, Lifecycle Sta
 
 ### Community 189 - "Gotchas & Troubleshooting"
 Cohesion: 0.12
-Nodes (17): Auth Troubleshooting, Best Practices, Check Status, Common Errors, CPU Time Exceeded, Critical Pitfalls, Destination Verification, DMARC Alignment (+9 more)
+Nodes (15): Auth Troubleshooting, Best Practices, Check Status, Common Errors, CPU Time Exceeded, Debugging, DMARC Alignment, Gotchas & Troubleshooting (+7 more)
 
 ### Community 190 - "Cloudflare Pulumi Provider"
-Cohesion: 0.12
+Cohesion: 0.11
 Nodes (12): Authentication, Cloudflare Pulumi Provider, Common Resource Types, Core Principles, In This Reference, Key Properties, Overview, Reading Order (+4 more)
 
 ### Community 191 - "Snippets Configuration Guide"
@@ -1765,7 +1763,7 @@ Cohesion: 0.12
 Nodes (14): Advanced Patterns, Analytics Engine Metrics, Basic Patterns, Batching with Durable Objects, Community Libraries, Error Handling, Error Tracking Only, Filtering & Routing (+6 more)
 
 ### Community 194 - "Tunnel Networking"
-Cohesion: 0.12
+Cohesion: 0.10
 Nodes (17): Bandwidth and Rate Limits, Common Connectivity Errors, Connection Diagnostics, Connectivity Requirements, Corporate Network Considerations, Firewall Rules, Full (Recommended), IP Ranges (+9 more)
 
 ### Community 195 - "Tunnel Patterns"
@@ -1813,12 +1811,8 @@ Cohesion: 0.12
 Nodes (16): API Protection, Block AI Scrapers, Bot Management Patterns, Conditional Delay (Tarpit), Datacenter Detection, E-commerce Protection, Layered Defense, Mobile App Allowlisting (+8 more)
 
 ### Community 206 - "Cloudflare Containers Skill Reference"
-Cohesion: 0.12
-Nodes (13): wrangler.toml Format, Best Practices, Beta Caveats, Limits, Beta Status, Cloudflare Containers Skill Reference, Core Concepts, In This Reference (+5 more)
-
-### Community 207 - "do-storage/README.md"
-Cohesion: 0.19
-Nodes (7): CPU Limits, DO Storage Configuration, Initialization, KV-backed (Legacy), Location Control, SQLite-backed (Recommended), TypeScript Setup
+Cohesion: 0.22
+Nodes (9): Beta Status, Cloudflare Containers Skill Reference, Core Concepts, In This Reference, Quick Start, Reading Order, Routing Decision Tree, See Also (+1 more)
 
 ### Community 208 - "Flagship"
 Cohesion: 0.19
@@ -1857,12 +1851,12 @@ Cohesion: 0.12
 Nodes (16): Accessing ExecutionContext, Basic Setup, Error Handling, Framework Comparison, Hono (Recommended), itty-router (Minimalist), Middleware, OpenAPI/Swagger (Hono OpenAPI) (+8 more)
 
 ### Community 217 - "Common Errors"
-Cohesion: 0.12
-Nodes (16): Common Errors, Gotchas & Debugging, "Idempotency Violation", "Instance Data Disappeared After Completion", "Instance ID Collision", "Large Step Returns Exceeding Limit", Limits & Pricing, "Missing await on step.do" (+8 more)
+Cohesion: 0.15
+Nodes (13): Common Errors, "Idempotency Violation", "Instance Data Disappeared After Completion", "Instance ID Collision", "Large Step Returns Exceeding Limit", "Missing await on step.do", "Non-Deterministic Conditionals", "Non-Deterministic Step Names" (+5 more)
 
 ### Community 218 - "DurableObject"
-Cohesion: 0.12
-Nodes (7): Best Practices, ✅ DO, ❌ DON'T, Binding access — the most common error, DurableObject, DurableObjectBranded, Workflow
+Cohesion: 0.10
+Nodes (6): Binding access — the most common error, DurableObject, DurableObjectBranded, WorkerEntrypoint, WorkerEntrypointBranded, Workflow
 
 ### Community 219 - "Design Principles"
 Cohesion: 0.12
@@ -1873,8 +1867,8 @@ Cohesion: 0.19
 Nodes (7): build_cip_prompt(), check_logo_required(), generate_cip_set(), generate_with_nano_banana(), load_env(), load_logo_image(), main()
 
 ### Community 221 - "Code Review — Workers"
-Cohesion: 0.12
-Nodes (14): Anti-Patterns to Flag, Binding-code consistency, Cloudflare docs, Code Review — Workers, Common config mistakes, Config format, Config Validation, Output format (+6 more)
+Cohesion: 0.14
+Nodes (13): Anti-Patterns to Flag, Binding-code consistency, Cloudflare docs, Code Review — Workers, Common config mistakes, Config format, Config Validation, Output format (+5 more)
 
 ### Community 223 - "Checkpoint: Menu Compatibility & Customization Hardening — Complete Implementation Status"
 Cohesion: 0.14
@@ -1893,8 +1887,8 @@ Cohesion: 0.13
 Nodes (15): Asset Eligibility, Cache Hierarchy, Cloudflare Cache Reserve, Core Concepts, Eligibility Checklist, Essential Commands, How It Works, In This Reference (+7 more)
 
 ### Community 227 - "WebSocket"
-Cohesion: 0.14
-Nodes (10): WebSocket Hibernation, Durable Objects Gotchas, Hibernation Caveats, Limits, See Also, Available APIs in Snippets, ❌ Not Supported in Snippets, ✅ Supported (+2 more)
+Cohesion: 0.18
+Nodes (7): WebSocket Hibernation, Durable Objects Gotchas, Hibernation Caveats, Limits, See Also, Web Standards, WebSocket
 
 ### Community 228 - "Managing Flags via REST API"
 Cohesion: 0.13
@@ -1909,8 +1903,8 @@ Cohesion: 0.13
 Nodes (15): Build Config, Configuration, Environment Variables, _headers, Limits (as of Jan 2026), Local Dev, Local (.dev.vars), Production (+7 more)
 
 ### Community 231 - "Gotchas"
-Cohesion: 0.13
-Nodes (15): 404 on Static Assets, Bindings Not Working, Build Failures, Debugging, ⚠️ Deprecated Frameworks, Framework-Specific, Functions Not Running, Getting Help (+7 more)
+Cohesion: 0.12
+Nodes (16): 404 on Static Assets, Bindings Not Working, Build Failures, Debugging, ⚠️ Deprecated Frameworks, Framework-Specific, Functions Not Running, Getting Help (+8 more)
 
 ### Community 232 - "Patterns"
 Cohesion: 0.13
@@ -1977,16 +1971,16 @@ Cohesion: 0.17
 Nodes (14): idx_orders_active_staff_table, idx_restaurant_tables_tenant_active, idx_restaurant_tables_tenant_label, idx_staff_order_requests_order, idx_staff_sessions_tenant, restaurant_tables, staff_order_requests, staff_sessions (+6 more)
 
 ### Community 249 - "isCustomizationCategory"
-Cohesion: 0.21
-Nodes (15): 7. Tiêu Chí Nghiệm Thu (Acceptance Criteria), captureMenuDisplayOrder(), clearMenuDirty(), getMenuDisplayEntries(), getMenuOrderGroups(), isCustomizationCategory(), loadMenuData(), revertCategoriesDisplayOrder() (+7 more)
+Cohesion: 0.19
+Nodes (16): captureMenuDisplayOrder(), clearMenuDirty(), closeCategoriesManager(), getMenuDeletions(), getMenuDisplayEntries(), getMenuOrderGroups(), isCustomizationCategory(), loadMenuData() (+8 more)
 
 ### Community 250 - "PDP: BSC Multi-Tenant Platform Unification & Interactive Notification Architecture [Migrate/Enhance]"
 Cohesion: 0.13
 Nodes (14): 1.1. Problem Statement, 1.2. In-Scope Goals, 1.3. Non-Goals, 1. Executive Summary & Objectives, 2. Architecture & Data Flow, 3.1. D1 Database Migration: Seed Tenant `bsc` (干城鹹水雞), 3.3. Desktop Browser Handling & Seamless LINE Login (`index.html`), 3. Detailed Component Specifications (+6 more)
 
 ### Community 251 - "PDP: AI Order-Intent Classifier → Clef-flash [Replace]"
-Cohesion: 0.13
-Nodes (14): 2. Context & Current Architecture, 4. Migration & Rollout Strategy, 5. Alternatives Considered & Trade-offs, 6. Cross-Cutting Concerns, 7. Step-by-Step Execution Plan, 8. Verification & Test Plan, Automated, Eval offline (gate trước staging) (+6 more)
+Cohesion: 0.18
+Nodes (10): 2. Context & Current Architecture, 4. Migration & Rollout Strategy, 5. Alternatives Considered & Trade-offs, 6. Cross-Cutting Concerns, 7. Step-by-Step Execution Plan, Observability, PDP: AI Order-Intent Classifier → Clef-flash [Replace], Performance & Cost (+2 more)
 
 ### Community 252 - "PDP: Multi-Tenant Marketplace & Interactive Map Discovery Platform [New]"
 Cohesion: 0.13
@@ -2028,9 +2022,9 @@ Nodes (14): assert, clientCartJs, clientCheckoutJs, fs, indexCss, indexHtml, ind
 Cohesion: 0.13
 Nodes (14): assert, bundleInfo, coreJs, domSandbox, fs, html, i18nJs, liveJs (+6 more)
 
-### Community 262 - "agents-sdk/SKILL.md"
-Cohesion: 0.14
-Nodes (10): Available Tools, Browse the Web (Experimental), Low-Level API, Setup, Usage with AI SDK, When to Use, Durable Execution, Important (+2 more)
+### Community 262 - "Browse the Web (Experimental)"
+Cohesion: 0.29
+Nodes (6): Available Tools, Browse the Web (Experimental), Low-Level API, Setup, Usage with AI SDK, When to Use
 
 ### Community 263 - "Banner Design - Multi-Format Creative Banner System"
 Cohesion: 0.14
@@ -2053,8 +2047,8 @@ Cohesion: 0.25
 Nodes (13): checkManifest(), formatBytes(), formatOutput(), fs, main(), parseFilename(), path, RULES (+5 more)
 
 ### Community 268 - "Email Deliverability & Best Practices"
-Cohesion: 0.14
-Nodes (14): Bounce Handling, Content, Dashboard, Email Deliverability & Best Practices, GraphQL Analytics API, List Quality, Metrics to Watch, Monitoring Deliverability (+6 more)
+Cohesion: 0.22
+Nodes (9): Bounce Handling, Content, Email Deliverability & Best Practices, List Quality, Metrics to Watch, Suppression Lists, Transactional Only, What Cloudflare Handles (+1 more)
 
 ### Community 269 - "Cloudflare AI Gateway"
 Cohesion: 0.14
@@ -2089,8 +2083,8 @@ Cohesion: 0.14
 Nodes (14): "Cannot connect to meeting", Common Errors, "CORS errors in API calls", "Echo or audio feedback", "Events not firing", "How do I schedule meetings?", Issue: Echo or audio feedback, "No video/audio tracks" (+6 more)
 
 ### Community 277 - "Smart Placement Gotchas"
-Cohesion: 0.14
-Nodes (14): Baseline Traffic & Analysis Time, "cf-placement header missing", Common Errors, Disabling Smart Placement, "INSUFFICIENT_INVOCATIONS", Limits, Local Development Confusion, Monolithic Full-Stack Worker (+6 more)
+Cohesion: 0.13
+Nodes (15): Baseline Traffic & Analysis Time, "cf-placement header missing", Common Errors, Disabling Smart Placement, "INSUFFICIENT_INVOCATIONS", Limits, Local Development Confusion, Monolithic Full-Stack Worker (+7 more)
 
 ### Community 278 - "Stream Live Streaming API"
 Cohesion: 0.14
@@ -2101,7 +2095,7 @@ Cohesion: 0.14
 Nodes (13): 10. No Event Retry, 1. Not Using `ctx.waitUntil()`, 3. Outcome vs HTTP Status, 4. Timestamp Units, 6. Excessive Logging Volume, 7. Serialization Issues, 8. Missing Error Handling, 9. Deployment Order (+5 more)
 
 ### Community 280 - "Cloudflare Tunnel"
-Cohesion: 0.14
+Cohesion: 0.18
 Nodes (11): Cloudflare Tunnel, Configuration Example, Core Commands, Dashboard Config (Recommended), Decision Tree, In This Reference, Local Config, Overview (+3 more)
 
 ### Community 281 - "Cloudflare TURN Service"
@@ -2148,9 +2142,9 @@ Nodes (11): Code Interpreter, Commands, Error Handling, Files, Lifecycle, Ports,
 Cohesion: 0.14
 Nodes (13): Card Styles, Component Variants, CSS Structures, Feature Grid (3 columns), Layout Decision Flow, Layout Patterns, Layout Selection by Use Case, Metric Styles (+5 more)
 
-### Community 297 - "line-order-layout.cjs"
-Cohesion: 0.23
-Nodes (12): 3.1 Binding & biến môi trường (`cloudflare.config.ts`, cả dev / staging / production), Code rollback baseline, Customer order domain rollout, Deployment verification — 2026-10-06, Switching one tenant, Tenant rollback, choice(), group() (+4 more)
+### Community 297 - "Customer order domain rollout"
+Cohesion: 0.38
+Nodes (6): Code rollback baseline, Customer order domain rollout, Deployment verification — 2026-10-06, Switching one tenant, Tenant rollback, legacy()
 
 ### Community 298 - "PDP: Dual-Identifier Architecture with Dining-Type Daily Sequential Order ID (`MMDD-[D|T]XXX`) & Atomic SQLite Counter [New/Refactor]"
 Cohesion: 0.14
@@ -2169,8 +2163,8 @@ Cohesion: 0.14
 Nodes (14): A. Chỉ dẫn cho model nhận việc, B1. Bốn phạm vi độc lập, B2. Quy tắc lựa chọn, B3. Giá, B. Hợp đồng nghiệp vụ phải giữ, C1. Lựa chọn trong bộ nhớ frontend, C2. Payload order mới, C. Hợp đồng dữ liệu đề xuất (+6 more)
 
 ### Community 302 - "getStoreModifiersList"
-Cohesion: 0.19
-Nodes (14): filterItemModifierCards(), getInheritedItemModifierGroups(), getStoreModifiersList(), isModifierAppliedToCategory(), openItemModifiersModal(), openModifierLibraryModal(), renderItemModifiersEditor(), selectAllCategoryModifiers() (+6 more)
+Cohesion: 0.24
+Nodes (10): autoCommitItemDetailFields(), filterItemModifierCards(), openItemModifiersModal(), openModifierLibraryModal(), renderItemModifiersEditor(), selectAllItemModifiers(), setItemModifierFilter(), toggleItemModifierCardSelection() (+2 more)
 
 ### Community 303 - "test-line-order-receipts.cjs"
 Cohesion: 0.16
@@ -2193,8 +2187,8 @@ Cohesion: 0.14
 Nodes (6): assert, fs, path, root, test, vm
 
 ### Community 308 - "onRequest"
-Cohesion: 0.24
-Nodes (11): Push Notifications, Webhooks, Webhooks & Push Notifications, Middleware Not Running, isLineCallback(), isPosRoute(), onRequest(), orderError() (+3 more)
+Cohesion: 0.27
+Nodes (10): Push Notifications, Webhooks, Webhooks & Push Notifications, isLineCallback(), isPosRoute(), onRequest(), orderError(), RESERVED_POS_PATHS (+2 more)
 
 ### Community 309 - "update.md"
 Cohesion: 0.15
@@ -2249,12 +2243,12 @@ Cohesion: 0.15
 Nodes (13): Cloudflare Durable Objects, Decision Trees, Essential Commands, In This Reference, Overview, Quick Start, Reading Order, Resources (+5 more)
 
 ### Community 322 - "Cloudflare Email Routing Skill Reference"
-Cohesion: 0.15
+Cohesion: 0.17
 Nodes (9): Architecture, Cloudflare Email Routing Skill Reference, Decision Tree, In This Reference, Key Concepts, Overview, Quick Start, Reading Order (+1 more)
 
 ### Community 323 - "Email Workers API Reference"
-Cohesion: 0.15
-Nodes (8): Email Workers API Reference, EmailMessage Constructor, mimetext API Quick Reference, postal-mime Parsed Output, SendEmail Binding Types, SendEmail Interface, TypeScript Types, Usage
+Cohesion: 0.11
+Nodes (14): Email Workers API Reference, EmailMessage Constructor, forward(rcptTo: string, headers?: Headers): Promise<void>, ForwardableEmailMessage Interface, Methods, mimetext API Quick Reference, postal-mime Parsed Output, Properties (+6 more)
 
 ### Community 324 - "GraphQL Analytics API Configuration"
 Cohesion: 0.15
@@ -2269,8 +2263,8 @@ Cohesion: 0.15
 Nodes (13): Async Task Processing, Buffering API Calls, Dead Letter Queue Pattern, Delayed Job Processing, Event-Driven Workflows, Fan-out Pattern, Idempotency Pattern, Integration: D1 Batch Writes (+5 more)
 
 ### Community 327 - "R2 Gotchas & Troubleshooting"
-Cohesion: 0.15
-Nodes (13): Checksum Limits, Conditional Operations, ETag Format, Key Validation, Limits, List Truncation, Local Development Limits, Multipart Requirements (+5 more)
+Cohesion: 0.11
+Nodes (19): Checksum Limits, Common Errors, Conditional Operations, ETag Format, "Invalid credentials" / S3 SDK, Key Validation, Limits, "List compatibility error" (+11 more)
 
 ### Community 328 - "REST API"
 Cohesion: 0.15
@@ -2313,8 +2307,8 @@ Cohesion: 0.15
 Nodes (13): "API Rate Limit Exceeded", "Asset Session Expired", "Bindings Lost on Update", Common Errors, "CPU time limit exceeded", "Deploy Failures with ES Modules", "Gradual Deployment Not Supported", "Hostname Routing Issues" (+5 more)
 
 ### Community 338 - "Workflow Patterns"
-Cohesion: 0.23
-Nodes (8): Data Pipeline, Human-in-the-Loop Approval, Image Processing Pipeline, Introspection API, Setup, Testing Workflows, User Lifecycle, Workflow Patterns
+Cohesion: 0.17
+Nodes (11): Best Practices, Data Pipeline, ✅ DO, ❌ DON'T, Human-in-the-Loop Approval, Image Processing Pipeline, Introspection API, Setup (+3 more)
 
 ### Community 339 - "Logo Design Reference"
 Cohesion: 0.15
@@ -2357,8 +2351,8 @@ Cohesion: 0.27
 Nodes (10): alarmTimeoutIds, clearAlarmTimeouts(), playAlarmCycle(), playNewOrderSound(), playTone(), startContinuousAlarm(), startOrderShift(), stopContinuousAlarm() (+2 more)
 
 ### Community 354 - "package.json"
-Cohesion: 0.17
-Nodes (12): author, description, devDependencies, playwright@1.64.1, engines, node, playwright, keywords (+4 more)
+Cohesion: 0.20
+Nodes (9): author, description, engines, node, keywords, license, name, private (+1 more)
 
 ### Community 355 - "verify_dual_printer_cards_status.js"
 Cohesion: 0.15
@@ -2385,16 +2379,16 @@ Cohesion: 0.18
 Nodes (9): assert, { chromium }, fs, loadFixture(), path, readSource(), root, swipeQueue() (+1 more)
 
 ### Community 361 - "2. Non-Negotiable Architectural Rules"
-Cohesion: 0.17
-Nodes (11): 1. System Architecture Overview, 2. Non-Negotiable Architectural Rules, 3. Database & Caching Architecture, 4. Development & Deployment Workflow, A. 1,000+ Multi-Tenant Scalability (Zero Hardcoding), B. UI/UX Design Principles, Benmi Multi-Tenant Order Platform - AI Agent Instructions, C. Bắt Buộc Cache-Busting Khi Chỉnh Sửa Frontend (CSS / JS) (+3 more)
+Cohesion: 0.15
+Nodes (12): 1. System Architecture Overview, 2. Non-Negotiable Architectural Rules, 3. Database & Caching Architecture, 4. Development & Deployment Workflow, A. 1,000+ Multi-Tenant Scalability (Zero Hardcoding), B. UI/UX Design Principles, Benmi Multi-Tenant Order Platform - AI Agent Instructions, C. Bắt Buộc Cache-Busting Khi Chỉnh Sửa Frontend (CSS / JS) (+4 more)
 
 ### Community 362 - "B. Bảng Quản Lý Đơn Hàng POS (`orders.html` — Tablet / iPad First)"
-Cohesion: 0.21
-Nodes (9): 1. Kiến Trúc Tải File & Phạm Vi Biến (Global Scope Architecture), B. Bảng Quản Lý Đơn Hàng POS (`orders.html` — Tablet / iPad First), Bản Đồ Chỉ Mục Codebase (Codebase Architecture & Symbol Map), flavors(), globalChoices(), receiptLines(), escapeHtml(), fetchOrders() (+1 more)
+Cohesion: 0.22
+Nodes (9): B. Bảng Quản Lý Đơn Hàng POS (`orders.html` — Tablet / iPad First), 6. Lịch Sử Các Phiên Bản (Changelog), Build v1.8.6 (09/09/2026), Vị Trí Code Hiện Tại:, flavors(), globalChoices(), receiptLines(), escapeHtml() (+1 more)
 
 ### Community 363 - "updateTotal"
-Cohesion: 0.38
-Nodes (11): 3. Bảng Tra Cứu Nhanh Khi Debug (Quick Symptom-to-File Lookup), 5. Kế Hoạch Triển Khai Từng Bước (Execution Plan), The Solution:, calculateCategoryBundleSubtotal(), calculateCurrentFoodSubtotal(), getActiveThresholdViolations(), parseCartKey(), updateCustomizationThresholdUI() (+3 more)
+Cohesion: 0.27
+Nodes (13): 1. Kiến Trúc Tải File & Phạm Vi Biến (Global Scope Architecture), 3. Bảng Tra Cứu Nhanh Khi Debug (Quick Symptom-to-File Lookup), Bản Đồ Chỉ Mục Codebase (Codebase Architecture & Symbol Map), 5. Kế Hoạch Triển Khai Từng Bước (Execution Plan), The Solution:, calculateCategoryBundleSubtotal(), calculateCurrentFoodSubtotal(), getActiveThresholdViolations() (+5 more)
 
 ### Community 364 - "Email Handling"
 Cohesion: 0.17
@@ -2473,12 +2467,12 @@ Cohesion: 0.17
 Nodes (12): Automation Boundary, Cloudflare Network Interconnect (CNI), Connection Types, Dataplane Versions, In This Reference, Prerequisites, Reading Order by Task, See Also (+4 more)
 
 ### Community 383 - "Configuration"
-Cohesion: 0.24
-Nodes (7): Configuration, Environment Overrides, Local Dev & Deployment, Local Secrets (.dev.vars), Static Config Files, TypeScript Setup, wrangler.jsonc
+Cohesion: 0.13
+Nodes (14): Configuration, Environment Overrides, Local Dev & Deployment, Local Secrets (.dev.vars), Static Config Files, TypeScript Setup, wrangler.jsonc, Advanced Mode (_worker.js) (+6 more)
 
-### Community 384 - "Bindings Reference"
-Cohesion: 0.17
-Nodes (6): Bindings Reference, ASSETS Binding, Method Signatures, Type Definition, Fetcher, VectorizeIndex
+### Community 384 - "client-payments.js"
+Cohesion: 0.37
+Nodes (15): blocked(), cancelCurrent(), init(), inspect(), launch(), manage(), notice(), onCartChange() (+7 more)
 
 ### Community 385 - "Cloudflare Pages"
 Cohesion: 0.17
@@ -2549,8 +2543,8 @@ Cohesion: 0.24
 Nodes (11): extensions, formatReport(), fs, getFiles(), main(), parseArgs(), path, patterns (+3 more)
 
 ### Community 402 - "Turnstile Spin skill"
-Cohesion: 0.17
-Nodes (10): How agents load it, Layout, Related, Sync with the docs page, turnstile-spin (skill), Edge cases, Migrating from another CAPTCHA, Telemetry marker (+2 more)
+Cohesion: 0.12
+Nodes (15): How agents load it, Layout, Related, Sync with the docs page, turnstile-spin (skill), Conversation flow, Edge cases, Hard scope boundary: DO NOT ask the user about (+7 more)
 
 ### Community 404 - "PDP: Dine-In Experience, Multi-Round Order Formatting & PAID Status Enhancement"
 Cohesion: 0.17
@@ -2641,12 +2635,12 @@ Cohesion: 0.18
 Nodes (11): "Adaptive rules not working", "Attacks getting through", "Cannot disable DDoS protection", "Cannot override rule", Common Errors, "Expression not allowed", "False positives blocking legitimate traffic", "Log action not available" (+3 more)
 
 ### Community 426 - "Common Errors"
-Cohesion: 0.20
-Nodes (10): "Alarm Not Deleted with deleteAll()", Common Errors, "Direct SQL Transaction Statements", "Durable Object Overloaded", "High Billing from Storage Operations", "Race Condition in Concurrent Calls", "Silent Data Corruption with Large IDs", "Slow Performance" (+2 more)
+Cohesion: 0.11
+Nodes (17): "Alarm Not Deleted with deleteAll()", allowConcurrency Option, Common Errors, Concurrency Model (CRITICAL), "Direct SQL Transaction Statements", DO Storage Gotchas & Troubleshooting, "Durable Object Overloaded", "High Billing from Storage Operations" (+9 more)
 
-### Community 427 - "SendEmail Binding"
-Cohesion: 0.18
-Nodes (10): Authentication, Configuration, Create Routing Rule Example, Email Routing API Reference, Key Endpoints, REST API Operations, Send Email Example, SendEmail Binding (+2 more)
+### Community 427 - "Worker Runtime API"
+Cohesion: 0.17
+Nodes (11): Authentication, Common Headers, Create Routing Rule Example, Email Handler Interface, Email Routing API Reference, Envelope vs Header Addresses, ForwardableEmailMessage, Headers Object (+3 more)
 
 ### Community 428 - "Email Workers Configuration"
 Cohesion: 0.18
@@ -2705,8 +2699,8 @@ Cohesion: 0.18
 Nodes (11): API Reference, Auth, Basic Access, Binding API, Error Handling, Multiple Secrets & Patterns, Responses, REST API (+3 more)
 
 ### Community 442 - "Smart Placement Patterns"
-Cohesion: 0.18
-Nodes (7): Backend Worker with Database Access, Best Practices, Durable Objects with Smart Placement, External API Integration, Frontend + Backend Split (Service Bindings), Smart Placement Patterns, SSR / API Gateway Pattern
+Cohesion: 0.10
+Nodes (16): cf-placement Header (Beta), Detecting Smart Placement in Code, Interpreting Metrics, Monitoring Commands, Placement Status API, Request Duration Metrics, Smart Placement API, Status Meanings (+8 more)
 
 ### Community 443 - "Terraform Troubleshooting & Best Practices"
 Cohesion: 0.18
@@ -2797,8 +2791,8 @@ Cohesion: 0.18
 Nodes (10): 1.1. Luồng Giao diện (Mockup UI), 1. Cải tiến Giao diện Dashboard Nhân viên (`orders.html`), 2.1. Hiển thị ngoài Thực đơn chính, 2.2. Xử lý Topping và Đồ uống trong Popup Tùy chọn (Customize Modal), 2. Giao diện Thực đơn Khách hàng (`index.html`), 3. Kế hoạch Dịch chuyển Dữ liệu (Data Migration Plan), 4. Kế hoạch Dự phòng & Rollback (Rollback Plan), Bước 1: Khởi tạo database D1 và tạo seed dữ liệu mặc định (+2 more)
 
 ### Community 466 - "PDP: Chuyển trang đặt món thực khách sang domain Blabfood [Migrate]"
-Cohesion: 0.18
-Nodes (10): 1. Tóm tắt và mục tiêu, 3.1. Domain và môi trường, 3.3. URL builder và đăng nhập, 3.4. Backend, D1 và KV, 3. Kiến trúc đề xuất, 5. Phương án thay thế và đánh đổi, 6. Bảo mật, quan sát và hiệu năng, 7. Kế hoạch thực thi theo milestone (+2 more)
+Cohesion: 0.17
+Nodes (11): 1. Tóm tắt và mục tiêu, 4.1. Trình tự rollout, 4.2. Chính sách domain cũ, 4.3. Storage và giỏ hàng, 4.4. Rollback, 4. Chuyển đổi, link cũ và rollback, 5. Phương án thay thế và đánh đổi, 6. Bảo mật, quan sát và hiệu năng (+3 more)
 
 ### Community 467 - "PDP: Menu Compatibility & Customization Hardening — Fix"
 Cohesion: 0.18
@@ -2844,9 +2838,9 @@ Nodes (10): AI Search Configuration, Data Sources, Indexing, Monitoring, Multi-E
 Cohesion: 0.20
 Nodes (9): Analytics Engine API Reference, Column References, Full Example, Limits, Query Examples, Response Format, SQL API (External Only), `writeDataPoint()` (+1 more)
 
-### Community 478 - "Analytics Engine Configuration"
+### Community 478 - "PDP: Desktop Web Order LINE Confirmation & Flex Message Dispatch"
 Cohesion: 0.20
-Nodes (10): Analytics Engine Configuration, Cost, Data Point Limits, Environment-Specific, Monitoring, Query Limits, Setup, TypeScript (+2 more)
+Nodes (9): 2.1 Luồng Hiện Tại (Current Flow), 2. Context & Current Architecture, 3.1 Luồng Xử Lý Mới (Proposed Architecture Flow), 3. Proposed Architecture, 4.1 Frontend ([`js/client-checkout.js`](file:///Users/duccao/Documents/benmi-order/js/client-checkout.js)), 4. Chi Tiết Kỹ Thuật & Code Changes, 5. Alternatives Considered & Trade-offs, 7. Kế Hoạch Kiểm Thử (Verification Plan) (+1 more)
 
 ### Community 479 - "Configuration"
 Cohesion: 0.20
@@ -2877,8 +2871,8 @@ Cohesion: 0.20
 Nodes (10): Batch Processing with Alarms, Cleanup, DO Storage Patterns & Best Practices, In-Memory Caching, Initialization Pattern, Parent-Child Coordination, Rate Limiting, Safe Counter / Optimized Write (+2 more)
 
 ### Community 486 - "Durable Objects API"
-Cohesion: 0.20
-Nodes (10): Alarms, Alarms, Class Structure, Durable Objects API, DurableObjectState Context Methods, Lifecycle, See Also, Storage Access (+2 more)
+Cohesion: 0.18
+Nodes (11): Alarms, Alarms, Class Structure, Concurrency Control, Durable Objects API, DurableObjectState Context Methods, Lifecycle, See Also (+3 more)
 
 ### Community 487 - "Durable Objects Configuration"
 Cohesion: 0.20
@@ -2901,7 +2895,7 @@ Cohesion: 0.20
 Nodes (10): Delete Operations, Error Handling, Get with Metadata, KV API Reference, List Operations, Parallel Reads, Performance Considerations, Read Operations (+2 more)
 
 ### Community 492 - "KV Configuration"
-Cohesion: 0.20
+Cohesion: 0.22
 Nodes (9): Bulk Operations, CLI Operations, Create Namespace, KV Configuration, Local Development, REST API, Single Operations, TypeScript Types (+1 more)
 
 ### Community 493 - "Common Errors"
@@ -2961,20 +2955,20 @@ Cohesion: 0.20
 Nodes (10): Access Control, Architecture, Cloudflare Secrets Store, Files, In This Reference, Limits (Beta), Overview, Reading Order by Task (+2 more)
 
 ### Community 508 - "Smart Placement Configuration"
-Cohesion: 0.20
-Nodes (10): Backend Worker (Smart Placement Enabled), Cloudflare Pages/Assets Warning, Dashboard Configuration, Frontend + Backend Split Configuration, Frontend Worker (No Smart Placement), Local Development, Placement Mode Values, Smart Placement Configuration (+2 more)
+Cohesion: 0.13
+Nodes (15): Backend Worker (Smart Placement Enabled), Baseline Traffic, Cloudflare Pages/Assets Warning, Dashboard Configuration, Frontend + Backend Split Configuration, Frontend Worker (No Smart Placement), Local Development, Placement Mode Values (+7 more)
 
-### Community 509 - "WorkerEntrypoint"
-Cohesion: 0.20
-Nodes (3): RPC Methods Not Affected (Critical Limitation), WorkerEntrypoint, WorkerEntrypointBranded
+### Community 509 - "Các task nhỏ"
+Cohesion: 0.22
+Nodes (9): Các task nhỏ, T01 — Chốt nguồn/đích và kiểm kê read-only, T02 — Tạo snapshot nhất quán và bản database riêng, T03 — Chốt mapping từng field và identity, T04 — Viết DDL bổ sung tối thiểu, T05 — Viết script preview copy, T06 — Copy vào database riêng, T07 — Đối chiếu dữ liệu sau copy (+1 more)
 
-### Community 510 - "Cloudflare Static Assets Skill Reference"
-Cohesion: 0.20
-Nodes (7): Common Patterns, Cloudflare Static Assets Skill Reference, In This Reference, Quick Start, Reading Order, See Also, When to Use Workers Static Assets vs Pages
+### Community 510 - "Configuration"
+Cohesion: 0.10
+Nodes (17): .assetsignore File, Basic Setup, Configuration, Environment-Specific Configuration, Full Configuration Options, html_handling Modes, Key Compatibility Dates, not_found_handling Modes (+9 more)
 
-### Community 511 - "Configuration"
-Cohesion: 0.20
-Nodes (10): .assetsignore File, Basic Setup, Configuration, Environment-Specific Configuration, Full Configuration Options, html_handling Modes, Key Compatibility Dates, not_found_handling Modes (+2 more)
+### Community 511 - "apply"
+Cohesion: 0.25
+Nodes (7): Hợp đồng công cụ và đầu ra đề xuất, selected(), apply(), syncControls(), Cấu trúc các module, Menu Data Copy Tool Suite, Nguyên tắc cốt lõi
 
 ### Community 512 - "Stream Configuration"
 Cohesion: 0.20
@@ -3072,9 +3066,9 @@ Nodes (10): D. Kế hoạch theo bước, T0 — Baseline và fixture hồi quy,
 Cohesion: 0.20
 Nodes (7): __dirname, __filename, sqlStatements, tableData, tables, tempSqlFile, WORKER_DIR
 
-### Community 541 - "test-liff-message-retry.cjs"
-Cohesion: 0.20
-Nodes (8): assert, client(), context, fs, messages, path, { test }, vm
+### Community 541 - "document"
+Cohesion: 0.22
+Nodes (3): customer(), context, document
 
 ### Community 542 - "Client SDK"
 Cohesion: 0.22
@@ -3121,16 +3115,16 @@ Cohesion: 0.22
 Nodes (9): "Assets Not Being Cached in Cache Reserve", "Cache Reserve must be OFF before clearing data", "Cloudflare Images Not Caching with Cache Reserve", Common Errors, "High Class A Operations Costs", "O2O (Orange-to-Orange) Assets Not Caching", "Origin Bandwidth Higher Than Expected", "Purge Not Working as Expected" (+1 more)
 
 ### Community 553 - "Critical Gotchas"
-Cohesion: 0.22
-Nodes (6): Scheduling, ⚠️ Activity Timeout on Long Operations, ⚠️ blockConcurrencyWhile for Startup, Critical Gotchas, ⚠️ Don't Override alarm() When Using schedule(), ⚠️ Lifecycle Hooks Block Requests
+Cohesion: 0.33
+Nodes (4): ⚠️ Activity Timeout on Long Operations, ⚠️ blockConcurrencyWhile for Startup, Critical Gotchas, ⚠️ Lifecycle Hooks Block Requests
 
 ### Community 554 - "Wrangler Configuration"
 Cohesion: 0.22
 Nodes (9): Account Limits, Basic Container Config, Container Class Properties, Custom Types (Jan 2026 Feature), Image Management, Instance Types, Predefined Types, Runtime Environment Variables (+1 more)
 
 ### Community 555 - "Common Errors"
-Cohesion: 0.22
-Nodes (9): Common Errors, "Cron Not Executing", "Duplicate Executions", "Execution Failures", "Idempotency Issues", "Local Testing Not Working", "Security Concerns", "Timezone Issues" (+1 more)
+Cohesion: 0.17
+Nodes (12): Common Errors, "Cron Not Executing", Cron Triggers Gotchas, "Duplicate Executions", "Execution Failures", "Idempotency Issues", Limits & Quotas, "Local Testing Not Working" (+4 more)
 
 ### Community 556 - "Cloudflare Cron Triggers"
 Cohesion: 0.22
@@ -3220,17 +3214,17 @@ Nodes (9): "Bucket mounting doesn't work locally", "Code context variables disap
 Cohesion: 0.22
 Nodes (9): AI Code Execution with Code Context, CI/CD Pipeline, Common Patterns, Git Operations, Interactive Dev Environment, Multi-Tenant Pattern, Persistent Data with Bucket Mounting, Process Readiness Pattern (+1 more)
 
-### Community 578 - "Smart Placement API"
-Cohesion: 0.22
-Nodes (9): cf-placement Header (Beta), Detecting Smart Placement in Code, Interpreting Metrics, Monitoring Commands, Placement Status API, Request Duration Metrics, Smart Placement API, Status Meanings (+1 more)
+### Community 578 - "test_order_detail_groups.cjs"
+Cohesion: 0.28
+Nodes (7): assert, choice(), fs, group(), line(), { test }, vm
 
 ### Community 579 - "Cloudflare Snippets Skill Reference"
 Cohesion: 0.22
 Nodes (9): Cloudflare Snippets Skill Reference, Description, Execution Model, In This Reference, Quick Start, Reading Order, See Also, Snippets vs Workers Decision Matrix (+1 more)
 
 ### Community 580 - "Common Errors"
-Cohesion: 0.22
-Nodes (9): "429 Too Many Requests on free tier", "Asset not found", "Assets not updating after deployment", "Cannot use 'assets' with 'site'", "CF-Cache-Status header unreliable", Common Errors, "JWT expired during deployment", "Smart Placement increases latency" (+1 more)
+Cohesion: 0.10
+Nodes (20): 1. Use Hashed Filenames, 1. Use Selective Worker-First Routing, 2. Leverage Navigation Request Optimization, 2. Minimize Worker Invocations, 3. Leverage Browser Cache, 3. Type Safety with Bindings, "429 Too Many Requests on free tier", 4. Use .assetsignore (+12 more)
 
 ### Community 581 - "Cloudflare Tail Workers"
 Cohesion: 0.22
@@ -3253,8 +3247,8 @@ Cohesion: 0.22
 Nodes (9): CLI Commands, Durable Objects, ES Modules (Recommended), RPC Between Services, Service Worker Syntax (Legacy), TypeScript Types, Worker Code (JS/TS), Workerd APIs (+1 more)
 
 ### Community 586 - "WritableStream"
-Cohesion: 0.22
-Nodes (3): Streams, DigestStream, WritableStream
+Cohesion: 0.14
+Nodes (7): Streams, `closed: Promise<void>`, `opened: Promise<SocketInfo>`, Properties, `writable: WritableStream<Uint8Array>`, DigestStream, WritableStream
 
 ### Community 587 - "Workers AI Configuration"
 Cohesion: 0.22
@@ -3268,9 +3262,9 @@ Nodes (9): Cache, Crypto, ExecutionContext, Fetch, Handler, Limits (Playground =
 Cohesion: 0.22
 Nodes (9): Authentication, Caching, CORS Handling, Error Handling, Hono Framework, JSON API, Proxy Pattern, Router Pattern (+1 more)
 
-### Community 590 - "Properties"
-Cohesion: 0.22
-Nodes (8): `close(): Promise<void>`, `closed: Promise<void>`, Methods, `opened: Promise<SocketInfo>`, Properties, Socket Interface, `startTls(): Socket`, `writable: WritableStream<Uint8Array>`
+### Community 590 - "HTMLRewriter"
+Cohesion: 0.25
+Nodes (4): Available APIs in Snippets, ❌ Not Supported in Snippets, ✅ Supported, HTMLRewriter
 
 ### Community 591 - "Workflow Configuration"
 Cohesion: 0.22
@@ -3288,9 +3282,9 @@ Nodes (9): Consent Issues, Data Layer, Events Not Firing, Limits, Performance, S
 Cohesion: 0.22
 Nodes (9): Cloudflare Zaraz, Decision Tree, In This Reference, Key Features, Quick Start, Reading Order by Task, Reference, What is Zaraz? (+1 more)
 
-### Community 595 - "1. Input Contract & The 3-Level F&B Choice Hierarchy"
-Cohesion: 0.22
-Nodes (9): 1. Input Contract & The 3-Level F&B Choice Hierarchy, Classify by Scope Before Generating SQL (The 3-Level Hierarchy), Input Sources, Level 1 — Order-Wide Customizations (`scope = 'order'`), Level 2 — Mandatory Core Component / Starch / Combo (`scope = 'item'`, `min_selection >= 1`, `auto_popup = 1`), Level 3 — Dish-Level Modifiers & Add-on Toppings (`scope = 'item'`), 3.2. Tenant và URL, 3.2. Middleware và hợp đồng nội bộ (+1 more)
+### Community 595 - "3. Kiến trúc đề xuất"
+Cohesion: 0.29
+Nodes (7): 3.1. Domain và môi trường, 3.2. Tenant và URL, 3.3. URL builder và đăng nhập, 3.4. Backend, D1 và KV, 3. Kiến trúc đề xuất, 3.2. Middleware và hợp đồng nội bộ, tenant()
 
 ### Community 596 - "Cloudflare Worker Backend (`benmi-worker-official`) - AI Agent Instructions"
 Cohesion: 0.22
@@ -3305,8 +3299,8 @@ Cohesion: 0.22
 Nodes (8): Deleted options still visible in LIFF — 2026-10-29, Follow-up repair — 2026-10-30, Local repair, Pre-push validation — 2026-10-30 (JST), Production evidence (read-only investigation), Verification, reconcileCartOptions(), currentGroups()
 
 ### Community 601 - "Detailed Design"
-Cohesion: 0.22
-Nodes (9): 3.2 Schema D1 — migration `0065_ai_intent_clef_flash.sql`, 3.3 Clef client — `src/integrations/clefFlash.ts` (mới), 3.4 Classifier — `src/modules/aiIntent.ts` (mới), 3.5 Thay đổi ở `line.ts`, 3.6 Tenant & Admin, 3.7 Purge job — `scheduled()` handler trong `src/index.ts`, 3. Proposed Architecture, Detailed Design (+1 more)
+Cohesion: 0.20
+Nodes (10): 3.1 Binding & biến môi trường (`cloudflare.config.ts`, cả dev / staging / production), 3.2 Schema D1 — migration `0065_ai_intent_clef_flash.sql`, 3.3 Clef client — `src/integrations/clefFlash.ts` (mới), 3.4 Classifier — `src/modules/aiIntent.ts` (mới), 3.5 Thay đổi ở `line.ts`, 3.6 Tenant & Admin, 3.7 Purge job — `scheduled()` handler trong `src/index.ts`, 3. Proposed Architecture (+2 more)
 
 ### Community 602 - "Tiến độ chuyển đổi từng Cụm Menu sang Schema Mới"
 Cohesion: 0.22
@@ -3348,9 +3342,9 @@ Nodes (8): 1.1 Hiện tượng lỗi (Symptom), 1.2 Điều tra nguyên nhân g�
 Cohesion: 0.22
 Nodes (8): 1. Kiến Trúc Tổng Quan (System Architecture), 2. Bảng Tra Cứu Môi Trường & Tự Động Nhận Diện, 3. Quy Trình Triển Khai Chuẩn (Standard Deployment Workflow), 4. Hướng Dẫn Lệnh Deploy Chi Tiết, A. Deploy lên STAGING:, B. Deploy lên PRODUCTION:, Benmi & Multi-Tenant Order Platform Architecture & Deployment Guide, Cơ chế Tự Động:
 
-### Community 612 - "test-modifier-library.cjs"
-Cohesion: 0.22
-Nodes (7): assert, context, fs, part, source, {test}, vm
+### Community 612 - "test_pickup_eta.cjs"
+Cohesion: 0.25
+Nodes (6): assert, ctx, fs, future, source, vm
 
 ### Community 613 - "doc"
 Cohesion: 0.25
@@ -3404,9 +3398,9 @@ Nodes (7): C3 Usage Patterns, CI/CD (GitHub Actions), Custom Templates, Existing
 Cohesion: 0.25
 Nodes (8): Allowlist Trusted IPs, Cache Strategy for DDoS Mitigation, DDoS Protection Patterns, Defense in Depth, Dynamic Response to Attacks, Multi-rule Tiered Protection (Enterprise Advanced), Progressive Enhancement, Route-specific Sensitivity
 
-### Community 626 - "Concurrency Model (CRITICAL)"
-Cohesion: 0.25
-Nodes (7): allowConcurrency Option, Concurrency Model (CRITICAL), DO Storage Gotchas & Troubleshooting, Input Gates, Limits, Output Gates, Write Coalescing
+### Community 626 - "Workflows Integration"
+Cohesion: 0.29
+Nodes (6): Agent Methods for Workflows, AgentWorkflow Base Class, Human-in-the-Loop, Lifecycle Callbacks, Workflows Integration, Wrangler Configuration
 
 ### Community 627 - "Configuration"
 Cohesion: 0.25
@@ -3461,8 +3455,8 @@ Cohesion: 0.25
 Nodes (8): Choose Your Approach, Cloudflare Realtime SFU Reference, In This Reference, Quick Start, Reading Order, See Also, Setup, SFU vs RealtimeKit
 
 ### Community 640 - "API Reference"
-Cohesion: 0.25
-Nodes (7): 404 Handling, API Reference, Error Responses, Headers, Method Support, Path Resolution, Request Handling
+Cohesion: 0.12
+Nodes (16): 404 Handling, Advanced Usage, API Reference, Compression, Conditional Serving, Content-Type Inference, Default Headers, Error Handling (+8 more)
 
 ### Community 641 - "TURN Gotchas & Troubleshooting"
 Cohesion: 0.25
@@ -3476,9 +3470,9 @@ Nodes (7): Filtering, Insert/Upsert, Other Operations, Performance, Query, Types
 Cohesion: 0.25
 Nodes (7): Configuration Issues, Framework-Specific, Gatsby Window Undefined, Limits, Next.js Hydration Warning, Web Analytics Gotchas, When NOT to Use Web Analytics
 
-### Community 644 - "Web Platform APIs"
-Cohesion: 0.25
-Nodes (8): Console, Fetch, HTMLRewriter (HTML Parsing/Transformation), Node.js Compat (`nodejs_compat` flag), Server-Sent Events (EventSource), TCP Sockets (Experimental), Web Crypto, Web Platform APIs
+### Community 644 - "containers/gotchas.md"
+Cohesion: 0.29
+Nodes (4): wrangler.toml Format, Best Practices, Beta Caveats, Limits
 
 ### Community 645 - "Workers AI Patterns"
 Cohesion: 0.25
@@ -3505,20 +3499,24 @@ Cohesion: 0.25
 Nodes (7): 2. Chuẩn Cấu Trúc Câu Trả Lời (The 4-Tier Response Framework), 3. Nguyên Tắc Trình Bày & Format, Flow [Số]: [Tên kịch bản rõ ràng, súc tích], System Flow Explainer & Architecture Investigation Skill, TẦNG 1: Khái niệm nền tảng & Bức tranh tổng thể (Mental Model & High-level Overview), TẦNG 2 & 3: Phân nhóm nghiệp vụ & Chi tiết từng Flow chuẩn hóa (Standardized Blueprint), TẦNG 4: Bảng tra cứu tóm tắt & Nhận xét kiến trúc (Cheat-sheet & Architectural Insights)
 
 ### Community 651 - "2. Step-by-Step Execution Workflow"
-Cohesion: 0.25
-Nodes (7): 2. Step-by-Step Execution Workflow, Step 1: File Location & Naming, Step 2: Idempotent SQL Seed Template (Canonical Unified Schema), Step 3: Execute Seed on D1 (`cf` CLI), Step 4: Invalidate KV Edge Cache (`bootstrap:v2` & `bootstrap`), Step 5: Verification Checklist & Test Links, Tenant & Menu Seeder Skill (Unified Menu Architecture)
+Cohesion: 0.14
+Nodes (13): 1. Input Contract & The 3-Level F&B Choice Hierarchy, 2. Step-by-Step Execution Workflow, Classify by Scope Before Generating SQL (The 3-Level Hierarchy), Input Sources, Level 1 — Order-Wide Customizations (`scope = 'order'`), Level 2 — Mandatory Core Component / Starch / Combo (`scope = 'item'`, `min_selection >= 1`, `auto_popup = 1`), Level 3 — Dish-Level Modifiers & Add-on Toppings (`scope = 'item'`), Step 1: File Location & Naming (+5 more)
 
 ### Community 653 - "Type Validation"
-Cohesion: 0.25
-Nodes (6): Env interface, Handler and class signatures, Stale class patterns, Type integrity rules, Type Validation, ExecutionContext
+Cohesion: 0.18
+Nodes (8): Testing Best Practices, Env interface, Handler and class signatures, Stale class patterns, Type integrity rules, Type Validation, ExecutionContext, ScheduledController
+
+### Community 655 - "DO Storage Configuration"
+Cohesion: 0.29
+Nodes (7): CPU Limits, DO Storage Configuration, Initialization, KV-backed (Legacy), Location Control, SQLite-backed (Recommended), TypeScript Setup
 
 ### Community 657 - "Thiết kế API & Logic Báo Hết Hàng (Out-of-Stock API Design)"
 Cohesion: 0.25
 Nodes (7): 1.1. Lấy thông tin Thực đơn (GET `/api/menu`), 1.2. Cập nhật Trạng thái Hết hàng (POST `/api/menu/stock-status`), 1. Danh sách API Endpoints, 2. Logic tính toán trạng thái khả dụng trên D1 (SQL), 3. Logic Xử lý Thời gian Hết hàng (Backend Handler), 4. Chiến lược Quản lý Bộ nhớ đệm (KV Caching & Invalidation), Thiết kế API & Logic Báo Hết Hàng (Out-of-Stock API Design)
 
 ### Community 658 - "1. So sánh Cấu trúc Bảng Hiện tại vs Đích"
-Cohesion: 0.25
-Nodes (7): 1.1. Bảng Nhóm Tuỳ chọn (`modifier_groups`), 1.3. Bảng Liên kết Danh mục (`category_modifier_links`), 1.4. Bảng Liên kết Món Ăn (`item_modifier_links`), 1. So sánh Cấu trúc Bảng Hiện tại vs Đích, 2. Kế hoạch DDL Additive Tối thiểu (Task T04), 3. Kết luận Task T01, Báo cáo Khoảng cách Schema (Schema Gap Analysis)
+Cohesion: 0.22
+Nodes (8): 1.1. Bảng Nhóm Tuỳ chọn (`modifier_groups`), 1.2. Bảng Lựa chọn Chi tiết (`modifier_options`), 1.3. Bảng Liên kết Danh mục (`category_modifier_links`), 1.4. Bảng Liên kết Món Ăn (`item_modifier_links`), 1. So sánh Cấu trúc Bảng Hiện tại vs Đích, 2. Kế hoạch DDL Additive Tối thiểu (Task T04), 3. Kết luận Task T01, Báo cáo Khoảng cách Schema (Schema Gap Analysis)
 
 ### Community 659 - "Benmi_danh_gia_va_ke_hoach_1_dev_44c8e931.md"
 Cohesion: 0.25
@@ -3552,9 +3550,9 @@ Nodes (6): Callable Methods, Client Usage, Introspection, Overview, Streaming Re
 Cohesion: 0.29
 Nodes (6): Configuration, Key Rules, tsconfig, Type Generation, Vite Setup, Wrangler Config (`wrangler.jsonc`)
 
-### Community 667 - "Queue & Retries"
-Cohesion: 0.29
-Nodes (7): Built-in Queue, Class-level Defaults, Important, Queue Management, Queue & Retries, Retries, Retry on Schedules and Queue
+### Community 667 - "agents-sdk/SKILL.md"
+Cohesion: 0.13
+Nodes (12): Available Channels, Observability, Per-Agent Override, Production: Tail Workers, Subscribe to Events, Built-in Queue, Class-level Defaults, Important (+4 more)
 
 ### Community 668 - "Routing"
 Cohesion: 0.29
@@ -3608,9 +3606,9 @@ Nodes (7): Features, Miniflare, Quick Start, Reading Order, See Also, Setup, Whe
 Cohesion: 0.29
 Nodes (7): Anti-Patterns, CNI Gotchas & Troubleshooting, Console Connect/Megaport: "API creation fails", Equinix: "Virtual circuit not appearing", Limits, Partner Interconnect Issues, What's Not Queryable via API
 
-### Community 682 - "Common Patterns"
-Cohesion: 0.29
-Nodes (7): Advanced Mode (_worker.js), Background Tasks (waitUntil), Common Patterns, CORS & Rate Limiting, Forms, Caching, Redirects, Middleware & Auth, Testing
+### Community 682 - "Quy Chuẩn Kiểm Thử Tinh Gọn Khi Phát Triển (Tiered Testing Workflow)"
+Cohesion: 0.33
+Nodes (5): Cấp 2: Kiểm thử Mục tiêu theo Module (Targeted Tests - 0.5s đến 3s), Cấp 3: Menu Gate Cục bộ (Local Menu QA - Khi sửa lớn UI/Layout Menu), Cấp 4: Full Release Baseline (Pre-Release Gate - ~115 giây), Quy Chuẩn Kiểm Thử Tinh Gọn Khi Phát Triển (Tiered Testing Workflow), getInitialTab()
 
 ### Community 683 - "Endpoints"
 Cohesion: 0.29
@@ -3620,9 +3618,13 @@ Nodes (7): Add Track (Publish), Add Track (Subscribe), Close Tracks, Create Sess
 Cohesion: 0.29
 Nodes (7): Common Errors, "ICE connection failed", "Network change disconnects call", "No media flow", "Slow initial connect (~1.8s)", "Track not receiving", "Track stuck/frozen"
 
-### Community 686 - "static-assets/gotchas.md"
-Cohesion: 0.29
-Nodes (6): 1. Use Selective Worker-First Routing, 2. Leverage Navigation Request Optimization, 3. Type Safety with Bindings, Best Practices, Limits, Version Requirements
+### Community 685 - "TCP Sockets API Reference"
+Cohesion: 0.16
+Nodes (8): `close(): Promise<void>`, Complete Example, Methods, Quick Reference, See Also, Socket Interface, `startTls(): Socket`, TCP Sockets API Reference
+
+### Community 686 - "Critical Pitfalls"
+Cohesion: 0.33
+Nodes (6): Critical Pitfalls, Destination Verification, Envelope vs Header, Mail Authentication, SendEmail Limits, Stream Consumption (MOST COMMON)
 
 ### Community 687 - "Troubleshooting"
 Cohesion: 0.29
@@ -3724,25 +3726,21 @@ Nodes (6): button(), init(), menuUrl(), navigateMenu(), refresh(), render()
 Cohesion: 0.29
 Nodes (4): ENV_URLS, options, SEEDED_TENANTS, { values }
 
-### Community 718 - "test_order_detail_mobile_scroll.cjs"
-Cohesion: 0.33
-Nodes (6): assert, { chromium }, fs, path, root, run()
-
 ### Community 719 - "Human-in-the-Loop"
 Cohesion: 0.33
 Nodes (5): Chat Tool Approvals (`needsApproval`), Decision Guide, Human-in-the-Loop, Important, Workflow Approvals
 
-### Community 720 - "Observability"
+### Community 720 - "Order detail snapshots"
 Cohesion: 0.33
-Nodes (5): Available Channels, Observability, Per-Agent Override, Production: Tail Workers, Subscribe to Events
+Nodes (5): Contract, Order detail snapshots, Readers and compatibility, Rollout, Verification
 
 ### Community 721 - "Voice (Experimental)"
 Cohesion: 0.33
 Nodes (5): Client (React), Lifecycle Hooks, Server, STT/TTS Providers, Voice (Experimental)
 
-### Community 722 - "References"
-Cohesion: 0.33
-Nodes (6): Background Processing, Chat & Streaming, Core, Experimental, Integrations, References
+### Community 722 - "line-order-layout.cjs"
+Cohesion: 0.67
+Nodes (5): choice(), group(), line(), portions(), snapshot()
 
 ### Community 723 - "Cloudflare API Shield Reference"
 Cohesion: 0.33
@@ -3752,21 +3750,21 @@ Nodes (6): Cloudflare API Shield Reference, Feature Selection, In This Reference
 Cohesion: 0.33
 Nodes (6): Common Errors, "Container memory exceeded", "Container start timeout", "Max instances reached", "No container instance available", "Port not available"
 
-### Community 725 - "Cron Triggers Gotchas"
-Cohesion: 0.33
-Nodes (5): Cron Triggers Gotchas, Limits & Quotas, Resources, Testing Best Practices, ScheduledController
+### Community 725 - "Durable Execution"
+Cohesion: 0.40
+Nodes (4): Durable Execution, Important, Key APIs, `runFiber`
 
 ### Community 726 - "Cloudflare DDoS Protection"
 Cohesion: 0.33
 Nodes (6): Actions & Sensitivity, Cloudflare DDoS Protection, Plan Availability, Protection Types, Reading Order, See Also
 
-### Community 727 - "Worker Runtime API"
-Cohesion: 0.33
-Nodes (6): Common Headers, Email Handler Interface, Envelope vs Header Addresses, ForwardableEmailMessage, Headers Object, Worker Runtime API
+### Community 727 - "Monitoring Deliverability"
+Cohesion: 0.40
+Nodes (5): Dashboard, GraphQL Analytics API, Monitoring Deliverability, Send Response, Sending Limits
 
-### Community 728 - "Methods"
-Cohesion: 0.33
-Nodes (6): forward(rcptTo: string, headers?: Headers): Promise<void>, ForwardableEmailMessage Interface, Methods, Properties, reply(message: EmailMessage): Promise<void>, setReject(reason: string): void
+### Community 728 - "Communication"
+Cohesion: 0.40
+Nodes (5): Communication, containerFetch() - HTTP only (no WebSocket), fetch() - HTTP with WebSocket support, switchPort() - Change default port, TCP Connections
 
 ### Community 729 - "FlagDefinition Schema"
 Cohesion: 0.33
@@ -3783,10 +3781,6 @@ Nodes (6): Bindings Access, Debugging, Event Dispatching, Lifecycle, Miniflare C
 ### Community 732 - "API Errors"
 Cohesion: 0.33
 Nodes (6): 400 Bad Request: "invalid facility code", 400 Bad Request: "slot_id already occupied", 403 Forbidden: "Enterprise plan required", 422 Unprocessable: "validate_only request failed", API Errors, Rate Limiting
-
-### Community 733 - "Common Errors"
-Cohesion: 0.33
-Nodes (6): Common Errors, "Invalid credentials" / S3 SDK, "List compatibility error", "Multipart upload failed", "Object not found", "Stream upload failed" / Silent Truncation
 
 ### Community 734 - "R2 SQL Gotchas"
 Cohesion: 0.33
@@ -3816,9 +3810,9 @@ Nodes (6): $type, $value, 600, 600, 600, 600
 Cohesion: 0.33
 Nodes (5): References (Knowledge Base), Routing, Slides, Subcommands, When to Use
 
-### Community 743 - "Configuration"
-Cohesion: 0.33
-Nodes (6): Configuration, Enable nodejs_compat, Generate binding types with wrangler types, Keep compatibility_date current, Store secrets with wrangler secret, Use wrangler.jsonc for config
+### Community 743 - "SendEmail Binding"
+Cohesion: 0.40
+Nodes (5): Configuration, Send Email Example, SendEmail Binding, SendEmail Constraints, TypeScript Types
 
 ### Community 750 - "Thiết kế Cơ sở Dữ liệu D1 (D1 Database Design)"
 Cohesion: 0.33
@@ -3900,17 +3894,17 @@ Nodes (5): "BGP Session Down", Common Errors, "Low Throughput", "Status: Pending
 Cohesion: 0.40
 Nodes (5): Debugging with chrome://webrtc-internals, Gotchas & Troubleshooting, Limits, Retry with Exponential Backoff, Security Checklist
 
-### Community 788 - "Requirements & Limitations"
-Cohesion: 0.40
-Nodes (5): Baseline Traffic, Requirements, Requirements & Limitations, Validation Rules, What Smart Placement Affects
+### Community 788 - "getStoreModifiersList"
+Cohesion: 0.60
+Nodes (5): getInheritedItemModifierGroups(), getStoreModifiersList(), isModifierAppliedToCategory(), selectAllCategoryModifiers(), toggleCategoryModifierSelectAll()
 
-### Community 789 - "Response Behavior"
-Cohesion: 0.40
-Nodes (5): Compression, Content-Type Inference, Default Headers, ETag Generation, Response Behavior
+### Community 789 - "Startup Methods"
+Cohesion: 0.50
+Nodes (4): start() - Basic start (8s timeout), startAndWaitForPorts() - Recommended (20s timeout), Startup Methods, waitForPort() - Wait for specific port
 
-### Community 790 - "Performance Tips"
-Cohesion: 0.40
-Nodes (5): 1. Use Hashed Filenames, 2. Minimize Worker Invocations, 3. Leverage Browser Cache, 4. Use .assetsignore, Performance Tips
+### Community 790 - "8. Verification & Test Plan"
+Cohesion: 0.50
+Nodes (4): 8. Verification & Test Plan, Automated, Eval offline (gate trước staging), Manual
 
 ### Community 793 - "Script Loading"
 Cohesion: 0.40
@@ -3992,9 +3986,9 @@ Nodes (4): order_detail_immutable, order_detail_revision_guard, order_detail_sna
 Cohesion: 0.40
 Nodes (4): Deployment and rollback, Impact assessment, Production migration to Cloudflare cf — 2026-10-07, Verified production result
 
-### Community 835 - "4. Chuyển đổi, link cũ và rollback"
-Cohesion: 0.40
-Nodes (5): 4.1. Trình tự rollout, 4.2. Chính sách domain cũ, 4.3. Storage và giỏ hàng, 4.4. Rollback, 4. Chuyển đổi, link cũ và rollback
+### Community 835 - "Gotchas & Debugging"
+Cohesion: 0.67
+Nodes (3): Gotchas & Debugging, Limits & Pricing, References
 
 ### Community 836 - "Danh sách Task nhỏ cần thực hiện"
 Cohesion: 0.40
@@ -4036,10 +4030,6 @@ Nodes (4): Access JWT Claims, Access mTLS Info, Dynamic JWKS Update, Workers Int
 Cohesion: 0.50
 Nodes (4): BOLA Detection, Combined BOLA Protection, Enumeration Detection, Parameter Pollution
 
-### Community 847 - "Debugging"
-Cohesion: 0.50
-Nodes (4): Debugging, Local, Pattern, Production
-
 ### Community 848 - "Remote Bindings Issues"
 Cohesion: 0.50
 Nodes (4): Accidentally Modified Production Data, Remote Binding Auth Errors, Remote Bindings Issues, Slow Local Dev with Remote Bindings
@@ -4059,10 +4049,6 @@ Nodes (4): Basic Configuration, Multi-Environment, With Database & Storage, Wran
 ### Community 852 - "Wrangler Commands"
 Cohesion: 0.50
 Nodes (4): Local Development, Secret Management (Production), Store Management, Wrangler Commands
-
-### Community 853 - "Advanced Usage"
-Cohesion: 0.50
-Nodes (4): Advanced Usage, Conditional Serving, Error Handling, Modifying Responses
 
 ### Community 854 - "Wrangler Configuration"
 Cohesion: 0.50
@@ -4193,24 +4179,24 @@ Cohesion: 0.67
 Nodes (3): BasicImageTransformations, RequestInitCfPropertiesImage, RequestInitCfPropertiesImageDraw
 
 ## Knowledge Gaps
-- **9 isolated node(s):** `RFC-5246`, `RFC-2253`, `RFC-3339`, `onRequest`, `__RPC_STUB_BRAND` (+4 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 9003 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **245 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **9 isolated node(s):** `RFC-2253`, `RFC-3339`, `RFC-5246`, `__DURABLE_OBJECT_BRAND`, `onRequest` (+4 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 9006 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **246 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `WorkerEntrypoint` connect `WorkerEntrypoint` to `worker-configuration.d.ts`, `Cloudflare Agents SDK`, `Tail Workers Configuration`, `Smart Placement Patterns`, `Requirements & Limitations`, `Workers Best Practices — Rules`, `.email`, `DurableObject`?**
-  _High betweenness centrality (0.067) - this node is a cross-community bridge._
+- **Why does `WorkerEntrypoint` connect `DurableObject` to `worker-configuration.d.ts`, `Cloudflare Agents SDK`, `Tail Workers Configuration`, `Smart Placement Gotchas`, `Workers Best Practices — Rules`, `.email`, `Smart Placement Patterns`, `Smart Placement Configuration`?**
+  _High betweenness centrality (0.054) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `TailwindConfigGenerator` (e.g. with `TestGeneratedConfigIsValidJs` and `TestTailwindConfigGenerator`) actually correct?**
   _`TailwindConfigGenerator` has 2 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `RFC-5246`, `RFC-2253`, `RFC-3339` to the rest of the system?**
+- **What connects `RFC-2253`, `RFC-3339`, `RFC-5246` to the rest of the system?**
   _9 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `worker-configuration.d.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.0025806451612903226 - nodes in this community are weakly interconnected._
-- **Why does `onRequest()` connect `onRequest` to `Gotchas & Debugging`, `Best Practices`, `Routing`?**
-  _High betweenness centrality (0.045) - this node is a cross-community bridge._
+- **Why does `ServiceWorkerGlobalScope` connect `ServiceWorkerGlobalScope` to `worker-configuration.d.ts`, `EventTarget`?**
+  _High betweenness centrality (0.037) - this node is a cross-community bridge._
 - **Should `ref_node_fs` be split into smaller, more focused modules?**
-  _Cohesion score 0.03169014084507042 - nodes in this community are weakly interconnected._
-- **Why does `Webhooks` connect `onRequest` to `Cloudflare Agents SDK`?**
-  _High betweenness centrality (0.044) - this node is a cross-community bridge._
+  _Cohesion score 0.02879746835443038 - nodes in this community are weakly interconnected._
+- **Why does `onRequest()` connect `onRequest` to `Gotchas & Debugging`, `Best Practices`, `Routing`, `Gotchas`?**
+  _High betweenness centrality (0.034) - this node is a cross-community bridge._
