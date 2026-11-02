@@ -832,6 +832,25 @@ const I18N = {
     pairingTenantLabel: "當前綁定門市代碼",
     pairingStatusLabel: "終端連線狀態",
     pairingStatusConnected: "已連線運作中",
+    pinChangeTitle: "變更管理 PIN 碼",
+    pinChangeDescription: "此 PIN 碼適用於整間門市。變更後，員工需重新登入。",
+    pinCurrent: "目前 PIN 碼",
+    pinNew: "新 PIN 碼",
+    pinConfirm: "確認新 PIN 碼",
+    pinFormatHint: "請輸入 4–8 位數字，可使用 0 開頭。",
+    pinShow: "顯示",
+    pinHide: "隱藏",
+    pinChange: "變更 PIN 碼",
+    pinClear: "清除內容",
+    pinSaving: "正在儲存…",
+    pinRequired: "請填寫此欄位。",
+    pinInvalidFormat: "新 PIN 碼必須為 4–8 位數字。",
+    pinMismatch: "兩次輸入的新 PIN 碼不一致。",
+    pinWrongCurrent: "目前 PIN 碼不正確，請重新輸入。",
+    pinSaveError: "無法儲存 PIN 碼，請稍後再試。",
+    pinNetworkError: "無法確認變更結果。請檢查網路連線，並嘗試使用新 PIN 碼登入。",
+    pinTenantRequired: "請先綁定有效的門市，再變更 PIN 碼。",
+    pinChangeSuccess: "PIN 碼已變更。員工需使用新 PIN 碼重新登入。",
     unlinkTitle: "解除此設備綁定 / 切換門市",
     unlinkDesc: "解除後此終端機將停止同步該門市訂單，需輸入管理 PIN 碼確認。",
     btnUnlinkStore: "切換門市 / 解除綁定",
@@ -1858,6 +1877,25 @@ const I18N = {
     pairingTenantLabel: "Mã điểm bán hiện tại",
     pairingStatusLabel: "Trạng thái kết nối",
     pairingStatusConnected: "Đã kết nối và hoạt động",
+    pinChangeTitle: "Đổi mã PIN quản lý",
+    pinChangeDescription: "Mã PIN dùng chung cho điểm bán. Sau khi đổi, nhân viên cần đăng nhập lại.",
+    pinCurrent: "PIN hiện tại",
+    pinNew: "PIN mới",
+    pinConfirm: "Xác nhận PIN mới",
+    pinFormatHint: "Nhập 4–8 chữ số, có thể bắt đầu bằng số 0.",
+    pinShow: "Hiện",
+    pinHide: "Ẩn",
+    pinChange: "Đổi PIN",
+    pinClear: "Xóa nội dung",
+    pinSaving: "Đang lưu…",
+    pinRequired: "Vui lòng nhập trường này.",
+    pinInvalidFormat: "PIN mới phải gồm 4–8 chữ số.",
+    pinMismatch: "Hai mã PIN mới chưa trùng khớp.",
+    pinWrongCurrent: "PIN hiện tại không đúng. Vui lòng nhập lại.",
+    pinSaveError: "Chưa lưu được mã PIN. Vui lòng thử lại sau.",
+    pinNetworkError: "Không xác nhận được kết quả đổi PIN. Vui lòng kiểm tra kết nối và thử đăng nhập bằng PIN mới.",
+    pinTenantRequired: "Vui lòng liên kết với điểm bán hợp lệ trước khi đổi PIN.",
+    pinChangeSuccess: "Đã đổi mã PIN. Nhân viên cần đăng nhập lại bằng PIN mới.",
     unlinkTitle: "Hủy ghép đôi thiết bị / Đổi điểm bán",
     unlinkDesc: "Sau khi hủy, thiết bị sẽ ngừng đồng bộ đơn của quán này. Cần nhập mã PIN quản lý để xác nhận.",
     btnUnlinkStore: "Đổi Quán / Hủy Ghép Đôi",
@@ -3169,6 +3207,10 @@ function applyLanguageToDOM() {
   if (pairStLbl) pairStLbl.innerText = dict.pairingStatusLabel;
   const pairStConn = document.getElementById("i18n-pairing-status-connected");
   if (pairStConn) pairStConn.innerText = dict.pairingStatusConnected;
+  document.querySelectorAll("[data-store-pin-i18n]").forEach(el => {
+    el.textContent = t(el.dataset.storePinI18n);
+  });
+  if (typeof renderStorePinChangeState === "function") renderStorePinChangeState();
   const unlT = document.getElementById("i18n-unlink-title");
   if (unlT) unlT.innerText = dict.unlinkTitle;
   const unlD = document.getElementById("i18n-unlink-desc");

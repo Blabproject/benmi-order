@@ -7,7 +7,7 @@
   <title id="pos-page-title">Blab POS</title>
   <base href="/" />
   <script src="js/orders-display.js?v=20261007_dev_main_sync_v1"></script>
-  <link rel="stylesheet" href="css/orders.css?v=20261102_pill_chips_all_v2" />
+  <link rel="stylesheet" href="css/orders.css?v=20261103_store_pin_v1" />
   <link rel="stylesheet" href="css/orders-menu.css?v=20261102_menu_mobile_v5" />
     <script>
       (function () {
@@ -1394,6 +1394,40 @@
                     </div>
                   </div>
                 </div>
+
+                <form id="store-pin-form" class="store-pin-form" onsubmit="submitStorePinChange(event)" novalidate>
+                  <div>
+                    <h3 class="store-pin-title" data-store-pin-i18n="pinChangeTitle">變更管理 PIN 碼</h3>
+                    <p class="store-pin-description" data-store-pin-i18n="pinChangeDescription">此 PIN 碼適用於整間門市。變更後，員工需重新登入。</p>
+                  </div>
+                  <div class="store-pin-field">
+                    <label for="store-pin-current" data-store-pin-i18n="pinCurrent">目前 PIN 碼</label>
+                    <div class="store-pin-input-row">
+                      <input id="store-pin-current" class="form-input" type="password" autocomplete="current-password" autocapitalize="none" spellcheck="false" required aria-describedby="store-pin-feedback" data-pin-label="pinCurrent" />
+                      <button type="button" class="btn store-pin-toggle" data-store-pin-toggle="store-pin-current" aria-controls="store-pin-current" aria-pressed="false" onclick="toggleStorePinVisibility('store-pin-current')">顯示</button>
+                    </div>
+                  </div>
+                  <div class="store-pin-field">
+                    <label for="store-pin-new" data-store-pin-i18n="pinNew">新 PIN 碼</label>
+                    <div class="store-pin-input-row">
+                      <input id="store-pin-new" class="form-input" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" autocomplete="new-password" required aria-describedby="store-pin-hint store-pin-feedback" data-pin-label="pinNew" />
+                      <button type="button" class="btn store-pin-toggle" data-store-pin-toggle="store-pin-new" aria-controls="store-pin-new" aria-pressed="false" onclick="toggleStorePinVisibility('store-pin-new')">顯示</button>
+                    </div>
+                    <p id="store-pin-hint" class="store-pin-description" data-store-pin-i18n="pinFormatHint">請輸入 4–8 位數字，可使用 0 開頭。</p>
+                  </div>
+                  <div class="store-pin-field">
+                    <label for="store-pin-confirm" data-store-pin-i18n="pinConfirm">確認新 PIN 碼</label>
+                    <div class="store-pin-input-row">
+                      <input id="store-pin-confirm" class="form-input" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" autocomplete="new-password" required aria-describedby="store-pin-feedback" data-pin-label="pinConfirm" />
+                      <button type="button" class="btn store-pin-toggle" data-store-pin-toggle="store-pin-confirm" aria-controls="store-pin-confirm" aria-pressed="false" onclick="toggleStorePinVisibility('store-pin-confirm')">顯示</button>
+                    </div>
+                  </div>
+                  <div id="store-pin-feedback" class="store-pin-feedback" role="status" aria-live="polite" aria-atomic="true"></div>
+                  <div class="store-pin-actions">
+                    <button type="submit" class="btn btn-primary" id="store-pin-submit">變更 PIN 碼</button>
+                    <button type="button" class="btn btn-ghost" onclick="resetStorePinChangeForm()" data-store-pin-i18n="pinClear">清除內容</button>
+                  </div>
+                </form>
 
                 <div style="border-top: 1px solid #f1f5f9; padding-top: 16px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
                   <div>
@@ -2922,8 +2956,8 @@
   </section>
 
   <!-- Benmi POS Modular Architecture Scripts -->
-  <script src="js/orders-i18n.js?v=20261101_payment_auth_v3"></script>
-  <script src="js/orders-core.js?v=20261102_hide_staff_order_v1"></script>
+  <script src="js/orders-i18n.js?v=20261103_store_pin_v1"></script>
+  <script src="js/orders-core.js?v=20261103_store_pin_v1"></script>
   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
   <script src="js/order-detail-view.js?v=20261017_order_detail_v1"></script>
@@ -2932,7 +2966,7 @@
   <script src="js/orders-modals.js?v=20261101_linepay_v1"></script>
   <script src="js/orders-history.js?v=20261101_linepay_v1"></script>
   <script src="js/orders-reports.js?v=20261007_dev_main_sync_v1"></script>
-  <script src="js/orders-settings.js?v=20261101_staff_spa_v1"></script>
+  <script src="js/orders-settings.js?v=20261103_store_pin_v1"></script>
   <script src="js/orders-menu.js?v=20261102_stock_save_v1"></script>
   <script src="js/orders-bundle-wizard.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/orders-option-groups.js?v=20261102_menu_toggle_fix_v1"></script>
