@@ -11,6 +11,7 @@ import { getStoredPassword } from './auth';
 import { prepareOrderReceipt } from './line-order-receipts';
 import { buildOrderFlexMessage } from './line/templates/order-receipt';
 import { paymentHash, linePayCall } from './line-pay-client';
+import { PaymentWorkspaceError, paymentAttentionCount, paymentAttentionRows, paymentTransactions, paymentWorkspaceDetail, paymentSummary } from './payment-workspace';
 
 interface Connection { id:string;tenant_id:string;environment:string;mode:string;channel_id:string;encrypted_secret:string;key_version:string;return_url:string;enabled:number }
 interface Payment { id:string;tenant_id:string;order_key:string;connection_id:string;operation_id:string;request_hash:string;capability_hash:string;
@@ -268,6 +269,11 @@ export async function handlePaymentRoute(request:Request,env:Env,tenant:TenantCo
    return reply({linePay:{enabled:tenant.storeStatus!=='paused' && !!await paymentConnection(env,tenantId),configured,currency:'TWD',orderTypes:['takeaway']}});
   }
   if(!await ready(env))throw new PaymentError('PAYMENTS_NOT_READY',503);
+  if(path==='/api/payments/attention/count'&&request.method==='GET')return reply(await paymentAttentionCount(env,tenantId));
+  if(path==='/api/payments/transactions'&&request.method==='GET') {
+   if(!await paymentStaffSession(request,env,tenantId))throw new PaymentError('SESSION_REQUIRED',401);
+   return reply(await paymentTransactions(env,tenantId,new URL(request.url).searchParams));
+  }
   if(request.method==='POST' && ['/api/payments/session','/api/payments/linepay/request'].includes(path)) {
    const window=Math.floor(Date.now()/60000),scope=tenantId+':'+path;
    const rate=await env.DB.prepare(`INSERT INTO payment_rate_limits(scope,window,count) VALUES(?,?,1)
@@ -288,19 +294,11 @@ export async function handlePaymentRoute(request:Request,env:Env,tenant:TenantCo
   }
   if(path==='/api/payments/summary'&&request.method==='GET') {
    if(!await paymentStaffSession(request,env,tenantId))throw new PaymentError('SESSION_REQUIRED',401);
-   const day=new URL(request.url).searchParams.get('date')||new Date(Date.now()+8*3600000).toISOString().slice(0,10);
-   if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||!Number.isFinite(Date.parse(day)))throw new PaymentError('INVALID_DATE');
-   const start=Date.parse(day+'T00:00:00+08:00'),end=start+86400000;
-   const total=await env.DB.prepare(`SELECT COALESCE(SUM(CASE WHEN paid_at>=? AND paid_at<? THEN amount ELSE 0 END),0) collected,
-    COALESCE(SUM(CASE WHEN refunded_at>=? AND refunded_at<? THEN amount ELSE 0 END),0) refunded FROM payments WHERE tenant_id=?`)
-    .bind(start,end,start,end,tenantId).first<{collected:number;refunded:number}>();
-   return reply({date:day,currency:'TWD',...total,net:(total?.collected||0)-(total?.refunded||0)});
+   return reply(await paymentSummary(env,tenantId,new URL(request.url).searchParams));
   }
   if(path==='/api/payments/attention'&&request.method==='GET') {
    if(!await paymentStaffSession(request,env,tenantId))throw new PaymentError('SESSION_REQUIRED',401);
-   const {results}=await env.DB.prepare(`SELECT p.* FROM payments p JOIN orders o ON o.key=p.order_key AND o.tenant_id=p.tenant_id
-    WHERE p.tenant_id=? AND (p.status IN ('UNKNOWN','REFUND_PENDING','REFUND_FAILED') OR (p.cancel_requested_at IS NOT NULL AND p.status NOT IN ('CANCELLED','FAILED','REFUNDED')) OR
-     (p.status='PAID' AND o.status IN ('REJECTED','FORCE_REJECT','EXPIRED'))) ORDER BY p.created_at LIMIT 100`).bind(tenantId).all<Payment>();
+   const results=await paymentAttentionRows<Payment>(env,tenantId);
    return reply(results.map(projection));
   }
   const match=path.match(/^\/api\/payments\/([a-f0-9-]{36})(?:\/(confirm|refunds|reconcile|cancel))?$/);
@@ -332,9 +330,10 @@ export async function handlePaymentRoute(request:Request,env:Env,tenant:TenantCo
    if(match[2]==='confirm'&&request.method==='POST')p=await reconcilePayment(env,p.id,tenantId);
    else if(request.method!=='GET'||match[2])throw new PaymentError('METHOD_NOT_ALLOWED',405);
   }
-  return reply(await customerProjection(env,p,tenant));
+  const result=await customerProjection(env,p,tenant);
+  return reply(staff?{...result,...await paymentWorkspaceDetail(env,tenantId,p.id)}:result);
  }catch(e){const code=e instanceof Error?e.message:'PAYMENT_FAILED';console.warn('[Payment]',{code:code.slice(0,100)});
-  return reply({code:e instanceof PaymentError?e.code:code,error:code},e instanceof PaymentError?e.status:code.startsWith('ORDER_')||code.startsWith('OPTION_')?409:500);}
+  return reply({code:e instanceof PaymentError||e instanceof PaymentWorkspaceError?e.code:code,error:code},e instanceof PaymentError||e instanceof PaymentWorkspaceError?e.status:code.startsWith('ORDER_')||code.startsWith('OPTION_')?409:500);}
 }
 export async function processPayments(env:Env) {
  if(!await ready(env))return;

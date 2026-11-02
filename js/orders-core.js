@@ -410,7 +410,7 @@ async function ensureTenantCustomizations() {
 window.ensureTenantCustomizations = ensureTenantCustomizations;
 
 // Global POS State
-var VALID_POS_TABS = ["live", "history", "menu", "reports", "settings"];
+var VALID_POS_TABS = ["live", "history", "menu", "reports", "settings", "payments"];
 
 function getInitialTab() {
   if (typeof window === "undefined") return "live";
@@ -947,6 +947,9 @@ function switchTab(tab) {
   if (viewSettings) viewSettings.style.display = tab === "settings" ? "block" : "none";
   if (viewMenu) viewMenu.style.display = tab === "menu" ? "block" : "none";
   if (viewStaffOrder) viewStaffOrder.style.display = tab === "staff-order" ? "block" : "none";
+  const viewPayments = document.getElementById("view-payments");
+  if (viewPayments) viewPayments.style.display = tab === "payments" ? "block" : "none";
+  if (window.PaymentPOS && typeof PaymentPOS.onTabChange === "function") PaymentPOS.onTabChange(tab);
 
   syncStoreStatusPlacement(tab);
 
@@ -1452,6 +1455,7 @@ function updatePageMainTitle(tabName) {
   const titles = {
     "live": currentLangCode === "vi" ? "Đơn hàng" : "訂單",
     "history": currentLangCode === "vi" ? "Lịch sử đơn" : "歷史訂單",
+    "payments": typeof t === "function" ? t("paymentWorkspace") : (currentLangCode === "vi" ? "Thanh toán" : "付款管理"),
     "menu": currentLangCode === "vi" ? "Quản lý thực đơn" : "菜單管理",
     "settings": currentLangCode === "vi" ? "Cài đặt hệ thống" : "系統設定",
     "reports": currentLangCode === "vi" ? "Báo cáo doanh thu" : "營業報表",
