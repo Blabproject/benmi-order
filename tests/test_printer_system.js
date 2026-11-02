@@ -36,7 +36,13 @@ global.document = {
           setLineDash: () => {},
           save: () => {},
           restore: () => {},
-          drawImage: () => {}
+          drawImage: () => {},
+          translate: () => {},
+          rotate: () => {},
+          arc: () => {},
+          arcTo: () => {},
+          ellipse: () => {},
+          closePath: () => {}
         }),
         toDataURL: () => "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
       };
@@ -98,7 +104,9 @@ const mockOrder = {
 
 const cashierPng = service.drawReceiptToCanvas(mockOrder, false, 80);
 assert(cashierPng.startsWith("data:image/png;base64,"), "Cashier receipt should generate valid Base64 PNG");
-console.log("✅ Test 4 Passed: Cashier receipt Canvas Painter verified.");
+const cashierPng58 = service.drawReceiptToCanvas(mockOrder, false, 58);
+assert(cashierPng58.startsWith("data:image/png;base64,"), "58mm Cashier receipt with paid stamp should generate valid Base64 PNG");
+console.log("✅ Test 4 Passed: Cashier receipt with '已付款' Canvas Stamp (80mm & 58mm) verified.");
 
 // 5. Test Kitchen Ticket Canvas Layout
 const kitchenPng = service.drawReceiptToCanvas(mockOrder, true, 80);
