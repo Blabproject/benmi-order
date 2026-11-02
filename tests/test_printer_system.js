@@ -36,7 +36,13 @@ global.document = {
           setLineDash: () => {},
           save: () => {},
           restore: () => {},
-          drawImage: () => {}
+          drawImage: () => {},
+          translate: () => {},
+          rotate: () => {},
+          arc: () => {},
+          arcTo: () => {},
+          ellipse: () => {},
+          closePath: () => {}
         }),
         toDataURL: () => "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
       };
@@ -97,8 +103,17 @@ const mockOrder = {
 };
 
 const cashierPng = service.drawReceiptToCanvas(mockOrder, false, 80);
-assert(cashierPng.startsWith("data:image/png;base64,"), "Cashier receipt should generate valid Base64 PNG");
-console.log("✅ Test 4 Passed: Cashier receipt Canvas Painter verified.");
+assert(cashierPng.startsWith("data:image/png;base64,"), "Unpaid cashier receipt should generate valid Base64 PNG without stamp");
+
+const mockPaidOrder = {
+  ...mockOrder,
+  payment: { status: "PAID", amount: 160 }
+};
+const paidCashierPng80 = service.drawReceiptToCanvas(mockPaidOrder, false, 80);
+assert(paidCashierPng80.startsWith("data:image/png;base64,"), "Paid cashier receipt 80mm should generate valid Base64 PNG with square stamp");
+const paidCashierPng58 = service.drawReceiptToCanvas(mockPaidOrder, false, 58);
+assert(paidCashierPng58.startsWith("data:image/png;base64,"), "Paid cashier receipt 58mm should generate valid Base64 PNG with square stamp");
+console.log("✅ Test 4 Passed: Cashier receipt online-paid condition & compact square '已付款' stamp (80mm & 58mm) verified.");
 
 // 5. Test Kitchen Ticket Canvas Layout
 const kitchenPng = service.drawReceiptToCanvas(mockOrder, true, 80);

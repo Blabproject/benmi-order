@@ -1022,7 +1022,54 @@
       if (!isKitchen) {
         divider();
         row('應收總計', 48, '$' + (order.total ?? 0), 'bold');
-        if (order.payment) row('LINE Pay · ' + (typeof t === 'function' ? t('payment' + order.payment.status) : order.payment.status), 29, '', 'normal');
+
+        // --- Con dấu vuông đã thanh toán online (Square Stamp Inline Right) ---
+        const isOnlinePaid = Boolean(
+          (order?.payment && String(order.payment.status).toUpperCase() === 'PAID') ||
+          (order?.payment_status && String(order.payment_status).toUpperCase() === 'PAID') ||
+          (order?.paymentStatus && String(order.paymentStatus).toUpperCase() === 'PAID')
+        );
+
+        const paymentText = order.payment
+          ? 'LINE Pay · ' + (typeof t === 'function' ? t('payment' + order.payment.status) : order.payment.status)
+          : (isOnlinePaid ? '線上支付 · 已付款' : '');
+
+        if (paymentText || isOnlinePaid) {
+          if (isOnlinePaid) {
+            const is58 = Number(paperWidth) === 58;
+            const scale = is58 ? 0.75 : 1.0;
+            const stampW = Math.round(140 * scale);
+            const stampH = Math.round(42 * scale);
+            const textH = Math.ceil(29 * 1.25);
+            const rowH = Math.max(textH, stampH);
+
+            const textY = y + 4;
+            if (paymentText) {
+              operations.push({
+                text: paymentText,
+                x: padding,
+                y: textY,
+                font: 'normal 29px sans-serif',
+                align: 'left'
+              });
+            }
+
+            const stampCx = width - padding - Math.round(stampW / 2) - 6;
+            const stampCy = textY + Math.round(textH / 2) - 3;
+            operations.push({
+              stamp: true,
+              style: 'square',
+              x: stampCx,
+              y: stampCy,
+              paperWidth: Number(paperWidth) || 80
+            });
+
+            y += rowH + 16;
+          } else {
+            row(paymentText, 29, '', 'normal');
+          }
+        }
+
         divider();
         // Keep the Chinese greeting and attribution on separate centered rows.
         // Sharing one row made both strings wrap on narrow 58 mm paper.
@@ -1036,13 +1083,100 @@
       paint.fillStyle = '#000';
       paint.textBaseline = 'top';
       for (const op of operations) {
-        if (op.line) this.drawDashedLine(paint, padding, width - padding, op.y);
-        else { paint.font = op.font; paint.textAlign = op.align; paint.fillText(op.text, op.x, op.y); }
+        if (op.line) {
+          this.drawDashedLine(paint, padding, width - padding, op.y);
+        } else if (op.stamp) {
+          this.drawPaidStamp(paint, op.x, op.y, op.paperWidth, op.style);
+        } else {
+          paint.font = op.font;
+          paint.textAlign = op.align;
+          paint.fillText(op.text, op.x, op.y);
+        }
       }
       const dataUrl = canvas.toDataURL('image/png');
       canvas.width = 0;
       canvas.height = 0;
       return dataUrl;
+    }
+
+    drawPaidStamp(ctx, cx, cy, paperWidth = 80, style = 'square') {
+      if (typeof ctx.save === 'function') ctx.save();
+      if (typeof ctx.translate === 'function') ctx.translate(cx, cy);
+      if (typeof ctx.rotate === 'function') ctx.rotate(-5 * Math.PI / 180);
+
+      const is58 = Number(paperWidth) === 58;
+      const scale = is58 ? 0.75 : 1.0;
+
+      if (style === 'circle') {
+        const r = Math.round(62 * scale);
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = Math.round(4 * scale);
+        if (typeof ctx.beginPath === 'function') ctx.beginPath();
+        if (typeof ctx.arc === 'function') ctx.arc(0, 0, r, 0, Math.PI * 2);
+        if (typeof ctx.stroke === 'function') ctx.stroke();
+
+        ctx.lineWidth = Math.max(1, Math.round(1.5 * scale));
+        const inset = Math.round(6 * scale);
+        if (typeof ctx.beginPath === 'function') ctx.beginPath();
+        if (typeof ctx.arc === 'function') ctx.arc(0, 0, r - inset, 0, Math.PI * 2);
+        if (typeof ctx.stroke === 'function') ctx.stroke();
+
+        ctx.fillStyle = '#000000';
+        ctx.font = `900 ${Math.round(30 * scale)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        if (typeof ctx.fillText === 'function') ctx.fillText('已 付 款', 0, Math.round(-6 * scale));
+
+        ctx.font = `bold ${Math.round(14 * scale)}px sans-serif`;
+        if (typeof ctx.fillText === 'function') ctx.fillText('★ PAID ★', 0, Math.round(22 * scale));
+      } else {
+        // Default: Compact Square / Rectangular double border stamp (方印)
+        const w = Math.round(140 * scale);
+        const h = Math.round(42 * scale);
+
+        // Outer border
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = Math.round(3 * scale);
+        if (typeof ctx.strokeRect === 'function') {
+          ctx.strokeRect(-w / 2, -h / 2, w, h);
+        } else if (typeof ctx.stroke === 'function') {
+          this.drawRoundRectPath(ctx, -w / 2, -h / 2, w, h, 0);
+          ctx.stroke();
+        }
+
+        // Inner border
+        ctx.lineWidth = Math.max(1, Math.round(1.2 * scale));
+        const inset = Math.round(3.5 * scale);
+        if (typeof ctx.strokeRect === 'function') {
+          ctx.strokeRect(-w / 2 + inset, -h / 2 + inset, w - inset * 2, h - inset * 2);
+        } else if (typeof ctx.stroke === 'function') {
+          this.drawRoundRectPath(ctx, -w / 2 + inset, -h / 2 + inset, w - inset * 2, h - inset * 2, 0);
+          ctx.stroke();
+        }
+
+        // Text "已 付 款"
+        ctx.fillStyle = '#000000';
+        ctx.font = `900 ${Math.round(23 * scale)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        if (typeof ctx.fillText === 'function') ctx.fillText('已 付 款', 0, 1);
+      }
+      if (typeof ctx.restore === 'function') ctx.restore();
+    }
+
+    drawRoundRectPath(ctx, x, y, w, h, r) {
+      if (typeof ctx.beginPath !== 'function') return;
+      ctx.beginPath();
+      if (typeof ctx.arcTo === 'function') {
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+      } else if (typeof ctx.rect === 'function') {
+        ctx.rect(x, y, w, h);
+      }
+      if (typeof ctx.closePath === 'function') ctx.closePath();
     }
 
     drawDashedLine(ctx, x1, x2, y) {
