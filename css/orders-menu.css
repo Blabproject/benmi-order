@@ -826,11 +826,12 @@
   height: auto !important;
   padding: calc(3px * var(--menu-font-scale)) !important;
   background: #f1f5f9 !important;
-  box-sizing: border-box;
-  border-radius: 9px !important;
+  box-sizing: border-box !important;
+  border-radius: 12px !important;
   display: inline-flex;
   align-items: center;
   border: 1px solid #e2e8f0;
+  overflow: hidden;
 }
 #view-menu .menu-seg-btn {
   min-height: 48px !important;
@@ -839,7 +840,7 @@
   font-size: var(--menu-font-base) !important;
   color: #64748b !important;
   font-weight: 650;
-  border-radius: 7px !important;
+  border-radius: 9px !important;
   border: 0 !important;
   background: transparent;
   flex: 1;
@@ -848,6 +849,7 @@
   justify-content: center;
   cursor: pointer;
   transition: all 0.15s ease;
+  box-sizing: border-box !important;
 }
 #view-menu .menu-seg-btn.active {
   background: #ffffff !important;
@@ -2625,22 +2627,37 @@ body.ug-open { overflow: hidden; }
   #view-menu:not([data-mobile-view="detail"]) .menu-sidebar-segmented-toggle {
     width: 100% !important;
     max-width: 320px !important;
-    min-height: 38px !important;
-    height: 38px !important;
+    min-height: 44px !important;
+    height: 44px !important;
     padding: 3px !important;
     background: #f1f5f9 !important;
-    border-radius: 10px !important;
+    border-radius: 12px !important;
+    border: 1px solid #e2e8f0 !important;
     display: flex !important;
+    align-items: stretch !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    gap: 2px !important;
   }
 
+  #view-menu #menu-standard-workspace .menu-sidebar-tabs .menu-sidebar-segmented-toggle button.menu-seg-btn,
   #view-menu:not([data-mobile-view="detail"]) .menu-seg-btn {
-    flex: 1 !important;
-    min-height: 32px !important;
-    height: 32px !important;
+    flex: 1 1 0% !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    height: 38px !important;
     min-width: 0 !important;
     font-size: calc(13.5px * var(--menu-font-scale)) !important;
     font-weight: 700 !important;
-    border-radius: 8px !important;
+    border-radius: 9px !important;
+    border: 0 !important;
+    margin: 0 !important;
+    padding: 0 12px !important;
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1.2 !important;
   }
 
   #view-menu .menu-sidebar-footer {
@@ -2998,6 +3015,12 @@ body.ug-open { overflow: hidden; }
     flex-shrink: 0 !important;
   }
 
+  #view-menu .cat-title-actions[style*="display: none"],
+  #view-menu .cat-title-actions[style*="display:none"],
+  #view-menu .cat-title-actions[hidden] {
+    display: none !important;
+  }
+
   #view-menu .cat-title-action-btn {
     width: 34px !important;
     height: 34px !important;
@@ -3005,9 +3028,15 @@ body.ug-open { overflow: hidden; }
     min-height: 34px !important;
     padding: 0 !important;
     border-radius: 8px !important;
-    display: inline-flex !important;
+    display: inline-flex;
     align-items: center !important;
     justify-content: center !important;
+  }
+
+  #view-menu .cat-title-action-btn[style*="display: none"],
+  #view-menu .cat-title-action-btn[style*="display:none"],
+  #view-menu .cat-title-action-btn[hidden] {
+    display: none !important;
   }
 
   #view-menu .menu-header-actions {
@@ -3024,9 +3053,34 @@ body.ug-open { overflow: hidden; }
     font-size: calc(12.5px * var(--menu-font-scale)) !important;
     font-weight: 700 !important;
     border-radius: 8px !important;
-    display: inline-flex !important;
+    display: inline-flex;
     align-items: center !important;
     gap: 4px !important;
+  }
+
+  #view-menu #btn-menu-create-unified[style*="display: none"],
+  #view-menu #btn-menu-create-unified[style*="display:none"],
+  #view-menu #btn-menu-create-unified[hidden] {
+    display: none !important;
+  }
+
+  #view-menu #btn-option-add {
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 12px !important;
+    font-size: calc(12.5px * var(--menu-font-scale)) !important;
+    font-weight: 700 !important;
+    border-radius: 8px !important;
+    display: inline-flex;
+    align-items: center !important;
+    gap: 4px !important;
+    box-sizing: border-box !important;
+  }
+
+  #view-menu #btn-option-add[style*="display: none"],
+  #view-menu #btn-option-add[style*="display:none"],
+  #view-menu #btn-option-add[hidden] {
+    display: none !important;
   }
 
   /* Detail Scroll Body */

@@ -8,7 +8,7 @@
   <base href="/" />
   <script src="js/orders-display.js?v=20261007_dev_main_sync_v1"></script>
   <link rel="stylesheet" href="css/orders.css?v=20261102_pill_chips_all_v2" />
-  <link rel="stylesheet" href="css/orders-menu.css?v=20261102_menu_mobile_v4" />
+  <link rel="stylesheet" href="css/orders-menu.css?v=20261102_menu_mobile_v5" />
     <script>
       (function () {
         document.documentElement.style.setProperty('--primary', '#00b900');
@@ -1508,10 +1508,10 @@
                 <div class="menu-help-text" id="i18n-menu-edit-sub">拖曳排序，點擊欄位直接修改</div>
               </details>
               <div class="cat-title-actions" id="cat-title-actions">
-                <button type="button" class="cat-title-action-btn" id="btn-category-rename" style="display:none;" onclick="promptRenameCategory()" title="重新命名" aria-label="重新命名分類">
+                <button type="button" class="cat-title-action-btn" id="btn-category-rename" style="display:none;" hidden onclick="promptRenameCategory()" title="重新命名" aria-label="重新命名分類">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                 </button>
-                <button type="button" class="cat-title-action-btn cat-title-delete-btn" id="btn-category-delete" style="display:none;" onclick="deleteActiveCategory()" title="刪除分類" aria-label="刪除分類">
+                <button type="button" class="cat-title-action-btn cat-title-delete-btn" id="btn-category-delete" style="display:none;" hidden onclick="deleteActiveCategory()" title="刪除分類" aria-label="刪除分類">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" x2="10" y1="11" y2="17"></line><line x1="14" x2="14" y1="11" y2="17"></line></svg>
                 </button>
               </div>
@@ -2933,9 +2933,9 @@
   <script src="js/orders-history.js?v=20261101_linepay_v1"></script>
   <script src="js/orders-reports.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/orders-settings.js?v=20261101_staff_spa_v1"></script>
-  <script src="js/orders-menu.js?v=20261027_menu_mobile_v3"></script>
+  <script src="js/orders-menu.js?v=20261102_menu_toggle_fix_v1"></script>
   <script src="js/orders-bundle-wizard.js?v=20261007_dev_main_sync_v1"></script>
-  <script src="js/orders-option-groups.js?v=20261027_menu_mobile_v3"></script>
+  <script src="js/orders-option-groups.js?v=20261102_menu_toggle_fix_v1"></script>
 
   <!-- POS Bootstrap & Initialization -->
   <script>

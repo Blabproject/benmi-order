@@ -1789,9 +1789,11 @@ function renderMenuCategoryEditor(index) {
   if (subEl) subEl.innerText = t("menuEditSub");
 
   if (!currentMenuData || !currentMenuData[index]) {
-    if (renameBtn) renameBtn.style.display = "none";
-    if (deleteBtn) deleteBtn.style.display = "none";
-    if (createBtn) createBtn.style.display = "none";
+    if (renameBtn) { renameBtn.style.display = "none"; renameBtn.hidden = true; }
+    if (deleteBtn) { deleteBtn.style.display = "none"; deleteBtn.hidden = true; }
+    if (createBtn) { createBtn.style.display = "none"; createBtn.hidden = true; }
+    const catActions = document.getElementById("cat-title-actions");
+    if (catActions) { catActions.style.display = "none"; catActions.hidden = true; }
     const tb = document.getElementById('menu-editor-toolbar');
     if (tb) tb.style.display = 'none';
     const ft = document.getElementById('menu-editor-footer');
@@ -1811,13 +1813,20 @@ function renderMenuCategoryEditor(index) {
   const isCombo = !window.UnifiedMenu?.enabled && isComboCategory(cat);
 
   if (isCustom) {
-    if (renameBtn) renameBtn.style.display = "none";
+    if (renameBtn) { renameBtn.style.display = "none"; renameBtn.hidden = true; }
     if (deleteBtn) {
       deleteBtn.style.display = "inline-flex";
+      deleteBtn.hidden = false;
       deleteBtn.onclick = () => deleteCategoryAtIndex(index);
     }
     if (createBtn) {
       createBtn.style.display = "none";
+      createBtn.hidden = true;
+    }
+    const catActions = document.getElementById("cat-title-actions");
+    if (catActions) {
+      catActions.style.display = "";
+      catActions.hidden = false;
     }
     const tb = document.getElementById('menu-editor-toolbar');
     if (tb) tb.style.display = 'none';
@@ -1829,12 +1838,15 @@ function renderMenuCategoryEditor(index) {
 
   if (createBtn) {
     createBtn.style.display = "inline-flex";
+    createBtn.hidden = false;
     if (createBtnText) createBtnText.textContent = t(isCombo ? 'menuAddBundle' : 'menuAddItem');
     createBtn.title = t(isCombo ? 'menuAddBundle' : 'menuAddItem');
   }
 
-  if (renameBtn) renameBtn.style.display = "inline-flex";
-  if (deleteBtn) deleteBtn.style.display = "inline-flex";
+  if (renameBtn) { renameBtn.style.display = "inline-flex"; renameBtn.hidden = false; }
+  if (deleteBtn) { deleteBtn.style.display = "inline-flex"; deleteBtn.hidden = false; }
+  const catActions = document.getElementById("cat-title-actions");
+  if (catActions) { catActions.style.display = ""; catActions.hidden = false; }
 
   const titleEl = document.getElementById("menu-editor-title");
   if (titleEl) titleEl.innerText = `${cat.title} ${t("menuItemTotalCount", { count: cat.items.length })}`;

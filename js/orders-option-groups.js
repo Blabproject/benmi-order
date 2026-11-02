@@ -1731,7 +1731,15 @@
         "btn-menu-create-unified",
       ]) {
         const b = document.getElementById(id);
-        if (b) b.style.display = "none";
+        if (b) {
+          b.style.display = "none";
+          b.hidden = true;
+        }
+      }
+      const catActions = document.getElementById("cat-title-actions");
+      if (catActions) {
+        catActions.style.display = "none";
+        catActions.hidden = true;
       }
       document.getElementById("menu-editor-title").textContent =
         group?.name || tr("ugGroups");
