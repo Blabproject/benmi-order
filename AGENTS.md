@@ -69,10 +69,11 @@ graph TD
   - Khi quán đã dùng `modifier_groups`, không gán danh mục modifier cũ qua `menu_categories.applied_modifiers` để tránh sinh ra 2 nhóm tùy biến trùng nhau cho cùng một món.
 
 ### E. Tái Sử Dụng Context & Định Vị Qua Graphify (Zero Redundant Search)
-- **CẤM Tìm Kiếm Dư Thừa**: Khi vị trí file, hàm hoặc selector đã được xác định ở lượt trước trong hội thoại hoặc đã có trong `codebase-map.md`, tuyệt đối **không chạy lại chuỗi lệnh grep/find mò mẫm**.
-- **Ưu tiên Graphify Knowledge Graph**:
-  - Với câu hỏi về quan hệ, kiến trúc, luồng gọi hàm: dùng `graphify explain "<tên_hàm>"`, `graphify path "<node_A>" "<node_B>"` hoặc `graphify query "<câu_hỏi>"`.
-  - Giúp lấy đúng ngữ cảnh mục tiêu mà không đọc tràn lan các file không liên quan, tiết kiệm token và thời gian.
+- **CẤM GREP MÒ MẪM (Zero Blind Grepping & Hard Gate)**: Khi bắt đầu điều tra bất kỳ tính năng, luồng dữ liệu hay bug nào trong codebase, **BẮT BUỘC** dùng Graphify làm cổng chặn đầu tiên (`graphify query "<tính năng>"` hoặc `graphify explain "<hàm>"`). Tuyệt đối không chạy grep/find mò mẫm qua toàn bộ thư mục khi chưa tra cứu đồ thị.
+- **Định Vị Tức Thì Bằng Graphify**:
+  - Tra cứu luồng gọi hàm: `graphify explain "<tên_hàm>"` hoặc `graphify path "<A>" "<B>"`.
+  - Tra cứu màn hình, chức năng: `graphify query "<mô tả chức năng>"`.
+  - Sau khi Graphify trả về node kèm vị trí dòng (`loc=L...`), chỉ đọc đúng dải dòng đó, không đọc tràn lan.
 - **Đồng bộ đồ thị AST sau khi code**: Sau khi hoàn thành sửa đổi code, chạy `npm run graphify:update` (hoặc `graphify update .`) để giữ `graphify-out/graph.json` luôn cập nhật (hoàn toàn miễn phí, không tốn LLM API).
 - **Chỉnh sửa Tức thì khi Sửa Gấp (Surgical Fast-Fixes)**: Khi người dùng yêu cầu sửa nhanh hoặc sửa gấp, đi thẳng vào các điểm cần sửa, thay đổi tối thiểu, chạy kiểm thử Cấp 1 (`npm run check`) và kết thúc lượt, không kéo dài phân tích.
 

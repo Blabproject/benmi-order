@@ -12474,17 +12474,6 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
   content: ' · ';
   color: #8b9490;
 }
-/* A single selected value is a compact read-only chip, regardless of group name. */
-#review-content .detail-choice-chip:only-child,
-#review-content .bundle-item-chip:only-child {
-  display: inline-block;
-  max-width: 100%;
-  box-sizing: border-box;
-  padding: 1px 8px;
-  border-radius: 12px;
-  background: #e6f3ef;
-  color: #28736a;
-}
 #review-content .detail-choice-qty,
 #review-content .detail-choice-extra { font-size: inherit; font-weight: 600; white-space: nowrap; margin-inline-start: .25em; }
 #review-content .detail-note-row { color: #334155; }
