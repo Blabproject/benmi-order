@@ -3,6 +3,61 @@ import assert from 'node:assert/strict';
 import { startRuntime, startPages, tenant } from './runtime.mjs';
 import { browserSession, drawer, field, action, saveDrawer, newGroup, editGroup, newProduct } from './browser.mjs';
 
+for (const language of ['zh-TW', 'vi']) {
+  test(`Tablet POS stock save (${language}): persists once, retains drafts and survives reload`, { timeout: 90000 }, async () => {
+    const app = await startRuntime(), pages = await startPages();
+    let session;
+    try {
+      session = await browserSession(app, pages, { language, name: 'stock-save' });
+      const { page } = session;
+      await session.pos();
+      const row = page.locator('#menu-editor-body .menu-item-row-card').first();
+      await row.waitFor();
+      const itemId = await row.evaluate(el => {
+        const [, cIdx, iIdx] = el.id.match(/menu-item-card-(\d+)-(\d+)/);
+        return currentMenuData[Number(cIdx)].items[Number(iIdx)].id;
+      });
+      const readStock = () => app.db.prepare('SELECT out_of_stock_until FROM menu_items WHERE tenant_id=? AND id=?').bind(tenant, itemId).first();
+      // Warm customer cache before writing through the real stock API.
+      await app.request('/api/tenant/bootstrap');
+      const originalPrice = await row.locator('.menu-item-price-input').inputValue();
+      await row.locator('.menu-item-price-input').fill(String(Number(originalPrice) + 7));
+      await row.locator('.menu-item-stock-toggle').click();
+      await page.locator('#stock-status-select').selectOption('out_of_stock');
+      await page.locator('#stock-duration-select').selectOption('indefinite');
+      assert.equal(await page.locator('#btn-stock-save').textContent(), language === 'vi' ? 'Lưu thay đổi' : '儲存變更');
+      await page.screenshot({ path: session.directory + '/stock-dialog.png', fullPage: true });
+      await page.locator('#btn-stock-save').click();
+      await page.locator('#stockModal').waitFor({ state: 'hidden' });
+      assert.equal((await readStock()).out_of_stock_until, '9999-12-31T23:59:59.000Z');
+      assert.equal(await row.locator('.menu-item-price-input').inputValue(), String(Number(originalPrice) + 7));
+      assert.equal(await page.evaluate(() => isMenuDirty), true);
+      assert.equal(await page.evaluate(() => confirmLeaveMenu()), true);
+      assert.equal(await page.evaluate(() => isMenuDirty), false);
+      assert.equal(await row.locator('.menu-item-price-input').inputValue(), originalPrice);
+      assert.ok((await row.locator('.menu-item-stock-toggle').getAttribute('class')).includes('is-oos'));
+      const customer = await (await app.request('/api/tenant/bootstrap')).json();
+      assert.equal(customer.catalog.flatMap(c => c.items).find(item => item.id === itemId).isOutOfStock, true);
+      await page.screenshot({ path: session.directory + '/stock-saved.png', fullPage: true });
+      await page.reload();
+      await page.waitForFunction(() => window.UnifiedMenu?.enabled && isMenuLoadedCompletely);
+      await page.locator('#i18n-btn-start-shift').click();
+      const reloadedRow = page.locator('#menu-editor-body .menu-item-row-card').first();
+      assert.ok((await reloadedRow.locator('.menu-item-stock-toggle').getAttribute('class')).includes('is-oos'));
+      await reloadedRow.locator('.menu-item-stock-toggle').click();
+      await page.locator('#stock-status-select').selectOption('in_stock');
+      await page.locator('#btn-stock-save').click();
+      await page.locator('#stockModal').waitFor({ state: 'hidden' });
+      assert.equal((await readStock()).out_of_stock_until, null);
+      assert.equal(await page.evaluate(() => isMenuDirty), false);
+      assert.equal(await page.locator('#btn-menu-save').isDisabled(), true);
+      assert.equal(session.requests.filter(r => r.path === '/api/menu/stock-status' && r.method === 'POST').length, 2);
+      assert.equal(session.requests.filter(r => r.path === '/api/menu' && r.method === 'POST').length, 0);
+      assert.deepEqual(session.errors, []);
+    } finally { if (session) await session.close();await pages.close();await app.close(); }
+  });
+}
+
 test('Full POS page: create group, persist in D1, independent GET, reload, edit and retry', { timeout: 120000 }, async () => {
   const app = await startRuntime(), pages = await startPages();
   let session;

@@ -326,3 +326,204 @@ test('confirmLeaveMenu returns true without prompting confirm when no changes ma
   assert.equal(canLeave, true, 'Must allow leaving without prompt');
   assert.equal(confirmCalled, false, 'confirm() dialog must NOT be triggered');
 });
+
+function stockFixture(kind = 'catalog') {
+  const app = createDOMEnvironment();
+  const { sandbox, setCurrentMenuData, setIsMenuLoadedCompletely } = app;
+  const option = { id: 'option_1', name: 'Normal', originalName: 'Normal', price: 0, isOos: false, isOutOfStock: false };
+  const group = { id: 'group_1', key: 'flavor', canonicalId: 'canonical_1', title: 'Flavor', options: [{ ...option }] };
+  setCurrentMenuData([
+    kind === 'catalog'
+      ? { id: 'food', type: 'catalog', title: 'Food', sortOrder: 0, items: [
+        { id: 'item_1', name: 'Meal', originalName: 'Meal', price: 60, isOos: false },
+        { id: 'item_2', name: 'Soup', originalName: 'Soup', price: 30, isOos: false }
+      ] }
+      : { id: 'flavor', type: kind, title: 'Flavor', groups: [group], items: kind === 'modifier'
+        ? [{ id: 'other', name: 'Other', isOos: false }, { ...option }] : [] },
+    { id: 'other', type: 'catalog', title: 'Other', items: [{ id: 'other_meal', name: 'Other meal', price: 50,
+      modifierGroups: [{ ...group, options: [{ ...option }] }] }], groups: [
+      { id: 'unrelated', key: 'unrelated', options: [{ id: 'other_option', name: 'Normal', isOos: false }] }
+    ] }
+  ]);
+  setIsMenuLoadedCompletely(true);
+  sandbox.renderMenuCategories = () => {};
+  sandbox.renderMenuCategoryEditor = () => {};
+  sandbox.renderOrderCustomizationEditor = () => {};
+  const alerts = [], requests = [];
+  sandbox.alert = message => alerts.push(message);
+  sandbox.fetch = async (url, request) => {
+    requests.push({ url, body: JSON.parse(request.body) });
+    return { ok: true, json: async () => ({ success: true }) };
+  };
+  sandbox.clearMenuDirty();
+  const open = () => kind === 'catalog' ? sandbox.openStockModal(0, 0) : sandbox.openStockModalForCustomization(0, 0, 0);
+  open();
+  const control = id => sandbox.document.getElementById(id);
+  const choose = (status, duration = 'today', date = '') => {
+    control('stock-status-select').value = status;
+    control('stock-duration-select').value = duration;
+    control('oos-until-date').value = date;
+  };
+  const target = () => kind === 'catalog' ? app.getCurrentMenuData()[0].items[0] : app.getCurrentMenuData()[0].groups[0].options[0];
+  const saved = () => JSON.parse(vm.runInContext('savedMenuSnapshot', sandbox));
+  return { ...app, kind, alerts, requests, control, choose, target, saved, open };
+}
+
+for (const kind of ['catalog', 'order_customization', 'modifier']) {
+  test(`${kind}: a stock save closes the modal and is clean without a full menu save`, async () => {
+    const app = stockFixture(kind);
+    for (const status of ['out_of_stock', 'in_stock']) {
+      app.open();app.choose(status);
+      await app.sandbox.saveStockStatus();
+      assert.equal(app.control('stockModal').style.display, 'none');
+      assert.equal(app.target().isOos, status === 'out_of_stock');
+      assert.equal(app.getIsMenuDirty(), false);
+      assert.equal(app.control('btn-menu-save').disabled, true);
+      assert.equal(app.sandbox.confirmLeaveMenu(), true);
+      if (kind !== 'catalog') {
+        assert.equal(app.getCurrentMenuData()[1].items[0].modifierGroups[0].options[0].isOos, status === 'out_of_stock');
+        assert.equal(app.getCurrentMenuData()[1].groups[0].options[0].isOos, false, 'Same-name option in another group is untouched');
+      }
+      if (kind === 'modifier') {
+        assert.equal(app.getCurrentMenuData()[0].items[1].isOos, status === 'out_of_stock', 'Mirror is resolved by ID, not array position');
+        assert.equal(app.getCurrentMenuData()[0].items[0].isOos, false);
+      }
+    }
+    assert.deepEqual(app.alerts, []);
+    assert.equal(app.requests.length, 2);
+    assert.ok(app.requests.every(request => request.url.includes('/api/menu/stock-status?tenant_id=test_tenant')));
+  });
+}
+
+test('stock save preserves unrelated names, prices and order drafts; discarding drafts retains persisted stock', async () => {
+  const app = stockFixture();
+  const data = app.getCurrentMenuData();
+  data[0].items[0].name = 'Draft meal';data[0].items[0].price = 99;
+  data[0].sortOrder = 20;data[0].items.reverse();data.reverse();
+  app.sandbox.checkMenuDirty();
+  app.sandbox.openStockModal(1, 1);app.choose('out_of_stock');
+  await app.sandbox.saveStockStatus();
+  assert.equal(app.requests[0].body.name, 'Meal', 'Use persisted name despite a local rename');
+  assert.equal(app.getIsMenuDirty(), true);
+  assert.equal(data[1].items[1].name, 'Draft meal');
+  assert.equal(data[1].items[1].price, 99);
+  assert.equal(data[1].sortOrder, 20);
+  assert.equal(app.saved()[0].items[0].name, 'Meal');
+  assert.equal(app.saved()[0].items[0].price, 60);
+  assert.equal(app.saved()[0].items[0].isOos, true);
+  assert.equal(app.sandbox.confirmLeaveMenu(), true);
+  assert.equal(app.getCurrentMenuData()[0].items[0].isOos, true);
+  assert.equal(app.getCurrentMenuData()[0].items[0].name, 'Meal');
+  assert.equal(app.getCurrentMenuData()[0].items[0].price, 60);
+  assert.equal(app.getIsMenuDirty(), false);
+});
+
+test('modifier stock save preserves an option name/price draft and updates its saved mirrors', async () => {
+  const app = stockFixture('modifier');
+  app.target().name = 'Draft choice';app.target().price = 8;
+  app.choose('out_of_stock');await app.sandbox.saveStockStatus();
+  assert.equal(app.target().name, 'Draft choice');assert.equal(app.target().price, 8);
+  assert.equal(app.getIsMenuDirty(), true);
+  assert.equal(app.sandbox.confirmLeaveMenu(), true);
+  const data = app.getCurrentMenuData();
+  assert.equal(data[0].groups[0].options[0].name, 'Normal');
+  assert.equal(data[0].groups[0].options[0].price, 0);
+  assert.equal(data[0].groups[0].options[0].isOos, true);
+  assert.equal(data[0].items[1].isOos, true);
+  assert.equal(data[1].items[0].modifierGroups[0].options[0].isOutOfStock, true);
+});
+
+test('stock changes update linked option copies by group/product identity without touching unrelated choices', async () => {
+  const custom = stockFixture('modifier');
+  custom.getCurrentMenuData()[1].items[0].modifierGroups.push({ group_id: 'canonical_1', options: [
+    { id: 'option_1', name: 'Normal', isOos: false }, { id: 'different', name: 'Normal', isOos: false }
+  ] });
+  custom.sandbox.clearMenuDirty();custom.choose('out_of_stock');await custom.sandbox.saveStockStatus();
+  const copies = custom.getCurrentMenuData()[1].items[0].modifierGroups[1].options;
+  assert.equal(copies[0].isOos, true);assert.equal(copies[1].isOos, false);
+  assert.equal(custom.getIsMenuDirty(), false);
+  const product = stockFixture();
+  product.getCurrentMenuData()[1].groups[0].options.push({ id: 'linked', productId: 'item_1', isOutOfStock: false });
+  product.sandbox.clearMenuDirty();product.choose('out_of_stock');await product.sandbox.saveStockStatus();
+  assert.equal(product.getCurrentMenuData()[1].groups[0].options[1].isOutOfStock, true);
+  assert.equal(product.getIsMenuDirty(), false);
+});
+
+test('legacy products without IDs retain stock after a name draft is discarded', async () => {
+  const app = stockFixture();delete app.target().id;app.sandbox.clearMenuDirty();
+  app.target().name = 'Draft meal';app.choose('out_of_stock');
+  await app.sandbox.saveStockStatus();app.sandbox.confirmLeaveMenu();
+  assert.equal(app.target().name, 'Meal');assert.equal(app.target().isOos, true);
+});
+
+test('resuming an option clears stale expiry fields so a later menu save cannot pause it again', async () => {
+  const app = stockFixture('modifier');
+  app.target().isOos = true;
+  app.target().outOfStockUntil = '9999-12-31T23:59:59.000Z';
+  app.target().out_of_stock_until = '9999-12-31T23:59:59.000Z';
+  app.sandbox.clearMenuDirty();app.choose('in_stock');
+  await app.sandbox.saveStockStatus();
+  assert.equal(app.target().outOfStockUntil, null);assert.equal(app.target().out_of_stock_until, null);
+  assert.equal(app.saved()[0].groups[0].options[0].outOfStockUntil, null);
+  assert.equal(app.getIsMenuDirty(), false);
+});
+
+for (const failure of ['offline', 'http', 'non-json']) {
+  test(`${failure}: failed stock writes preserve state and selections for retry`, async () => {
+    const app = stockFixture();const before = JSON.stringify(app.saved());
+    app.choose('out_of_stock', 'multiple_days', '2026-11-12');
+    app.sandbox.fetch = async () => {
+      if (failure === 'offline') throw new Error('Offline');
+      return { ok: false, json: async () => { if (failure === 'non-json') throw new Error('HTML error');return { error: 'Unavailable' }; } };
+    };
+    await app.sandbox.saveStockStatus();
+    assert.equal(app.target().isOos, false);assert.equal(JSON.stringify(app.saved()), before);
+    assert.equal(app.getIsMenuDirty(), false);assert.equal(app.control('stockModal').style.display, 'flex');
+    assert.equal(app.control('stock-duration-select').value, 'multiple_days');
+    assert.equal(app.control('oos-until-date').value, '2026-11-12');
+    assert.equal(app.control('btn-stock-save').disabled, false);assert.equal(app.alerts.length, 1);
+    app.sandbox.fetch = async () => ({ ok: true });await app.sandbox.saveStockStatus();
+    assert.equal(app.target().isOos, true);assert.equal(app.getIsMenuDirty(), false);
+    assert.equal(app.control('stockModal').style.display, 'none');
+  });
+}
+
+test('pending stock save prevents duplicate requests, dismissal, target changes and full menu writes', async () => {
+  const app = stockFixture();let resolve, writes = 0;
+  app.sandbox.fetch = () => { writes++;return new Promise(done => { resolve = done; }); };
+  app.choose('out_of_stock');const saving = app.sandbox.saveStockStatus();
+  assert.equal(app.control('btn-stock-save').disabled, true);
+  assert.equal(app.control('stock-status-select').disabled, true);
+  assert.equal(app.control('stockModal').getAttribute('aria-busy'), 'true');
+  app.sandbox.closeStockModal();app.sandbox.openStockModal(0, 1);
+  await app.sandbox.saveStockStatus();await app.sandbox.saveMenuData(true);
+  assert.equal(app.control('stockModal').style.display, 'flex');
+  assert.equal(app.sandbox.confirmLeaveMenu(), false);assert.equal(writes, 1);
+  // Category order can change while a response is pending; the original target survives.
+  const target = app.target();app.getCurrentMenuData().reverse();
+  resolve({ ok: true });await saving;
+  assert.equal(target.isOos, true);assert.equal(app.saved()[0].items[0].isOos, true);
+  assert.equal(app.getIsMenuDirty(), true, 'Unpersisted category order remains dirty');
+  assert.equal(app.control('stockModal').getAttribute('aria-busy'), 'false');
+});
+
+test('all existing stock durations preserve the API payload and missing dates prevent writes', async () => {
+  for (const [duration, date] of [['today', ''], ['indefinite', ''], ['multiple_days', '2026-11-12']]) {
+    const app = stockFixture();app.choose('out_of_stock', duration, date);
+    await app.sandbox.saveStockStatus();
+    assert.equal(app.requests[0].body.duration, duration);
+    assert.equal(app.requests[0].body.until_date, date ? date + 'T04:00:00+07:00' : null);
+    assert.equal(app.getIsMenuDirty(), false);
+  }
+  const app = stockFixture();app.choose('out_of_stock', 'multiple_days');
+  await app.sandbox.saveStockStatus();assert.equal(app.requests.length, 0);
+  assert.equal(app.control('stockModal').style.display, 'flex');assert.equal(app.alerts.length, 1);
+});
+
+test('an unavailable Unified catalog refresh cannot turn a successful stock write into a save error', async () => {
+  const app = stockFixture();
+  app.sandbox.UnifiedMenu = { enabled: true, load: async () => { throw new Error('Refresh offline'); } };
+  app.choose('out_of_stock');await app.sandbox.saveStockStatus();
+  assert.equal(app.target().isOos, true);assert.equal(app.getIsMenuDirty(), false);
+  assert.equal(app.control('stockModal').style.display, 'none');assert.deepEqual(app.alerts, []);
+});

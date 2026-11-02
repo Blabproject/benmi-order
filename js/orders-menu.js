@@ -8,6 +8,7 @@ let activeCategoryIndex = -1;
 let isMenuDirty = false;
 let savedMenuSnapshot = null;
 let isMenuSaving = false;
+let isStockSaving = false;
 let isMenuLoadedCompletely = false;
 let isMenuLoading = false;
 let isCustomGroupCreatorOpen = false;
@@ -111,7 +112,7 @@ function updateMenuSaveState() {
   for (const [id, labelId] of [['btn-menu-save','btn-menu-save-text'], ['btn-menu-order-save','btn-menu-order-save-text']]) {
     const btn = document.getElementById(id), label = document.getElementById(labelId);
     if (!btn) continue;
-    btn.disabled = isMenuSaving || !isMenuLoadedCompletely || !isMenuDirty;
+    btn.disabled = isMenuSaving || isStockSaving || !isMenuLoadedCompletely || !isMenuDirty;
     btn.classList.toggle("has-changes", isMenuDirty);
     if (label) label.textContent = id === 'btn-menu-order-save' ? (isMenuDirty ? (t('btnSaveSortChanges') || text) : text) : text;
     else btn.textContent = text;
@@ -216,7 +217,7 @@ function clearMenuDirty() {
 }
 
 function confirmLeaveMenu() {
-  if (isMenuSaving) return false;
+  if (isMenuSaving || isStockSaving) return false;
   checkMenuDirty();
   if (!isMenuDirty) return true;
   if (!confirm(t("menuDiscardConfirm"))) return false;
@@ -275,7 +276,7 @@ document.addEventListener('keydown', event => {
 
 window.addEventListener("beforeunload", event => {
   checkMenuDirty();
-  if (!isMenuDirty && !isMenuSaving) return;
+  if (!isMenuDirty && !isMenuSaving && !isStockSaving) return;
   event.preventDefault();
   event.returnValue = "";
 });
@@ -3248,7 +3249,7 @@ function getMenuDeletions(before, after) {
 
 async function saveMenuData(skipConfirm = false) {
   if (!isMenuLoadedCompletely) { alert(t('menuIncompleteReload')); return; }
-  if (!currentMenuData || isMenuSaving) return;
+  if (!currentMenuData || isMenuSaving || isStockSaving) return;
   if (!skipConfirm && !confirm(t("confirmSaveMenu"))) return;
   syncMenuDataFromDOM();
   let output;
@@ -3762,6 +3763,7 @@ let currentStockGidx = null;
 let currentStockOidx = null;
 
 function openStockModal(cIdx, iIdx) {
+  if (isStockSaving || isMenuSaving) return;
   // Sync changes currently typed in DOM
   syncMenuDataFromDOM();
 
@@ -3787,6 +3789,7 @@ function openStockModal(cIdx, iIdx) {
 }
 
 function openStockModalForCustomization(cIdx, gIdx, oIdx) {
+  if (isStockSaving || isMenuSaving) return;
   syncMenuDataFromDOM();
   currentStockCidx = cIdx;
   currentStockIidx = null;
@@ -3815,6 +3818,7 @@ function openStockModalForCustomization(cIdx, gIdx, oIdx) {
 window.openStockModalForCustomization = openStockModalForCustomization;
 
 function closeStockModal() {
+  if (isStockSaving) return;
   document.getElementById("stockModal").style.display = "none";
   currentStockCidx = null;
   currentStockIidx = null;
@@ -3846,6 +3850,7 @@ function handleStockDurationChange() {
 }
 
 async function saveStockStatus() {
+  if (isStockSaving || isMenuSaving) return;
   const isCustom = (currentStockGidx !== null && currentStockOidx !== null);
   if (currentStockCidx === null || (!isCustom && currentStockIidx === null)) return;
 
@@ -3863,6 +3868,9 @@ async function saveStockStatus() {
 
   let body;
   let targetItem;
+  const targetCidx = currentStockCidx;
+  const targetCategory = currentMenuData[targetCidx];
+  const targetGroup = isCustom ? targetCategory.groups?.[currentStockGidx] : null;
 
   if (isCustom) {
     const group = currentMenuData[currentStockCidx]?.groups?.[currentStockGidx];
@@ -3889,6 +3897,8 @@ async function saveStockStatus() {
     };
   }
 
+  isStockSaving = true;
+  updateStockSaveState();
   try {
     const res = await fetch(`${WORKER_BASE}/api/menu/stock-status?tenant_id=${getTenantIdFromUrl()}`, {
       method: "POST",
@@ -3897,29 +3907,83 @@ async function saveStockStatus() {
     });
 
     if (!res.ok) {
-      const errData = await res.json();
+      const errData = await res.json().catch(() => ({}));
       throw new Error(errData.error || "Update failed");
-    }
-
-    // Update local state
-    targetItem.isOos = (status === "out_of_stock");
-    if (isCustom && currentMenuData[targetCidx]?.type === 'modifier') {
-      if (currentMenuData[targetCidx].items?.[currentStockOidx]) {
-        currentMenuData[targetCidx].items[currentStockOidx].isOos = (status === "out_of_stock");
-      }
-    }
-
-    const targetCidx = currentStockCidx;
-    closeStockModal();
-    if (isCustom) {
-      renderOrderCustomizationEditor(document.getElementById("menu-editor-body"), currentMenuData[targetCidx], targetCidx);
-      renderMenuCategories();
-    } else {
-      renderMenuCategoryEditor(targetCidx);
     }
   } catch (e) {
     alert(t("stockUpdateFail") + e.message);
+    return;
+  } finally {
+    isStockSaving = false;
+    updateStockSaveState();
   }
+
+  // Stock is already persisted: rebase only its fields, preserving other drafts.
+  applySavedStockStatus(targetCategory, targetGroup, targetItem, status === "out_of_stock");
+  closeStockModal();
+  const categoryIndex = currentMenuData.indexOf(targetCategory);
+  renderMenuCategories();
+  if (categoryIndex >= 0) {
+    if (isCustom) {
+      renderOrderCustomizationEditor(document.getElementById("menu-editor-body"), targetCategory, categoryIndex);
+    } else {
+      renderMenuCategoryEditor(categoryIndex);
+    }
+  }
+  checkMenuDirty();
+  // Refresh the Unified editor's separate catalog without replacing menu drafts.
+  if (window.UnifiedMenu?.enabled) {
+    try { await window.UnifiedMenu.load(); } catch { /* The stock write already succeeded. */ }
+  }
+}
+
+function updateStockSaveState() {
+  for (const id of ['btn-stock-save', 'btn-stock-cancel', 'stock-status-select', 'stock-duration-select', 'oos-until-date']) {
+    const control = document.getElementById(id);
+    if (control) control.disabled = isStockSaving;
+  }
+  const button = document.getElementById('btn-stock-save');
+  if (button) button.textContent = t(isStockSaving ? 'menuSaving' : 'btnStockSave');
+  document.getElementById('stockModal')?.setAttribute('aria-busy', String(isStockSaving));
+  updateMenuSaveState();
+}
+
+function applySavedStockStatus(category, group, target, isOos) {
+  const sameItem = item => item.id && target.id
+    ? String(item.id) === String(target.id)
+    : (item.originalName || item.name) === (target.originalName || target.name);
+  const groupIds = new Set(group ? [group.id, group.canonicalId, group.sourceId, group.key].filter(Boolean).map(String) : []);
+  const sameGroup = candidate => [candidate.id, candidate.groupId, candidate.group_id, candidate.canonicalId, candidate.sourceId, candidate.key]
+    .some(id => id && groupIds.has(String(id)));
+  const update = item => {
+    item.isOos = isOos;
+    for (const key of ['isOutOfStock', 'is_out_of_stock']) {
+      if (Object.prototype.hasOwnProperty.call(item, key)) item[key] = isOos;
+    }
+    if (!isOos) {
+      for (const key of ['outOfStockUntil', 'out_of_stock_until']) {
+        if (Object.prototype.hasOwnProperty.call(item, key)) item[key] = null;
+      }
+    }
+  };
+  const updateGroup = candidate => {
+    for (const option of candidate.options || []) {
+      if (group ? sameGroup(candidate) && sameItem(option)
+        : target.id && String(option.productId || option.product_id || '') === String(target.id)) update(option);
+    }
+  };
+  const saved = savedMenuSnapshot ? JSON.parse(savedMenuSnapshot) : null;
+  for (const data of [currentMenuData, saved]) {
+    for (const candidate of data || []) {
+      if (candidate.id === category.id) {
+        (candidate.items || []).filter(sameItem).forEach(update);
+      }
+      (candidate.groups || []).forEach(updateGroup);
+      for (const item of candidate.items || []) (item.modifierGroups || []).forEach(updateGroup);
+    }
+  }
+  menuModifierLibrary.forEach(updateGroup);
+  if (saved) savedMenuSnapshot = canonicalMenuSnapshot(saved);
 }
 
 // Position disclosures in viewport coordinates, outside the category columns.
