@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `dce84c6f`
+- Built from commit: `8adde869`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -957,16 +957,16 @@
 10. `renderMenuCategories()` - 36 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `3.4 Classifier — `src/modules/aiIntent.ts` (mới)` --references--> `callAI()`  [INFERRED]
-  docs/proposals/clef-flash-intent-classifier/pdp.md → benmi-worker-official/src/integrations/groq.ts
-- `4.1 Deployment Workflow` --references--> `invalidateBootstrapCache()`  [INFERRED]
-  docs/proposals/instant_hydration_multi_tenant_bootstrap/pdp_instant_hydration_multi_tenant_bootstrap.md → benmi-worker-official/src/modules/bootstrap.ts
-- `A. Zero-Trust Pricing Validation (Chống Giả Mạo Giá Server-Side)` --references--> `validateBundleOrderItems()`  [INFERRED]
-  docs/proposals/unified_bundle_and_customization_architecture/PDP_Unified_Bundle_and_Customization_Architecture.md → benmi-worker-official/src/modules/bundle-rules.ts
-- `B. Mục Tiêu Trọng Tâm (Goals - In-Scope)` --references--> `validateBundleOrderItems()`  [INFERRED]
-  docs/proposals/unified_bundle_and_customization_architecture/PDP_Unified_Bundle_and_Customization_Architecture.md → benmi-worker-official/src/modules/bundle-rules.ts
-- `[ ] Task 1.3: Cô lập Ảnh trong `image.ts` (`src/modules/image.ts`)` --references--> `getImageList()`  [INFERRED]
-  docs/proposals/menu_proposal/task_1_backend_menu_sync.md → benmi-worker-official/src/modules/image.ts
+- `What Smart Placement Affects` --references--> `WorkerEntrypoint`  [INFERRED]
+  .agents/skills/cloudflare/references/smart-placement/configuration.md → benmi-worker-official/worker-configuration.d.ts
+- `RPC Methods Not Affected (Critical Limitation)` --references--> `WorkerEntrypoint`  [INFERRED]
+  .agents/skills/cloudflare/references/smart-placement/gotchas.md → benmi-worker-official/worker-configuration.d.ts
+- `Frontend + Backend Split (Service Bindings)` --references--> `WorkerEntrypoint`  [INFERRED]
+  .agents/skills/cloudflare/references/smart-placement/patterns.md → benmi-worker-official/worker-configuration.d.ts
+- `Use service bindings for Worker-to-Worker communication` --references--> `WorkerEntrypoint`  [INFERRED]
+  .agents/skills/workers-best-practices/references/rules.md → benmi-worker-official/worker-configuration.d.ts
+- `Community Libraries` --references--> `TraceItem`  [INFERRED]
+  .agents/skills/cloudflare/references/tail-workers/patterns.md → benmi-worker-official/worker-configuration.d.ts
 
 ## Import Cycles
 - 2-file cycle: `benmi-worker-official/src/modules/line.ts -> benmi-worker-official/src/modules/orders.ts -> benmi-worker-official/src/modules/line.ts`
@@ -4133,7 +4133,7 @@ Cohesion: 0.67
 Nodes (3): BasicImageTransformations, RequestInitCfPropertiesImage, RequestInitCfPropertiesImageDraw
 
 ## Knowledge Gaps
-- **9 isolated node(s):** `RFC-5246`, `RFC-2253`, `RFC-3339`, `onRequest`, `__RPC_STUB_BRAND` (+4 more)
+- **9 isolated node(s):** `RFC-2253`, `RFC-3339`, `RFC-5246`, `__DURABLE_OBJECT_BRAND`, `onRequest` (+4 more)
   These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 9007 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **241 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -4141,16 +4141,16 @@ Nodes (3): BasicImageTransformations, RequestInitCfPropertiesImage, RequestInitC
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `WorkerEntrypoint` connect `Cloudflare Agents SDK` to `worker-configuration.d.ts`, `Tail Workers Configuration`, `Smart Placement Gotchas`, `Workers Best Practices — Rules`, `.email`, `Smart Placement Patterns`, `Smart Placement Configuration`?**
-  _High betweenness centrality (0.068) - this node is a cross-community bridge._
+  _High betweenness centrality (0.064) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `TailwindConfigGenerator` (e.g. with `TestGeneratedConfigIsValidJs` and `TestTailwindConfigGenerator`) actually correct?**
   _`TailwindConfigGenerator` has 2 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `RFC-5246`, `RFC-2253`, `RFC-3339` to the rest of the system?**
+- **What connects `RFC-2253`, `RFC-3339`, `RFC-5246` to the rest of the system?**
   _9 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `worker-configuration.d.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.0025806451612903226 - nodes in this community are weakly interconnected._
 - **Why does `onRequest()` connect `onRequest` to `Best Practices`, `Gotchas`, `Configuration`?**
-  _High betweenness centrality (0.045) - this node is a cross-community bridge._
+  _High betweenness centrality (0.035) - this node is a cross-community bridge._
 - **Should `ref_node_path` be split into smaller, more focused modules?**
   _Cohesion score 0.04 - nodes in this community are weakly interconnected._
 - **Why does `Webhooks` connect `onRequest` to `Cloudflare Agents SDK`?**
-  _High betweenness centrality (0.045) - this node is a cross-community bridge._
+  _High betweenness centrality (0.034) - this node is a cross-community bridge._
