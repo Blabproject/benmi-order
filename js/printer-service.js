@@ -1022,28 +1022,52 @@
       if (!isKitchen) {
         divider();
         row('應收總計', 48, '$' + (order.total ?? 0), 'bold');
-        if (order.payment) row('LINE Pay · ' + (typeof t === 'function' ? t('payment' + order.payment.status) : order.payment.status), 29, '', 'normal');
 
-        // --- Con dấu vuông đã thanh toán online (Compact Square Paid Stamp) ---
+        // --- Con dấu vuông đã thanh toán online (Square Stamp Inline Right) ---
         const isOnlinePaid = Boolean(
           (order?.payment && String(order.payment.status).toUpperCase() === 'PAID') ||
           (order?.payment_status && String(order.payment_status).toUpperCase() === 'PAID') ||
           (order?.paymentStatus && String(order.paymentStatus).toUpperCase() === 'PAID')
         );
 
-        if (isOnlinePaid) {
-          const is58 = Number(paperWidth) === 58;
-          const stampH = is58 ? 34 : 44;
-          y += 4;
-          const stampCenterY = y + Math.round(stampH / 2);
-          operations.push({
-            stamp: true,
-            style: 'square',
-            x: width / 2,
-            y: stampCenterY,
-            paperWidth: Number(paperWidth) || 80
-          });
-          y += stampH + 12;
+        const paymentText = order.payment
+          ? 'LINE Pay · ' + (typeof t === 'function' ? t('payment' + order.payment.status) : order.payment.status)
+          : (isOnlinePaid ? '線上支付 · 已付款' : '');
+
+        if (paymentText || isOnlinePaid) {
+          if (isOnlinePaid) {
+            const is58 = Number(paperWidth) === 58;
+            const scale = is58 ? 0.75 : 1.0;
+            const stampW = Math.round(140 * scale);
+            const stampH = Math.round(42 * scale);
+            const textH = Math.ceil(29 * 1.25);
+            const rowH = Math.max(textH, stampH);
+
+            const textY = y + 4;
+            if (paymentText) {
+              operations.push({
+                text: paymentText,
+                x: padding,
+                y: textY,
+                font: 'normal 29px sans-serif',
+                align: 'left'
+              });
+            }
+
+            const stampCx = width - padding - Math.round(stampW / 2) - 6;
+            const stampCy = textY + Math.round(textH / 2) - 3;
+            operations.push({
+              stamp: true,
+              style: 'square',
+              x: stampCx,
+              y: stampCy,
+              paperWidth: Number(paperWidth) || 80
+            });
+
+            y += rowH + 16;
+          } else {
+            row(paymentText, 29, '', 'normal');
+          }
         }
 
         divider();
@@ -1078,7 +1102,7 @@
     drawPaidStamp(ctx, cx, cy, paperWidth = 80, style = 'square') {
       if (typeof ctx.save === 'function') ctx.save();
       if (typeof ctx.translate === 'function') ctx.translate(cx, cy);
-      if (typeof ctx.rotate === 'function') ctx.rotate(-6 * Math.PI / 180);
+      if (typeof ctx.rotate === 'function') ctx.rotate(-5 * Math.PI / 180);
 
       const is58 = Number(paperWidth) === 58;
       const scale = is58 ? 0.75 : 1.0;
@@ -1107,8 +1131,8 @@
         if (typeof ctx.fillText === 'function') ctx.fillText('★ PAID ★', 0, Math.round(22 * scale));
       } else {
         // Default: Compact Square / Rectangular double border stamp (方印)
-        const w = Math.round(144 * scale);
-        const h = Math.round(44 * scale);
+        const w = Math.round(140 * scale);
+        const h = Math.round(42 * scale);
 
         // Outer border
         ctx.strokeStyle = '#000000';
@@ -1132,7 +1156,7 @@
 
         // Text "已 付 款"
         ctx.fillStyle = '#000000';
-        ctx.font = `900 ${Math.round(24 * scale)}px sans-serif`;
+        ctx.font = `900 ${Math.round(23 * scale)}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         if (typeof ctx.fillText === 'function') ctx.fillText('已 付 款', 0, 1);
