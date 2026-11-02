@@ -149,6 +149,7 @@ async function loadStoreStatus() {
 
 function openSettings() {
   if (activeTab === "menu" && !confirmLeaveMenu()) return;
+  resetStorePinChangeForm();
   activeTab = "settings";
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
   document.querySelectorAll(".mini-btn").forEach(t => t.classList.remove("active"));
@@ -1415,6 +1416,8 @@ function switchSettingTab(cardId) {
     }
   }
 
+  if (targetId !== "setting-card-store-pairing") resetStorePinChangeForm();
+
   // 1. Hide all cards and show target card
   document.querySelectorAll(".settings-card").forEach(card => {
     card.classList.remove("active");
@@ -1632,6 +1635,145 @@ function updateSettingsPrinterStatusDisplay() {
 }
 window.updateSettingsPrinterStatusDisplay = updateSettingsPrinterStatusDisplay;
 
+// PINs stay in the form/request only; never persist them in browser storage.
+let storePinChangePending = false;
+let storePinFormRevision = 0;
+
+function renderStorePinChangeState() {
+  const form = document.getElementById("store-pin-form");
+  if (!form) return;
+  form.querySelectorAll("input, button").forEach(el => { el.disabled = storePinChangePending; });
+  form.setAttribute("aria-busy", String(storePinChangePending));
+  form.querySelectorAll("[data-store-pin-toggle]").forEach(button => {
+    const input = document.getElementById(button.dataset.storePinToggle);
+    const visible = input && input.type === "text";
+    const label = t(visible ? "pinHide" : "pinShow");
+    button.textContent = label;
+    button.setAttribute("aria-pressed", String(!!visible));
+    button.setAttribute("aria-label", `${label} ${t(input.dataset.pinLabel)}`);
+  });
+  const submit = document.getElementById("store-pin-submit");
+  if (submit) submit.textContent = t(storePinChangePending ? "pinSaving" : "pinChange");
+  const feedback = document.getElementById("store-pin-feedback");
+  if (feedback) {
+    feedback.textContent = form.dataset.feedbackKey ? t(form.dataset.feedbackKey) : "";
+    feedback.classList.toggle("is-error", form.dataset.feedbackKind === "error");
+    feedback.classList.toggle("is-success", form.dataset.feedbackKind === "success");
+  }
+}
+
+function setStorePinFeedback(key, fieldId = null, kind = "error") {
+  const form = document.getElementById("store-pin-form");
+  if (!form) return;
+  form.querySelectorAll("input").forEach(input => input.removeAttribute("aria-invalid"));
+  form.dataset.feedbackKey = key;
+  form.dataset.feedbackKind = kind;
+  renderStorePinChangeState();
+  if (fieldId) {
+    const input = document.getElementById(fieldId);
+    if (input) {
+      input.setAttribute("aria-invalid", "true");
+      input.focus();
+    }
+  }
+}
+
+function resetStorePinChangeForm() {
+  const form = document.getElementById("store-pin-form");
+  if (!form) return;
+  storePinFormRevision++;
+  form.reset();
+  form.querySelectorAll("input").forEach(input => {
+    input.type = "password";
+    input.removeAttribute("aria-invalid");
+  });
+  delete form.dataset.feedbackKey;
+  delete form.dataset.feedbackKind;
+  renderStorePinChangeState();
+}
+
+function toggleStorePinVisibility(fieldId) {
+  const input = document.getElementById(fieldId);
+  if (!input || storePinChangePending) return;
+  input.type = input.type === "password" ? "text" : "password";
+  renderStorePinChangeState();
+}
+
+async function submitStorePinChange(event) {
+  if (event) event.preventDefault();
+  if (storePinChangePending) return;
+  const form = document.getElementById("store-pin-form");
+  if (!form) return;
+  const currentInput = document.getElementById("store-pin-current");
+  const newInput = document.getElementById("store-pin-new");
+  const confirmInput = document.getElementById("store-pin-confirm");
+  for (const input of [currentInput, newInput, confirmInput]) {
+    if (!input.value) {
+      setStorePinFeedback("pinRequired", input.id);
+      return;
+    }
+  }
+  if (newInput.value !== newInput.value.trim() || !/^[0-9]{4,8}$/.test(newInput.value)) {
+    setStorePinFeedback("pinInvalidFormat", newInput.id);
+    return;
+  }
+  if (newInput.value !== confirmInput.value) {
+    setStorePinFeedback("pinMismatch", confirmInput.id);
+    return;
+  }
+  const tenantId = getTenantIdFromUrl();
+  if (!tenantId) {
+    setStorePinFeedback("pinTenantRequired");
+    return;
+  }
+
+  const revision = storePinFormRevision;
+  storePinChangePending = true;
+  setStorePinFeedback("");
+  // Leaving settings clears the form and invalidates feedback from this request.
+  const isCurrentForm = () => revision === storePinFormRevision && tenantId === getTenantIdFromUrl();
+  let resultKey = "pinSaveError";
+  let resultField = null;
+  let saved = false;
+  try {
+    const response = await fetch(`${WORKER_BASE}/api/auth/change?tenant_id=${encodeURIComponent(tenantId)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ current: currentInput.value, newPassword: newInput.value, tenant_id: tenantId })
+    });
+    const data = await response.json().catch(() => ({}));
+    saved = response.ok && data.ok === true;
+    if (saved) {
+      try { sessionStorage.removeItem("staff_session_token_" + tenantId); } catch (e) {}
+    } else if (response.status === 401) {
+      resultKey = "pinWrongCurrent";
+      resultField = currentInput.id;
+    } else if (data.error === "INVALID_NEW_PIN") {
+      resultKey = "pinInvalidFormat";
+      resultField = newInput.id;
+    } else if (response.status === 404 || response.status === 410) {
+      resultKey = "pinTenantRequired";
+    }
+  } catch (e) {
+    resultKey = "pinNetworkError";
+  } finally {
+    storePinChangePending = false;
+    renderStorePinChangeState();
+  }
+  if (!isCurrentForm()) return;
+  if (saved) {
+    resetStorePinChangeForm();
+    setStorePinFeedback("pinChangeSuccess", null, "success");
+  } else {
+    setStorePinFeedback(resultKey, resultField);
+  }
+}
+
+window.renderStorePinChangeState = renderStorePinChangeState;
+window.resetStorePinChangeForm = resetStorePinChangeForm;
+window.toggleStorePinVisibility = toggleStorePinVisibility;
+window.submitStorePinChange = submitStorePinChange;
+
 function renderStorePairingSection() {
   const tenantId = (typeof getTenantIdFromUrl === "function" && getTenantIdFromUrl()) || "";
   const elTenant = document.getElementById("display-pairing-tenant-id");
@@ -1680,6 +1822,8 @@ async function promptUnlinkStoreDevice() {
 
 window.renderStorePairingSection = renderStorePairingSection;
 window.promptUnlinkStoreDevice = promptUnlinkStoreDevice;
+
+window.addEventListener("pagehide", resetStorePinChangeForm);
 
 // =======================================================
 // RESTAURANT TABLES & STAFF ORDERING MANAGEMENT

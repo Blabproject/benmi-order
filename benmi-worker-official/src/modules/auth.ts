@@ -49,8 +49,20 @@ export async function handleAuth(request: Request, env: Env, url?: URL, tenantCt
 }
 
 export async function handleAuthChange(request: Request, env: Env, tenantCtx?: TenantContext | null): Promise<Response> {
-  const { current, newPassword, tenant_id }: any = await request.json().catch(() => ({}));
-  if (!current || !newPassword) return json({ ok: false, error: "Missing fields" }, 400);
+  const body: unknown = await request.json().catch(() => null);
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return json({ ok: false, error: "Missing fields" }, 400);
+  }
+  const current = "current" in body ? body.current : undefined;
+  const newPassword = "newPassword" in body ? body.newPassword : undefined;
+  const tenant_id = "tenant_id" in body ? body.tenant_id : undefined;
+  if (typeof current !== "string" || !current) return json({ ok: false, error: "Missing fields" }, 400);
+  if (typeof newPassword !== "string" || newPassword !== newPassword.trim() || !/^[0-9]{4,8}$/.test(newPassword)) {
+    return json({ ok: false, error: "INVALID_NEW_PIN" }, 400);
+  }
+  if (tenant_id !== undefined && (typeof tenant_id !== "string" || !tenant_id)) {
+    return json({ ok: false, error: "no_tenant" }, 400);
+  }
   
   const tenantId = tenant_id || tenantCtx?.tenantId || getTenantId(request);
   if (!tenantCtx || tenantCtx.tenantId !== tenantId) {
@@ -60,12 +72,17 @@ export async function handleAuthChange(request: Request, env: Env, tenantCtx?: T
     return json({ ok: false, error: "invalid_tenant", message: `門市代碼 '${tenantId}' 不存在或已停用` }, 404);
   }
 
+  // The repository permits missing KV for read-only/default-password callers.
+  // A PIN change must never report success without a persistent write.
+  if (!env.ORDER_STATE) return json({ ok: false, error: "PIN_STORAGE_UNAVAILABLE" }, 503);
   const repo = createTenantRepository(env.DB, env.ORDER_STATE, env);
-  const stored = await repo.getStorePassword(tenantId, tenantCtx.defaultPassword || DEFAULT_PASSWORD);
-  if (current !== stored) return json({ ok: false, error: "Wrong current password" }, 401);
-  if (newPassword.length < 4) return json({ ok: false, error: "Password too short" }, 400);
-  
-  await repo.setStorePassword(tenantId, newPassword);
+  try {
+    const stored = await repo.getStorePassword(tenantId, tenantCtx.defaultPassword || DEFAULT_PASSWORD);
+    if (current !== stored) return json({ ok: false, error: "Wrong current password" }, 401);
+    await repo.setStorePassword(tenantId, newPassword);
+  } catch {
+    return json({ ok: false, error: "PIN_STORAGE_UNAVAILABLE" }, 503);
+  }
   // Revoke all active staff sessions for this tenant when store PIN changes
   if (env.DB) {
     try {

@@ -895,6 +895,9 @@ function switchTab(tab) {
   if (window.innerWidth <= 680 && typeof toggleSidebar === "function") {
     toggleSidebar(false);
   }
+  if (activeTab === "settings" && tab !== "settings" && typeof resetStorePinChangeForm === "function") {
+    resetStorePinChangeForm();
+  }
   activeTab = tab;
 
   // Persist active tab to sessionStorage and URL hash (without creating redundant history entries)

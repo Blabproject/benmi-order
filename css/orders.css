@@ -6174,6 +6174,94 @@ input.menu-item-badge-input:focus {
   font-weight: 500 !important;
 }
 
+/* Store-wide management PIN */
+.store-pin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  border-top: 1px solid #f1f5f9;
+  padding: 20px 0;
+}
+
+.store-pin-title {
+  margin: 0 0 6px;
+  font-size: var(--pos-text-body);
+  color: #1e293b;
+}
+
+.store-pin-description {
+  margin: 0;
+  font-size: var(--pos-text-meta);
+  color: #475569;
+  line-height: 1.5;
+}
+
+.store-pin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 480px;
+  font-size: var(--pos-text-body);
+  font-weight: 600;
+}
+
+.store-pin-input-row {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.store-pin-form .form-input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  font-size: var(--pos-text-body);
+}
+
+.store-pin-form .btn {
+  min-width: 48px;
+  min-height: 48px;
+}
+
+.store-pin-toggle {
+  flex-shrink: 0;
+  padding: 0 14px;
+}
+
+.store-pin-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.store-pin-feedback {
+  font-size: var(--pos-text-meta);
+  line-height: 1.5;
+}
+
+.store-pin-feedback:empty {
+  display: none;
+}
+
+.store-pin-feedback.is-error {
+  color: #b91c1c;
+}
+
+.store-pin-feedback.is-success {
+  color: #047857;
+}
+
+.store-pin-form input[aria-invalid="true"] {
+  border-color: #b91c1c;
+}
+
+.store-pin-form .btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 /* ===================================================
    Modern Form Inputs & UI Controls (ui-styling)
    =================================================== */
