@@ -6002,6 +6002,7 @@ input.menu-item-badge-input:focus {
   gap: 11px;
   padding: 8px 12px;
   min-height: 48px;
+  background: transparent;
   border-radius: 10px;
   font-weight: 700;
   font-size: var(--pos-text-meta);
