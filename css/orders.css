@@ -12449,30 +12449,28 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
 }
 #review-content .detail-group-choices,
 #review-content .bundle-group-items {
-  display: block;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
   min-width: 0;
-  line-height: 1.65;
+  line-height: 1.5;
   overflow-wrap: anywhere;
 }
 #review-content .detail-choice-chip,
 #review-content .bundle-item-chip {
-  display: inline;
-  padding: 0;
-  margin: 0;
-  border: 0;
-  border-radius: 0;
-  background: none;
-  color: #334155;
+  display: inline-block;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 1px 8px;
+  border-radius: 12px;
+  background: #e6f3ef;
+  color: #28736a;
   font-size: var(--pos-text-meta);
   font-weight: 500;
-  line-height: inherit;
+  line-height: 1.5;
   white-space: normal;
   overflow-wrap: anywhere;
-}
-#review-content .detail-choice-chip + .detail-choice-chip::before,
-#review-content .bundle-item-chip + .bundle-item-chip::before {
-  content: ' · ';
-  color: #8b9490;
 }
 #review-content .detail-choice-qty,
 #review-content .detail-choice-extra { font-size: inherit; font-weight: 600; white-space: nowrap; margin-inline-start: .25em; }
