@@ -1024,18 +1024,27 @@
         row('應收總計', 48, '$' + (order.total ?? 0), 'bold');
         if (order.payment) row('LINE Pay · ' + (typeof t === 'function' ? t('payment' + order.payment.status) : order.payment.status), 29, '', 'normal');
 
-        // --- Con dấu đã thanh toán (Paid Stamp) ---
-        const is58 = Number(paperWidth) === 58;
-        const stampHeight = is58 ? 100 : 130;
-        const stampCenterY = y + Math.round(stampHeight / 2);
-        operations.push({
-          stamp: true,
-          style: 'circle',
-          x: width / 2,
-          y: stampCenterY,
-          paperWidth: Number(paperWidth) || 80
-        });
-        y += stampHeight + 10;
+        // --- Con dấu vuông đã thanh toán online (Compact Square Paid Stamp) ---
+        const isOnlinePaid = Boolean(
+          (order?.payment && String(order.payment.status).toUpperCase() === 'PAID') ||
+          (order?.payment_status && String(order.payment_status).toUpperCase() === 'PAID') ||
+          (order?.paymentStatus && String(order.paymentStatus).toUpperCase() === 'PAID')
+        );
+
+        if (isOnlinePaid) {
+          const is58 = Number(paperWidth) === 58;
+          const stampH = is58 ? 34 : 44;
+          y += 4;
+          const stampCenterY = y + Math.round(stampH / 2);
+          operations.push({
+            stamp: true,
+            style: 'square',
+            x: width / 2,
+            y: stampCenterY,
+            paperWidth: Number(paperWidth) || 80
+          });
+          y += stampH + 12;
+        }
 
         divider();
         // Keep the Chinese greeting and attribution on separate centered rows.
@@ -1066,55 +1075,15 @@
       return dataUrl;
     }
 
-    drawPaidStamp(ctx, cx, cy, paperWidth = 80, style = 'circle') {
+    drawPaidStamp(ctx, cx, cy, paperWidth = 80, style = 'square') {
       if (typeof ctx.save === 'function') ctx.save();
       if (typeof ctx.translate === 'function') ctx.translate(cx, cy);
-      if (typeof ctx.rotate === 'function') ctx.rotate(-11 * Math.PI / 180);
+      if (typeof ctx.rotate === 'function') ctx.rotate(-6 * Math.PI / 180);
 
       const is58 = Number(paperWidth) === 58;
       const scale = is58 ? 0.75 : 1.0;
 
-      if (style === 'rect') {
-        const w = Math.round(200 * scale);
-        const h = Math.round(72 * scale);
-        const r = Math.round(10 * scale);
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = Math.round(4 * scale);
-        this.drawRoundRectPath(ctx, -w / 2, -h / 2, w, h, r);
-        if (typeof ctx.stroke === 'function') ctx.stroke();
-
-        ctx.lineWidth = Math.max(1, Math.round(1.5 * scale));
-        const inset = Math.round(5 * scale);
-        this.drawRoundRectPath(ctx, -w / 2 + inset, -h / 2 + inset, w - inset * 2, h - inset * 2, Math.max(2, r - 3));
-        if (typeof ctx.stroke === 'function') ctx.stroke();
-
-        ctx.fillStyle = '#000000';
-        ctx.font = `900 ${Math.round(34 * scale)}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        if (typeof ctx.fillText === 'function') ctx.fillText('已 付 款', 0, 0);
-      } else if (style === 'oval') {
-        const rx = Math.round(96 * scale);
-        const ry = Math.round(54 * scale);
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = Math.round(4 * scale);
-        if (typeof ctx.beginPath === 'function') ctx.beginPath();
-        if (typeof ctx.ellipse === 'function') ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
-        if (typeof ctx.stroke === 'function') ctx.stroke();
-
-        ctx.lineWidth = Math.max(1, Math.round(1.5 * scale));
-        const inset = Math.round(6 * scale);
-        if (typeof ctx.beginPath === 'function') ctx.beginPath();
-        if (typeof ctx.ellipse === 'function') ctx.ellipse(0, 0, rx - inset, ry - inset, 0, 0, Math.PI * 2);
-        if (typeof ctx.stroke === 'function') ctx.stroke();
-
-        ctx.fillStyle = '#000000';
-        ctx.font = `900 ${Math.round(32 * scale)}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        if (typeof ctx.fillText === 'function') ctx.fillText('已 付 款', 0, -2);
-      } else {
-        // Default: Circle stamp with double ring and stars
+      if (style === 'circle') {
         const r = Math.round(62 * scale);
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = Math.round(4 * scale);
@@ -1136,6 +1105,37 @@
 
         ctx.font = `bold ${Math.round(14 * scale)}px sans-serif`;
         if (typeof ctx.fillText === 'function') ctx.fillText('★ PAID ★', 0, Math.round(22 * scale));
+      } else {
+        // Default: Compact Square / Rectangular double border stamp (方印)
+        const w = Math.round(144 * scale);
+        const h = Math.round(44 * scale);
+
+        // Outer border
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = Math.round(3 * scale);
+        if (typeof ctx.strokeRect === 'function') {
+          ctx.strokeRect(-w / 2, -h / 2, w, h);
+        } else if (typeof ctx.stroke === 'function') {
+          this.drawRoundRectPath(ctx, -w / 2, -h / 2, w, h, 0);
+          ctx.stroke();
+        }
+
+        // Inner border
+        ctx.lineWidth = Math.max(1, Math.round(1.2 * scale));
+        const inset = Math.round(3.5 * scale);
+        if (typeof ctx.strokeRect === 'function') {
+          ctx.strokeRect(-w / 2 + inset, -h / 2 + inset, w - inset * 2, h - inset * 2);
+        } else if (typeof ctx.stroke === 'function') {
+          this.drawRoundRectPath(ctx, -w / 2 + inset, -h / 2 + inset, w - inset * 2, h - inset * 2, 0);
+          ctx.stroke();
+        }
+
+        // Text "已 付 款"
+        ctx.fillStyle = '#000000';
+        ctx.font = `900 ${Math.round(24 * scale)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        if (typeof ctx.fillText === 'function') ctx.fillText('已 付 款', 0, 1);
       }
       if (typeof ctx.restore === 'function') ctx.restore();
     }
