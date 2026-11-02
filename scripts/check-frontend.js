@@ -160,6 +160,8 @@ HTML_FILES.forEach(htmlFile => {
         dataset: {},
         setAttribute: () => {},
         appendChild: () => {},
+        append: () => {},
+        replaceChildren: () => {},
         getElementsByClassName: () => [],
         querySelector: () => ({ innerText: "", innerHTML: "", textContent: "", classList: { contains: () => false } }),
         querySelectorAll: () => [],
@@ -184,6 +186,8 @@ HTML_FILES.forEach(htmlFile => {
         style: {},
         innerHTML: "",
         appendChild: () => {},
+        append: () => {},
+        replaceChildren: () => {},
         querySelectorAll: () => [],
         addEventListener: () => {},
         removeEventListener: () => {}
