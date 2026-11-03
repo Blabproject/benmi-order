@@ -1,13 +1,64 @@
-.payment-panel{padding:16px;margin:12px 0;border:1px solid #cbd5e1;border-radius:12px;background:#fff;color:#0f172a;line-height:1.6}
+/* POS Detail Order Payment Card & Refund Action */
+.payment-panel{box-sizing:border-box;padding:16px;margin:14px 0 6px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.04);color:#0f172a;line-height:1.5}
 .payment-panel label{display:block;margin-bottom:8px;font-weight:600}
-.payment-button{min-height:48px;min-width:48px;padding:10px 16px;border:1px solid #64748b;border-radius:8px;background:#fff;color:#0f172a;font:inherit;cursor:pointer}
-.payment-button:focus-visible{outline:3px solid #2563eb;outline-offset:3px}
+.pos-payment-header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.pos-payment-brand{display:inline-flex;align-items:center;gap:8px}
+.pos-payment-channel-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:6px;background:#06c75515;border:1px solid #06c75535;color:#059640;font-size:12.5px;font-weight:800;letter-spacing:-0.2px}
+.pos-payment-channel-badge svg{flex:none;color:#06c755}
+.pos-payment-status-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-size:12px;font-weight:700}
+.pos-payment-status-pill.status-paid{background:#ecfdf5;color:#047857;border:1px solid #a7f3d0}
+.pos-payment-status-pill.status-refunded{background:#f1f5f9;color:#475569;border:1px solid #cbd5e1}
+.pos-payment-status-pill.status-pending{background:#fffbeb;color:#b45309;border:1px solid #fde68a}
+.pos-payment-status-pill.status-failed{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
+.pos-payment-amount{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;color:#0f172a;margin-left:auto}
+
+/* Critical Unrefunded Alert Banner */
+.pos-payment-alert-unrefunded{display:flex;align-items:flex-start;gap:12px;margin:12px 0 8px;padding:12px 14px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;color:#991b1b}
+.pos-payment-alert-icon{flex:none;margin-top:1px;color:#dc2626}
+.pos-payment-alert-content{min-width:0;flex:1}
+.pos-payment-alert-title{margin:0 0 3px;font-size:13.5px;font-weight:800;color:#991b1b;line-height:1.4}
+.pos-payment-alert-desc{margin:0;font-size:12.5px;color:#7f1d1d;line-height:1.45}
+
+/* POS Tablet-First Refund Button */
+.payment-button{min-height:48px;min-width:48px;box-sizing:border-box;padding:10px 18px;border:1.5px solid #cbd5e1;border-radius:10px;background:#fff;color:#0f172a;font:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s ease}
+.payment-button:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
 .payment-button:disabled{opacity:.55;cursor:wait}
-.payment-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
-.payment-dialog{border:0;border-radius:16px;padding:24px;max-width:min(480px,90vw);box-shadow:0 12px 48px #0004;color:#0f172a;background:#fff}
-.payment-dialog::backdrop{background:#0008}
-.payment-dialog label{display:block;margin:12px 0 6px}
-.payment-dialog input,.payment-dialog textarea{display:block;box-sizing:border-box;width:100%;min-height:48px;padding:12px;font:inherit;border:1px solid #64748b;border-radius:8px}
+.btn-pos-refund{width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;border-color:#fca5a5;background:#fff;color:#dc2626}
+.btn-pos-refund svg{flex:none;transition:transform .2s ease}
+.btn-pos-refund:hover{background:#fef2f2;border-color:#ef4444;color:#b91c1c}
+.btn-pos-refund:hover svg{transform:rotate(-45deg)}
+.btn-pos-refund:active{background:#fee2e2;transform:scale(0.99)}
+.pos-payment-info-hint{margin:8px 0 0;font-size:12.5px;color:#64748b;line-height:1.45}
+
+/* Tablet-First Refund & Confirmation Dialog */
+.payment-dialog{border:0;border-radius:18px;padding:24px;width:min(500px,94vw);box-sizing:border-box;box-shadow:0 24px 60px rgba(0,0,0,0.22);color:#0f172a;background:#fff;overflow:visible}
+.payment-dialog::backdrop{background:rgba(15,23,42,0.45);backdrop-filter:blur(3px)}
+.payment-dialog h2{margin:0 0 12px;font-size:18px;font-weight:800;color:#0f172a;line-height:1.35}
+.payment-dialog label{display:block;margin:12px 0 6px;font-size:13.5px;font-weight:700;color:#334155}
+.payment-dialog input,.payment-dialog textarea{display:block;box-sizing:border-box;width:100%;min-height:48px;padding:12px 14px;font:inherit;font-size:14px;border:1.5px solid #cbd5e1;border-radius:10px;background:#fff;color:#0f172a;transition:border-color .15s,box-shadow .15s}
+.payment-dialog textarea{min-height:76px;line-height:1.5;resize:vertical}
+.payment-dialog input:focus,.payment-dialog textarea:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.15)}
+
+/* Quick Reason Chips for Tablet Counter */
+.payment-quick-chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
+.payment-quick-chip{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:999px;background:#f8fafc;color:#334155;font-size:13px;font-weight:650;cursor:pointer;user-select:none;transition:all .15s ease}
+.payment-quick-chip:hover{background:#f1f5f9;border-color:#cbd5e1;color:#0f172a}
+.payment-quick-chip:active,.payment-quick-chip.is-selected{background:#eff6ff;border-color:#3b82f6;color:#1d4ed8}
+
+/* Dialog Order Info & Actions */
+.pos-refund-summary-box{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:0 0 14px}
+.pos-refund-summary-key{font-size:13.5px;font-weight:700;color:#475569}
+.pos-refund-summary-amount{font-size:16px;font-weight:850;font-variant-numeric:tabular-nums;color:#0f172a}
+.payment-dialog-notice{margin:8px 0 0;font-size:12.5px;color:#64748b;line-height:1.45}
+.payment-dialog [role="alert"]{margin:10px 0 0;font-size:13px;font-weight:650;color:#dc2626}
+.payment-dialog [role="alert"]:empty{display:none}
+.payment-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+.payment-actions .payment-button{min-height:48px;padding:11px 22px;border-radius:10px}
+.payment-button-ghost{background:#fff;border-color:#cbd5e1;color:#475569}
+.payment-button-ghost:hover{background:#f8fafc;color:#0f172a}
+.payment-button-danger{background:#ef4444;border-color:#ef4444;color:#fff}
+.payment-button-danger:hover{background:#dc2626;border-color:#dc2626}
+.payment-button-danger:active{background:#b91c1c}
 
 /* Customer checkout: quiet surfaces, clear type and one brand accent. */
 #sec-checkout .payment-method-section{margin:0 0 18px}

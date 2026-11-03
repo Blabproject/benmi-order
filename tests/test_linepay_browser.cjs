@@ -24,11 +24,17 @@ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('LINE 
   });
   await page.addScriptTag({content:pos});
   await page.evaluate(()=>PaymentPOS.mount({key:'a1',status:'REJECTED',payment:{id:'11111111-1111-4111-8111-111111111111',status:'PAID',amount:100}}));
+  const alert=page.locator('.pos-payment-alert-unrefunded');
+  assert.equal(await alert.count(),1);
   const refund=page.locator('#review-payment button');
   const box=await refund.boundingBox();assert.ok(box.height>=48);
   await refund.click();
   await page.waitForSelector('dialog[open]');
   assert.equal(await page.locator('dialog textarea').evaluate(el=>document.activeElement===el),true);
+  const chip=page.locator('.payment-quick-chip').first();
+  const chipText=await chip.textContent();
+  await chip.click();
+  assert.equal(await page.locator('dialog textarea').inputValue(),chipText);
   await page.locator('dialog textarea').fill('Hết món');
   await page.getByRole('button',{name:'Xác nhận',exact:true}).click();
   await page.waitForSelector('dialog',{state:'detached'});
