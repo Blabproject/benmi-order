@@ -1638,10 +1638,16 @@ window.updateSettingsPrinterStatusDisplay = updateSettingsPrinterStatusDisplay;
 // PINs stay in the form/request only; never persist them in browser storage.
 let storePinChangePending = false;
 let storePinFormRevision = 0;
+let storePinChangeOrigin = null;
 
 function renderStorePinChangeState() {
   const form = document.getElementById("store-pin-form");
   if (!form) return;
+  const paymentFlow = storePinChangeOrigin && storePinChangeOrigin.scope === `${WORKER_BASE}|${getTenantIdFromUrl()}`;
+  const context = document.getElementById("store-pin-payment-context");
+  if (context) context.hidden = !paymentFlow;
+  const back = document.getElementById("store-pin-back-to-payments");
+  if (back) back.hidden = !paymentFlow;
   form.querySelectorAll("input, button").forEach(el => { el.disabled = storePinChangePending; });
   form.setAttribute("aria-busy", String(storePinChangePending));
   form.querySelectorAll("[data-store-pin-toggle]").forEach(button => {
@@ -1678,10 +1684,11 @@ function setStorePinFeedback(key, fieldId = null, kind = "error") {
   }
 }
 
-function resetStorePinChangeForm() {
+function resetStorePinChangeForm(preserveOrigin = false) {
   const form = document.getElementById("store-pin-form");
   if (!form) return;
   storePinFormRevision++;
+  if (preserveOrigin !== true) storePinChangeOrigin = null;
   form.reset();
   form.querySelectorAll("input").forEach(input => {
     input.type = "password";
@@ -1690,6 +1697,25 @@ function resetStorePinChangeForm() {
   delete form.dataset.feedbackKey;
   delete form.dataset.feedbackKind;
   renderStorePinChangeState();
+}
+
+function clearStorePinChangeForm() { resetStorePinChangeForm(true); }
+
+function beginStorePinChangeForPayments(scope) {
+  if (scope !== `${WORKER_BASE}|${getTenantIdFromUrl()}`) return;
+  resetStorePinChangeForm();
+  storePinChangeOrigin = { scope };
+  // Only reached after the payment API has confirmed the shared default PIN.
+  document.getElementById("store-pin-current").value = "12345678";
+  renderStorePinChangeState();
+  document.getElementById("store-pin-form").scrollIntoView({ block: "start" });
+  document.getElementById("store-pin-new").focus({ preventScroll: true });
+}
+
+function cancelStorePinChangeReturn() {
+  const origin = storePinChangeOrigin;
+  resetStorePinChangeForm();
+  if (origin && window.PaymentPOS) PaymentPOS.returnFromPinChange(origin);
 }
 
 function toggleStorePinVisibility(fieldId) {
@@ -1715,6 +1741,10 @@ async function submitStorePinChange(event) {
   }
   if (newInput.value !== newInput.value.trim() || !/^[0-9]{4,8}$/.test(newInput.value)) {
     setStorePinFeedback("pinInvalidFormat", newInput.id);
+    return;
+  }
+  if (storePinChangeOrigin && newInput.value === "12345678") {
+    setStorePinFeedback("pinPaymentDefaultNotAllowed", newInput.id);
     return;
   }
   if (newInput.value !== confirmInput.value) {
@@ -1762,8 +1792,10 @@ async function submitStorePinChange(event) {
   }
   if (!isCurrentForm()) return;
   if (saved) {
+    const origin = storePinChangeOrigin;
     resetStorePinChangeForm();
     setStorePinFeedback("pinChangeSuccess", null, "success");
+    if (origin && window.PaymentPOS) PaymentPOS.returnFromPinChange(origin, true);
   } else {
     setStorePinFeedback(resultKey, resultField);
   }
@@ -1773,6 +1805,9 @@ window.renderStorePinChangeState = renderStorePinChangeState;
 window.resetStorePinChangeForm = resetStorePinChangeForm;
 window.toggleStorePinVisibility = toggleStorePinVisibility;
 window.submitStorePinChange = submitStorePinChange;
+window.clearStorePinChangeForm = clearStorePinChangeForm;
+window.beginStorePinChangeForPayments = beginStorePinChangeForPayments;
+window.cancelStorePinChangeReturn = cancelStorePinChangeReturn;
 
 function renderStorePairingSection() {
   const tenantId = (typeof getTenantIdFromUrl === "function" && getTenantIdFromUrl()) || "";

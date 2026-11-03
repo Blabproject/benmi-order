@@ -46,7 +46,7 @@
     "test:staff-browser": "node --test tests/test_staff_ordering_browser.cjs",
     "test:store-pin": "node --test tests/test_store_pin_api.cjs tests/test_store_pin_browser.cjs",
     "test:payment-workspace": "node --test tests/test_payment_workspace.cjs tests/test_payment_workspace_browser.cjs",
-    "test:payments": "node --experimental-sqlite --test tests/test_linepay.cjs && node --test tests/test_linepay_browser.cjs tests/test_payment_result_browser.cjs",
+    "test:payments": "node --experimental-sqlite --test tests/test_linepay.cjs && node --test tests/test_linepay_browser.cjs tests/test_payment_result_browser.cjs tests/test_payment_pin_onboarding_browser.cjs",
     "graphify": "graphify .",
     "graphify:update": "graphify update ."
   },

@@ -12,7 +12,8 @@ window.PaymentPOS = (function () {
     return {scope:contextKey(),configured:null,configError:false,configBusy:false,count:null,countError:false,checkedAt:null,
       view:view==='history'?'history':'attention',filters:{from:today(),to:today(),status:'',q:''},
       items:[],summary:null,nextCursor:null,loaded:false,auth:null,error:null,listBusy:false,loginBusy:false,
-      generation:0,listController:null,countController:null,detailController:null,detail:null,detailBusy:false,detailMessage:null,actionBusy:false};
+      generation:0,listController:null,countController:null,detailController:null,detail:null,detailBusy:false,detailMessage:null,actionBusy:false,
+      pinChangeRequired:false,pinChanged:false,notice:null};
   }
   let state=initialState(),sessionPromise=null,returnFocus=null;
   function errorText(error) {
@@ -22,8 +23,9 @@ window.PaymentPOS = (function () {
   }
   function cancelledAuth() {const error=new Error('PAYMENT_AUTH_CANCELLED');error.code='PAYMENT_AUTH_CANCELLED';return error;}
 
-  function dialog(title, fields, action, hint) {
+  function dialog(title, fields, action, hint, options={}) {
     return new Promise(resolve=>{
+      const scope=contextKey();
       const d=document.createElement('dialog');d.className='payment-dialog';
       const h=document.createElement('h2');h.id='payment-dialog-title-'+(++dialogSequence);h.textContent=title;d.setAttribute('aria-labelledby',h.id);d.append(h);
       if(hint){const description=document.createElement('p');description.textContent=hint;d.append(description);}
@@ -39,11 +41,21 @@ window.PaymentPOS = (function () {
       const cancel=document.createElement('button');cancel.type='button';cancel.className='payment-button';cancel.textContent=t('paymentCancel');cancel.onclick=()=>d.close();
       const submit=document.createElement('button');submit.type='submit';submit.className='payment-button';submit.textContent=t('paymentConfirm');
       const actions=document.createElement('div');actions.className='payment-actions';actions.append(cancel,submit);form.append(actions);
+      const changePin=document.createElement('button');changePin.type='button';changePin.className='payment-button';changePin.hidden=true;
+      changePin.dataset.paymentI18n='paymentChangePinContinue';changePin.textContent=t('paymentChangePinContinue');
+      changePin.onclick=()=>{if(scope===contextKey())startPinChange();else d.close();};actions.append(changePin);
+      function showPinChange(){
+        if(scope!==contextKey())return;
+        requirePinChange();error.textContent=t('paymentDefaultPIN');error.dataset.paymentI18n='paymentDefaultPIN';
+        for(const input of Object.values(inputs)){input.value='';input.disabled=true;input.parentElement.hidden=true;}
+        submit.hidden=true;changePin.hidden=false;changePin.focus();
+      }
       form.onsubmit=async e=>{e.preventDefault();submit.disabled=true;
         try {const value=await action(Object.fromEntries(Object.entries(inputs).map(([k,v])=>[k,v.value])));resolve(value);d.close();}
-        catch(err){if(err.code!=='PAYMENT_AUTH_CANCELLED')error.textContent=errorText(err);}finally{submit.disabled=false;}
+        catch(err){if(err.code==='PAYMENT_PIN_CHANGE_REQUIRED')showPinChange();else if(err.code!=='PAYMENT_AUTH_CANCELLED')error.textContent=errorText(err);}finally{submit.disabled=false;}
       };
       d.addEventListener('close',()=>{resolve(null);d.remove();});d.append(form);document.body.append(d);d.showModal();
+      if(options.pinChangeRequired)showPinChange();
     });
   }
   async function api(path,body,token,signal) {
@@ -57,15 +69,15 @@ window.PaymentPOS = (function () {
   }
   async function token(forcePrompt=false) {
     ensureContext();const current=state,key=sessionKey();
-    const old=forcePrompt?null:sessionStorage.getItem(sessionKey());
+    const old=forcePrompt||state.pinChangeRequired?null:sessionStorage.getItem(sessionKey());
     if(old){try{await api('/api/payments/session',undefined,old);if(state!==current)throw cancelledAuth();state.auth=old;return old;}
-      catch(error){if(error.status!==401)throw error;}}
+      catch(error){if(state!==current)throw cancelledAuth();if(error.code==='PAYMENT_PIN_CHANGE_REQUIRED')requirePinChange();else if(error.status!==401)throw error;}}
 
     return dialog(t('paymentLogin'),[{key:'password',label:t('paymentPIN'),type:'password'}],async values=>{
       if(state!==current)throw cancelledAuth();
       const data=await api('/api/payments/session',values);if(state!==current)throw cancelledAuth();
-      sessionStorage.setItem(key,data.token);state.auth=data.token;return data.token;
-    },t('paymentLoginHint'));
+      sessionStorage.setItem(key,data.token);state.auth=data.token;state.pinChangeRequired=false;state.pinChanged=false;state.notice=null;return data.token;
+    },t(state.pinChanged?'paymentPinChangedLogin':'paymentLoginHint'),{pinChangeRequired:state.pinChangeRequired});
   }
   async function authorized(path,body) {
     let bearer=await token();if(!bearer)throw cancelledAuth();
@@ -122,11 +134,29 @@ window.PaymentPOS = (function () {
     if(state.scope===contextKey())return;
     state.listController?.abort();state.countController?.abort();state.detailController?.abort();
     closeDetail();document.querySelectorAll('.payment-dialog').forEach(el=>el.close());
+    if(typeof resetStorePinChangeForm==='function')resetStorePinChangeForm();
     state=initialState();sessionPromise=null;fillFilters();render();
   }
   function lockWorkspace(){
     state.auth=null;state.generation++;state.listController?.abort();state.items=[];state.summary=null;
     state.nextCursor=null;state.loaded=false;state.listBusy=false;state.error=null;closeDetail();render();
+  }
+  function requirePinChange(){state.pinChangeRequired=true;state.pinChanged=false;state.notice=null;lockWorkspace();}
+  function startPinChange(){
+    ensureContext();if(!state.pinChangeRequired||typeof beginStorePinChangeForPayments!=='function')return;
+    const scope=state.scope;
+    document.querySelectorAll('.payment-dialog').forEach(el=>el.close());closeDetail();
+    if(typeof closeModal==='function')closeModal();
+    switchTab('settings');
+    if(typeof activeTab!=='undefined'&&activeTab==='settings'){
+      switchSettingTab('setting-card-store-pairing');beginStorePinChangeForPayments(scope);
+    }
+  }
+  function returnFromPinChange(context,changed=false){
+    ensureContext();if(!context||context.scope!==state.scope)return;
+    if(changed){lockWorkspace();state.pinChangeRequired=false;state.pinChanged=true;state.notice='paymentPinChangedLogin';}
+    switchTab('payments');render();
+    byId(changed?'payment-workspace-login':'payment-workspace-change-pin')?.focus();
   }
   function fillFilters(){
     for(const [key,id] of [['from','payment-filter-from'],['to','payment-filter-to'],['q','payment-filter-search']]){
@@ -165,12 +195,13 @@ window.PaymentPOS = (function () {
       const text=state.countError?(state.count>0?t('paymentAlertCount',{count:state.count})+' · ':'')+t('paymentCountStale'):t('paymentAlertCount',{count:state.count});
       if(live.textContent!==text)live.textContent=text;live.classList.toggle('is-stale',state.countError);
     }
-    const status=byId('payment-workspace-status');if(status)status.textContent=state.error?t(state.error):state.countError?t('paymentWorkspaceStale'):'';
+    const status=byId('payment-workspace-status');if(status){status.textContent=state.error?t(state.error):state.notice?t(state.notice):state.countError?t('paymentWorkspaceStale'):'';status.classList.toggle('is-success',!!state.notice&&!state.error);}
     const privateView=byId('payment-private-workspace'),access=byId('payment-access-panel');
     const unlocked=state.configured===true&&!!state.auth;
     if(privateView)privateView.hidden=!unlocked;if(access)access.hidden=unlocked;
-    const description=byId('payment-access-description');if(description)description.textContent=t(state.configError?'paymentWorkspaceStale':state.configured===null?'paymentConfigLoading':state.configured===false?'paymentNotConfigured':'paymentWorkspaceLocked');
-    const loginButton=byId('payment-workspace-login');if(loginButton){loginButton.hidden=state.configured!==true;loginButton.disabled=state.loginBusy;}
+    const description=byId('payment-access-description');if(description)description.textContent=t(state.configError?'paymentWorkspaceStale':state.configured===null?'paymentConfigLoading':state.configured===false?'paymentNotConfigured':state.pinChangeRequired?'paymentDefaultPIN':'paymentWorkspaceLocked');
+    const loginButton=byId('payment-workspace-login');if(loginButton){loginButton.hidden=state.configured!==true||state.pinChangeRequired;loginButton.disabled=state.loginBusy;loginButton.textContent=t(state.pinChanged?'paymentLoginNewPin':'paymentLogin');}
+    const changePinButton=byId('payment-workspace-change-pin');if(changePinButton)changePinButton.hidden=state.configured!==true||!state.pinChangeRequired;
     for(const view of ['attention','history']){const tab=byId('payment-tab-'+view);if(tab){tab.classList.toggle('active',state.view===view);tab.setAttribute('aria-selected',String(state.view===view));}}
     const filters=byId('payment-history-filters');if(filters)filters.hidden=state.view!=='history';
     const panel=byId('payment-list-panel');if(panel){panel.setAttribute('aria-labelledby','payment-tab-'+state.view);panel.setAttribute('aria-busy',String(state.listBusy));}
@@ -192,11 +223,12 @@ window.PaymentPOS = (function () {
     finally{clearTimeout(timeout);current.countController=null;if(state===current)render();}
   }
   async function restoreSession(){
+    if(state.pinChangeRequired)return;
     if(sessionPromise)return sessionPromise;
     const current=state;let saved=null;try{saved=sessionStorage.getItem(sessionKey());}catch(_){}
     if(!saved)return;
     const pending=(async()=>{try{await api('/api/payments/session',undefined,saved);if(state===current){state.auth=saved;await refreshData();}}
-      catch(error){if(state===current&&error.status!==401){lockWorkspace();state.error=error.code==='PAYMENT_PIN_CHANGE_REQUIRED'?'paymentDefaultPIN':'paymentWorkspaceStale';render();}}})();
+      catch(error){if(state===current&&error.status!==401){if(error.code==='PAYMENT_PIN_CHANGE_REQUIRED')requirePinChange();else{lockWorkspace();state.error='paymentWorkspaceStale';}render();}}})();
     sessionPromise=pending;try{await pending;}finally{if(sessionPromise===pending)sessionPromise=null;}
   }
   async function login(){
@@ -314,5 +346,5 @@ window.PaymentPOS = (function () {
   const detailDialog=byId('payment-detail-dialog');if(detailDialog){detailDialog.addEventListener('close',()=>{if(!detailDialog.open)closeDetail();});detailDialog.addEventListener('click',event=>{if(event.target===detailDialog){const rect=detailDialog.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)closeDetail();}});}
   setInterval(tick,30000);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else setTimeout(init,0);
-  return {token,mount,badge,translate,onTabChange,login,setView,setRange,applyFilters,openDetail,closeDetail,refresh:refreshAll,loadMore:()=>refreshData(true)};
+  return {token,mount,badge,translate,onTabChange,login,startPinChange,returnFromPinChange,setView,setRange,applyFilters,openDetail,closeDetail,refresh:refreshAll,loadMore:()=>refreshData(true)};
 })();
