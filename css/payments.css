@@ -61,12 +61,25 @@
 .payment-button-danger:active{background:#b91c1c}
 
 /* Customer checkout: quiet surfaces, clear type and one brand accent. */
-#sec-checkout .payment-method-section{margin:0 0 18px}
-#sec-checkout .payment-method-label{display:flex;align-items:center;gap:8px;margin:0 0 10px;color:var(--text,#1f2937);font-size:15px;font-weight:700}
-#sec-checkout .payment-method-label svg{flex:none;color:var(--primary,#059669)}
-#sec-checkout .payment-method-select{appearance:none;-webkit-appearance:none;box-sizing:border-box;width:100%;min-height:48px;padding:12px 40px 12px 14px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafb url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center;color:var(--text,#1f2937);font:inherit;font-size:14px;cursor:pointer;transition:border-color .15s,background-color .15s}
-#sec-checkout .payment-method-select:hover{border-color:#cbd5e1;background-color:#fff}
-#sec-checkout .payment-method-select:focus-visible{outline:2px solid var(--primary,#059669);outline-offset:3px}
+#sec-checkout .payment-method-section{min-width:0;margin:0;padding:0;border:0}
+#sec-checkout .payment-method-label{margin:0 0 10px;padding:0;color:var(--text,#1f2937);font-size:15px;font-weight:700}
+#sec-checkout .payment-method-choices{display:grid;gap:8px}
+#sec-checkout .payment-method-option{display:flex;align-items:center;gap:12px;box-sizing:border-box;min-height:64px;padding:12px 14px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;color:var(--text,#1f2937);cursor:pointer;transition:border-color .15s,background-color .15s}
+#sec-checkout .payment-method-option:has(input:checked){border-color:var(--primary,#059669);background:#f0fdf4}
+#sec-checkout .payment-method-option:has(input:focus-visible){outline:2px solid var(--primary,#059669);outline-offset:3px}
+#sec-checkout .payment-method-option input{flex:none;width:20px;height:20px;margin:0;accent-color:var(--primary,#059669)}
+#sec-checkout .payment-method-copy{display:flex;min-width:0;flex-direction:column;gap:3px}
+#sec-checkout .payment-method-title{font-size:14px;font-weight:700;line-height:1.4;overflow-wrap:anywhere}
+#sec-checkout .payment-method-description,#sec-checkout .payment-method-hint,.checkout-empty-cart-hint{font-size:12px;line-height:1.5;color:#64748b}
+#sec-checkout .payment-method-hint{margin:8px 0 0}
+#sec-checkout .payment-method-hint[hidden],.checkout-empty-cart-hint[hidden]{display:none}
+#sec-checkout .checkout-empty-cart-hint{margin:0}
+#sec-checkout .btn-desktop-submit:disabled{background:#d1d5db;color:#374151;box-shadow:none;cursor:not-allowed;transform:none}
+@media(max-width:1023px){
+  #sec-checkout .desktop-sidebar-submit-wrap{display:flex;flex-direction:column;gap:10px;margin-top:18px;padding-top:16px;border-top:1px dashed #e2e8f0}
+  #sec-checkout .desktop-sidebar-total-row,#sec-checkout .btn-desktop-submit{display:none}
+  .footer .btn-send{max-width:65%;padding-right:18px;padding-left:18px;font-size:15px;line-height:1.35;white-space:normal;text-align:center}
+}
 #sec-checkout .payment-result-card{padding:18px;margin:0 0 22px;border:1px solid #e8edf0;border-radius:14px;background:#fafcfb;font-family:inherit;line-height:1.5}
 #sec-checkout .payment-result-heading{display:flex;align-items:flex-start;gap:10px}
 #sec-checkout .payment-result-mark{display:flex;align-items:center;justify-content:center;flex:0 0 30px;width:30px;height:30px;border-radius:50%;background:#f1f5f9;color:#64748b}
@@ -100,7 +113,7 @@
 #sec-checkout .payment-result-button{width:100%;margin-top:4px;border-color:#dce5e0;border-radius:10px;background:#fff;font-size:13px;font-weight:600;color:#334155;transition:border-color .15s,background-color .15s}
 #sec-checkout .payment-result-button:hover{background:#f3f7f5;border-color:#b8cec2}
 #sec-checkout .payment-result-button:focus-visible{outline-color:var(--primary,#059669)}
-@media(prefers-reduced-motion:reduce){#sec-checkout .payment-method-select,#sec-checkout .payment-result-button{transition:none}}
+@media(prefers-reduced-motion:reduce){#sec-checkout .payment-method-option,#sec-checkout .payment-result-button{transition:none}}
 .payment-cancel-dialog{box-sizing:border-box;width:calc(100% - 32px);max-width:440px;max-height:85dvh;overflow:auto;padding:24px;border:1px solid #e2e8f0;border-radius:18px;color:#1f2937;background:#fff;font:inherit;line-height:1.65}
 .payment-cancel-dialog::backdrop{background:rgb(15 23 42 / .35)}
 .payment-cancel-dialog h2{font-size:19px;margin:0 0 12px}

@@ -7,6 +7,7 @@ const vm = require('node:vm');
 function client() {
   const elements = {};
   const element = id => elements[id] ||= {
+    id, dataset: {}, setAttribute() {}, removeAttribute() {},
     style: {}, innerText: '', innerHTML: '', value: '',
     classList: { contains: () => false, add() {}, remove() {} },
     querySelector: () => null, querySelectorAll: () => [],

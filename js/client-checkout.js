@@ -588,11 +588,24 @@ function isCheckoutSectionVisible() {
 // 2. Cập nhật trạng thái chữ trên nút cố định ở chân trang
 function updateFooterButtonState() {
     const btn = document.getElementById('btn-submit');
-    if (!btn || isSubmitting || (btn.disabled && !window.isEditOrderMode)) return;
+    if (!btn || isSubmitting || (btn.disabled && !window.isEditOrderMode && !btn.dataset.emptyCart)) return;
 
     if(window.LinePayCheckout?.blocked()){LinePayCheckout.syncButtons();return;}
+    // Edit/append keep their own availability rules when entered from an empty cart.
+    if (window.isAppendMode || window.isEditOrderMode) {
+        for (const button of getAllSubmitButtons()) {
+            if (button.dataset.emptyCart) {
+                button.disabled = false;
+                delete button.dataset.emptyCart;
+                button.removeAttribute('aria-describedby');
+            }
+        }
+        const hint = document.getElementById('checkout-empty-cart-hint');
+        if (hint) hint.hidden = true;
+    }
     if (window.isAppendMode) {
-        btn.innerHTML = '<span>確認加點</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+        const vi = (typeof currentLocale !== 'undefined' ? currentLocale : document.documentElement.lang) === 'vi';
+        for (const button of getAllSubmitButtons()) button.textContent = vi ? 'Xác nhận gọi thêm' : '確認加點';
         return;
     }
 
@@ -629,10 +642,29 @@ function updateFooterButtonState() {
         }
     }
 
-    if (isCheckoutSectionVisible()) {
-        btn.innerHTML = '<span>確認下單</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-    } else {
-        btn.innerHTML = '<span>前往結帳</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
+    const vi = (typeof currentLocale !== 'undefined' ? currentLocale : document.documentElement.lang) === 'vi';
+    const hasItems = Object.values(window.cart || cart || {}).some(qty => Number(qty) > 0);
+    const emptyHint = document.getElementById('checkout-empty-cart-hint');
+    if (emptyHint) {
+        emptyHint.hidden = hasItems;
+        emptyHint.textContent = vi ? 'Hãy thêm món vào giỏ hàng để tiếp tục.' : '請先將餐點加入購物車。';
+    }
+    const checkoutLabel = window.LinePayCheckout?.buttonLabel?.() || (vi ? 'Xác nhận đặt món' : '確認下單');
+    for (const button of getAllSubmitButtons()) {
+        if (!hasItems) {
+            button.dataset.emptyCart = 'true';
+            button.disabled = true;
+            button.textContent = vi ? 'Hãy chọn món' : '請先選擇餐點';
+            button.setAttribute('aria-describedby', 'checkout-empty-cart-hint');
+        } else {
+            if (button.dataset.emptyCart) {
+                button.disabled = false;
+                delete button.dataset.emptyCart;
+                button.removeAttribute('aria-describedby');
+            }
+            if (!button.disabled) button.textContent = button.id === 'btn-submit' && !isCheckoutSectionVisible()
+                ? (vi ? 'Đến thanh toán' : '前往結帳') : checkoutLabel;
+        }
     }
 }
 
@@ -1768,6 +1800,7 @@ function setAllSubmitButtonsState(disabled, text, options = {}) {
         if (options.cursor) btn.style.cursor = options.cursor;
         if (options.opacity) btn.style.opacity = options.opacity;
     });
+    if (!disabled) window.LinePayCheckout?.syncButtons();
 }
 
 // 9.4 Hàm tìm kiếm món ăn chính xác trong danh mục thực đơn

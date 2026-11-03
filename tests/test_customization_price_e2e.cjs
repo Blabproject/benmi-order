@@ -9,6 +9,7 @@ function getElementById(id) {
   if (!domElements[id]) {
     domElements[id] = {
       id,
+      dataset: {},
       innerText: '',
       innerHTML: '',
       style: {},
