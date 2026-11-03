@@ -62,7 +62,10 @@
 
 /* Customer checkout: quiet surfaces, clear type and one brand accent. */
 #sec-checkout .payment-method-section{min-width:0;margin:0;padding:0;border:0}
-#sec-checkout .payment-method-label{margin:0 0 10px;padding:0;color:var(--text,#1f2937);font-size:15px;font-weight:700}
+#checkout-payment-method:not(:empty){margin-bottom:20px}
+#sec-checkout .payment-method-label{margin:0 0 12px;padding:0;color:var(--text,#1f2937);font-size:20px;font-weight:800}
+#sec-checkout .payment-method-heading{display:flex;align-items:center;gap:8px}
+#sec-checkout .payment-method-heading svg{flex:none;color:var(--primary,#059669)}
 #sec-checkout .payment-method-choices{display:grid;gap:8px}
 #sec-checkout .payment-method-option{display:flex;align-items:center;gap:12px;box-sizing:border-box;min-height:64px;padding:12px 14px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;color:var(--text,#1f2937);cursor:pointer;transition:border-color .15s,background-color .15s}
 #sec-checkout .payment-method-option:has(input:checked){border-color:var(--primary,#059669);background:#f0fdf4}

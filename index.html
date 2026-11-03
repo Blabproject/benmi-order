@@ -156,7 +156,7 @@
         })();
     </script>
 <link rel="stylesheet" href="/css/client-option-groups.css?v=20261022_option_image_stability_v1">
-  <link rel="stylesheet" href="/css/payments.css?v=20261103_linepay_official_logo_v1">
+  <link rel="stylesheet" href="/css/payments.css?v=20261103_payment_section_top_v1">
 </head>
 
 <body>
@@ -522,6 +522,7 @@
             <!-- Right Column: Sticky Checkout Sidebar on Desktop -->
             <div class="checkout-sidebar-col">
                 <div class="section-container checkout-sidebar-card" id="sec-checkout">
+                    <div id="checkout-payment-method"></div>
                     <!-- 1. Cart Summary -->
                     <div class="section-title checkout-section-title">
                         <svg class="section-title-svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -727,7 +728,6 @@
                         <div class="desktop-sidebar-total-row">
                             <div class="desktop-sidebar-price">$<span id="desktop-total-price">0</span></div>
                         </div>
-                        <div id="checkout-payment-method"></div>
                         <p id="checkout-empty-cart-hint" class="checkout-empty-cart-hint" hidden></p>
                         <button type="button" class="btn-desktop-submit" id="btn-desktop-submit"
                             onclick="submitOrder()">
@@ -900,7 +900,7 @@
   <script src="/js/payment-session.js?v=20261103_linepay_mobile_redirect_v1"></script>
   <script src="/js/payment-view.js?v=20261101_payment_result_v1"></script>
   <script src="/js/payment-actions.js?v=20261101_payment_cancel_v1"></script>
-  <script src="/js/client-payments.js?v=20261103_linepay_official_logo_v1"></script>
+  <script src="/js/client-payments.js?v=20261103_payment_section_top_v1"></script>
 </body>
 
 </html>

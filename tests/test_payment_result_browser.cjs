@@ -9,7 +9,8 @@ const draft={cart:{meal:1},customizeData:{},comboDrinkData:{},bundleCartData:{}}
 const receipt={schemaVersion:1,total:100,rounds:[{roundNumber:1,groups:[],note:'',items:[{lineId:'meal',itemId:'meal',name:'Meal',quantity:1,unitPrice:100,subtotal:100,portions:[{portionIndex:0,groups:[],note:''}],note:''}]}]};
 const paid={id,status:'PAID',paidAt:123,amount:100,displayKey:'A001',orderStatus:'NEW',pickupTime:'2026-11-01 12:00',receipt,merchant:{brandName:'Store <safe>',locale:'vi'},menuUrl:'https://fixture.test/?tenant_id=a'};
 const checkoutActions=fs.readFileSync(path.join(root,'index.html'),'utf8').match(/<div class="desktop-sidebar-submit-wrap">[\s\S]*?<\/button>\s*<\/div>/)[0];
-const menu=`<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/index.css"><link rel="stylesheet" href="/css/payments.css"></head><body><main><section id="sec-checkout" style="max-width:420px;margin:auto;padding:20px;box-sizing:border-box">${checkoutActions}</section><button id="add">Add meal</button><div class="footer"><div class="footer-inner"><div class="total-wrap">$100</div><button class="btn-send" id="btn-submit" onclick="handleFooterAction()">確認下單</button></div></div></main><script>
+const checkoutStart=fs.readFileSync(path.join(root,'index.html'),'utf8').match(/id="sec-checkout">([\s\S]*?)<!-- 2\./)[1];
+const menu=`<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/index.css"><link rel="stylesheet" href="/css/payments.css"></head><body><main><section id="sec-checkout" style="max-width:420px;margin:auto;padding:20px;box-sizing:border-box">${checkoutStart}${checkoutActions}</section><button id="add">Add meal</button><div class="footer"><div class="footer-inner"><div class="total-wrap">$100</div><button class="btn-send" id="btn-submit" onclick="handleFooterAction()">確認下單</button></div></div></main><script>
 window.WORKER_BASE='https://api.test';window.getTenantIdFromUrl=()=> 'a';window.currentLocale=new URL(location.href).searchParams.get('lang')||'vi';document.documentElement.lang=currentLocale;
 const saved=JSON.parse(localStorage.getItem('cart_save_a')||'null');
 window.cart=saved?.cart||{};window.customizeData=saved?.customizeData||{};window.comboDrinkData=saved?.comboDrinkData||{};window.bundleCartData=saved?.bundleCartData||{};
@@ -213,6 +214,9 @@ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('Check
    assert.equal(await f.page.locator('#checkout-empty-cart-hint').isVisible(),true);
    assert.equal(await f.page.locator('select#payment-method').count(),0);
    assert.equal(await f.page.locator('#checkout-payment-method > fieldset').count(),1);
+   assert.equal(await f.page.locator('.payment-method-heading svg').count(),1);
+   const paymentBox=await f.page.locator('#payment-method').boundingBox(),cartBox=await f.page.locator('#cart-summary').boundingBox();
+   assert(paymentBox.y+paymentBox.height<cartBox.y,'Payment choices appear above the cart summary');
    assert.equal(await f.page.locator('input[name="payment-method"][value="cash"]').isChecked(),true);
    for(const box of await f.page.locator('.payment-method-option').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect())))assert(box.height>=48);
    await f.page.locator('#add').click();

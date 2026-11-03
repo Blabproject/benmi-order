@@ -124,7 +124,9 @@ window.LinePayCheckout = (function () {
     try{
       const config=await(await fetch(WORKER_BASE+'/api/payments/config?tenant_id='+encodeURIComponent(getTenantIdFromUrl()))).json();if(!config.linePay?.enabled)return;
       const group=PaymentView.element('fieldset','payment-method-section');group.id='payment-method';
-      const legend=PaymentView.element('legend','payment-method-label');legend.textContent=text('付款方式','Phương thức thanh toán');
+      const legend=PaymentView.element('legend','payment-method-label');
+      const heading=PaymentView.element('span','payment-method-heading');
+      heading.append(PaymentView.icon('card'),PaymentView.element('span','',text('付款方式','Phương thức thanh toán')));legend.append(heading);
       const choices=PaymentView.element('div','payment-method-choices');
       for(const [value,title,description] of [
         ['cash',text('取餐時付款','Trả khi nhận món'),text('領取餐點時再付款','Thanh toán tại quầy khi nhận món')],

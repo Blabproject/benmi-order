@@ -1,7 +1,7 @@
 # Graph Report - benmi-linepay-logo-release  (2026-11-03)
 
 ## Corpus Check
-- 1042 files · ~1,310,950 words
+- 1042 files · ~1,310,970 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 121 file(s) not represented in the graph (top: .csv 53, .apk 23, (none) 15)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `2b263496`
+- Built from commit: `762ae629`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
