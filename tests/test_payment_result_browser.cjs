@@ -16,7 +16,7 @@ window.isSubmitting=false;window.updateTotal=()=>{};window.DetailCheckout={compl
 document.getElementById('add').onclick=()=>{cart.meal=(cart.meal||0)+1;LinePayCheckout.onCartChange();};
 </script><script src="/js/client-checkout.js"></script><script src="/js/payment-session.js"></script><script src="/js/payment-view.js"></script><script src="/js/payment-actions.js"></script><script src="/js/client-payments.js"></script></body></html>`;
 async function fixture(browser,options={}){
- const context=await browser.newContext({viewport:{width:390,height:844}}),calls=[],errors=[];
+ const context=await browser.newContext({viewport:{width:390,height:844},...options.device}),calls=[],errors=[];
  const model={data:paid,...options};
  await context.addInitScript(({id,draft,options})=>{
   if(!sessionStorage.getItem('seeded')){
@@ -35,7 +35,7 @@ async function fixture(browser,options={}){
    calls.push({url:url.href,path:url.pathname,method:req.method(),headers:req.headers(),body:req.postData()});
    if(model.delay&&url.pathname.endsWith('/confirm'))await model.delay;
    if(url.pathname.endsWith('/cancel')&&model.cancelReply&&!model.offline)model.data=model.cancelReply;
-   const data=url.pathname.endsWith('/config')?{linePay:{enabled:true}}:url.pathname.endsWith('/request')?{id,status:'PENDING',paymentUrl:'https://sandbox-web-pay.line.me/web/payment/test'}:model.data;
+   const data=url.pathname.endsWith('/config')?{linePay:{enabled:true}}:url.pathname.endsWith('/request')?(model.requestReply||{id,status:'PENDING',paymentUrl:'https://sandbox-web-pay.line.me/web/payment/test'}):model.data;
    const offline=model.offline&&!url.pathname.endsWith('/config');
    return route.fulfill({status:offline?503:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify(offline?{code:'UNAVAILABLE'}:data)});
   }
@@ -50,6 +50,46 @@ async function fixture(browser,options={}){
  return {context,page,calls,model,errors,close:async()=>{assert.deepEqual(errors,[]);await context.close();}};
 }
 const resultUrl='https://fixture.test/payment-result?tenant_id=a&payment_id='+id+'&lang=vi&transactionId=123&orderId=provider-order';
+async function captureProviderLaunches(page){
+ await page.evaluate(()=>{
+  window.providerLaunches=[];
+  // Native app handoff is a browser/OS boundary; exercise URL selection with
+  // the real helper and retain the page to verify manual recovery controls.
+  PaymentSession.openProvider=(data,preferWeb=false)=>providerLaunches.push({id:data.id,target:PaymentSession.providerTarget(data),preferWeb});
+ });
+}
+for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])for(const lang of ['vi','zh-TW'])test('LINE Pay '+name+': mobile app handoff and web recovery in '+lang,async()=>{
+ const browser=await engine.launch({headless:true});try{
+  const pending={id,status:'PENDING',amount:100,displayKey:'A001',canCancel:true,paymentUrl:'https://web-pay.line.me/web/payment/wait?transactionReserveId=example',appUrl:'line://pay/payment/example'};
+  const device=lang==='vi'?{userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Version/18.0 Mobile Safari/604.1'}
+   :{userAgent:'Mozilla/5.0 (Linux; Android 15) Chrome/130 Mobile Safari/537.36 Line/15.20.0'};
+  const f=await fixture(browser,{missing:true,data:pending,requestReply:pending,device});
+  await f.page.goto('https://fixture.test/?tenant_id=a&lang='+lang);await f.page.waitForSelector('#payment-method');
+  await f.page.evaluate(lang=>{window.currentLocale=lang;document.documentElement.lang=lang;window.liff={isInClient:()=>false,isLoggedIn:()=>false};},lang);
+  await captureProviderLaunches(f.page);
+  await f.page.selectOption('#payment-method','line_pay');
+  await f.page.evaluate(()=>LinePayCheckout.start({detailVersion:1,dining_option:'takeaway',operationId:'mobile-payment-request'}));
+  const open=lang==='vi'?'Mở LINE Pay':'開啟 LINE Pay',web=lang==='vi'?'Thanh toán trong trình duyệt':'改用瀏覽器付款';
+  await f.page.getByRole('button',{name:open,exact:true}).waitFor();
+  let launches=await f.page.evaluate(()=>providerLaunches);assert.equal(launches[0].target.url,pending.appUrl);assert.equal(launches[0].target.usesApp,true);
+  await f.page.getByRole('button',{name:open,exact:true}).click();
+  await f.page.getByRole('button',{name:web,exact:true}).click();
+  launches=await f.page.evaluate(()=>providerLaunches);assert.equal(launches.length,3);assert.equal(launches[2].preferWeb,true);assert.equal(launches[2].target.webUrl,pending.paymentUrl);
+  assert.equal(f.calls.filter(c=>c.path.endsWith('/request')).length,1,'Recovery must reuse the existing payment');
+  for(const box of await f.page.locator('#payment-result button').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().height)))assert(box>=48);
+  assert.equal(await f.page.evaluate(()=>PaymentSession.active().id),id);
+  if(process.env.PAYMENT_RESULT_SCREENSHOT_DIR){fs.mkdirSync(process.env.PAYMENT_RESULT_SCREENSHOT_DIR,{recursive:true});await f.page.screenshot({path:path.join(process.env.PAYMENT_RESULT_SCREENSHOT_DIR,'handoff-'+name+'-'+lang+'.png'),fullPage:true});}
+  await f.page.goto(resultUrl.replace('lang=vi','lang='+lang));
+  await f.page.getByRole('button',{name:lang==='vi'?'Tiếp tục LINE Pay':'繼續 LINE Pay 付款',exact:true}).waitFor();
+  assert.equal(await f.page.evaluate(()=>typeof liff),'undefined','The result page must work without loading LIFF');
+  await captureProviderLaunches(f.page);
+  await f.page.getByRole('button',{name:lang==='vi'?'Tiếp tục LINE Pay':'繼續 LINE Pay 付款',exact:true}).click();
+  await f.page.getByRole('button',{name:web,exact:true}).click();
+  launches=await f.page.evaluate(()=>providerLaunches);assert.equal(launches[0].target.url,pending.appUrl);assert.equal(launches[1].preferWeb,true);
+  assert(launches.every(launch=>launch.id===id));assert.equal(f.calls.filter(c=>c.path.endsWith('/request')).length,1);
+  await f.close();
+ }finally{await browser.close();}
+});
 for(const [name,engine] of [['chromium',chromium],['webkit',webkit]]){
  test('LINE Pay '+name+': separate paid receipt survives refresh and starts a clean new order',async()=>{
   const browser=await engine.launch({headless:true});try{
