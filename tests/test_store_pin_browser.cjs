@@ -66,7 +66,7 @@ for (const [name, engine] of Object.entries({ chromium, webkit })) {
         assert.equal(await page.locator('.store-pin-title').innerText(), locale === 'vi' ? 'Đổi mã PIN quản lý' : '變更管理 PIN 碼');
         const layout = await page.locator('#store-pin-form').evaluate(form => ({
           overflow: form.scrollWidth > form.clientWidth + 1,
-          targets: [...form.querySelectorAll('input,button')].map(el => ({
+          targets: [...form.querySelectorAll('input,button')].filter(el => el.getClientRects().length).map(el => ({
             id: el.id || el.textContent, width: el.getBoundingClientRect().width, height: el.getBoundingClientRect().height
           })),
           labels: [...form.querySelectorAll('[data-store-pin-i18n]')].every(el => el.textContent === t(el.dataset.storePinI18n))

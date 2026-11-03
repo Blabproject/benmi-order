@@ -12667,7 +12667,8 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
 
 /* Payment operations: quiet notifications, private workspace, responsive ledger. */
 #tab-payments[hidden], #sidebar-payment-count[hidden], #payment-live-alert[hidden],
-.payment-workspace [hidden], .payment-detail-dialog:not([open]) { display:none !important; }
+.payment-workspace [hidden], .payment-detail-dialog:not([open]), .payment-dialog .payment-button[hidden], .payment-dialog label[hidden],
+#store-pin-payment-context[hidden], #store-pin-back-to-payments[hidden] { display:none !important; }
 .payment-live-alert { flex:none; align-self:flex-start; max-width:calc(100% - 32px); min-height:48px; margin:8px 16px 0; padding:10px 16px; border:1px solid #fcd34d; border-radius:10px; background:#fffbeb; color:#92400e; font:inherit; font-size:var(--pos-text-meta); font-weight:650; text-align:left; cursor:pointer; }
 .payment-live-alert.is-stale { border-color:#cbd5e1; color:#475569; background:#f8fafc; }
 .payment-workspace { padding:20px; max-width:1440px; width:100%; box-sizing:border-box; margin:0 auto; overflow:auto; min-height:0; }
@@ -12678,6 +12679,8 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
 .payment-workspace-heading p, .payment-workspace-hint { margin:0; color:#475569; font-size:var(--pos-text-meta); line-height:1.55; }
 .payment-workspace-status { color:#92400e; font-size:var(--pos-text-meta); line-height:1.5; margin-bottom:12px; }
 .payment-workspace-status:empty { display:none; }
+.payment-workspace-status.is-success { color:#047857; }
+.store-pin-return-notice { padding:12px; border:1px solid #bfdbfe; border-radius:10px; background:#eff6ff; color:#1e40af; }
 .payment-access-panel { padding:24px; background:#fff; border:1px solid #e2e8f0; border-radius:14px; font-size:var(--pos-text-body); }
 .payment-access-panel p { margin:0 0 20px; line-height:1.6; }
 .payment-workspace-tabs { display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid #e2e8f0; padding-bottom:12px; }

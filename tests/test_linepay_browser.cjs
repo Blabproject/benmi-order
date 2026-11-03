@@ -70,10 +70,8 @@ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('LINE 
   assert.equal(await page.evaluate(()=>sessionStorage.getItem('staff_session_token_a')),null);
   await page.locator('dialog input').fill('wrong');await page.getByRole('button',{name:'Xác nhận',exact:true}).click();
   await page.getByRole('alert').filter({hasText:'PIN không đúng'}).waitFor();
-  await page.evaluate(()=>{loginMode='default';});
-  await page.locator('dialog input').fill('12345678');await page.getByRole('button',{name:'Xác nhận',exact:true}).click();
-  await page.getByRole('alert').filter({hasText:'Hãy đổi PIN mặc định'}).waitFor();
-  await page.evaluate(()=>{loginMode='normal';});
+  // Default-PIN remediation is covered with the real change-PIN form/API in
+  // test_payment_pin_onboarding_browser.cjs; this case covers ordinary reauth.
   await page.locator('dialog input').fill('87654321');await page.getByRole('button',{name:'Xác nhận',exact:true}).click();
   await page.waitForSelector('dialog',{state:'detached'});assert.equal(await page.evaluate(()=>ownerAuth),'valid-one');
   await page.evaluate(()=>PaymentPOS.mount({key:'one',status:'NEW',payment:{id:'11111111-1111-4111-8111-111111111111',status:'PAID',amount:100}}));
