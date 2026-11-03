@@ -645,7 +645,7 @@
               : "",
           )
           .join("") +
-        `<label class="uoc-note"><span>${esc(msg("個別備註", "Ghi chú riêng"))}</span><textarea data-note maxlength="50" rows="2" placeholder="${esc(msg("例如：不要香菜、少醬", "Ví dụ: không rau thơm, ít sốt"))}">${esc(context.note)}</textarea></label>`;
+        `<label class="uoc-note"><span>${esc(msg("個別備註", "Ghi chú riêng"))}</span><textarea data-note maxlength="50" rows="2">${esc(context.note)}</textarea></label>`;
     }
     body.scrollTop = scroll;
     const b = el.querySelector("[data-confirm]");

@@ -186,7 +186,7 @@
         addonsHTML += `
           <div style="margin-top: 12px; background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0;">
             <label style="font-size: 13.5px; font-weight: 800; color: #334155; display: block; margin-bottom: 6px;">個別備註</label>
-            <input type="text" maxlength="50" value="${esc(draft.addonSelections?.note || '')}" placeholder="例如：不要香菜、少醬" 
+            <input type="text" maxlength="50" value="${esc(draft.addonSelections?.note || '')}"
                    oninput="bundleUpdateAddonNote(this.value)"
                    style="width: 100%; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 10px 14px; font-size: 14px; color: #1e293b; background: #fff; outline: none; box-sizing: border-box; min-height: 44px;">
           </div>

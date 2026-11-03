@@ -840,7 +840,7 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
         const noteDiv = document.createElement('div');
         noteDiv.innerHTML = `
             <label style="font-size: 13px; font-weight: 800; color: #475569; display: block; margin: 12px 0 6px 0;">個別備註</label>
-            <input type="text" maxlength="50" value="${(draft.note || '').replace(/"/g, '&quot;')}" placeholder="例如：不要香菜、醬料分開裝" 
+            <input type="text" maxlength="50" value="${(draft.note || '').replace(/"/g, '&quot;')}"
                    class="customize-note-input"
                    style="width: 100%; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 10px 14px; font-size: 14px; color: #1e293b; background: #fff; outline: none; box-sizing: border-box;">
         `;
