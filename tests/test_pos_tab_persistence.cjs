@@ -129,8 +129,8 @@ test('getInitialTab: returns "live" by default when no hash, search, or sessionS
   assert.equal(sandbox.activeTab, 'live');
 });
 
-test('getInitialTab: restores tab from URL hash (#menu, #history, #reports, #settings, #live)', () => {
-  for (const tab of ['menu', 'history', 'reports', 'settings', 'live']) {
+test('getInitialTab: restores tab from URL hash, including staff ordering', () => {
+  for (const tab of ['menu', 'history', 'reports', 'settings', 'live', 'staff-order']) {
     const { sandbox } = createCoreSandbox(`https://pos.blabfood.app/orders.html?tenant=benmi#${tab}`);
     assert.equal(sandbox.getInitialTab(), tab, `Expected initial tab to be ${tab} from hash`);
     assert.equal(sandbox.activeTab, tab, `Expected activeTab to initialize to ${tab}`);
@@ -206,6 +206,25 @@ test('switchTab: respects confirmLeaveMenu when leaving dirty menu', () => {
   assert.equal(sandbox.activeTab, 'menu');
   assert.equal(mockWindow.location.hash, '#menu');
   assert.equal(store.pos_active_tab, undefined);
+});
+
+test('switchTab: opens staff workspace and returns to live orders', () => {
+  const { sandbox, store, mockWindow, elements } = createCoreSandbox();
+  let initialized = 0;
+  sandbox.initStaffOrderFrame = () => { initialized++; };
+
+  sandbox.switchTab('staff-order');
+  assert.equal(sandbox.activeTab, 'staff-order');
+  assert.equal(store.pos_active_tab, 'staff-order');
+  assert.equal(mockWindow.location.hash, '#staff-order');
+  assert.equal(elements['view-staff-order'].style.display, 'block');
+  assert.equal(elements['view-live'].style.display, 'none');
+  assert.equal(initialized, 1);
+
+  sandbox.switchTab('live');
+  assert.equal(elements['view-staff-order'].style.display, 'none');
+  assert.equal(elements['view-live'].style.display, 'flex');
+  assert.equal(mockWindow.location.hash, '');
 });
 
 test('orders-menu.js: menuSidebarTab initializes from and saves to sessionStorage', () => {

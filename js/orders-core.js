@@ -410,7 +410,7 @@ async function ensureTenantCustomizations() {
 window.ensureTenantCustomizations = ensureTenantCustomizations;
 
 // Global POS State
-var VALID_POS_TABS = ["live", "history", "menu", "reports", "settings", "payments"];
+var VALID_POS_TABS = ["live", "history", "menu", "reports", "settings", "payments", "staff-order"];
 
 function getInitialTab() {
   if (typeof window === "undefined") return "live";
@@ -887,9 +887,6 @@ function switchTab(tab) {
     return;
   }
   if (tab === "reports" && isNativeAppPlatform()) {
-    tab = "live";
-  }
-  if (tab === "staff-order") {
     tab = "live";
   }
   if (window.innerWidth <= 680 && typeof toggleSidebar === "function") {

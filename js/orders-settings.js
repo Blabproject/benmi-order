@@ -1883,6 +1883,7 @@ async function checkStaffOrderingCapability() {
       }
       const sideStaffTab = document.getElementById("tab-staff-order");
       if (sideStaffTab) {
+        sideStaffTab.hidden = !data.capabilities?.pos_entry;
         sideStaffTab.style.display = data.capabilities?.pos_entry ? "inline-flex" : "none";
       }
       const lockedBody = document.getElementById("setting-tables-locked-body");

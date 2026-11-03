@@ -326,8 +326,19 @@ button.sidebar-nav-item.active {
 
 body.is-menu-active .main-topbar,
 .main-layout:has(#view-menu[style*="display: block"]) > .main-topbar,
-.main-layout:has(#view-menu:not([style*="display: none"]):not([style*="display:none"])) > .main-topbar {
+.main-layout:has(#view-menu:not([style*="display: none"]):not([style*="display:none"])) > .main-topbar,
+.main-layout:has(> #view-staff-order:not([style*="display: none"]):not([style*="display:none"])) > .main-topbar {
   display: none !important;
+}
+
+/* The embedded staff workspace supplies its own header. */
+#view-staff-order {
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  background: #f8fafc;
+  overflow: hidden;
 }
 
 .main-topbar-left {
