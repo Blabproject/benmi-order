@@ -28,18 +28,59 @@ window.PaymentPOS = (function () {
       const scope=contextKey();
       const d=document.createElement('dialog');d.className='payment-dialog';
       const h=document.createElement('h2');h.id='payment-dialog-title-'+(++dialogSequence);h.textContent=title;d.setAttribute('aria-labelledby',h.id);d.append(h);
+      if(options.summary) {
+        const summaryBox=document.createElement('div');summaryBox.className='pos-refund-summary-box';
+        summaryBox.innerHTML='<span class="pos-refund-summary-key">'+escapeHtml(options.summary.key)+'</span><span class="pos-refund-summary-amount">'+escapeHtml(options.summary.amount)+'</span>';
+        d.append(summaryBox);
+      }
       if(hint){const description=document.createElement('p');description.textContent=hint;d.append(description);}
       const form=document.createElement('form');form.method='dialog';
       const inputs={};
       for(const field of fields) {
         const l=document.createElement('label');l.textContent=field.label;
-        const input=document.createElement(field.type==='textarea'?'textarea':'input');input.type=field.type||'text';
-        input.required=true;input.maxLength=1000;if(field.type==='password')input.autocomplete='current-password';
-        l.append(input);form.append(l);inputs[field.key]=input;
+        if(field.type==='textarea') {
+          const isVi=(window.currentLang==='vi'||(typeof currentLang!=='undefined'&&currentLang==='vi'));
+          const presets=isVi?[
+            t('paymentReasonOutStock')!=='paymentReasonOutStock'?t('paymentReasonOutStock'):'Hết món',
+            t('paymentReasonCustomerCancelled')!=='paymentReasonCustomerCancelled'?t('paymentReasonCustomerCancelled'):'Khách yêu cầu hủy',
+            t('paymentReasonStoreBusy')!=='paymentReasonStoreBusy'?t('paymentReasonStoreBusy'):'Quán quá tải không kịp làm',
+            t('paymentReasonOther')!=='paymentReasonOther'?t('paymentReasonOther'):'Lý do khác'
+          ]:[
+            t('paymentReasonOutStock')!=='paymentReasonOutStock'?t('paymentReasonOutStock'):'售完缺貨',
+            t('paymentReasonCustomerCancelled')!=='paymentReasonCustomerCancelled'?t('paymentReasonCustomerCancelled'):'顧客要求取消',
+            t('paymentReasonStoreBusy')!=='paymentReasonStoreBusy'?t('paymentReasonStoreBusy'):'門市忙碌無法製作',
+            t('paymentReasonOther')!=='paymentReasonOther'?t('paymentReasonOther'):'其他原因'
+          ];
+          const chipsWrap=document.createElement('div');chipsWrap.className='payment-quick-chips';
+          const input=document.createElement('textarea');input.required=true;input.maxLength=1000;
+          input.placeholder=t('paymentRefundReasonPlaceholder')||'請輸入退款原因...';
+          presets.forEach(preset=>{
+            const chip=document.createElement('button');chip.type='button';chip.className='payment-quick-chip';
+            chip.tabIndex=-1;
+            chip.textContent=preset;
+            chip.onclick=()=>{
+              input.value=preset;
+              chipsWrap.querySelectorAll('.payment-quick-chip').forEach(c=>c.classList.remove('is-selected'));
+              chip.classList.add('is-selected');
+              input.focus();
+            };
+            chipsWrap.append(chip);
+          });
+          l.append(chipsWrap,input);
+          form.append(l);inputs[field.key]=input;
+        } else {
+          const input=document.createElement('input');input.type=field.type||'text';
+          input.required=true;input.maxLength=1000;if(field.type==='password')input.autocomplete='current-password';
+          l.append(input);form.append(l);inputs[field.key]=input;
+        }
+      }
+      if(options.notice){
+        const noticeEl=document.createElement('p');noticeEl.className='payment-dialog-notice';
+        noticeEl.textContent=options.notice;form.append(noticeEl);
       }
       const error=document.createElement('p');error.setAttribute('role','alert');form.append(error);
-      const cancel=document.createElement('button');cancel.type='button';cancel.className='payment-button';cancel.textContent=t('paymentCancel');cancel.onclick=()=>d.close();
-      const submit=document.createElement('button');submit.type='submit';submit.className='payment-button';submit.textContent=t('paymentConfirm');
+      const cancel=document.createElement('button');cancel.type='button';cancel.className='payment-button payment-button-ghost';cancel.textContent=t('paymentCancel');cancel.onclick=()=>d.close();
+      const submit=document.createElement('button');submit.type='submit';submit.className='payment-button payment-button-danger';submit.textContent=t('paymentConfirm');
       const actions=document.createElement('div');actions.className='payment-actions';actions.append(cancel,submit);form.append(actions);
       const changePin=document.createElement('button');changePin.type='button';changePin.className='payment-button';changePin.hidden=true;
       changePin.dataset.paymentI18n='paymentChangePinContinue';changePin.textContent=t('paymentChangePinContinue');
@@ -55,6 +96,7 @@ window.PaymentPOS = (function () {
         catch(err){if(err.code==='PAYMENT_PIN_CHANGE_REQUIRED')showPinChange();else if(err.code!=='PAYMENT_AUTH_CANCELLED')error.textContent=errorText(err);}finally{submit.disabled=false;}
       };
       d.addEventListener('close',()=>{resolve(null);d.remove();});d.append(form);document.body.append(d);d.showModal();
+      const firstInput=Object.values(inputs)[0];if(firstInput)firstInput.focus();
       if(options.pinChangeRequired)showPinChange();
     });
   }
@@ -98,23 +140,59 @@ window.PaymentPOS = (function () {
   async function refundPayment(order,after) {
     if(!await token())return;
     const scope=contextKey(),operationId=crypto.randomUUID();
-    await dialog(t('paymentRefund')+' #'+(order.displayKey||order.key)+' · TWD '+order.payment.amount,
+    const orderKey=order.displayKey||order.key;
+    const summary={
+      key:'#'+orderKey+' · LINE Pay',
+      amount:'TWD '+order.payment.amount
+    };
+    await dialog(t('paymentRefund')+' #'+orderKey+' · TWD '+order.payment.amount,
       [{key:'reason',label:t('paymentReason'),type:'textarea'}],async values=>{
         if(scope!==contextKey())throw cancelledAuth();
         const payment=await authorized('/api/payments/'+order.payment.id+'/refunds',{...values,operationId});
         if(scope===contextKey())await after(payment);return true;
-      });
+      },undefined,{summary,notice:t('paymentRefundNotice')});
   }
   function mount(order) {
     let el=document.getElementById('review-payment');
     if(!el){el=document.createElement('section');el.id='review-payment';el.className='payment-panel';document.getElementById('review-total')?.parentElement?.insertAdjacentElement('afterend',el);}
     el.replaceChildren();el.hidden=!order.payment;if(!order.payment)return;
-    const p=order.payment,summary=document.createElement('p');summary.textContent='LINE Pay · '+label(p)+' · TWD '+p.amount;el.append(summary);
-    if(['CANCELLED','REJECTED','FORCE_REJECT','EXPIRED'].includes(order.status)&&p.status==='PAID') {
-      const warning=document.createElement('p');warning.textContent=t('paymentUnrefunded');el.append(warning);
+    const p=order.payment;
+
+    // Header with channel badge, status pill and formatted amount
+    const header=document.createElement('div');header.className='pos-payment-header';
+    const brand=document.createElement('div');brand.className='pos-payment-brand';
+    
+    // LINE Pay Channel Badge with SVG
+    const channelBadge=document.createElement('span');channelBadge.className='pos-payment-channel-badge';
+    channelBadge.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="3"/><line x1="2" x2="22" y1="10" y2="10"/></svg><span>LINE Pay</span>';
+    brand.append(channelBadge);
+
+    // Status Pill
+    const statusPill=document.createElement('span');
+    const statusClassMap={PAID:'status-paid',REFUNDED:'status-refunded',REFUND_PENDING:'status-pending',REFUND_FAILED:'status-failed'};
+    statusPill.className='pos-payment-status-pill '+(statusClassMap[p.status]||'status-pending');
+    statusPill.textContent=label(p);
+    brand.append(statusPill);
+    header.append(brand);
+
+    // Amount
+    const amount=document.createElement('span');amount.className='pos-payment-amount';
+    amount.textContent='TWD '+p.amount;
+    header.append(amount);
+    el.append(header);
+
+    // Critical Unrefunded Alert Banner
+    const isUnrefunded=['CANCELLED','REJECTED','FORCE_REJECT','EXPIRED'].includes(order.status)&&p.status==='PAID';
+    if(isUnrefunded) {
+      const alertBox=document.createElement('div');alertBox.className='pos-payment-alert-unrefunded';alertBox.setAttribute('role','alert');
+      alertBox.innerHTML='<div class="pos-payment-alert-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div class="pos-payment-alert-content"><div class="pos-payment-alert-title">'+escapeHtml(t('paymentUnrefundedTitle')||t('paymentUnrefunded'))+'</div><div class="pos-payment-alert-desc">'+escapeHtml(t('paymentUnrefundedDesc')||t('paymentUnrefunded'))+'</div></div>';
+      el.append(alertBox);
     }
+
     if(p.status==='PAID') {
-      const button=document.createElement('button');button.type='button';button.className='payment-button';button.textContent=t('paymentRefund');
+      const button=document.createElement('button');button.type='button';
+      button.className='payment-button btn-pos-refund';
+      button.innerHTML='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg><span>'+escapeHtml(t('paymentRefund'))+'</span>';
       button.onclick=async()=>{
         try {
           await refundPayment(order,async payment=>{order.payment=payment;mount(order);await fetchOrders();await refreshAll();});
@@ -122,7 +200,8 @@ window.PaymentPOS = (function () {
       };el.append(button);
     }
     if(['UNKNOWN','REFUND_PENDING','REFUND_FAILED'].includes(p.status)) {
-      const info=document.createElement('p');info.textContent=t('paymentReviewHint');el.append(info);
+      const info=document.createElement('p');info.className='pos-payment-info-hint';
+      info.textContent=t('paymentReviewHint');el.append(info);
     }
   }
   function isOpen(){return typeof activeTab!=='undefined'&&activeTab==='payments';}
