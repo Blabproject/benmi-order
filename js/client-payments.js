@@ -19,7 +19,6 @@ window.LinePayCheckout = (function () {
       }
       else if(button.dataset.paymentLabel){button.textContent=button.dataset.paymentLabel;delete button.dataset.paymentLabel;}
     }
-    const hint=document.getElementById('payment-method-hint');if(hint)hint.hidden=!selected();
     const group=document.getElementById('payment-method');if(group)group.disabled=blocked();
     if(blocked()){const emptyHint=document.getElementById('checkout-empty-cart-hint');if(emptyHint)emptyHint.hidden=true;}
     if(!blocked()&&typeof updateFooterButtonState==='function')updateFooterButtonState();
@@ -135,11 +134,14 @@ window.LinePayCheckout = (function () {
         const radio=document.createElement('input');radio.type='radio';radio.name='payment-method';radio.value=value;radio.checked=value==='cash';
         const copy=PaymentView.element('span','payment-method-copy');
         copy.append(PaymentView.element('span','payment-method-title',title),PaymentView.element('span','payment-method-description',description));
-        option.append(radio,copy);choices.append(option);
+        option.append(radio,copy);
+        if(value==='line_pay'){
+          const logo=document.createElement('img');logo.className='payment-method-logo';logo.src='/line-pay-logo.png';logo.alt='';logo.width=238;logo.height=69;
+          option.append(logo);
+        }
+        choices.append(option);
       }
-      const hint=PaymentView.element('p','payment-method-hint',text('將開啟 LINE Pay 完成付款。','Sẽ mở LINE Pay để hoàn tất thanh toán.'));hint.id='payment-method-hint';hint.hidden=true;
-      choices.querySelector('input[value="line_pay"]').setAttribute('aria-describedby',hint.id);
-      group.append(legend,choices,hint);group.addEventListener('change',syncButtons);
+      group.append(legend,choices);group.addEventListener('change',syncButtons);
       (document.getElementById('checkout-payment-method')||document.getElementById('sec-checkout')).append(group);
     }catch{}finally{syncButtons();}
   }

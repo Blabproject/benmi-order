@@ -44,8 +44,8 @@ async function fixture(browser,options={}){
   if(url.hostname!=='fixture.test')return route.abort();
   if(url.pathname==='/')return route.fulfill({contentType:'text/html',body:menu});
   const file=url.pathname==='/payment-result'?'payment-result.html':url.pathname.slice(1);
-  if(!/^(?:js\/[^/]+\.js|css\/[^/]+\.css|index\.css|payment-result\.html)$/.test(file))return route.abort();
-  return route.fulfill({contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html',body:fs.readFileSync(path.join(root,file),'utf8')});
+  if(!/^(?:js\/[^/]+\.js|css\/[^/]+\.css|index\.css|line-pay-logo\.png|payment-result\.html)$/.test(file))return route.abort();
+  return route.fulfill({contentType:file.endsWith('.png')?'image/png':file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html',body:fs.readFileSync(path.join(root,file),file.endsWith('.png')?null:'utf8')});
  });
  const page=await context.newPage();page.setDefaultTimeout(5000);page.on('pageerror',error=>errors.push(error.message));
  return {context,page,calls,model,errors,close:async()=>{assert.deepEqual(errors,[]);await context.close();}};
@@ -223,7 +223,8 @@ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('Check
    await cash.focus();await f.page.keyboard.press('ArrowDown');
    assert.equal(await f.page.locator('input[value="line_pay"]').isChecked(),true);
    assert.equal(await button.innerText(),lang==='vi'?'Đến LINE Pay thanh toán':'前往 LINE Pay 付款');
-   assert.equal(await f.page.locator('#payment-method-hint').isVisible(),true);
+   assert.equal(await f.page.locator('#payment-method-hint').count(),0);
+   await f.page.waitForFunction(()=>document.querySelector('.payment-method-logo')?.naturalWidth===238);
    await f.page.waitForFunction(()=>{
     const checked=document.querySelector('.payment-method-option:has(input:checked)');
     const unchecked=document.querySelector('.payment-method-option:has(input:not(:checked))');
@@ -242,7 +243,7 @@ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('Check
    assert.equal(await button.isDisabled(),true);
    await f.page.locator('#add').click();
    assert.equal(await button.isEnabled(),true,'Adding a meal must release only the empty-cart lock');
-   await cash.check();assert.equal(await f.page.locator('#payment-method-hint').isVisible(),false);
+   await cash.check();assert.equal(await f.page.locator('#payment-method-hint').count(),0);
    assert.equal(await button.innerText(),lang==='vi'?'Xác nhận đặt món':'確認下單');
    await f.page.evaluate(()=>{isSubmitting=true;setAllSubmitButtonsState(true,'busy');LinePayCheckout.syncButtons();});
    assert.equal(await button.innerText(),'busy');assert.equal(await button.isDisabled(),true);
