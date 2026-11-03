@@ -163,12 +163,8 @@ async function dispatchStaffRoute(
     return json({ ok: true, message: "登出成功 / Đã đăng xuất" });
   }
 
-  // --- GUARD: All subsequent business routes require session authentication & feature flag ---
-  const session = await verifyStaffSession(request, env, tenantId);
-  if (!session) {
-    return json({ ok: false, error: "UNAUTHORIZED", message: "登入權限已過期，請重新輸入 PIN 碼 / Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại" }, 401);
-  }
-
+  // Staff ordering follows normal POS access, with tenant capability and schema guards.
+  // The legacy session API above and verifyStaffSession remain available for payment authentication.
   const isStaffEnabled = await checkStaffOrderingEnabled(env, tenantId);
   if (!isStaffEnabled) {
     return json({ ok: false, error: "FEATURE_DISABLED", message: "門市尚未啟用桌邊點餐功能 / Quán chưa kích hoạt tính năng nhận đơn tại bàn" }, 403);

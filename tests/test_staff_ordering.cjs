@@ -16,10 +16,10 @@ const {handleAuthChange} = require('../benmi-worker-official/src/modules/auth.ts
 const {readDetail} = require('../benmi-worker-official/src/modules/order-detail.ts');
 const {fixture} = require('./helpers/staff-ordering.cjs');
 
-test('default capabilities, schema readiness, sessions and tenant boundaries fail closed',async t=>{
+test('default capabilities, schema readiness and tenant boundaries fail closed',async t=>{
   const f=await fixture(t);
   assert.equal((await f.call('/api/staff/session',{pin:'wrong'})).http,401);
-  assert.equal((await f.call('/api/staff/tables',null,f.token,'GET','b')).http,401);
+  assert.equal((await f.call('/api/staff/tables',null,null,'GET','b')).http,403);
   assert.equal((await f.call('/api/staff/session',{pin:'1234'},null,'POST','b')).http,403);
   const caps=await f.call('/api/staff/capabilities');assert.equal(caps.capabilities.create,true);
   await f.DB.prepare("UPDATE tenant_config SET staff_ordering_capabilities='{}' WHERE tenant_id='a'").run();
@@ -28,6 +28,30 @@ test('default capabilities, schema readiness, sessions and tenant boundaries fai
   assert.equal((await f.call('/api/staff/orders',f.input(),f.token)).http,403);
   await f.DB.prepare("DROP INDEX idx_orders_active_staff_table").run();
   assert.equal((await f.call('/api/staff/capabilities')).staff_ordering_enabled,false);
+});
+
+test('staff ordering works without a PIN session while tenant and capability guards remain enforced',async t=>{
+  const f=await fixture(t);
+  const capabilities={...f.capabilities,session:false};
+  await f.DB.prepare('UPDATE tenant_config SET staff_ordering_capabilities=? WHERE tenant_id=?').bind(JSON.stringify(capabilities),'a').run();
+  assert.equal((await f.call('/api/staff/tables')).http,200);
+  const table=await f.call('/api/staff/tables',{label:'No PIN'});
+  assert.equal(table.http,201);
+  assert.equal((await f.call(`/api/staff/tables/${table.table.id}`,{label:'Updated'},null,'PATCH')).http,200);
+  const created=await f.call('/api/staff/orders',f.input());
+  assert.equal(created.http,201,JSON.stringify(created));
+  assert.equal((await f.call(`/api/staff/orders/${created.key}`)).http,200);
+  assert.equal((await f.call(`/api/staff/orders/${created.key}/rounds`,f.input({expectedRevision:1}))).http,200);
+  assert.equal((await f.call(`/api/staff/orders/${created.key}/status`,{status:'DONE',expectedRevision:2},null,'PATCH')).http,200);
+  await f.DB.prepare('UPDATE tenant_config SET staff_ordering_enabled=1,staff_ordering_capabilities=? WHERE tenant_id=?').bind(JSON.stringify(capabilities),'b').run();
+  for(const suffix of ['', '/rounds', '/status']) {
+    const method=suffix==='/status'?'PATCH':suffix?'POST':'GET';
+    assert.equal((await f.call(`/api/staff/orders/${created.key}${suffix}`,suffix?{expectedRevision:3,status:'PAID'}:null,null,method,'b')).http,404);
+  }
+  assert.equal((await f.call('/api/staff/tables/table-a',{label:'Wrong tenant'},null,'PATCH','b')).http,404);
+  assert.equal((await f.call('/api/staff/orders',f.input(),null,'POST','b')).http,404);
+  await f.DB.prepare("UPDATE tenant_config SET is_active=0 WHERE tenant_id='a'").run();
+  assert.equal((await f.call('/api/staff/tables')).http,403);
 });
 
 test('table CRUD, snapshots, replay, metadata and guarded legacy endpoints',async t=>{
@@ -113,7 +137,7 @@ test('twenty races each: same-table create, concurrent append, append versus pay
   }
 });
 
-test('PIN changes revoke sessions, logout is tenant scoped',async t=>{
+test('legacy PIN session revocation stays tenant scoped for payment authentication',async t=>{
   const f=await fixture(t);
   const request=new Request('https://local.test/api/staff/tables?tenant_id=a',{headers:{Authorization:'Bearer '+f.token}});
   assert(await verifyStaffSession(request,f.env,'a'));
@@ -122,5 +146,7 @@ test('PIN changes revoke sessions, logout is tenant scoped',async t=>{
   const next=await f.call('/api/staff/session',{pin:'5678'});assert.equal(next.http,200);
   await f.call('/api/staff/session',null,next.token,'DELETE','b');
   assert.equal((await f.call('/api/staff/tables',null,next.token)).http,200);
-  await f.call('/api/staff/session',null,next.token,'DELETE');assert.equal((await f.call('/api/staff/tables',null,next.token)).http,401);
+  await f.call('/api/staff/session',null,next.token,'DELETE');
+  assert.equal(await verifyStaffSession(new Request(request.url,{headers:{Authorization:'Bearer '+next.token}}),f.env,'a'),null);
+  assert.equal((await f.call('/api/staff/tables')).http,200);
 });

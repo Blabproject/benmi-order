@@ -141,7 +141,7 @@ body.staff-body {
   gap: 10px;
 }
 
-.btn-lang-toggle, .btn-logout, .btn-back-pos {
+.btn-lang-toggle, .btn-back-pos {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -163,7 +163,7 @@ body.staff-body {
   border-color: #cbd5e1;
 }
 
-.btn-lang-toggle:hover, .btn-logout:hover, .btn-back-pos:hover {
+.btn-lang-toggle:hover, .btn-back-pos:hover {
   background: #e2e8f0;
 }
 
@@ -233,95 +233,16 @@ body.staff-body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ============================================================
-   VIEW 1: PIN LOGIN
-   ============================================================ */
-.login-card {
+.staff-access-card {
   max-width: 420px;
-  margin: 60px auto;
+  margin: 40px auto;
+  padding: 24px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 36px 28px;
-  box-shadow: var(--shadow-lg);
   text-align: center;
 }
-
-.login-icon {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: var(--primary-light);
-  color: var(--primary-hover);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
-}
-
-.login-title {
-  font-size: 22px;
-  font-weight: 900;
-  color: var(--text-main);
-  margin-bottom: 6px;
-}
-
-.login-desc {
-  font-size: 14px;
-  color: var(--text-muted);
-  margin-bottom: 28px;
-}
-
-.input-group {
-  text-align: left;
-  margin-bottom: 20px;
-}
-
-.input-group label {
-  display: block;
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--text-main);
-  margin-bottom: 8px;
-}
-
-.input-pin {
-  width: 100%;
-  min-height: 56px;
-  padding: 12px 16px;
-  font-size: 24px;
-  text-align: center;
-  letter-spacing: 0.25em;
-  font-weight: 800;
-  background: var(--surface-subtle);
-  border: 2px solid var(--border);
-  border-radius: var(--radius-md);
-  outline: none;
-  transition: border-color 0.15s ease;
-}
-
-.input-pin:focus {
-  border-color: var(--border-focus);
-  background: #ffffff;
-}
-
-.login-error {
-  background: var(--danger-light);
-  color: var(--danger);
-  border: 1px solid #fecaca;
-  padding: 12px 16px;
-  border-radius: var(--radius-md);
-  font-size: 13.5px;
-  font-weight: 700;
-  margin-bottom: 20px;
-  text-align: left;
-}
-
-.btn-submit-login {
-  width: 100%;
-  min-height: 52px;
-  font-size: 16px;
-}
+.staff-access-card .btn { margin-top: 16px; }
 
 /* ============================================================
    VIEW 2: TABLE SELECTION
@@ -1694,7 +1615,7 @@ body.staff-body { --primary:#00b900; --primary-hover:#009900; --primary-light:#e
 }
 
 .staff-body .items-grid { grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); }
-.staff-body .header-right, .staff-body .btn-lang-toggle, .staff-body .btn-logout { flex-shrink:0; white-space:nowrap; }
+.staff-body .header-right, .staff-body .btn-lang-toggle { flex-shrink:0; white-space:nowrap; }
 .staff-body .active-table-badge { min-width:0; }
 .staff-body #header-table-label { overflow:hidden; text-overflow:ellipsis; max-width:160px; }
 .staff-body .modal-sheet { animation:none; }

@@ -1908,42 +1908,6 @@ async function checkStaffOrderingCapability() {
   return false;
 }
 
-async function getStaffSessionToken(forcePrompt = false) {
-  const tenantId = (typeof getTenantIdFromUrl === "function" && getTenantIdFromUrl()) || "";
-  if (!tenantId) return null;
-  const storageKey = "staff_session_token_" + tenantId;
-  if (!forcePrompt && typeof sessionStorage !== "undefined") {
-    const saved = sessionStorage.getItem(storageKey);
-    if (saved) return saved;
-  }
-
-  const promptMsg = (typeof t === "function" && t("promptStaffPin")) || "請輸入門市管理 PIN 碼以存取桌號管理 / Vui lòng nhập mã PIN quán:";
-  const pin = prompt(promptMsg);
-  if (!pin || !pin.trim()) return null;
-
-  try {
-    const workerUrl = typeof WORKER_BASE !== "undefined" ? WORKER_BASE : "https://benmi-worker-official.thuanmnc.workers.dev";
-    const res = await fetch(`${workerUrl}/api/staff/session?tenant_id=${encodeURIComponent(tenantId)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pin: pin.trim() })
-    });
-    const data = await res.json().catch(() => ({ ok: false }));
-    if (res.ok && data && data.ok && data.token) {
-      if (typeof sessionStorage !== "undefined") {
-        sessionStorage.setItem(storageKey, data.token);
-      }
-      return data.token;
-    } else {
-      alert((data && data.message) || (typeof t === "function" && t("activationErrorWrongPin")) || "PIN 碼錯誤，無法存取");
-      return null;
-    }
-  } catch (e) {
-    alert(t("staffNetworkError"));
-    return null;
-  }
-}
-
 async function loadRestaurantTablesSetting() {
   const enabled = await checkStaffOrderingCapability();
   if (enabled) {
@@ -1960,26 +1924,8 @@ async function loadRestaurantTables() {
     tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 24px; color: #94a3b8;">${t("staffLoading")}</td></tr>`;
   }
 
-  let token = await getStaffSessionToken();
-  if (!token) {
-    if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 24px; color: #ef4444;">${t("staffNeedsPin")} <button class="btn btn-sm" onclick="loadRestaurantTables()" style="margin-left:8px;">${t("staffRetry")}</button></td></tr>`;
-    }
-    return;
-  }
-
   const workerUrl = typeof WORKER_BASE !== "undefined" ? WORKER_BASE : "https://benmi-worker-official.thuanmnc.workers.dev";
-  let res = await fetch(`${workerUrl}/api/staff/tables?tenant_id=${encodeURIComponent(tenantId)}&include_inactive=1&_t=${Date.now()}`, {
-    headers: { "Authorization": "Bearer " + token }
-  });
-
-  if (res.status === 401) {
-    token = await getStaffSessionToken(true);
-    if (!token) return;
-    res = await fetch(`${workerUrl}/api/staff/tables?tenant_id=${encodeURIComponent(tenantId)}&include_inactive=1&_t=${Date.now()}`, {
-      headers: { "Authorization": "Bearer " + token }
-    });
-  }
+  const res = await fetch(`${workerUrl}/api/staff/tables?tenant_id=${encodeURIComponent(tenantId)}&include_inactive=1&_t=${Date.now()}`);
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -2108,9 +2054,6 @@ async function submitTableEditor() {
     return;
   }
 
-  const token = await getStaffSessionToken();
-  if (!token) return;
-
   const btnSave = document.getElementById("btn-save-table-editor");
   if (btnSave) btnSave.disabled = true;
 
@@ -2121,8 +2064,7 @@ async function submitTableEditor() {
       res = await fetch(`${workerUrl}/api/staff/tables/${encodeURIComponent(id)}?tenant_id=${encodeURIComponent(tenantId)}`, {
         method: "PATCH",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + token
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ label, sort_order: sort, is_active: isActive })
       });
@@ -2130,8 +2072,7 @@ async function submitTableEditor() {
       res = await fetch(`${workerUrl}/api/staff/tables?tenant_id=${encodeURIComponent(tenantId)}`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + token
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ label, sort_order: sort })
       });
@@ -2158,16 +2099,12 @@ async function toggleTableActive(tableId, newActive) {
   const tenantId = (typeof getTenantIdFromUrl === "function" && getTenantIdFromUrl()) || "";
   if (!tenantId) return;
 
-  const token = await getStaffSessionToken();
-  if (!token) return;
-
   try {
     const workerUrl = typeof WORKER_BASE !== "undefined" ? WORKER_BASE : "https://benmi-worker-official.thuanmnc.workers.dev";
     const res = await fetch(`${workerUrl}/api/staff/tables/${encodeURIComponent(tableId)}?tenant_id=${encodeURIComponent(tenantId)}`, {
       method: "PATCH",
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + token
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({ is_active: newActive })
     });

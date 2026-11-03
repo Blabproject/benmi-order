@@ -32,6 +32,8 @@ for (const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: st
     const context=await browser.newContext({viewport});const page=await context.newPage();
     page.setDefaultTimeout(8000);
     const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.dismiss());
+    const staffRequests=[];
+    page.on('request',request=>{if(new URL(request.url()).pathname.startsWith('/api/staff/'))staffRequests.push(request);});
     await page.addInitScript(lang=>localStorage.setItem('staff_order_lang',lang),locale);
     let loseFirstResponse=name==='chromium' && caseNumber===1;const sent=[];
     await page.route('**/api/**',async route=>{
@@ -51,7 +53,7 @@ for (const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: st
       } catch(e) {errors.push(String(e));await route.fulfill({status:500,body:'{}'});}
     });
     await page.goto(`http://127.0.0.1:${server.address().port}/staff-order.html?tenant_id=a&env=dev`);
-    await page.fill('#inp-pin','1234');await page.click('#btn-submit-login');
+    assert.equal(await page.locator('#inp-pin,#form-login,#btn-logout').count(),0);
     await page.locator('.table-card').filter({hasText:tableId}).click();
     await page.locator('.btn-quick-add').first().click();
     await page.locator('#unified-option-modal [data-choose],#unified-option-modal [data-add]').first().click();
@@ -89,6 +91,7 @@ for (const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: st
       await f.env.ORDER_STATE.delete('tenant:a:bootstrap');
     }
     assert.deepEqual(errors,[]);
+    assert(staffRequests.every(request=>!new URL(request.url()).pathname.endsWith('/session')&&!request.headers().authorization));
     await context.close();
   }
 
@@ -97,11 +100,13 @@ for (const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: st
     const page=await context.newPage();
     const errors=[];
     page.on('pageerror',error=>errors.push(error.message));
-    await page.addInitScript(token=>{
+    await page.addInitScript(()=>{
       localStorage.setItem('benmi_lang','vi');
       localStorage.setItem('staff_order_lang','zh-TW');
-      sessionStorage.setItem('staff_session_token_a',token);
-    },f.token);
+    });
+    page.on('dialog',dialog=>{errors.push('Unexpected dialog: '+dialog.message());dialog.dismiss();});
+    const staffRequests=[];
+    page.on('request',request=>{if(new URL(request.url()).pathname.startsWith('/api/staff/'))staffRequests.push(request);});
     await page.route('**/orders.html?**',route=>route.fulfill({contentType:'text/html',
       body:fs.readFileSync('orders.html','utf8').replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi,'')}));
     await page.route('**/api/**',async route=>{
@@ -121,7 +126,7 @@ for (const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: st
     await staff.locator('#view-tables').waitFor({state:'visible'});
     assert.equal(await staff.locator('html').getAttribute('lang'),'vi');
     assert.equal(await staff.locator('#staff-header').isVisible(),false);
-    assert.equal(await staff.locator('#view-tables .view-header-actions #btn-logout').isVisible(),true);
+    assert.equal(await staff.locator('#inp-pin,#form-login,#btn-logout').count(),0);
     for(const viewport of [{width:320,height:740},{width:390,height:844},{width:768,height:1024},{width:1024,height:768},{width:844,height:390}]){
       await page.setViewportSize(viewport);
       await page.screenshot({path:path.join(output,`${name}-embedded-${viewport.width}.png`),animations:'disabled'});
@@ -147,10 +152,23 @@ for (const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: st
     }
     await page.evaluate(()=>setLanguage('zh-TW'));
     await staff.locator('html[lang="zh-TW"]').waitFor();
-    await staff.locator('#btn-logout').click();
-    await staff.locator('#view-login').waitFor({state:'visible'});
+    await page.evaluate(async()=>{
+      await loadRestaurantTables();
+      openAddTableModal();
+      document.getElementById('table-editor-label').value='POS without PIN';
+      await submitTableEditor();
+    });
+    const added=await f.DB.prepare("SELECT id FROM restaurant_tables WHERE tenant_id='a' AND label='POS without PIN'").first();
+    assert(added);
+    await page.evaluate(id=>toggleTableActive(id,false),added.id);
+    assert.equal((await f.DB.prepare('SELECT is_active FROM restaurant_tables WHERE id=?').bind(added.id).first()).is_active,0);
     await page.evaluate(()=>switchTab('live'));
     assert.equal(await page.locator('#main-topbar').isVisible(),true);
+    assert(staffRequests.every(request=>!new URL(request.url()).pathname.endsWith('/session')&&!request.headers().authorization));
+    await page.goto(`http://127.0.0.1:${server.address().port}/staff-order.html?tenant_id=b&env=dev`);
+    await page.locator('#staff-access-retry').waitFor({state:'visible'});
+    assert.equal(await page.locator('#view-tables').isVisible(),false);
+    assert.equal(await page.locator('#inp-pin,#form-login').count(),0);
     assert.deepEqual(errors,[]);
     await context.close();
   });

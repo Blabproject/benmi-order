@@ -37,11 +37,7 @@
       invalidSelections:"Vui lòng kiểm tra món hết hàng và chọn đủ tùy chọn trước khi gửi.",
       configureOptions:"Chọn tùy chọn", networkError:"Không thể kết nối. Vui lòng thử lại.", submitFailed:"Gửi đơn thất bại. Vui lòng kiểm tra lại.",
       staffBadge: "Nhận đơn tại bàn",
-      loginTitle: "Đăng nhập nhân viên",
-      loginDesc: "Nhập mã PIN POS để bắt đầu nhận đơn tại bàn",
-      labelPin: "Mã PIN cửa hàng",
-      btnLogin: "Đăng nhập",
-      logout: "Đăng xuất",
+      opening: "Đang mở đặt món...",
       tablesTitle: "Chọn bàn phục vụ",
       tablesDesc: "Chọn bàn trống để mở đơn hoặc bàn đang phục vụ để gọi thêm món",
       btnRefresh: "Làm mới",
@@ -80,7 +76,6 @@
       conflictTitle: "Xung đột dữ liệu (409)",
       conflictDesc: "Bàn đã có đơn mới hoặc đơn vừa được cập nhật lượt mới. Giỏ hàng của bạn vẫn được giữ nguyên an toàn.",
       btnResolveConflict: "Tải lại bàn & Kiểm tra lại giỏ hàng",
-      pinError: "Mã PIN không đúng hoặc cửa hàng chưa kích hoạt tính năng.",
       featureDisabled: "Cửa hàng chưa kích hoạt tính năng nhận đơn tại bàn.",
       soldOut: "Hết hàng",
       soldOutToday: "Hết hàng",
@@ -118,11 +113,7 @@
       invalidSelections:"請檢查售完餐點並完成必選選項後再送出。",
       configureOptions:"設定選項", networkError:"無法連線，請稍後重試。", submitFailed:"訂單送出失敗，請重新確認。",
       staffBadge: "桌邊點餐",
-      loginTitle: "門市點餐登入",
-      loginDesc: "請輸入門市管理 PIN 碼開始桌邊點餐",
-      labelPin: "門市管理 PIN 碼",
-      btnLogin: "登入",
-      logout: "登出",
+      opening: "正在開啟點餐…",
       tablesTitle: "選擇服務桌號",
       tablesDesc: "選擇空桌開啟新訂單，或選擇使用中桌號進行加點",
       btnRefresh: "重新整理",
@@ -161,7 +152,6 @@
       conflictTitle: "訂單狀態更新衝突 (409)",
       conflictDesc: "該桌已有新訂單或已更新輪次。您的購物車內容已完整保留，請重新整理確認。",
       btnResolveConflict: "重新整理並檢查購物車",
-      pinError: "PIN 碼錯誤或門市尚未啟用桌邊點餐功能。",
       featureDisabled: "店家尚未啟用桌邊點餐功能。",
       soldOut: "已售完",
       soldOutToday: "今日已售完",
@@ -198,7 +188,6 @@
   // --- 3. APPLICATION STATE ---
   const state = {
     tenantId: "",
-    token: "",
     brandName: "",
     storeStatus: "open",
     allowDineIn: true,
@@ -253,9 +242,6 @@
         const posLanguage = localStorage.getItem("benmi_lang") || "zh-TW";
         if (I18N[posLanguage]) state.currentLang = posLanguage;
       } catch (e) {}
-      const logoutButton = document.getElementById("btn-logout");
-      const tableActions = document.querySelector("#view-tables .view-header-actions");
-      if (logoutButton && tableActions) tableActions.appendChild(logoutButton);
       window.addEventListener("storage", event => {
         if (event.key === "benmi_lang") setStaffLanguage(event.newValue);
       });
@@ -263,36 +249,31 @@
 
     applyI18nLabels();
 
-    // Check capability first
+    // Open directly after checking the tenant feature and table access.
     try {
       const capRes = await fetch(`${WORKER_BASE}/api/staff/capabilities?tenant_id=${encodeURIComponent(state.tenantId)}&_t=${Date.now()}`);
-      if (capRes.ok) {
-        const capData = await capRes.json();
-        state.capabilities = capData.capabilities || {};
-        state.brandName = capData.brandName || "";
-        state.storeStatus = capData.storeStatus || "open";
-        state.allowDineIn = capData.allowDineIn !== false;
-        const brandEl = document.getElementById("display-brand-name");
-        if (brandEl && state.brandName) {
-          brandEl.innerText = state.brandName;
-        }
+      if (!capRes.ok) throw new Error("CAPABILITY_CHECK_FAILED");
+      const capData = await capRes.json();
+      state.capabilities = capData.capabilities || {};
+      state.brandName = capData.brandName || "";
+      state.storeStatus = capData.storeStatus || "open";
+      state.allowDineIn = capData.allowDineIn !== false;
+      const brandEl = document.getElementById("display-brand-name");
+      if (brandEl && state.brandName) {
+        brandEl.innerText = state.brandName;
+      }
 
-        if (!capData.staff_ordering_enabled || !state.capabilities.session) {
-          showLoginError(t("featureDisabled"));
-        }
+      if (!capData.staff_ordering_enabled || !state.capabilities.tables_read) {
+        showAccessError(t("featureDisabled"));
+        return;
       }
     } catch (e) {
       console.warn("[StaffOrder] Capability check error:", e);
+      showAccessError(t("networkError"));
+      return;
     }
 
-    // Check existing session in sessionStorage
-    const savedToken = typeof sessionStorage !== "undefined" ? sessionStorage.getItem(`staff_session_token_${state.tenantId}`) : null;
-    if (savedToken) {
-      state.token = savedToken;
-      await showTablesView();
-    } else {
-      showLoginView();
-    }
+    await showTablesView();
   }
 
   function handleBackToPos() {
@@ -313,13 +294,10 @@
     }
 
     const mapping = {
+      "staff-access-message": "opening",
+      "i18n-access-retry": "btnRefresh",
       "i18n-staff-badge": "staffBadge",
       "i18n-back-pos": "backPos",
-      "i18n-login-title": "loginTitle",
-      "i18n-login-desc": "loginDesc",
-      "i18n-label-pin": "labelPin",
-      "i18n-btn-login": "btnLogin",
-      "i18n-logout": "logout",
       "i18n-tables-title": "tablesTitle",
       "i18n-tables-desc": "tablesDesc",
       "i18n-btn-refresh": "btnRefresh",
@@ -389,99 +367,30 @@
     renderCartDrawer();
   }
 
-  // --- 6. AUTHENTICATION (PIN LOGIN & LOGOUT) ---
-  function showLoginView() {
-    document.body.dataset.staffView = "login";
+  function showAccessError(message) {
     stopTablePolling();
-    document.getElementById("view-login").style.display = "block";
+    document.body.dataset.staffView = "unavailable";
+    document.getElementById("view-access").style.display = "block";
+    document.getElementById("staff-access-message").innerText = message;
+    document.getElementById("staff-access-retry").style.display = "inline-flex";
     document.getElementById("view-tables").style.display = "none";
     document.getElementById("view-menu").style.display = "none";
-    document.getElementById("btn-logout").style.display = "none";
-    document.getElementById("header-table-badge").style.display = "none";
     document.getElementById("sticky-cart-bar").style.display = "none";
-
-    const pinInp = document.getElementById("inp-pin");
-    if (pinInp) {
-      pinInp.value = "";
-      pinInp.focus();
-    }
-  }
-
-  function showLoginError(msg) {
-    const errEl = document.getElementById("login-error-msg");
-    if (errEl) {
-      errEl.innerText = msg;
-      errEl.style.display = "block";
-    }
-  }
-
-  async function handleStaffLogin(e) {
-    if (e) e.preventDefault();
-    const pinInp = document.getElementById("inp-pin");
-    const pin = pinInp ? pinInp.value.trim() : "";
-    if (!pin) return;
-
-    const btn = document.getElementById("btn-submit-login");
-    if (btn) btn.disabled = true;
-
-    try {
-      const res = await fetch(`${WORKER_BASE}/api/staff/session?tenant_id=${encodeURIComponent(state.tenantId)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin })
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data && data.ok && data.token) {
-        state.token = data.token;
-        if (typeof sessionStorage !== "undefined") {
-          sessionStorage.setItem(`staff_session_token_${state.tenantId}`, data.token);
-        }
-        if (data.brand_name) {
-          state.brandName = data.brand_name;
-          const bEl = document.getElementById("display-brand-name");
-          if (bEl) bEl.innerText = data.brand_name;
-        }
-        await showTablesView();
-      } else {
-        showLoginError((data && data.message) || t("pinError"));
-      }
-    } catch (err) {
-      showLoginError("Lỗi kết nối / 連線失敗: " + (err.message || err));
-    } finally {
-      if (btn) btn.disabled = false;
-    }
-  }
-
-  async function handleStaffLogout() {
-    if (state.token) {
-      try {
-        await fetch(`${WORKER_BASE}/api/staff/session?tenant_id=${encodeURIComponent(state.tenantId)}`, {
-          method: "DELETE",
-          headers: { "Authorization": "Bearer " + state.token }
-        });
-      } catch (e) {}
-    }
-    state.token = "";
-    if (typeof sessionStorage !== "undefined") {
-      sessionStorage.removeItem(`staff_session_token_${state.tenantId}`);
-    }
-    showLoginView();
+    closeCartModal();
   }
 
   // --- 7. TABLE SELECTION VIEW ---
   async function showTablesView() {
     document.body.dataset.staffView = "tables";
-    document.getElementById("view-login").style.display = "none";
+    document.getElementById("view-access").style.display = "none";
     document.getElementById("view-tables").style.display = "block";
     document.getElementById("view-menu").style.display = "none";
-    document.getElementById("btn-logout").style.display = "inline-flex";
     document.getElementById("header-table-badge").style.display = "none";
     document.getElementById("sticky-cart-bar").style.display = "none";
 
     window.scrollTo(0, 0);
     await loadTablesData();
-    startTablePolling();
+    if (document.body.dataset.staffView === "tables") startTablePolling();
   }
 
   function startTablePolling() {
@@ -497,16 +406,13 @@
   }
 
   async function loadTablesData() {
-    if (!state.token) return;
+    if (!state.capabilities?.tables_read) return;
 
     try {
-      const res = await fetch(`${WORKER_BASE}/api/staff/tables?tenant_id=${encodeURIComponent(state.tenantId)}&_t=${Date.now()}`, {
-        headers: { "Authorization": "Bearer " + state.token }
-      });
+      const res = await fetch(`${WORKER_BASE}/api/staff/tables?tenant_id=${encodeURIComponent(state.tenantId)}&_t=${Date.now()}`);
 
-      if (res.status === 401) {
-        showLoginView();
-        showLoginError(t("pinError"));
+      if (res.status === 403 || res.status === 404) {
+        showAccessError(t("featureDisabled"));
         return;
       }
 
@@ -628,10 +534,9 @@
 
   async function showMenuView() {
     document.body.dataset.staffView = "menu";
-    document.getElementById("view-login").style.display = "none";
+    document.getElementById("view-access").style.display = "none";
     document.getElementById("view-tables").style.display = "none";
     document.getElementById("view-menu").style.display = "block";
-    document.getElementById("btn-logout").style.display = "inline-flex";
 
     const isTakeaway = state.diningOption === "takeaway";
 
@@ -789,7 +694,7 @@
       }
     } catch (e) {
       console.warn("[StaffOrder] Error loading catalog:", e);
-      showLoginError(t("networkError"));
+      showAccessError(t("networkError"));
     }
   }
 
@@ -1631,8 +1536,7 @@
       const res = await fetch(endpoint, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + state.token
+          "Content-Type": "application/json"
         },
         body: JSON.stringify(payload)
       });
@@ -1789,8 +1693,6 @@
 
   // --- 14. EXPOSE GLOBAL FUNCTIONS ---
   window.toggleLanguage = toggleLanguage;
-  window.handleStaffLogin = handleStaffLogin;
-  window.handleStaffLogout = handleStaffLogout;
   window.loadTablesData = loadTablesData;
   window.setTableFilter = setTableFilter;
   window.handleTableSearch = handleTableSearch;
