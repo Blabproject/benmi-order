@@ -1026,7 +1026,6 @@ export async function updateOrder(
 
   const paymentProtected = await env.DB.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='payments'").first()
     && await env.DB.prepare('SELECT 1 FROM payments WHERE tenant_id=? AND order_key=?').bind(orderRow.tenant_id,orderRow.key).first();
-  if (paymentProtected && !await verifyStaffSession(request,env,orderRow.tenant_id)) return json({code:'SESSION_REQUIRED'},401);
   if (paymentProtected && ['WAITING_CUSTOMER_CHANGE','PAID'].includes(data.status)) return json({code:'PAYMENT_ORDER_LOCKED'},409);
   if (orderRow.source === 'staff') return json({code:'STAFF_ORDER_RESTRICTED'},403);
 

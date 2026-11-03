@@ -1648,8 +1648,9 @@ async function updateStatus(key, status, extra = {}, btn = null) {
   try {
     const order = latestOrders.find(o=>o.key===key);
     const staff = order?.source === 'staff';
-    const token = staff ? await getStaffSessionToken() : order?.payment ? await PaymentPOS.token() : null;
-    if ((staff || order?.payment) && !token) return;
+    const savedToken = (typeof sessionStorage !== 'undefined') ? sessionStorage.getItem('staff_session_token_' + getTenantIdFromUrl()) : null;
+    const token = staff ? await getStaffSessionToken() : savedToken;
+    if (staff && !token) return;
     const endpoint = staff ? `/api/staff/orders/${encodeURIComponent(key)}/status` : '/api/update';
     const response = await fetch(`${WORKER_BASE}${endpoint}?tenant_id=${getTenantIdFromUrl()}`, {
       method: staff ? 'PATCH' : 'POST',

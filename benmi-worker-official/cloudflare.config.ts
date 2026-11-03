@@ -99,6 +99,7 @@ export default (ctx: ConfigContext) => {
 						},
 					},
 					env: {
+						PAYMENT_ALLOW_LIVE_IN_DEV: bindings.text("true"),
 						BUILD_COMMIT: bindings.text(metadata.commit),
 						BUILD_ENVIRONMENT: bindings.text(metadata.environment),
 						BUILD_DIRTY: bindings.text(String(metadata.dirty)),

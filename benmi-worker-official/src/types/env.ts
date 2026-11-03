@@ -1,6 +1,7 @@
 export interface Env extends Partial<Pick<RuntimeBindings,
   'LINE_RUNTIME_ENABLED' | 'LINE_RUNTIME_TENANTS' | 'LINE_RUNTIME_ENVIRONMENT' | 'LINE_SECRET_KEYS'>> {
   PAYMENT_SECRET_KEYS?: string;
+  PAYMENT_ALLOW_LIVE_IN_DEV?: string;
   BUILD_COMMIT?: string;
   BUILD_ENVIRONMENT?: string;
   BUILD_DIRTY?: string;

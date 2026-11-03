@@ -1,9 +1,9 @@
 // Reads secrets only from stdin; emits encrypted SQL for review and cf D1 execution.
 import { webcrypto, randomUUID } from 'node:crypto';
 let input='';for await(const chunk of process.stdin){input+=chunk;if(input.length>32768)throw new Error('Input too large');}
-const data=JSON.parse(input),{tenantId,environment,mode,channelId,channelSecret,masterKey,keyVersion='v1',returnUrl}=data;
+const data=JSON.parse(input),{tenantId,environment,mode,channelId,channelSecret,masterKey,keyVersion='v1',returnUrl,allowLiveInDev=false}=data;
 if(!/^[a-zA-Z0-9_-]+$/.test(tenantId)||!['dev','staging','production'].includes(environment)||!['sandbox','production'].includes(mode)||!/^\d+$/.test(channelId)||!channelSecret)throw new Error('Invalid connection');
-if(environment!=='production'&&mode==='production')throw new Error('Real payments only in production');
+if(mode==='production'&&environment!=='production'&&!(environment==='dev'&&allowLiveInDev===true))throw new Error('Real payments require production or an explicit dev opt-in');
 const url=new URL(returnUrl);if(url.protocol!=='https:'||url.username||url.password||url.hash)throw new Error('HTTPS return URL required');
 const keyBytes=Buffer.from(masterKey,'base64');if(keyBytes.length!==32)throw new Error('32-byte base64 masterKey required');
 const id=randomUUID(),iv=webcrypto.getRandomValues(new Uint8Array(12));

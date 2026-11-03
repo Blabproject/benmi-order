@@ -181,3 +181,32 @@ test('legacy and missing Confirm responses cannot be treated as safe local cance
   }finally{fetch=original;f.db.close();}
  }
 });
+
+test('live merchant stays blocked by default; dev opt-in preserves environment isolation',async()=>{
+ const original=fetch;
+ try{
+  for(const [buildEnvironment,optIn,expected] of [['dev',undefined,503],['dev','false',503],['dev','true',200],['staging','true',503],['production',undefined,200]]){
+   const f=await fixture();try{
+    if(buildEnvironment!=='dev'){
+     const row=f.db.prepare('SELECT * FROM tenant_payment_connections').get();
+     const iv=crypto.getRandomValues(new Uint8Array(12));
+     const key=await crypto.subtle.importKey('raw',Buffer.from(JSON.parse(f.env.PAYMENT_SECRET_KEYS).v1,'base64'),'AES-GCM',false,['encrypt']);
+     const data=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:new TextEncoder().encode(JSON.stringify(['benmi-payment-v1',buildEnvironment,'a',row.id]))},key,new TextEncoder().encode('test-secret'));
+     f.db.prepare('UPDATE tenant_payment_connections SET environment=?,encrypted_secret=?').run(buildEnvironment,'v1.'+Buffer.from(iv).toString('base64')+'.'+Buffer.from(data).toString('base64'));
+    }
+    f.env.BUILD_ENVIRONMENT=buildEnvironment;f.env.PAYMENT_ALLOW_LIVE_IN_DEV=optIn;
+    f.db.exec("UPDATE tenant_payment_connections SET mode='production'");
+    const calls=provider(f);
+    const result=await f.route('/api/payments/linepay/request',f.payload);
+    assert.equal(result.status=== 'PENDING'?200:result.status,expected);
+    assert.equal(calls.filter(p=>p.endsWith('/request')).length,expected===200?1:0);
+    if(buildEnvironment==='dev'&&expected===200){
+     f.env.BUILD_ENVIRONMENT='staging';
+     const before=calls.length;
+     assert.equal((await f.route('/api/payments/'+result.id+'/confirm',{})).status,'UNKNOWN');
+     assert.equal(calls.length,before,'Dev opt-in must not permit provider calls with a mismatched environment');
+    }
+   }finally{f.db.close();}
+  }
+ }finally{global.fetch=original;}
+});

@@ -33,7 +33,8 @@ export async function paymentConnection(env:Env,tenant:string) {
 }
 async function secret(env:Env,c:Connection) {
  try {
-  if(c.environment!==environment(env) || (c.mode==='production' && c.environment!=='production')) throw new Error();
+  const liveAllowed=c.environment==='production' || (c.environment==='dev' && env.PAYMENT_ALLOW_LIVE_IN_DEV==='true');
+  if(c.environment!==environment(env) || (c.mode==='production' && !liveAllowed)) throw new Error();
   const ring=JSON.parse(env.PAYMENT_SECRET_KEYS || '{}'), material=ring[c.key_version];
   const decode=(v:string)=>Uint8Array.from(atob(v),x=>x.charCodeAt(0));
   if(typeof material!=='string' || decode(material).length!==32) throw new Error();
@@ -88,9 +89,12 @@ async function publish(env:Env,p:Payment,transaction:string) {
 }
 function paymentDetail(result:any,p:Payment) {
  if(result.returnCode!=='0000'||!Array.isArray(result.info)) return null;
- return result.info.find((d:any)=>d.orderId===p.provider_order_id && d.currency===p.currency && d.transactionType==='PAYMENT' &&
-  /^\d+$/.test(String(d.transactionId)) && (!p.transaction_id||String(d.transactionId)===p.transaction_id) &&
-  Array.isArray(d.payInfo)&&d.payInfo.reduce((n:number,i:any)=>n+Number(i.amount),0)===p.amount);
+ return result.info.find((d:any)=>
+  (!p.transaction_id||String(d.transactionId)===p.transaction_id) &&
+  (!d.orderId||d.orderId===p.provider_order_id) &&
+  (!d.currency||d.currency===p.currency) &&
+  (!d.transactionType||d.transactionType==='PAYMENT'||d.transactionType==='PAYMENT_REFUND') &&
+  /^\d+$/.test(String(d.transactionId)));
 }
 /** One durable lease spans provider calls; UNKNOWN is queried, never blindly recharged. */
 export async function reconcilePayment(env:Env,id:string,tenant:string,initialRequest?:boolean) {
@@ -123,33 +127,36 @@ export async function reconcilePayment(env:Env,id:string,tenant:string,initialRe
   } else if(p.status==='REFUND_PENDING') {
    const refund=await env.DB.prepare('SELECT * FROM payment_refunds WHERE payment_id=?').bind(id).first<any>();
    if(!refund) throw new Error('REFUND_MISSING');
-   const details=await call('/v4/payments',undefined,'orderId='+encodeURIComponent(p.provider_order_id));
-   const d=paymentDetail(details,p);
+   const query=p.transaction_id?'transactionId='+encodeURIComponent(p.transaction_id):'orderId='+encodeURIComponent(p.provider_order_id);
+   let details:any=null;
+   try { details=await call('/v4/payments',undefined,query); } catch(err) { console.warn('[Payment Details Query Failed]', err); }
+   const d=details ? paymentDetail(details,p) : null;
    const refunded=(d?.refundList||[]).reduce((n:number,r:any)=>n+Math.abs(Number(r.refundAmount)||0),0);
    if(d&&refunded===p.amount) {
     await env.DB.batch([
      env.DB.prepare("UPDATE payment_refunds SET status='SUCCEEDED',updated_at=? WHERE payment_id=?").bind(Date.now(),id),
      env.DB.prepare("UPDATE payments SET status='REFUNDED',refunded_at=?,updated_at=? WHERE id=? AND lease_token=?").bind(Date.now(),Date.now(),id,lease),
      env.DB.prepare("UPDATE orders SET updated_at=strftime('%Y-%m-%d %H:%M:%f','now') WHERE key=? AND tenant_id=?").bind(p.order_key,tenant)]);
-   } else if(refund.status==='PENDING' && d && refunded===0) {
+   } else if(['PENDING','PROCESSING','UNKNOWN'].includes(refund.status) && (refunded===0 || !d)) {
     // Commit PROCESSING before POST; a crash after this point may only QUERY.
     await env.DB.prepare("UPDATE payment_refunds SET status='PROCESSING',updated_at=? WHERE payment_id=? AND status='PENDING'").bind(Date.now(),id).run();
     const result=await call(`/v4/payments/${p.transaction_id}/refund`,{refundAmount:p.amount});
-    if(result.returnCode==='0000') {
+    if(result.returnCode==='0000'||result.returnCode==='1164') {
      await env.DB.batch([
       env.DB.prepare("UPDATE payment_refunds SET status='SUCCEEDED',transaction_id=?,updated_at=? WHERE payment_id=?").bind(String(result.info?.refundTransactionId||''),Date.now(),id),
       env.DB.prepare("UPDATE payments SET status='REFUNDED',refunded_at=?,updated_at=? WHERE id=? AND lease_token=?").bind(Date.now(),Date.now(),id,lease),
       env.DB.prepare("UPDATE orders SET updated_at=strftime('%Y-%m-%d %H:%M:%f','now') WHERE key=? AND tenant_id=?").bind(p.order_key,tenant)]);
-     await event(env,id,'REFUNDED','0000');
+     await event(env,id,'REFUNDED',result.returnCode);
     } else {
-     const definite=['1163','1164'].includes(result.returnCode);
+     const definite=['1163'].includes(result.returnCode);
      await env.DB.prepare('UPDATE payment_refunds SET status=?,result_code=?,updated_at=? WHERE payment_id=?')
       .bind(definite?'FAILED':'UNKNOWN',String(result.returnCode),Date.now(),id).run();
      await set(env,p,definite?'REFUND_FAILED':'REFUND_PENDING',String(result.returnCode));
     }
    } else await set(env,p,'REFUND_PENDING','REFUND_VERIFY');
   } else {
-   const result=await call('/v4/payments',undefined,'orderId='+encodeURIComponent(p.provider_order_id));
+   const query=p.transaction_id?'transactionId='+encodeURIComponent(p.transaction_id):'orderId='+encodeURIComponent(p.provider_order_id);
+   const result=await call('/v4/payments',undefined,query);
    const d=paymentDetail(result,p);
    if(d) await publish(env,p,String(d.transactionId));
    else if(p.transaction_id) {

@@ -202,6 +202,27 @@ window.PaymentPOS = (function () {
     if(['UNKNOWN','REFUND_PENDING','REFUND_FAILED'].includes(p.status)) {
       const info=document.createElement('p');info.className='pos-payment-info-hint';
       info.textContent=t('paymentReviewHint');el.append(info);
+      if(['UNKNOWN','REFUND_PENDING'].includes(p.status)) {
+        const retryBtn=document.createElement('button');retryBtn.type='button';
+        retryBtn.className='payment-button btn-pos-reconcile';
+        retryBtn.style.marginTop='8px';
+        retryBtn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg><span>'+escapeHtml(t('paymentViewCheck')||'Kiểm tra')+'</span>';
+        retryBtn.onclick=async()=>{
+          try {
+            retryBtn.disabled=true;
+            const updated=await authorized('/api/payments/'+p.id+'/reconcile',{});
+            order.payment=updated;
+            mount(order);
+            await fetchOrders();
+            await refreshAll();
+          }catch(e){
+            if(e.code!=='PAYMENT_AUTH_CANCELLED')alert(errorText(e));
+          }finally{
+            retryBtn.disabled=false;
+          }
+        };
+        el.append(retryBtn);
+      }
     }
   }
   function isOpen(){return typeof activeTab!=='undefined'&&activeTab==='payments';}
