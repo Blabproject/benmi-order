@@ -249,8 +249,16 @@
 
     if (isEmbedded) {
       document.body.classList.add("is-embedded-pos");
-      const btnBack = document.getElementById("btn-back-pos");
-      if (btnBack) btnBack.style.display = "inline-flex";
+      try {
+        const posLanguage = localStorage.getItem("benmi_lang") || "zh-TW";
+        if (I18N[posLanguage]) state.currentLang = posLanguage;
+      } catch (e) {}
+      const logoutButton = document.getElementById("btn-logout");
+      const tableActions = document.querySelector("#view-tables .view-header-actions");
+      if (logoutButton && tableActions) tableActions.appendChild(logoutButton);
+      window.addEventListener("storage", event => {
+        if (event.key === "benmi_lang") setStaffLanguage(event.newValue);
+      });
     }
 
     applyI18nLabels();
@@ -361,7 +369,12 @@
   }
 
   function toggleLanguage() {
-    state.currentLang = state.currentLang === "vi" ? "zh-TW" : "vi";
+    setStaffLanguage(state.currentLang === "vi" ? "zh-TW" : "vi");
+  }
+
+  function setStaffLanguage(language) {
+    if (!I18N[language]) return;
+    state.currentLang = language;
     try {
       localStorage.setItem("staff_order_lang", state.currentLang);
     } catch (e) {}
@@ -466,6 +479,7 @@
     document.getElementById("header-table-badge").style.display = "none";
     document.getElementById("sticky-cart-bar").style.display = "none";
 
+    window.scrollTo(0, 0);
     await loadTablesData();
     startTablePolling();
   }
@@ -660,6 +674,7 @@
       renderMenuItems();
     }
     renderCartDrawer();
+    window.scrollTo(0, 0);
   }
 
   function updateOrderBanner() {
@@ -876,7 +891,7 @@
     if (sections.length === 0) return;
 
     let currentSlug = "";
-    const offset = 140;
+    const offset = document.body.classList.contains("is-embedded-pos") ? 88 : 140;
 
     sections.forEach(sec => {
       const rect = sec.getBoundingClientRect();

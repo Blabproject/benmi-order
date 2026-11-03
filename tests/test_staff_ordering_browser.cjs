@@ -91,4 +91,67 @@ for (const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: st
     assert.deepEqual(errors,[]);
     await context.close();
   }
+
+  await t.test('embedded workspace shares POS header on phone and tablet',async()=>{
+    const context=await browser.newContext({viewport:{width:390,height:844}});
+    const page=await context.newPage();
+    const errors=[];
+    page.on('pageerror',error=>errors.push(error.message));
+    await page.addInitScript(token=>{
+      localStorage.setItem('benmi_lang','vi');
+      localStorage.setItem('staff_order_lang','zh-TW');
+      sessionStorage.setItem('staff_session_token_a',token);
+    },f.token);
+    await page.route('**/orders.html?**',route=>route.fulfill({contentType:'text/html',
+      body:fs.readFileSync('orders.html','utf8').replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi,'')}));
+    await page.route('**/api/**',async route=>{
+      const r=route.request(),p=new URL(r.url()).pathname;
+      const request=new Request(r.url(),{method:r.method(),headers:r.headers(),
+        ...(['GET','HEAD'].includes(r.method())?{}:{body:r.postData()})});
+      let response;
+      if(p.startsWith('/api/staff'))response=await handleStaffRoute(request,f.env,p,f.context('a'));
+      else if(p==='/api/tenant/bootstrap')response=await getTenantBootstrap(request,f.env);
+      else if(p==='/api/menu/options')response=await getOptionCatalog(request,f.env);
+      else response=new Response('{}');
+      await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:await response.text()});
+    });
+    await page.goto(`http://127.0.0.1:${server.address().port}/orders.html?tenant_id=a&env=dev`);
+    await page.evaluate(()=>switchTab('staff-order'));
+    const staff=page.frameLocator('#staff-order-iframe');
+    await staff.locator('#view-tables').waitFor({state:'visible'});
+    assert.equal(await staff.locator('html').getAttribute('lang'),'vi');
+    assert.equal(await staff.locator('#staff-header').isVisible(),false);
+    assert.equal(await staff.locator('#view-tables .view-header-actions #btn-logout').isVisible(),true);
+    for(const viewport of [{width:320,height:740},{width:390,height:844},{width:768,height:1024},{width:1024,height:768},{width:844,height:390}]){
+      await page.setViewportSize(viewport);
+      await page.screenshot({path:path.join(output,`${name}-embedded-${viewport.width}.png`),animations:'disabled'});
+      const layout=await page.evaluate(()=>{
+        const header=document.getElementById('main-topbar').getBoundingClientRect();
+        const frame=document.getElementById('staff-order-iframe').getBoundingClientRect();
+        const title=document.getElementById('page-main-title').getBoundingClientRect();
+        const status=document.getElementById('store-status-btn').getBoundingClientRect();
+        return {headerHeight:header.height,frameTop:frame.top,headerBottom:header.bottom,frameBottom:frame.bottom,
+          viewportHeight:innerHeight,overlap:title.right>status.left+1,overflow:document.documentElement.scrollWidth>innerWidth};
+      });
+      assert(layout.headerHeight>=48,JSON.stringify(layout));
+      assert(layout.frameTop>=layout.headerBottom-1,JSON.stringify(layout));
+      assert(layout.frameBottom<=layout.viewportHeight+1,JSON.stringify(layout));
+      assert(!layout.overlap&&!layout.overflow,JSON.stringify(layout));
+      assert.equal(await staff.locator('html').evaluate(el=>el.scrollWidth>innerWidth),false);
+      assert(await staff.locator('#i18n-tables-title').evaluate(el=>el.getBoundingClientRect().top>=0));
+      await staff.getByRole('button',{name:/^A1 /}).click();
+      await staff.locator('#view-menu').waitFor({state:'visible'});
+      assert.equal(await page.locator('#main-topbar').isVisible(),true);
+      assert.equal(await staff.locator('.btn-back-tables').isVisible(),true);
+      await staff.locator('.btn-back-tables').click();
+    }
+    await page.evaluate(()=>setLanguage('zh-TW'));
+    await staff.locator('html[lang="zh-TW"]').waitFor();
+    await staff.locator('#btn-logout').click();
+    await staff.locator('#view-login').waitFor({state:'visible'});
+    await page.evaluate(()=>switchTab('live'));
+    assert.equal(await page.locator('#main-topbar').isVisible(),true);
+    assert.deepEqual(errors,[]);
+    await context.close();
+  });
 });

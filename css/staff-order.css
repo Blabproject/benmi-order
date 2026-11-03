@@ -583,6 +583,8 @@ body.staff-body {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-bottom: 12px;
 }
 
@@ -601,6 +603,8 @@ body.staff-body {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .table-card.empty .table-card-status-pill {
@@ -1667,7 +1671,7 @@ body.staff-body { --primary:#00b900; --primary-hover:#009900; --primary-light:#e
 .staff-body :is(button,input,select) { min-height:48px; }
 .staff-body button { min-width:48px; }
 .staff-body :is(button,input):focus-visible { outline:3px solid var(--primary); outline-offset:3px; }
-.staff-body .staff-header { height:auto; min-height:72px; padding-block:12px; gap:12px; }
+.staff-body .staff-header { height:auto; min-height:72px; padding-block:12px; gap:12px; flex-wrap:wrap; }
 .staff-body .brand-info { flex-wrap:wrap; }
 .staff-body .btn-staff-order-pill { min-height:48px; }
 .staff-body .tables-grid { gap:16px; }
@@ -1694,9 +1698,40 @@ body.staff-body { --primary:#00b900; --primary-hover:#009900; --primary-light:#e
 .staff-body .active-table-badge { min-width:0; }
 .staff-body #header-table-label { overflow:hidden; text-overflow:ellipsis; max-width:160px; }
 .staff-body .modal-sheet { animation:none; }
+body.is-embedded-pos #staff-header { display:none; }
+body.is-embedded-pos .category-tabs-nav { top:0; }
+body.is-embedded-pos .section-container { scroll-margin-top:88px; }
+body.is-embedded-pos .view-header-actions { flex-wrap:wrap; }
+@media (min-width:900px) {
+  body.is-embedded-pos[data-staff-view="menu"] #cartModal { top:16px; }
+}
 @media (max-width:600px) {
   .staff-body .staff-header { flex-wrap:wrap; }
   .staff-body #header-table-label { max-width:100px; }
   .staff-body .header-left { min-width:0; flex:1; }
   .staff-body .brand-title { font-size:16px; }
+  .staff-body .header-left { flex-basis:100%; }
+  .staff-body .header-right { flex-wrap:wrap; max-width:100%; }
+  .staff-body .staff-main-container { padding:16px; }
+  .staff-body .view-header { gap:12px; margin-bottom:16px; }
+  .staff-body .view-title { font-size:20px; line-height:1.3; }
+  .staff-body .view-desc { font-size:13px; line-height:1.55; margin-top:6px; }
+  .staff-body .view-header-actions { width:100%; gap:8px; }
+  .staff-body .view-header-actions > button { flex:1; justify-content:center; }
+  .staff-body #btn-takeaway-header { display:none; }
+  .staff-body .takeaway-banner-card { flex-direction:row; align-items:center; padding:14px; gap:8px; margin-bottom:16px; }
+  .staff-body .takeaway-banner-left { min-width:0; gap:12px; }
+  .staff-body .takeaway-banner-title { font-size:16px; }
+  .staff-body .takeaway-banner-desc { font-size:12px; line-height:1.5; }
+  .staff-body .btn-takeaway-cta { width:48px; padding:0; background:transparent; color:var(--primary-hover); box-shadow:none; }
+  .staff-body .btn-takeaway-cta > span { display:none; }
+  .staff-body .search-box { width:100%; max-width:none; }
+  .staff-body .tables-toolbar { margin-bottom:16px; }
+  .staff-body .filter-chip { flex-shrink:0; padding-inline:12px; }
+  .staff-body .tables-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+  .staff-body .table-card { min-width:0; padding:14px; }
+  .staff-body .table-card-top { flex-wrap:wrap; gap:6px; }
+  .staff-body .table-card-label { overflow-wrap:anywhere; }
+  .staff-body .banner-table-title { flex-wrap:wrap; }
+  .staff-body .order-context-banner { padding:14px; gap:12px; }
 }

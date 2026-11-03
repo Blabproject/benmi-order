@@ -7,7 +7,7 @@
   <title id="pos-page-title">Blab POS</title>
   <base href="/" />
   <script src="js/orders-display.js?v=20261007_dev_main_sync_v1"></script>
-  <link rel="stylesheet" href="css/orders.css?v=20261104_staff_order_header_v1" />
+  <link rel="stylesheet" href="css/orders.css?v=20261104_staff_order_mobile_v2" />
   <link rel="stylesheet" href="css/orders-menu.css?v=20261102_menu_mobile_v5" />
     <script>
       (function () {
@@ -160,12 +160,10 @@
         <!-- 4. Staff Ordering (Shown when enabled) -->
         <button type="button" class="sidebar-nav-item" id="tab-staff-order" data-tab="staff-order" onclick="switchTab('staff-order')" style="display: none !important;" hidden aria-label="桌邊點餐">
           <div class="nav-item-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"></path>
-              <path d="M15 2v10"></path>
-              <path d="M15 14v8"></path>
-              <path d="M6 2v20"></path>
-              <path d="M6 2a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3"></path>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect>
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+              <path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"></path>
             </svg>
           </div>
           <span class="sidebar-label" id="i18n-tab-staff-order">桌邊點餐</span>
@@ -262,12 +260,10 @@
         <div class="main-topbar-right" id="main-topbar-right-slot">
           <!-- Staff In-Store Table Ordering Button (Shown if staff_ordering_enabled) -->
           <button type="button" class="btn btn-staff-order-pill" id="btn-staff-order-pill" style="display: none;" onclick="openStaffOrderWindow()" title="桌邊點餐 / Nhận đơn tại bàn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"></path>
-              <path d="M15 2v10"></path>
-              <path d="M15 14v8"></path>
-              <path d="M6 2v20"></path>
-              <path d="M6 2a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3"></path>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect>
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+              <path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"></path>
             </svg>
             <span id="i18n-btn-staff-order">桌邊點餐</span>
           </button>
@@ -3026,7 +3022,7 @@
 
   <!-- Benmi POS Modular Architecture Scripts -->
   <script src="js/orders-i18n.js?v=20261103_cashback_refund_ui_v1"></script>
-  <script src="js/orders-core.js?v=20261104_staff_order_header_v1"></script>
+  <script src="js/orders-core.js?v=20261104_staff_order_mobile_v2"></script>
   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
   <script src="js/order-detail-view.js?v=20261017_order_detail_v1"></script>

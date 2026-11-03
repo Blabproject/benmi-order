@@ -326,12 +326,11 @@ button.sidebar-nav-item.active {
 
 body.is-menu-active .main-topbar,
 .main-layout:has(#view-menu[style*="display: block"]) > .main-topbar,
-.main-layout:has(#view-menu:not([style*="display: none"]):not([style*="display:none"])) > .main-topbar,
-.main-layout:has(> #view-staff-order:not([style*="display: none"]):not([style*="display:none"])) > .main-topbar {
+.main-layout:has(#view-menu:not([style*="display: none"]):not([style*="display:none"])) > .main-topbar {
   display: none !important;
 }
 
-/* The embedded staff workspace supplies its own header. */
+/* Staff ordering shares the POS navigation header. */
 #view-staff-order {
   flex: 1;
   min-height: 0;
@@ -339,6 +338,32 @@ body.is-menu-active .main-topbar,
   margin: 0;
   background: #f8fafc;
   overflow: hidden;
+}
+
+body.is-staff-order-active #btn-staff-order-pill {
+  display: none !important;
+}
+
+body.is-staff-order-active .main-topbar {
+  flex-wrap: nowrap;
+}
+
+body.is-staff-order-active .main-topbar-left {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+body.is-staff-order-active .main-topbar-right {
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+
+body.is-staff-order-active .page-main-title {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .main-topbar-left {

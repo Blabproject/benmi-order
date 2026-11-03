@@ -1481,6 +1481,7 @@ function syncStoreStatusPlacement(tab) {
   const dd = document.getElementById("store-status-dropdown");
   const isMenu = (tab === "menu");
   document.body.classList.toggle("is-menu-active", isMenu);
+  document.body.classList.toggle("is-staff-order-active", tab === "staff-order");
   const mainTopbar = document.getElementById("main-topbar");
   if (mainTopbar) {
     mainTopbar.style.display = isMenu ? "none" : "";
