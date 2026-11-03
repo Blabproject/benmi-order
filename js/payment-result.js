@@ -59,7 +59,13 @@
         if(result){latest=result;render(result,session);if(!result.paidAt&&!['CANCELLED','FAILED'].includes(result.status))refresh();}
         else refresh();
       }));
-      if(data?.paymentUrl)actions.append(button(text('繼續 LINE Pay 付款','Tiếp tục LINE Pay'),()=>{const inLine=typeof liff!=='undefined'&&liff.isInClient();location.assign(inLine&&data.appUrl?data.appUrl:data.paymentUrl);},true));
+      if(data?.paymentUrl){
+        actions.append(button(text('繼續 LINE Pay 付款','Tiếp tục LINE Pay'),()=>S.openProvider(data),true));
+        if(S.providerTarget(data).usesApp){
+          el.append(V.element('p','payment-receipt-note',text('若無法開啟 LINE Pay，您也可以改用瀏覽器付款。','Nếu không mở được LINE Pay, bạn có thể thanh toán trong trình duyệt.')));
+          actions.append(button(text('改用瀏覽器付款','Thanh toán trong trình duyệt'),()=>S.openProvider(data,true)));
+        }
+      }
       actions.append(button(text('重新查詢','Kiểm tra lại'),()=>refresh(),!data?.paymentUrl));
       actions.append(button(text('返回菜單','Quay lại menu'),()=>location.assign(menuUrl())));
     }

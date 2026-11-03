@@ -56,9 +56,27 @@ window.PaymentSession = (function () {
     return data;
   }
   function resultUrl(id,callback){const url=new URL('/payment-result',location.origin);url.searchParams.set('tenant_id',tenant());if(id)url.searchParams.set('payment_id',id);const lang=new URL(location.href).searchParams.get('lang');if(lang)url.searchParams.set('lang',lang);if(callback)for(const key of ['transactionId','orderId']){const value=callback.get(key);if(value)url.searchParams.set(key,value);}return url;}
+  function providerTarget(data){
+    const nav=window.navigator||{},ua=nav.userAgent||'';
+    let mobile=/Android|iPhone|iPad|iPod/i.test(ua)||(/MacIntel|Macintosh/.test(nav.platform||ua)&&nav.maxTouchPoints>1);
+    try{mobile=mobile||window.liff?.isInClient?.()===true;}catch{}
+    let usesApp=false;
+    try{
+      const web=new URL(data.paymentUrl),app=new URL(data.appUrl);
+      // Sandbox stays in the simulator. Use the provider's app URL unchanged.
+      usesApp=mobile&&web.protocol==='https:'&&web.hostname==='web-pay.line.me'&&!web.username&&!web.password&&
+        app.protocol==='line:'&&app.hostname==='pay'&&app.pathname.startsWith('/payment/')&&!app.username&&!app.password;
+    }catch{}
+    return {url:usesApp?data.appUrl:data.paymentUrl,webUrl:data.paymentUrl,usesApp};
+  }
+  function openProvider(data,preferWeb=false){
+    const target=providerTarget(data);
+    try{location.assign(preferWeb?target.webUrl:target.url);}
+    catch(error){if(preferWeb||!target.usesApp)throw error;} // Keep explicit recovery buttons if app launch is blocked.
+  }
   async function api(path,session,body){
     const response=await fetch(WORKER_BASE+path+(path.includes('?')?'&':'?')+'tenant_id='+encodeURIComponent(tenant()),{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json','X-Payment-Token':session.token},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(65000)});
     const data=await response.json();if(!response.ok){const error=new Error(data.code||'PAYMENT_FAILED');error.status=response.status;throw error;}return data;
   }
-  return {preserveDraft,terminal,resolve,active,archive,save,remember,forResult,matches,same,draft,signature,cleanUrl,detach,paid,restore,resultUrl,api,completeDetail};
+  return {preserveDraft,terminal,resolve,active,archive,save,remember,forResult,matches,same,draft,signature,cleanUrl,detach,paid,restore,resultUrl,providerTarget,openProvider,api,completeDetail};
 })();

@@ -49,7 +49,7 @@ const suites = [
   ['staff-print', ['--test', 'tests/test_staff_print.cjs', 'tests/test_staff_pos.cjs']],
   ['staff-capability-schema', ['--test', 'tests/test_staff_capability_schema.cjs']],
   ['order-identity', ['tests/test_order_identity.cjs']],
-  ['linepay-runtime', ['--test', 'tests/test_linepay.cjs']],
+  ['linepay-runtime', ['--test', 'tests/test_linepay.cjs', 'tests/test_payment_redirect.cjs']],
   ['payment-workspace-runtime', ['--test', 'tests/test_payment_workspace.cjs']],
   ['payment-workspace-browser', ['--test', 'tests/test_payment_workspace_browser.cjs']],
   ['linepay-browser', ['--test', 'tests/test_linepay_browser.cjs', 'tests/test_payment_result_browser.cjs', 'tests/test_payment_pin_onboarding_browser.cjs']],

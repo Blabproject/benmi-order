@@ -58,7 +58,19 @@ window.LinePayCheckout = (function () {
     else panel.append(PaymentActions.button(text('重新查詢','Kiểm tra lại'),()=>inspect()));
     document.getElementById('sec-checkout')?.prepend(panel);syncButtons();
   }
-  function launch(data){const inLine=typeof liff!=='undefined'&&liff.isInClient();location.assign(inLine&&data.appUrl?data.appUrl:data.paymentUrl);}
+  function launch(data){
+    if(S.providerTarget(data).usesApp){
+      removeBanner();
+      const panel=PaymentView.element('section','payment-panel');panel.id='payment-result';panel.setAttribute('role','status');
+      panel.append(PaymentView.element('p','',text('正在開啟 LINE Pay。若未開啟，請點選「開啟 LINE Pay」或改用瀏覽器付款。','Đang mở LINE Pay. Nếu ứng dụng chưa mở, hãy bấm “Mở LINE Pay” hoặc thanh toán trong trình duyệt.')));
+      const actions=PaymentView.element('div','payment-dialog-actions'),session=S.active();
+      actions.append(PaymentActions.button(text('開啟 LINE Pay','Mở LINE Pay'),()=>S.openProvider(data)),
+        PaymentActions.button(text('改用瀏覽器付款','Thanh toán trong trình duyệt'),()=>S.openProvider(data,true)),
+        PaymentActions.button(text('查看訂單','Xem đơn'),()=>location.assign(S.resultUrl(session.id))));
+      panel.append(actions);document.getElementById('sec-checkout')?.prepend(panel);syncButtons();
+    }
+    S.openProvider(data);
+  }
   async function resume(openPayment){
     if(busy)return;const session=S.active();if(!session)return;if(session.completed){retireCompleted();return;}
     lastSession=session;
