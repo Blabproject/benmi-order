@@ -17,7 +17,7 @@ console.log("=== Running Menu Bundle Editor Test Suite ===");
 // 1. Load I18N and Core
 const i18nCode = fs.readFileSync(path.join(__dirname, '../js/orders-i18n.js'), 'utf8');
 const coreCode = fs.readFileSync(path.join(__dirname, '../js/orders-core.js'), 'utf8');
-const menuCode = fs.readFileSync(path.join(__dirname, '../js/orders-menu.js'), 'utf8');
+const { modelCode, menuCode } = require('./helpers/menu-editor-loader.cjs');
 const wizardCode = fs.readFileSync(path.join(__dirname, '../js/orders-bundle-wizard.js'), 'utf8');
 
 // Mock browser environment
@@ -103,6 +103,7 @@ const context = vm.createContext(windowMock);
 
 vm.runInContext(i18nCode, context);
 vm.runInContext(coreCode, context);
+vm.runInContext(modelCode, context);
 vm.runInContext(menuCode, context);
 vm.runInContext(wizardCode, context);
 

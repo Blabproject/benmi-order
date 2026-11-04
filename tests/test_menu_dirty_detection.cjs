@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { loadMenuEditor } = require('./helpers/menu-editor-loader.cjs');
 
 function createDOMEnvironment() {
   const domElements = {};
@@ -97,8 +98,7 @@ function createDOMEnvironment() {
   sandbox.window = sandbox;
   vm.createContext(sandbox);
 
-  const menuJs = fs.readFileSync(path.resolve(__dirname, '../js/orders-menu.js'), 'utf-8');
-  vm.runInContext(menuJs, sandbox);
+  loadMenuEditor(sandbox);
 
   const getIsMenuDirty = () => vm.runInContext('isMenuDirty', sandbox);
   const setCurrentMenuData = (data) => {

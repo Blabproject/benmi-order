@@ -5,6 +5,8 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { loadMenuEditor } = require('./helpers/menu-editor-loader.cjs');
+const MenuEditorModel = require('../js/orders-menu-model.js');
 
 console.log("=================================================");
 console.log("🧪 Running Customization Editor & Sub-options Test");
@@ -70,9 +72,9 @@ const mockSandbox = {
   POS_SVG: { grip: '::', trash: 'trash', plus: '+', edit: 'edit', settings: 'settings', tag: 'tag', image: 'image' },
   console: console
 };
-vm.createContext(mockSandbox);
-// Run orders-menu.js in sandbox and extract serializeMenuData
-const serializeMenuData = vm.runInContext(menuJs + '\n;serializeMenuData;', mockSandbox);
+// Load orders-menu-model.js and orders-menu.js in sandbox
+loadMenuEditor(mockSandbox);
+const serializeMenuData = mockSandbox.serializeMenuData;
 
 // 3. Test serializeMenuData with sample BSC & Jiangjiejie customization data
 const sampleCategories = [
@@ -245,13 +247,8 @@ assert.strictEqual(reorderedCats[0].id, 'mains', "mains (sortOrder 1) should be 
 assert.strictEqual(reorderedCats[1].id, 'sec-flavor', "sec-flavor (sortOrder 2) should be second");
 assert.strictEqual(reorderedCats[2].id, 'drinks', "drinks (sortOrder 3) should be third");
 
-// Verify serializeMenuData with reordered categories
-// Re-evaluate serializeMenuData using the implementation in js/orders-menu.js
-const ordersMenuJs = fs.readFileSync(path.join(__dirname, '../js/orders-menu.js'), 'utf8');
-const serializeFnMatch = ordersMenuJs.match(/function serializeMenuData\(categories\) \{([\s\S]*?)\n\}/);
-assert(serializeFnMatch, "serializeMenuData must be found in orders-menu.js");
-const serializeMenuDataUpdated = new Function('categories', serializeFnMatch[1]);
-const reorderedSerialized = serializeMenuDataUpdated(reorderedCats);
+// Verify serializeMenuData with reordered categories using MenuEditorModel
+const reorderedSerialized = MenuEditorModel.serializeMenuData(reorderedCats);
 assert.strictEqual(reorderedSerialized.__customizations.sortOrder, 2, "Serialized __customizations sortOrder must be 2");
 assert.strictEqual(reorderedSerialized.mains.__sort_order, 1, "Serialized mains __sort_order must be 1");
 assert.strictEqual(reorderedSerialized.drinks.__sort_order, 3, "Serialized drinks __sort_order must be 3");

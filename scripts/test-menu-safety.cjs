@@ -2,6 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
+const { loadMenuEditor } = require('../tests/helpers/menu-editor-loader.cjs');
 const { DatabaseSync } = require('node:sqlite');
 const ts = require('../benmi-worker-official/node_modules/typescript');
 const source = fs.readFileSync('benmi-worker-official/src/modules/menu.ts', 'utf8');
@@ -81,7 +82,7 @@ function editor() {
   const context=vm.createContext({console,Date,Set,JSON,crypto:require('node:crypto').webcrypto,alert:m=>alerts.push(m),confirm:()=>true,t:k=>k,WORKER_BASE:'https://example.test',getTenantIdFromUrl:()=> 'a',
     window:{addEventListener(){}},document:{addEventListener(){},getElementById:id=>id==='menu-editor-body'?body:null,querySelectorAll:()=>[],createElement:()=>({style:{},addEventListener(){}})},
     fetch:async(url,options)=>{requests.push({url,...options});return {ok:true,json:async()=>({})}},localStorage:{removeItem(){}}});
-  vm.runInContext(fs.readFileSync('js/orders-menu.js','utf8'),context);
+  loadMenuEditor(context);
   vm.runInContext('renderMenuCategories=()=>{}; renderMenuCategoryEditor=()=>{};',context);
   return {context,requests,alerts,run:code=>vm.runInContext(code,context)};
 }

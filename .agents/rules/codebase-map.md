@@ -68,9 +68,13 @@ Thứ tự load trong `orders.html` (từ dòng ~2788):
    - Thao tác nhận đơn, báo hết món, đổi giờ hẹn, hoàn tất đơn.
 7. [`js/orders-history.js`](file:///Users/duccao/Documents/benmi-order/js/orders-history.js) (~510 dòng):
    - Tab **Lịch sử đơn hàng (30 ngày)**: `fetchHistoryOrders()`, `renderHistory()`, `matchesHistorySearch()`.
-8. [`js/orders-menu.js`](file:///Users/duccao/Documents/benmi-order/js/orders-menu.js) (~5,750 dòng) & [`js/orders-option-groups.js`](file:///Users/duccao/Documents/benmi-order/js/orders-option-groups.js) (~1,770 dòng):
+8. [`js/orders-menu-model.js`](../../js/orders-menu-model.js) (~328 dòng - Browser & CommonJS):
+   - **`MenuEditorModel`**: `canonicalMenuSnapshot(data)`, `serializeMenuData(categories, dependencies)`, `getMenuDeletions(before, after, dependencies)`; logic dữ liệu không đọc DOM hay state toàn cục.
+   - Snapshot và tính danh sách xóa không sửa đầu vào. Serializer giữ cập nhật ID/liên kết trên bản nháp; nhận callback tenant, UUID, thông báo lỗi và danh mục dùng chung từ caller.
+9. [`js/orders-menu.js`](file:///Users/duccao/Documents/benmi-order/js/orders-menu.js) (~5,617 dòng) & [`js/orders-option-groups.js`](file:///Users/duccao/Documents/benmi-order/js/orders-option-groups.js) (~1,770 dòng):
    - Tab **Quản lý Thực đơn & Nhóm Tùy chọn (Unified Option Groups)** ngay trên POS.
-9. [`js/orders-modals.js`](file:///Users/duccao/Documents/benmi-order/js/orders-modals.js), [`js/orders-reports.js`](file:///Users/duccao/Documents/benmi-order/js/orders-reports.js), [`js/orders-settings.js`](file:///Users/duccao/Documents/benmi-order/js/orders-settings.js):
+   - `orders-menu.js` giữ wrapper dữ liệu, đồng bộ DOM, state và gọi API; các test VM nạp model trước editor bằng `loadMenuEditor(context)`.
+10. [`js/orders-modals.js`](file:///Users/duccao/Documents/benmi-order/js/orders-modals.js), [`js/orders-reports.js`](file:///Users/duccao/Documents/benmi-order/js/orders-reports.js), [`js/orders-settings.js`](file:///Users/duccao/Documents/benmi-order/js/orders-settings.js):
    - Đặt đơn tại quầy (Staff Ordering), Báo cáo doanh thu, Cài đặt quán & máy in.
 
 ---
@@ -103,6 +107,7 @@ Thứ tự load trong `orders.html` (từ dòng ~2788):
 | **Lỗi hiển thị thẻ đơn hàng mới hoặc Modal Xem đơn (POS)** | `js/orders-live.js` (`formatContentHtml`, `renderItemRowHtml`) + `js/order-detail-view.js` |
 | **Lỗi hiển thị dòng tóm tắt ở tab Lịch sử đơn (POS)** | `js/orders-history.js` (`renderHistory`) + `js/orders-core.js` (`shortItems`) |
 | **Lỗi in hóa đơn / in tem nhãn / dịch mã ID tùy chọn** | `js/printer-service.js` (`formatPrintOptions`, `parseOrderItems`) + `js/order-legacy-adapter.js` |
+| **Lỗi phát hiện thay đổi (dirty), payload lưu hoặc danh sách xóa menu POS** | `js/orders-menu-model.js` (snapshot/serialize/deletions) + `js/orders-menu.js` (wrapper, DOM và gọi API) |
 | **Lỗi tạo/sửa nhóm tùy chọn trên POS** | `js/orders-option-groups.js` + `benmi-worker-official/src/modules/option-groups.ts` |
 | **Lỗi tin nhắn biên lai LINE Flex Message** | `benmi-worker-official/src/modules/line/templates/order-receipt.ts` |
 | **Ẩn/hiện Tab Sidebar POS & Chuyển Tab (`#live`, `#menu`, `#staff-order`)** | `orders.html` (sidebar buttons) + `css/orders.css` (`.sidebar-nav-item` dùng `display: flex !important`) + `js/orders-core.js` (`VALID_POS_TABS`, `getInitialTab`, `switchTab`) |

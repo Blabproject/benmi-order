@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
+const { loadMenuEditor } = require('./helpers/menu-editor-loader.cjs');
 
 function setup() {
   const elements = {
@@ -26,7 +27,7 @@ function setup() {
     t: key => key
   };
   vm.createContext(context);
-  vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/orders-menu.js'), 'utf8'), context);
+  loadMenuEditor(context);
   vm.runInContext(`currentMenuData = [{id:'cat',type:'catalog',items:[
     {id:'a',name:'Bánh mì đặc biệt',price:129,isOos:false,badgeText:'Bán chạy'},
     {id:'b',name:'Bánh mì chả lụa',price:125,isOos:true}

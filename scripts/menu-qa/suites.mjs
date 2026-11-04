@@ -1,7 +1,7 @@
 // One menu gate shared by developer machines and CI. No suite may silently skip.
 export const menuSuites = [
   ['menu-static-contracts', ['--test', ...[
-    'menu_sort_button_visibility', 'menu_dirty_detection', 'modifier_option_name_collision',
+    'menu_sort_button_visibility', 'menu_dirty_detection', 'menu_model', 'modifier_option_name_collision',
     'menu_workspace', 'item_modifier_workspace', 'menu_display_scale',
     'category_linked_products_picker', 'pos_tab_persistence',
     'unified_option_groups', 'unified_option_cutover', 'unified_menu_drawer', 'unified_menu_sections',

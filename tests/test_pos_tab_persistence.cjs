@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { loadMenuEditor } = require('./helpers/menu-editor-loader.cjs');
 
 const root = path.resolve(__dirname, '..');
 
@@ -272,8 +273,7 @@ test('orders-menu.js: menuSidebarTab initializes from and saves to sessionStorag
     console
   };
 
-  const menuCode = fs.readFileSync(path.join(root, 'js/orders-menu.js'), 'utf8');
-  vm.runInNewContext(menuCode, sandbox);
+  loadMenuEditor(sandbox);
 
   // Initialized from sessionStorage 'options'
   assert.equal(sandbox.menuSidebarTab, 'options');

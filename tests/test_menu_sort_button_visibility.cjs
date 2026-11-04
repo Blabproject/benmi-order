@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { Element } = require('./helpers/menu-drawer-dom.cjs');
+const { loadMenuEditor } = require('./helpers/menu-editor-loader.cjs');
 
 function setup() {
   const doc = {createElement(tag){const el=new Element(tag,doc);el.style={};return el;}};
@@ -32,7 +33,7 @@ function setup() {
     WORKER_BASE:'https://test.invalid',getTenantIdFromUrl:()=>'test',localStorage:{removeItem(){}},
     fetch:async(url,request)=>{posts.push(JSON.parse(request.body));return {ok:true};}};
   context.window=context;vm.createContext(context);
-  vm.runInContext(fs.readFileSync(path.resolve(__dirname,'../js/orders-menu.js'),'utf8'),context);
+  loadMenuEditor(context);
   vm.runInContext('currentMenuData='+JSON.stringify(data)+';isMenuLoadedCompletely=true;activeCategoryIndex=1;clearMenuDirty();',context);
   const categories=context.renderMenuCategories;
   context.renderMenuCategories=()=>vm.runInContext('isCategoryManagerOpen',context)?categories():context.updateMenuWorkspace();

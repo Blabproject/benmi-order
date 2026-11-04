@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
+const { loadMenuEditor } = require('./helpers/menu-editor-loader.cjs');
 
 function setup() {
   const elements = {};
@@ -21,7 +22,7 @@ function setup() {
   const ctx = { window: { addEventListener() {} }, document: { addEventListener() {}, getElementById: id => elements[id] || null,
     querySelectorAll: () => [] }, t: key => key, escapeHtml: s => s, currentLang: 'vi' };
   vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync('js/orders-menu.js', 'utf8'), ctx);
+  loadMenuEditor(ctx);
   vm.runInContext(`currentMenuData = [
     {id:'cat',type:'catalog',appliedModifiers:['legacy'],items:[{id:'p1',name:'Món',modifierGroups:[]}]},
     {id:'legacy',type:'modifier',title:'Thêm thịt',items:[{id:'meat',name:'Thịt',price:20}]},

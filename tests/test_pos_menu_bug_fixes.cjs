@@ -12,6 +12,7 @@ const vm = require('node:vm');
 const { webcrypto } = require('node:crypto');
 const { setup } = require('./helpers/menu-drawer-dom.cjs');
 const { fixture } = require('./helpers/option-groups.cjs');
+const { loadMenuEditor } = require('./helpers/menu-editor-loader.cjs');
 
 const root = path.resolve(__dirname, '..');
 
@@ -183,9 +184,7 @@ test('Bug 4: Category and item reordering preserves and serializes explicit sort
   };
   sandbox.window = sandbox;
 
-  const menuCode = fs.readFileSync(path.join(root, 'js/orders-menu.js'), 'utf8');
-  vm.createContext(sandbox);
-  vm.runInContext(menuCode, sandbox);
+  loadMenuEditor(sandbox);
 
   // Call serializeMenuData
   const serialized = sandbox.serializeMenuData(currentMenuData);
