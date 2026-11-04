@@ -57,7 +57,7 @@ const suites = [
   ['line-portion-layout', ['--test', 'tests/test_line_order_layout.cjs', 'tests/test_order_item_note_dedup.cjs', 'tests/test_bundle_display_all_touchpoints.cjs', 'tests/test_item_customization_note.cjs', 'tests/test_customization_price_e2e.cjs']],
   ['liff-retry', ['--test', 'scripts/test-liff-message-retry.cjs']],
   ['menu-safety', ['--test', 'scripts/test-menu-safety.cjs']],
-  ['print-identity', ['tests/test_order_identity_print.cjs']],
+  ['print-identity', ['--test', 'tests/test_order_identity_print.cjs', 'tests/test_pos_confirmed_print.cjs']],
   ['print-items', ['tests/test_order_print_items.js']],
   ['print-sequence', ['tests/test_printer_sequence.js']],
   ['print-subtotals', ['tests/test_order_print_subtotal_bundle.cjs']],
