@@ -1,0 +1,4 @@
+interface:
+  display_name: "Antigravity Orchestrator"
+  short_description: "Codex plans; Antigravity workers execute through agy"
+  default_prompt: "Use $agy-orchestrator to plan this task, delegate implementation to Antigravity workers through agy, and verify the result."
