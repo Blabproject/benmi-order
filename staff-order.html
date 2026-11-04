@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/client-option-groups.css?v=20261101_staff_takeaway_v1">
-  <link rel="stylesheet" href="css/staff-order.css?v=20261104_staff_order_no_pin_v1">
+  <link rel="stylesheet" href="css/staff-order.css?v=20261104_staff_order_review_v1">
 </head>
 <body class="staff-body">
 
@@ -169,19 +169,71 @@
       </div>
     </section>
 
+    <!-- Full-page order review, within the shared POS workspace. -->
+    <section class="staff-review-page" id="view-review" style="display: none;" aria-labelledby="i18n-cart-title">
+      <header class="review-page-header">
+        <button type="button" class="btn btn-ghost review-back" onclick="closeOrderReview()" aria-labelledby="i18n-btn-continue-ordering">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <div>
+          <h2 id="i18n-cart-title" tabindex="-1">Xác nhận đơn hàng</h2>
+          <p id="cart-order-context-desc"></p>
+        </div>
+      </header>
+
+      <div class="review-page-body" id="review-scroll-container">
+        <section class="review-items-panel" aria-labelledby="review-items-title">
+          <h3 id="review-items-title">Món đã chọn</h3>
+          <div class="cart-items-list" id="cart-items-list"></div>
+        </section>
+        <aside class="review-details-panel">
+          <div class="cart-flavor-summary" id="cart-flavor-summary-box"></div>
+          <div class="cart-form-section">
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="cart-customer-name" id="i18n-label-customer">Tên khách (không bắt buộc)</label>
+                <input type="text" id="cart-customer-name" autocomplete="off">
+              </div>
+              <div class="form-group" id="cart-pickup-time-group" style="display: none;">
+                <label for="cart-pickup-time" id="i18n-label-pickup-time">Giờ lấy món</label>
+                <input type="time" id="cart-pickup-time">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="cart-order-note" id="i18n-label-note">Ghi chú đơn (không bắt buộc)</label>
+              <input type="text" id="cart-order-note" autocomplete="off">
+            </div>
+          </div>
+          <div class="cart-summary-box">
+            <div class="summary-row"><span id="i18n-summary-subtotal">Tạm tính:</span><span id="cart-summary-subtotal">$0</span></div>
+            <div class="summary-row" id="review-discount-row" hidden><span id="i18n-summary-discount">Ưu đãi:</span><span id="cart-summary-discount">$0</span></div>
+            <div class="summary-row total"><span id="i18n-summary-total">Tổng tiền:</span><span id="cart-summary-total">$0</span></div>
+          </div>
+          <p class="review-error" id="review-error" role="alert" tabindex="-1" hidden></p>
+        </aside>
+      </div>
+
+      <footer class="review-page-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeOrderReview()" id="i18n-btn-continue-ordering">Tiếp tục chọn món</button>
+        <button type="button" class="btn btn-primary btn-submit-order" id="btn-submit-order" onclick="submitStaffOrder()">
+          <span id="i18n-btn-confirm-order">Xác nhận gửi đơn</span>
+        </button>
+      </footer>
+    </section>
+
   </main>
 
   <!-- Sticky Cart Bar (Shown when items > 0 in Menu View) -->
   <aside class="sticky-cart-bar" id="sticky-cart-bar" style="display: none;">
     <div class="cart-bar-inner">
-      <div class="cart-bar-info" onclick="openCartModal()">
+      <div class="cart-bar-info" onclick="openOrderReview()">
         <div class="cart-count-badge" id="cart-total-count">0</div>
         <div class="cart-price-summary">
           <div class="cart-price" id="cart-total-price">$0</div>
           <div class="cart-items-preview" id="cart-items-preview">Chưa có món</div>
         </div>
       </div>
-      <button type="button" class="btn btn-primary btn-view-cart" onclick="openCartModal()" id="i18n-btn-view-cart">
+      <button type="button" class="btn btn-primary btn-view-cart" onclick="openOrderReview()" id="i18n-btn-view-cart">
         <span>Xem giỏ hàng</span>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"></polyline>
@@ -214,65 +266,6 @@
         <button type="button" class="btn btn-primary btn-add-to-cart" id="btn-confirm-add-item" onclick="confirmAddItemToCart()">
           <span id="i18n-btn-add-item">Thêm vào đơn</span>
           <span class="add-price-sum" id="modal-item-calculated-price">$0</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: CART & REVIEW DRAWER -->
-  <div class="modal-backdrop" id="cartModal" style="display: none;">
-    <div class="modal-sheet modal-cart-sheet">
-      <div class="modal-sheet-header">
-        <div>
-          <h3 class="modal-cart-title" id="i18n-cart-title">Giỏ hàng nhận đơn</h3>
-          <div class="modal-cart-subtitle" id="cart-order-context-desc">Bàn A-01 • Mở đơn mới</div>
-        </div>
-        <button type="button" class="btn-close-modal" onclick="closeCartModal()">✕</button>
-      </div>
-
-      <div class="modal-sheet-body">
-        <!-- Customer details (Optional) -->
-        <div class="cart-form-section">
-          <div class="form-row">
-            <div class="form-group flex-1">
-              <label for="cart-customer-name" id="i18n-label-customer">Tên khách (không bắt buộc)</label>
-              <input type="text" id="cart-customer-name" placeholder="Ví dụ: Anh Nam, Chị Linh..." autocomplete="off">
-            </div>
-            <div class="form-group" id="cart-pickup-time-group" style="display: none; min-width: 140px;">
-              <label for="cart-pickup-time" id="i18n-label-pickup-time">Giờ lấy món</label>
-              <input type="time" id="cart-pickup-time">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group flex-1">
-              <label for="cart-order-note" id="i18n-label-note">Ghi chú đơn (không bắt buộc)</label>
-              <input type="text" id="cart-order-note" placeholder="Ví dụ: Làm nhanh, không hành tây..." autocomplete="off">
-            </div>
-          </div>
-        </div>
-
-        <!-- Selected Items List -->
-        <div class="cart-items-list" id="cart-items-list">
-          <!-- Rendered via JS -->
-        </div>
-
-        <!-- Price Summary -->
-        <div class="cart-summary-box">
-          <div class="summary-row">
-            <span id="i18n-summary-subtotal">Tạm tính:</span>
-            <span id="cart-summary-subtotal">$0</span>
-          </div>
-          <div class="summary-row total">
-            <span id="i18n-summary-total">Tổng tiền:</span>
-            <span id="cart-summary-total">$0</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal-sheet-footer">
-        <button type="button" class="btn btn-ghost" onclick="closeCartModal()" id="i18n-btn-continue-ordering">Tiếp tục chọn món</button>
-        <button type="button" class="btn btn-primary btn-submit-order" id="btn-submit-order" onclick="submitStaffOrder()">
-          <span id="i18n-btn-confirm-order">Xác nhận gửi đơn</span>
         </button>
       </div>
     </div>
@@ -337,6 +330,6 @@
 
   <script src="js/order-detail-view.js?v=20261101_staff_takeaway_v1"></script>
   <script src="js/client-option-groups.js?v=20261103_note_placeholder_v1"></script>
-  <script src="js/staff-order.js?v=20261104_staff_order_no_pin_v1"></script>
+  <script src="js/staff-order.js?v=20261104_staff_order_review_v1"></script>
 </body>
 </html>

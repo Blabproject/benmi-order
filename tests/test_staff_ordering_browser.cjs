@@ -58,7 +58,7 @@ for (const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: st
     await page.locator('.btn-quick-add').first().click();
     await page.locator('#unified-option-modal [data-choose],#unified-option-modal [data-add]').first().click();
     await page.locator('#unified-option-modal [data-confirm]').click();
-    if(viewport.width<900) await page.click('#i18n-btn-view-cart');
+    await page.click('#i18n-btn-view-cart');
     await page.waitForFunction(()=>document.querySelector('#cart-summary-total').textContent==='$115');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     await page.screenshot({path:path.join(output,`${name}-${viewport.width}-${locale}.png`),fullPage:true,animations:"disabled"});
@@ -78,6 +78,7 @@ for (const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: st
       await page.locator('.btn-quick-add').first().click();
       await page.locator('#unified-option-modal [data-choose],#unified-option-modal [data-add]').first().click();
       await page.locator('#unified-option-modal [data-confirm]').click();
+      await page.click('#i18n-btn-view-cart');
       const changed = await f.call(`/api/staff/orders/${order.key}/status`,{status:'DONE',expectedRevision:1},f.token,'PATCH');
       assert.equal(changed.http,200);
       await f.DB.prepare("UPDATE menu_items SET price=120 WHERE id='meal-a'").run();
