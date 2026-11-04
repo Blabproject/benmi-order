@@ -42,14 +42,17 @@ service.transmitReceiptBitmap = async (_png, _config, title) => {
 };
 
 (async () => {
-  const result = await service.handleIncomingOrders([order]);
+  await service.handleIncomingOrders([order]);
+  assert.deepStrictEqual(sequence, [], 'new customer orders must wait for staff acceptance');
+  order.status = 'ACCEPTED';
+  const result = await service.handleAcceptedOrder(order);
   assert.deepStrictEqual(sequence, [
     'bill',
     '(1/3)',
     '(2/3)',
     '(3/3)'
   ], 'autoprint must finish the bill before sending every sticker in order');
-  assert.strictEqual(result, undefined, 'incoming-order handler should not expose an internal result');
+  assert.strictEqual(result, undefined, 'accepted-order handler should not expose an internal result');
   assert.strictEqual(service.isOrderAlreadyPrinted(order.key), true, 'successful dual-station print should be deduplicated');
 
   service.saveSettings({

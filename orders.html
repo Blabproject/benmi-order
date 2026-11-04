@@ -1108,8 +1108,8 @@
                     <label class="setting-mode-card" id="mode-card-print-auto" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 12px; border: 2px solid var(--border); background: #fff; cursor: pointer; transition: all 0.15s ease;">
                       <input type="radio" name="printer-mode-radio" id="printer-mode-auto" value="auto" onchange="onPrinterModeChange('auto')" style="width: 20px; height: 20px; margin-top: 3px; accent-color: var(--primary);">
                       <div>
-                        <div style="font-weight: 1000; font-size: var(--pos-text-body); color: #111827;" id="i18n-print-mode-auto-title">自動列印模式 (Auto-print)</div>
-                        <div style="font-size: var(--pos-text-meta); color: #4b5563; margin-top: 4px; line-height: 1.45;" id="i18n-print-mode-auto-desc">收到新訂單時，系統發出提示音並自動列印全部明細與標籤貼紙，無需觸碰螢幕。適合尖峰繁忙時段。</div>
+                        <div style="font-weight: 1000; font-size: var(--pos-text-body); color: #111827;" id="i18n-print-mode-auto-title">確認後自動列印</div>
+                        <div style="font-size: var(--pos-text-meta); color: #4b5563; margin-top: 4px; line-height: 1.45;" id="i18n-print-mode-auto-desc">收到新訂單時先發出提示音，店員確認接單成功後，才自動列印明細與餐點貼紙。</div>
                       </div>
                     </label>
                     <label class="setting-mode-card" id="mode-card-print-manual" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 12px; border: 2px solid var(--border); background: #fff; cursor: pointer; transition: all 0.15s ease;">
@@ -2777,8 +2777,8 @@
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
             <div style="font-weight: 900; font-size: var(--pos-text-body); color: #1e293b;" id="i18n-printer-guide-mode-title">1. 列印出單模式說明 (Auto vs. Manual)</div>
             <div style="font-size: var(--pos-text-meta); color: #475569; line-height: 1.5;">
-              <strong style="color: #059669;" id="i18n-printer-guide-mode-auto-title">自動列印模式 (Auto-print)</strong><br>
-              <span id="i18n-printer-guide-mode-auto-desc">當客人送出訂單後，系統立即發出提示音並自動列印「1 張收銀明細」與「全部餐點貼紙」，適合尖峰繁忙時段，省去店員手動點選步驟。</span>
+              <strong style="color: #059669;" id="i18n-printer-guide-mode-auto-title">確認後自動列印</strong><br>
+              <span id="i18n-printer-guide-mode-auto-desc">客人送出訂單後，系統先發出提示音。店員檢查內容並確認接單成功後，才自動列印「1 張收銀明細」與「全部餐點貼紙」。店員自行建立的訂單，送出即視為確認。</span>
             </div>
             <div style="font-size: var(--pos-text-meta); color: #475569; line-height: 1.5; margin-top: 4px;">
               <strong style="color: #3b82f6;" id="i18n-printer-guide-mode-manual-title">手動列印模式 (Manual-print)</strong><br>
@@ -3021,13 +3021,13 @@
   </section>
 
   <!-- Benmi POS Modular Architecture Scripts -->
-  <script src="js/orders-i18n.js?v=20261103_cashback_refund_ui_v1"></script>
-  <script src="js/orders-core.js?v=20261104_staff_order_mobile_v2"></script>
+  <script src="js/orders-i18n.js?v=20261105_print_after_accept_v1"></script>
+  <script src="js/orders-core.js?v=20261105_print_after_accept_v1"></script>
   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
   <script src="js/order-detail-view.js?v=20261017_order_detail_v1"></script>
-  <script src="js/printer-service.js?v=20261102_square_stamp_inline_right_v3"></script>
-  <script src="js/orders-live.js?v=20261104_staff_order_no_pin_v1"></script>
+  <script src="js/printer-service.js?v=20261105_print_after_accept_v1"></script>
+  <script src="js/orders-live.js?v=20261105_print_after_accept_v1"></script>
   <script src="js/orders-modals.js?v=20261101_linepay_v1"></script>
   <script src="js/orders-history.js?v=20261101_linepay_v1"></script>
   <script src="js/orders-reports.js?v=20261007_dev_main_sync_v1"></script>

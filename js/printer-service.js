@@ -1,6 +1,6 @@
 // ==========================================================
 // Benmi POS - Thermal Printer Service & Native Bridge
-// Supports: Auto-Print on New Orders + Manual On-Demand Print
+// Supports: Auto-Print after Order Acceptance + Manual On-Demand Print
 // Target Hardware: ESC/POS LAN/Wi-Fi Printers on Port 9100
 // ==========================================================
 
@@ -293,37 +293,40 @@
       }
 
       for (const order of ordersList) {
-        if (!order || !order.key) continue;
-        const status = (order.status || '').toUpperCase();
-        const key = order.key;
-        const legacyKey = order.legacyKey;
-
-        if (order.source === 'staff') {
+        // Staff orders are already confirmed when the employee submits them.
+        // Customer orders must be explicitly accepted on this POS before printing.
+        if (order?.key && order.source === 'staff') {
           await this.handleStaffRounds(order,1,1,'auto_print_new');
           const latestRound = Number(order.round_count || order.roundCount || order.detailSnapshot?.rounds?.at(-1)?.roundNumber) || 1;
           if (latestRound > 1) await this.handleStaffRounds(order,2,latestRound,'auto_print_round');
-          continue;
         }
-        if (status !== 'NEW') continue;
-        if (this.isOrderAlreadyPrinted(key) || (legacyKey && this.isOrderAlreadyPrinted(legacyKey))) continue;
-        if (this._inFlightOrderKeys.has(key) || (legacyKey && this._inFlightOrderKeys.has(legacyKey))) continue;
+      }
+    }
 
-        this._inFlightOrderKeys.add(key);
-        if (legacyKey) this._inFlightOrderKeys.add(legacyKey);
+    async handleAcceptedOrder(order) {
+      if (!this.getSettings().autoPrintNewOrders) return;
+      if (!order?.key || order.source === 'staff' || (order.status || '').toUpperCase() !== 'ACCEPTED') return;
 
-        console.log(`[PrinterService] 🖨️ Auto-printing new incoming order #${key}...`);
-        try {
-          await this.printDualStation(order);
-        } catch (err) {
-          console.error(`[PrinterService] Auto-print failed for #${key}:`, err);
-        } finally {
-          // Mark as processed for auto-print deduplication so failed/offline stations do not trigger an infinite print loop.
-          // Staff can still manually reprint via the UI if needed.
-          this.markOrderAsPrinted(key);
-          if (legacyKey) this.markOrderAsPrinted(legacyKey);
-          this._inFlightOrderKeys.delete(key);
-          if (legacyKey) this._inFlightOrderKeys.delete(legacyKey);
-        }
+      const key = order.key;
+      const legacyKey = order.legacyKey;
+      this._inFlightOrderKeys ||= new Set();
+      if (this.isOrderAlreadyPrinted(key) || (legacyKey && this.isOrderAlreadyPrinted(legacyKey))) return;
+      if (this._inFlightOrderKeys.has(key) || (legacyKey && this._inFlightOrderKeys.has(legacyKey))) return;
+
+      this._inFlightOrderKeys.add(key);
+      if (legacyKey) this._inFlightOrderKeys.add(legacyKey);
+
+      console.log(`[PrinterService] Auto-printing accepted order #${key}...`);
+      try {
+        await this.printDualStation(order);
+      } catch (err) {
+        console.error(`[PrinterService] Auto-print failed for #${key}:`, err);
+      } finally {
+        // A failed/offline station may have printed partially. Staff can manually reprint.
+        this.markOrderAsPrinted(key);
+        if (legacyKey) this.markOrderAsPrinted(legacyKey);
+        this._inFlightOrderKeys.delete(key);
+        if (legacyKey) this._inFlightOrderKeys.delete(legacyKey);
       }
     }
 

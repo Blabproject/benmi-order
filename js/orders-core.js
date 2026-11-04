@@ -1151,11 +1151,10 @@ async function fetchOrders() {
       if (typeof startContinuousAlarm === "function") startContinuousAlarm();
     }
 
-    // Auto-print newly arrived orders and newly appended rounds (with built-in deduplication)
+    // Staff submissions are already confirmed; customer printing starts in updateStatus after acceptance.
     if (typeof PrinterService !== "undefined") {
-      const ordersToPrint = [...pendingNewOrders, ...newStaffArrivals];
-      if (ordersToPrint.length > 0) {
-        PrinterService.handleIncomingOrders(ordersToPrint);
+      if (newStaffArrivals.length > 0) {
+        PrinterService.handleIncomingOrders(newStaffArrivals);
       }
       if (newlyAppendedOrders.length > 0 && typeof PrinterService.handleAppendedRounds === "function") {
         PrinterService.handleAppendedRounds(newlyAppendedOrders);

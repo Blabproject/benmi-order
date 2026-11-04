@@ -1668,6 +1668,15 @@ async function updateStatus(key, status, extra = {}, btn = null) {
     localOverrides[key] = { status, time: Date.now() };
     renderAll();
 
+    if (status === "ACCEPTED" && order && !staff && typeof PrinterService !== "undefined") {
+      try {
+        await PrinterService.handleAcceptedOrder({ ...order, status });
+      } catch (printError) {
+        // Acceptance has succeeded even when printing fails.
+        console.error("[Orders] Auto-print after acceptance failed:", printError);
+      }
+    }
+
     // Keep in sync with server
     await fetchOrders();
   } catch (e) {
