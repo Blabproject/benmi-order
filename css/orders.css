@@ -11667,8 +11667,10 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
   .settings-split {
     display: flex !important;
     flex-direction: column !important;
-    height: auto !important;
-    overflow: visible !important;
+    /* Bound the settings pane so its body scrolls inside the fixed POS shell. */
+    height: 100% !important;
+    min-height: 0;
+    overflow: hidden !important;
     gap: 0 !important;
   }
   .pos-display-body { padding: 14px; }
@@ -12376,13 +12378,21 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
 
   .settings-content-panel {
     width: 100% !important;
+    flex: 1 1 0;
+    height: auto;
     padding: 10px 8px 40px !important;
     box-sizing: border-box !important;
+  }
+
+  .settings-content-panel .panel-header {
+    flex-shrink: 0;
   }
 
   .settings-content-body {
     padding: 0 !important;
     gap: 12px !important;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .setting-card {
