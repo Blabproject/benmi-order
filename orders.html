@@ -70,9 +70,25 @@
 
         const params = new URLSearchParams(window.location.search);
         const defaultTenant = (!window.IS_NATIVE_APP) ? "benmi" : "";
-        const tenantId = params.get("tenant") || params.get("tenant_id") || (() => {
-          try { return localStorage.getItem("pos_device_tenant_id"); } catch (e) { return null; }
-        })() || defaultTenant;
+        const tenantId = (() => {
+          const fromUrl = params.get("tenant") || params.get("tenant_id");
+          if (fromUrl && fromUrl.trim()) return fromUrl.trim();
+          const pathParts = window.location.pathname.split("/").filter(Boolean);
+          const reservedPaths = [
+            "orders", "orders.html", "index", "index.html", "landing", "landing.html",
+            "marketplace", "marketplace.html", "css", "js", "icons", "fonts", "sound", "audio", "dist", "api"
+          ];
+          const candidate = (pathParts[0] || "").trim();
+          if (candidate && !reservedPaths.includes(candidate) && (
+            (pathParts.length >= 2 && pathParts[1] === "orders") ||
+            (pathParts.length === 1 && !candidate.includes("."))
+          )) return candidate;
+          try {
+            const savedTenant = localStorage.getItem("pos_device_tenant_id");
+            if (savedTenant && savedTenant.trim()) return savedTenant.trim();
+          } catch (e) {}
+          return defaultTenant;
+        })();
         window.__INITIAL_TENANT_ID = tenantId;
         try {
           if (tenantId) {
@@ -3022,7 +3038,7 @@
 
   <!-- Benmi POS Modular Architecture Scripts -->
   <script src="js/orders-i18n.js?v=20261105_print_after_accept_v1"></script>
-  <script src="js/orders-core.js?v=20261105_print_after_accept_v1"></script>
+  <script src="js/orders-core.js?v=20261105_tenant_branding_v1"></script>
   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
   <script src="js/order-detail-view.js?v=20261017_order_detail_v1"></script>

@@ -184,7 +184,7 @@ function getTenantIdFromUrl() {
 
 function applyTenantBranding(tenant) {
   if (!tenant) return;
-  const brandName = tenant.brandName || "Blab POS";
+  const brandName = tenant.brandName || tenant.name || "Blab POS";
   window.currentTenantBrandName = tenant.brandName || tenant.name || '';
   const bTitle = document.getElementById('brand-title');
   const bLogo = document.getElementById('brand-logo');
@@ -198,6 +198,7 @@ function applyTenantBranding(tenant) {
       bLogo.style.display = "block";
     } else {
       bLogo.style.display = "none";
+      bLogo.removeAttribute("src");
     }
   }
 
@@ -207,6 +208,7 @@ function applyTenantBranding(tenant) {
     window.currentTenantFeatures = [];
   }
   document.documentElement.style.setProperty('--primary', '#00b900');
+  initMobileBrandInfo();
 }
 
 var tenantCustomizations = [];
@@ -324,6 +326,7 @@ async function initTenantBranding() {
     const res = await fetch(`${WORKER_BASE}/api/tenant/bootstrap?tenant_id=${tenantId}&_t=${Date.now()}`);
     if (res.ok) {
       const data = await res.json();
+      if (getTenantIdFromUrl() !== tenantId) return;
       try {
         localStorage.setItem("tenant_bootstrap_" + tenantId, JSON.stringify(data));
       } catch(e) {}
