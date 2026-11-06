@@ -15,7 +15,8 @@ export const menuSuites = [
     'tests/test_cluster2_combo_bundle_rules.cjs', 'tests/test_cluster3_4_5_full_schema_cutover.cjs']],
   ...['chromium', 'webkit'].map(browser => [`menu-components-${browser}`, ['--test', ...[
     'customer_option_steps', 'customer_option_images', 'customer_option_children',
-    'required_option_popup', 'combo_price_recovery', 'order_detail_groups',
+    'required_option_popup', 'combo_price_recovery', 'order_detail_groups', 'stock_drawer',
+    'order_customizations_preservation',
   ].map(name => `tests/test_${name}_browser.cjs`)], { MENU_QA_BROWSER: browser }]),
   ['menu-runtime', ['--test', 'tests/menu-qa/runtime.test.mjs']],
   ...['chromium', 'webkit'].map(browser => [`menu-full-pages-${browser}`,

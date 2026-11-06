@@ -138,6 +138,15 @@ function renderDynamicCatalog() {
     // 2. Section Containers
     const container = document.getElementById('catalog-sections');
     if (!container) return;
+
+    // Snapshot existing order-wide customization choices before clearing DOM
+    const currentTenant = bData.tenant?.id || '';
+    const prevSec = document.getElementById('sec-order-option');
+    const prevTenant = prevSec ? prevSec.getAttribute('data-tenant-id') : null;
+    const savedCustomizations = (currentTenant && prevSec && prevTenant === currentTenant)
+        ? snapshotOrderCustomizations(prevSec)
+        : null;
+
     container.innerHTML = '';
 
     catalogSections.forEach(section => {
@@ -145,7 +154,8 @@ function renderDynamicCatalog() {
         sec.className = 'section-container';
         if (section.type === 'customizations') {
             sec.id = section.sectionId;
-            renderCustomizationsPanel(sec, section.groups, section.title);
+            sec.setAttribute('data-tenant-id', currentTenant);
+            renderCustomizationsPanel(sec, section.groups, section.title, savedCustomizations);
         } else {
             const cat = section.category;
             sec.id = `sec-${cat.slug}`;
@@ -176,8 +186,62 @@ function renderDynamicCatalog() {
     }
 }
 
-function renderCustomizationsPanel(container, list, sectionTitle = '口味選擇') {
+function snapshotOrderCustomizations(root) {
+    if (!root) return null;
+    const allInputs = root.querySelectorAll('input[name^="opt-"]');
+    if (allInputs.length === 0) return null;
+
+    const knownGroups = new Set();
+    const radios = Object.create(null);
+    const checkboxes = Object.create(null);
+
+    allInputs.forEach(input => {
+        const groupKey = input.getAttribute('data-group-key') || input.name.replace(/^opt-/, '');
+        const groupId = input.getAttribute('data-group-id') || groupKey;
+        if (groupId) knownGroups.add(groupId);
+        if (groupKey) knownGroups.add(groupKey);
+    });
+
+    const checkedRadios = root.querySelectorAll('input[type="radio"]:checked');
+    checkedRadios.forEach(radio => {
+        const groupKey = radio.getAttribute('data-group-key') || radio.name.replace(/^opt-/, '');
+        const groupId = radio.getAttribute('data-group-id') || groupKey;
+        const optId = radio.getAttribute('data-option-id') || radio.value;
+
+        const container = radio.closest('.flavor-option-container');
+        const subIds = container
+            ? Array.from(container.querySelectorAll('.sub-opt-chk:checked')).map(s => s.getAttribute('data-sub-id') || s.value)
+            : [];
+
+        const record = { optionId: optId, subIds: subIds };
+        if (groupId) radios[groupId] = record;
+        if (groupKey) radios[groupKey] = record;
+    });
+
+    const checkedBoxes = root.querySelectorAll('input[type="checkbox"]:not(.sub-opt-chk):checked');
+    checkedBoxes.forEach(chk => {
+        const groupKey = chk.getAttribute('data-group-key') || chk.name.replace(/^opt-/, '');
+        const groupId = chk.getAttribute('data-group-id') || groupKey;
+        const optId = chk.getAttribute('data-option-id') || chk.value;
+
+        if (groupId) {
+            checkboxes[groupId] = checkboxes[groupId] || [];
+            if (!checkboxes[groupId].includes(optId)) checkboxes[groupId].push(optId);
+        }
+        if (groupKey) {
+            checkboxes[groupKey] = checkboxes[groupKey] || [];
+            if (!checkboxes[groupKey].includes(optId)) checkboxes[groupKey].push(optId);
+        }
+    });
+
+    return { knownGroups, radios, checkboxes };
+}
+
+function renderCustomizationsPanel(container, list, sectionTitle = '口味選擇', savedState = null) {
     if (!container || !list || list.length === 0) return;
+    if (!savedState && container.children && container.children.length > 0) {
+        savedState = snapshotOrderCustomizations(container);
+    }
 
     let html = `<div class="section-title">${escapeHtml(sectionTitle)}</div>
     <div class="custom-panel-wrapper">
@@ -209,6 +273,26 @@ function renderCustomizationsPanel(container, list, sectionTitle = '口味選擇
         });
         const denseGridClass = hasDenseOptions ? ' dense-grid' : '';
 
+        const groupKey = group.key;
+        const groupId = group.id || groupKey;
+        const isGroupKnown = Boolean(savedState?.knownGroups && (
+            savedState.knownGroups.has(groupId) || (groupKey && savedState.knownGroups.has(groupKey))
+        ));
+
+        const savedRadio = isGroupKnown ? (savedState.radios[groupId] || (groupKey && savedState.radios[groupKey])) : null;
+        const hasValidSavedRadio = Boolean(savedRadio && (group.options || []).some(o => {
+            const oName = typeof o === 'string' ? o : (o ? o.name || '' : '');
+            const oId = (typeof o === 'object' && o && o.id) ? o.id : oName;
+            if (String(oId) !== String(savedRadio.optionId)) return false;
+            const oIsOos = Boolean(typeof o === 'object' && o && (o.is_out_of_stock || o.isOutOfStock || o.out_of_stock));
+            if (oIsOos) return false;
+            const oMinSub = (typeof o === 'object' && o && (o.minOrderSubtotal || o.min_order_amount)) ? Number(o.minOrderSubtotal || o.min_order_amount) : 0;
+            if (oMinSub > 0 && currentSubtotal < oMinSub) return false;
+            return true;
+        }));
+
+        const savedBoxIds = isGroupKnown ? (savedState.checkboxes[groupId] || (groupKey && savedState.checkboxes[groupKey])) : null;
+
         html += `<div class="custom-group" style="${topMargin}">
             <label class="custom-label">${escapeHtml(group.title)}</label>
             <div class="custom-options-grid${denseGridClass}">`;
@@ -221,20 +305,40 @@ function renderCustomizationsPanel(container, list, sectionTitle = '口味選擇
             const inputName = `opt-${group.key}`;
             const firstAvailableIdx = (group.options || []).findIndex(o => !Boolean(typeof o === 'object' && o && (o.is_out_of_stock || o.isOutOfStock || o.out_of_stock)));
             const explicitDefaults = (group.options || []).some(o => o && typeof o === 'object' && o.is_default !== undefined);
-            const isChecked = (group.type === 'radio' && !isOos && (explicitDefaults ? opt.is_default === true : optIdx === firstAvailableIdx)) ? 'checked' : '';
-            const priceLabel = optPrice > 0 ? `<span class="choice-price-badge">+$${optPrice}</span>` : '';
-            const oosBadge = isOos ? ` <span class="oos-badge" style="color:#dc2626; font-size:12px; font-weight:900; text-decoration:none;">(已售完)</span>` : '';
 
             const minSubtotal = (typeof opt === 'object' && opt && (opt.minOrderSubtotal || opt.min_order_amount)) ? Number(opt.minOrderSubtotal || opt.min_order_amount) : 0;
             const optRuleMsg = (typeof opt === 'object' && opt && opt.ruleErrorMessage) ? opt.ruleErrorMessage : '';
             const optId = (typeof opt === 'object' && opt && opt.id) ? opt.id : optName;
+
+            const isThresholdBlocked = (minSubtotal > 0 && currentSubtotal < minSubtotal);
+            const isEffectivelyDisabled = isOos || isThresholdBlocked;
+
+            let isChecked = '';
+            if (group.type === 'radio') {
+                if (!isEffectivelyDisabled) {
+                    if (hasValidSavedRadio) {
+                        isChecked = (String(optId) === String(savedRadio.optionId)) ? 'checked' : '';
+                    } else {
+                        // First load, genuinely new group, or previous choice became invalid: keep default
+                        isChecked = (explicitDefaults ? opt.is_default === true : optIdx === firstAvailableIdx) ? 'checked' : '';
+                    }
+                }
+            } else {
+                if (!isEffectivelyDisabled) {
+                    if (savedBoxIds) {
+                        isChecked = savedBoxIds.some(id => String(id) === String(optId)) ? 'checked' : '';
+                    }
+                }
+            }
+
+            const priceLabel = optPrice > 0 ? `<span class="choice-price-badge">+$${optPrice}</span>` : '';
+            const oosBadge = isOos ? ` <span class="oos-badge" style="color:#dc2626; font-size:12px; font-weight:900; text-decoration:none;">(已售完)</span>` : '';
+
             const thresholdBadgeHTML = minSubtotal > 0 ? `<span class="threshold-badge">滿$${minSubtotal}可選</span>` : '';
             const thresholdAttrs = minSubtotal > 0
                 ? `data-min-subtotal="${minSubtotal}" data-option-id="${escapeHtml(optId)}" data-option-name="${escapeHtml(optName)}" data-error-msg="${escapeHtml(optRuleMsg)}"`
                 : `data-option-id="${escapeHtml(optId)}" data-option-name="${escapeHtml(optName)}"`;
 
-            const isThresholdBlocked = (minSubtotal > 0 && currentSubtotal < minSubtotal);
-            const isEffectivelyDisabled = isOos || isThresholdBlocked;
             const disabledAttr = isEffectivelyDisabled ? 'disabled' : '';
             const thresholdClass = isThresholdBlocked ? ' threshold-disabled' : '';
             const thresholdDataAttr = isThresholdBlocked ? ' data-threshold-disabled="true"' : '';
@@ -243,18 +347,28 @@ function renderCustomizationsPanel(container, list, sectionTitle = '口味選擇
             const combinedStyle = (thresholdStyle || oosStyle) ? `style="${thresholdStyle} ${oosStyle}"` : '';
 
             if (group.type === 'radio') {
+                const isParentSelected = (isChecked === 'checked');
                 html += `<div class="flavor-option-container${subOpts.length > 0 ? ' has-sub-options' : ''}">
                     <label class="radio-label${thresholdClass}" ${thresholdDataAttr} ${combinedStyle}>
-                        <input type="radio" name="${inputName}" data-price="${optPrice}" data-group-title="${escapeHtml(group.title)}" value="${escapeHtml(optName)}" ${thresholdAttrs} ${isChecked} ${disabledAttr} onchange="handleCustomizationChange(event)"> 
+                        <input type="radio" name="${inputName}" data-group-id="${escapeHtml(groupId)}" data-group-key="${escapeHtml(groupKey || groupId)}" data-price="${optPrice}" data-group-title="${escapeHtml(group.title)}" value="${escapeHtml(optName)}" ${thresholdAttrs} ${isChecked} ${disabledAttr} onchange="handleCustomizationChange(event)">
                         ${formatOptionContent(optName, priceLabel)}${thresholdBadgeHTML}${oosBadge}
                     </label>`;
 
                 if (subOpts.length > 0) {
-                    html += `<div class="sub-option-container" data-parent-flavor="${escapeHtml(optName)}" style="display: ${(optIdx === firstAvailableIdx && !isOos) ? 'flex' : 'none'};">`;
+                    html += `<div class="sub-option-container" data-parent-flavor="${escapeHtml(optName)}" style="display: ${isParentSelected ? 'flex' : 'none'};">`;
                     subOpts.forEach((sub) => {
+                        const subName = typeof sub === 'string' ? sub : (sub.name || '');
+                        const subId = typeof sub === 'string' ? sub : (sub.id || sub.productId || sub.name || '');
+                        const subPrice = Number((typeof sub === 'object' && sub && sub.price) || 0);
+                        const isSubOos = Boolean(typeof sub === 'object' && sub && (sub.is_out_of_stock || sub.isOutOfStock || sub.out_of_stock || sub.isOos || sub.oos));
+                        const isSubChecked = Boolean(
+                            isParentSelected && !isSubOos && savedRadio?.subIds && savedRadio.subIds.some(s => String(s) === String(subId))
+                        );
+                        const subCheckedAttr = isSubChecked ? 'checked' : '';
+                        const subDisabledAttr = isSubOos ? 'disabled' : '';
                         html += `<label class="checkbox-label sub-chip">
-                            <input type="checkbox" class="sub-opt-chk" data-flavor="${escapeHtml(optName)}" data-sub-id="${escapeHtml(typeof sub === 'string' ? sub : sub.id || sub.productId || sub.name)}" data-price="${Number(sub.price || 0)}" value="${escapeHtml(typeof sub === 'string' ? sub : sub.name)}" onchange="handleCustomizationChange(event)"> 
-                            <span>${escapeHtml(typeof sub === 'string' ? sub : sub.name)}</span>
+                            <input type="checkbox" class="sub-opt-chk" data-flavor="${escapeHtml(optName)}" data-sub-id="${escapeHtml(subId)}" data-price="${subPrice}" value="${escapeHtml(subName)}" ${subCheckedAttr} ${subDisabledAttr} onchange="handleCustomizationChange(event)">
+                            <span>${escapeHtml(subName)}</span>
                         </label>`;
                     });
                     html += `</div>`;
@@ -262,7 +376,7 @@ function renderCustomizationsPanel(container, list, sectionTitle = '口味選擇
                 html += `</div>`;
             } else {
                 html += `<label class="checkbox-label${thresholdClass}" ${thresholdDataAttr} ${combinedStyle}>
-                    <input type="checkbox" name="${inputName}" data-price="${optPrice}" data-group-title="${escapeHtml(group.title)}" value="${escapeHtml(optName)}" ${thresholdAttrs} ${disabledAttr} onchange="handleCustomizationChange(event)"> 
+                    <input type="checkbox" name="${inputName}" data-group-id="${escapeHtml(groupId)}" data-group-key="${escapeHtml(groupKey || groupId)}" data-price="${optPrice}" data-group-title="${escapeHtml(group.title)}" value="${escapeHtml(optName)}" ${thresholdAttrs} ${isChecked} ${disabledAttr} onchange="handleCustomizationChange(event)">
                     ${formatOptionContent(optName, priceLabel)}${thresholdBadgeHTML}${oosBadge}
                 </label>`;
             }
@@ -616,6 +730,7 @@ window.fetchMenu = fetchMenu;
 window.openImageLightbox = openImageLightbox;
 window.closeImageLightbox = closeImageLightbox;
 window.renderDynamicCatalog = renderDynamicCatalog;
+window.snapshotOrderCustomizations = snapshotOrderCustomizations;
 window.renderCustomizationsPanel = renderCustomizationsPanel;
 window.handleCustomizationChange = handleCustomizationChange;
 window.toggleFlavorSubOptions = toggleFlavorSubOptions;

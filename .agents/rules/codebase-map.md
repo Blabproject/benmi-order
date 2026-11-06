@@ -19,8 +19,9 @@ Thứ tự load trong `index.html` (từ dòng ~854):
    - Khởi tạo LIFF, tải `/api/tenant/bootstrap`, quản lý `bootstrapData`, `cart`, `customizeData`, `storeConfig`.
    - `getEffectiveItemModifierGroups(catSlug, origName)`: Lấy nhóm tùy biến của món (nếu `targetItem.unifiedOptions === true` thì trả về `[]` để nhường quyền cho Unified Option Groups).
    - `resolveCatalogItem(cartKey)`: Tra cứu thông tin món từ `cartKey` (`<catSlug>_<itemName>`).
-2. [`js/client-menu.js`](file:///Users/duccao/Documents/benmi-order/js/client-menu.js) (~625 dòng):
+2. [`js/client-menu.js`](file:///Users/duccao/Documents/benmi-order/js/client-menu.js) (~741 dòng):
    - `renderDynamicCatalog()`: Render danh mục món ăn, badge hết hàng, nút `+` / `客製化`.
+   - `snapshotOrderCustomizations()` và `renderCustomizationsPanel()`: Giữ lựa chọn khẩu vị theo ID trong cùng tenant khi menu làm mới; loại lựa chọn hết hàng hoặc không còn hợp lệ.
 3. [`js/client-customizations.js`](file:///Users/duccao/Documents/benmi-order/js/client-customizations.js) (~1,085 dòng):
    - Modal tùy biến món truyền thống (`openItemCustomizeModal`, `initPortionDefaults`, `calculatePortionExtra`).
    - Lưu lựa chọn vào `customizeData[cartKey][portionIdx]` (`single`, `multiple`, `selectedDetails`, `note`).

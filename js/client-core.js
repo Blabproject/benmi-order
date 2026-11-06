@@ -807,6 +807,9 @@ function setTodayDate(forceReset = false) {
             dateEl.value = dateStr;
         }
     }
+    if (typeof syncPickupTimeDisplay === 'function') {
+        syncPickupTimeDisplay();
+    }
 }
 
 function updateAsapTimeDisplay() {
@@ -865,6 +868,9 @@ function applyPickupConfig() {
             if (pickerGroup) pickerGroup.style.display = 'block';
             if (asapNotice) asapNotice.style.display = 'none';
             setTodayDate(false);
+            if (typeof initPickupTimePicker === 'function') {
+                initPickupTimePicker();
+            }
         }
     }
     checkStoreStatus();

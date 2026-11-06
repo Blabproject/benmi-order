@@ -699,9 +699,9 @@ function updateTotal() {
                         const zhIdx = zhNumbers[i] || `第 ${i + 1} 份`;
                         const safeCat = String(catSlug).replace(/'/g, "\\'");
                         const safeName = String(itemName).replace(/'/g, "\\'");
-                        portionsHTML += `<div style="font-size:13px; color:#6b7280; margin-left:10px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
-                            <span>↳ ${zhIdx}: ${parts.join(', ')}</span>
-                            <span><button type="button" onclick="openItemCustomizeModal('${safeCat}','${safeName}', ${i})" style="min-height:32px; border:1px solid #cbd5e1; background:#fff; border-radius:6px; padding:2px 8px; font-size:12px; font-weight:700; cursor:pointer; margin-left:8px;">調整</button></span>
+                        portionsHTML += `<div class="cart-portion-row">
+                            <span class="cart-portion-detail">↳ ${zhIdx}: ${parts.join(', ')}</span>
+                            <span class="cart-portion-actions"><button type="button" class="cart-portion-action" onclick="openItemCustomizeModal('${safeCat}','${safeName}', ${i})">調整</button></span>
                         </div>`;
                     }
                 });
@@ -779,9 +779,9 @@ function updateTotal() {
                         const detailStr = detailItems.join(' ｜ ');
 
                         if (detailStr) {
-                            portionsHTML += `<div style="font-size:13px; color:#475569; margin-left:10px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
-                                <span>↳ ${pNum} ${detailStr}</span>
-                                <span><button type="button" onclick="openBundleBuilderModal('${catSlug}','${itemName.replace(/'/g, "\\'")}', ${pIdx})" style="min-height:36px; border:1px solid #cbd5e1; background:#fff; border-radius:6px; padding:4px 8px; font-size:12px; font-weight:700; cursor:pointer; margin-left:8px;">調整</button><button type="button" onclick="bundleRemovePortion('${catSlug}','${itemName.replace(/'/g, "\\'")}', ${pIdx})" style="min-height:36px; border:1px solid #cbd5e1; background:#fff; border-radius:6px; padding:4px 8px; font-size:12px; font-weight:700; cursor:pointer; margin-left:6px; color:#ef4444;">移除</button></span>
+                            portionsHTML += `<div class="cart-portion-row">
+                                <span class="cart-portion-detail">↳ ${pNum} ${detailStr}</span>
+                                <span class="cart-portion-actions"><button type="button" class="cart-portion-action" onclick="openBundleBuilderModal('${catSlug}','${itemName.replace(/'/g, "\\'")}', ${pIdx})">調整</button><button type="button" class="cart-portion-action cart-portion-action--remove" onclick="bundleRemovePortion('${catSlug}','${itemName.replace(/'/g, "\\'")}', ${pIdx})">移除</button></span>
                             </div>`;
                         }
                     });

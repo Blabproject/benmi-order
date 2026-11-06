@@ -24,6 +24,33 @@ const selectionIdentity = (groups: any[]) => groups.map(g => ({ groupId: g.group
 }));
 const sameSelections = (a: any[], b: any[]) => JSON.stringify(selectionIdentity(a)) === JSON.stringify(selectionIdentity(b));
 
+/** Shared merchandise pricing for accepted writes and read-only reorder previews. */
+export function priceDetailMerchandise(catalog: OptionCatalog,
+  items: Pick<DetailLine, 'categoryId' | 'quantity' | 'unitPrice' | 'subtotal'>[], discountOverride?: number) {
+  let discount = 0;
+  for (const cat of catalog.categories) {
+    const rule = typeof cat.pricing_rules === 'string' ? JSON.parse(cat.pricing_rules || 'null') : cat.pricing_rules;
+    if (!rule?.bundle_qty || !rule?.bundle_price) continue;
+    const prices = items.filter(i => i.categoryId === cat.id).flatMap(i => Array(i.quantity).fill(i.unitPrice)).sort((a, b) => b - a);
+    const count = Math.floor(prices.length / rule.bundle_qty);
+    if (count) discount += Math.max(0, prices.slice(0, count * rule.bundle_qty).reduce((a, b) => a + b, 0) - count * rule.bundle_price);
+  }
+  if (discountOverride !== undefined) discount = discountOverride;
+  return { discount, merchandiseSubtotal: amount(Math.max(0, items.reduce((n, i) => n + i.subtotal, 0) - discount)) };
+}
+
+/** Order-wide choices use the same canonical engine as item choices. */
+export function validateDetailOrderSelections(catalog: OptionCatalog, selections: unknown, merchandiseSubtotal: number): DetailGroup[] {
+  if (!Array.isArray(selections)) fail('ORDER_SELECTIONS_REQUIRED');
+  const orderGroups = catalog.groups.filter(g => g.scope === 'order');
+  const syntheticId = crypto.randomUUID();
+  const synthetic: OptionCatalog = { ...catalog,
+    products: [...catalog.products, { id: syntheticId, price: 0 }],
+    groups: catalog.groups.map(g => g.scope === 'order' ? { ...g, scope: 'item', options: groupOptions(catalog, g) } : g),
+    links: [...catalog.links, ...orderGroups.map(g => ({ itemId: syntheticId, groupId: g.id }))] };
+  return validateOptionSelection(synthetic, syntheticId, selections as unknown[], [], merchandiseSubtotal).groups;
+}
+
 /** Same catalog validation for every write. Inputs never supply sale labels/prices. */
 export async function buildDetailRound(env: Env, tenant: string, input: any, roundNumber: number,
   previous?: DetailRound): Promise<DetailRound> {
@@ -82,16 +109,8 @@ export async function buildDetailRound(env: Env, tenant: string, input: any, rou
       subtotal: amount(Number(product.price) * quantity + extra),
       note: raw.note === undefined ? old?.note || '' : note(raw.note), portions };
   });
-  let discount = 0;
-  for (const cat of catalog.categories) {
-    const rule = typeof cat.pricing_rules === 'string' ? JSON.parse(cat.pricing_rules || 'null') : cat.pricing_rules;
-    if (!rule?.bundle_qty || !rule?.bundle_price) continue;
-    const prices = items.filter(i => i.categoryId === cat.id).flatMap(i => Array(i.quantity).fill(i.unitPrice)).sort((a, b) => b - a);
-    const count = Math.floor(prices.length / rule.bundle_qty);
-    if (count) discount += Math.max(0, prices.slice(0, count * rule.bundle_qty).reduce((a, b) => a + b, 0) - count * rule.bundle_price);
-  }
-  if (previous && items.length === previous.items.length && input.items.every(unchangedLine)) discount = previous.discount;
-  const merchandiseSubtotal = amount(Math.max(0, items.reduce((n, i) => n + i.subtotal, 0) - discount));
+  const discountOverride = previous && items.length === previous.items.length && input.items.every(unchangedLine) ? previous.discount : undefined;
+  const { discount, merchandiseSubtotal } = priceDetailMerchandise(catalog, items, discountOverride);
   for (const raw of input.items) {
     if (unchangedLine(raw)) continue;
     const id = raw.itemId || raw.item_id;
@@ -102,17 +121,7 @@ export async function buildDetailRound(env: Env, tenant: string, input: any, rou
   }
   let selectedGroups: DetailGroup[];
   if (previous && (input.orderSelections === undefined || (Array.isArray(input.orderSelections) && sameSelections(input.orderSelections, previous.groups)))) selectedGroups = previous.groups;
-  else {
-    if (!Array.isArray(input.orderSelections)) fail('ORDER_SELECTIONS_REQUIRED');
-    const orderGroups = catalog.groups.filter(g => g.scope === 'order');
-    // Reuse the same rules engine with a request-local synthetic product, not a stored SKU.
-    const syntheticId = crypto.randomUUID();
-    const synthetic: OptionCatalog = { ...catalog,
-      products: [...catalog.products, { id: syntheticId, price: 0 }],
-      groups: catalog.groups.map(g => g.scope === 'order' ? { ...g, scope: 'item', options: groupOptions(catalog, g) } : g),
-      links: [...catalog.links, ...orderGroups.map(g => ({ itemId: syntheticId, groupId: g.id }))] };
-    selectedGroups = validateOptionSelection(synthetic, syntheticId, input.orderSelections, [], merchandiseSubtotal).groups;
-  }
+  else selectedGroups = validateDetailOrderSelections(catalog, input.orderSelections, merchandiseSubtotal);
   const total = amount(items.reduce((n, i) => n + i.subtotal, 0) - discount
     + selectedGroups.reduce((n, g) => n + g.items.reduce((x, c) => x + DetailView.extra(c), 0), 0));
   const submitted = input.appended_total ?? input.new_total ?? input.total;
