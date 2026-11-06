@@ -208,10 +208,11 @@ function renderCustomizationsPanel(container, list, sectionTitle = '口味選擇
             return name.length > 8 || /[（(].+[)）]/.test(name);
         });
         const denseGridClass = hasDenseOptions ? ' dense-grid' : '';
+        const hasNestedOptions = group.type === 'radio' && (group.options || []).some(opt => Array.isArray(opt?.sub_options) && opt.sub_options.length > 0);
 
         html += `<div class="custom-group" style="${topMargin}">
             <label class="custom-label">${escapeHtml(group.title)}</label>
-            <div class="custom-options-grid${denseGridClass}">`;
+            <div class="custom-options-grid${denseGridClass}${hasNestedOptions ? ' has-nested-options' : ''}">`;
 
         (group.options || []).forEach((opt, optIdx) => {
             const optName = typeof opt === 'string' ? opt : (opt ? opt.name || '' : '');
@@ -250,7 +251,7 @@ function renderCustomizationsPanel(container, list, sectionTitle = '口味選擇
                     </label>`;
 
                 if (subOpts.length > 0) {
-                    html += `<div class="sub-option-container" data-parent-flavor="${escapeHtml(optName)}" style="display: ${(optIdx === firstAvailableIdx && !isOos) ? 'flex' : 'none'};">`;
+                    html += `<div class="sub-option-container" role="group" aria-label="${escapeHtml(optName)}" data-parent-flavor="${escapeHtml(optName)}" ${isChecked ? '' : 'hidden'}>`;
                     subOpts.forEach((sub) => {
                         html += `<label class="checkbox-label sub-chip">
                             <input type="checkbox" class="sub-opt-chk" data-flavor="${escapeHtml(optName)}" data-sub-id="${escapeHtml(typeof sub === 'string' ? sub : sub.id || sub.productId || sub.name)}" data-price="${Number(sub.price || 0)}" value="${escapeHtml(typeof sub === 'string' ? sub : sub.name)}" onchange="handleCustomizationChange(event)"> 
@@ -350,10 +351,8 @@ function toggleFlavorSubOptions() {
         const radioInput = parentOptContainer ? parentOptContainer.querySelector('input[type="radio"]') : null;
         const isSelected = radioInput ? radioInput.checked : false;
 
-        if (isSelected) {
-            el.style.display = 'flex';
-        } else {
-            el.style.display = 'none';
+        el.hidden = !isSelected;
+        if (!isSelected) {
             el.querySelectorAll('input[type="checkbox"]').forEach(chk => chk.checked = false);
         }
     });

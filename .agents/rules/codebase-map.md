@@ -21,6 +21,7 @@ Thứ tự load trong `index.html` (từ dòng ~854):
    - `resolveCatalogItem(cartKey)`: Tra cứu thông tin món từ `cartKey` (`<catSlug>_<itemName>`).
 2. [`js/client-menu.js`](file:///Users/duccao/Documents/benmi-order/js/client-menu.js) (~625 dòng):
    - `renderDynamicCatalog()`: Render danh mục món ăn, badge hết hàng, nút `+` / `客製化`.
+   - `renderCustomizationsPanel()` / `toggleFlavorSubOptions()`: Tùy chọn toàn đơn; phần con nằm trong `.flavor-option-container` ngay dưới lựa chọn cha. Popup món dùng `drawGroup()` trong `client-option-groups.js` với cùng quan hệ cha/con.
 3. [`js/client-customizations.js`](file:///Users/duccao/Documents/benmi-order/js/client-customizations.js) (~1,085 dòng):
    - Modal tùy biến món truyền thống (`openItemCustomizeModal`, `initPortionDefaults`, `calculatePortionExtra`).
    - Lưu lựa chọn vào `customizeData[cartKey][portionIdx]` (`single`, `multiple`, `selectedDetails`, `note`).

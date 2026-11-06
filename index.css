@@ -979,24 +979,38 @@ input[type="checkbox"] {
     display: contents;
 }
 
+.custom-options-grid.has-nested-options,
+.custom-options-grid.dense-grid.has-nested-options {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.has-nested-options > .flavor-option-container {
+    display: grid;
+    align-content: start;
+    min-width: 0;
+    gap: 6px;
+}
+
 .sub-option-container {
-    grid-column: 1 / -1;
-    order: 1;
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
-    padding: 8px 12px;
+    padding: 10px;
     background: #f8fafc;
     border: 1px solid #e2e8f0;
     border-left: 3.5px solid var(--primary);
     border-radius: 10px;
-    margin-top: 2px;
-    width: 100%;
+    margin: 0 0 4px 12px;
+    min-width: 0;
     box-sizing: border-box;
 }
 
+.sub-option-container[hidden] {
+    display: none;
+}
+
 .custom-panel label.sub-chip {
-    padding: 6px 12px;
+    padding: 8px;
     font-size: 13.5px;
     background: #ffffff;
     border: 1px solid #cbd5e1;
