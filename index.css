@@ -991,9 +991,24 @@ input[type="checkbox"] {
     gap: 6px;
 }
 
-.sub-option-container {
+.has-nested-options .radio-label {
+    align-items: start;
+}
+
+.has-nested-options .radio-label input {
+    margin-top: 2px;
+}
+
+.has-nested-options .choice-title {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+}
+
+.sub-option-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
     gap: 8px;
     padding: 10px;
     background: #f8fafc;
@@ -1010,11 +1025,29 @@ input[type="checkbox"] {
 }
 
 .custom-panel label.sub-chip {
+    flex: 1 1 max-content;
+    width: auto;
+    min-width: calc(50% - 4px);
+    max-width: 100%;
+    align-items: start;
+    align-content: start;
     padding: 8px;
     font-size: 13.5px;
     background: #ffffff;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
+}
+
+.custom-panel label.sub-chip > span {
+    display: block;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    line-height: 1.45;
+}
+
+.custom-panel label.sub-chip input {
+    margin-top: 2px;
 }
 
 .custom-panel label.sub-chip:has(input:checked) {
@@ -1024,7 +1057,7 @@ input[type="checkbox"] {
 }
 
 .custom-panel label.radio-label > span:not(.threshold-badge):not(.oos-badge),
-.custom-panel label.checkbox-label > span:not(.threshold-badge):not(.oos-badge) {
+.custom-panel label.checkbox-label:not(.sub-chip) > span:not(.threshold-badge):not(.oos-badge) {
     display: inline-flex;
     align-items: center;
     gap: 2px 4px;

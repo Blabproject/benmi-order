@@ -263,7 +263,7 @@
           (value) => (value.id || value.name) === (sub.id || sub.name || sub),
         );
         const unavailable = sub.isOutOfStock || sub.isOos;
-        return `<label class="modifier-checkbox-chip ${chosen ? "active" : ""}"><input type="checkbox" data-sub="${path}" data-index="${index}" ${unavailable && !chosen ? "disabled" : ""} ${chosen ? "checked" : ""}><span>${esc(sub.name || sub)}${Number(sub.price) ? ` ${priceLabel(sub.price)}` : ""}${unavailable ? ` · ${esc(msg("已售完", "Hết món"))}` : ""}</span></label>`;
+        return `<label class="modifier-checkbox-chip ${chosen ? "active" : ""}"><input type="checkbox" data-sub="${path}" data-index="${index}" ${unavailable && !chosen ? "disabled" : ""} ${chosen ? "checked" : ""}><span class="uoc-sub-label"><span class="uoc-sub-name">${esc(sub.name || sub)}${unavailable ? ` · ${esc(msg("已售完", "Hết món"))}` : ""}</span>${Number(sub.price) ? ` <small class="uoc-sub-price">${priceLabel(sub.price)}</small>` : ""}</span></label>`;
       })
       .join("")}</div>`;
   }
@@ -346,7 +346,7 @@
               msg("未達最低餐點金額", "Chưa đạt giá trị món tối thiểu")
           : "";
         if (chips) {
-          const choice = `<button type="button" class="${maximum(g) === 1 ? "modifier-pill" : "modifier-checkbox-chip"} ${chosen ? "active" : ""}" data-choose="${key}" data-option="${oi}" aria-pressed="${Boolean(chosen)}" ${blocked || (full && !chosen && maximum(g) !== 1) ? "disabled" : ""}><span>${esc(o.name)}</span>${Number(o.price) ? `<small>${priceLabel(o.price)}</small>` : ""}${warning ? `<small>${esc(warning)}</small>` : ""}</button>`;
+          const choice = `<button type="button" class="${maximum(g) === 1 ? "modifier-pill" : "modifier-checkbox-chip"} ${chosen ? "active" : ""}" data-choose="${key}" data-option="${oi}" aria-pressed="${Boolean(chosen)}" ${blocked || (full && !chosen && maximum(g) !== 1) ? "disabled" : ""}><span class="uoc-choice-name">${esc(o.name)}</span>${Number(o.price) ? `<small class="uoc-choice-price">${priceLabel(o.price)}</small>` : ""}${warning ? `<small class="uoc-choice-warning">${esc(warning)}</small>` : ""}</button>`;
           return inlineChildren
             ? `<div class="uoc-option-entry">${choice}${selected.map(({ item, si }) => details(o, item, si)).join("")}</div>`
             : choice;
