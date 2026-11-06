@@ -9,6 +9,7 @@
     <link rel="preload" href="/js/client-core.js?v=20261107_pickup_time_sheet_v2" as="script">
     <link rel="preload" href="/js/client-menu.js?v=20261106_inline_nested_options_v2" as="script">
     <link rel="stylesheet" href="/index.css?v=20261107_pickup_time_sheet_v2">
+    <link rel="stylesheet" href="/css/client-order-history.css?v=20261107_customer_history_isolated_v1">
     <style>html.tenant-resolution-failed body > :not(#tenant-resolution-error) { display: none !important; }</style>
     <script>
         // Redirect root visits on blabfood.app to /landing
@@ -211,6 +212,13 @@
             <div class="store-status-wrapper">
                 <div id="store-status" class="store-status" style="display: none;">營業中</div>
                 <div id="waiting-counter-badge" class="waiting-badge" style="display: none;"></div>
+                <button type="button" class="btn-customer-history-entry" id="btn-customer-history-entry" aria-label="歷史訂單" onclick="openCustomerHistoryModal()">
+                    <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span class="history-entry-text">歷史訂單</span>
+                </button>
             </div>
         </div>
         <div class="store-details">
@@ -969,9 +977,10 @@
     </div>
     <script src="/js/order-legacy-adapter.js?v=20261017_order_detail_v1"></script>
   <script src="/js/order-detail-view.js?v=20261017_order_detail_v1"></script>
-  <script src="/js/order-detail-checkout.js?v=20261017_order_detail_v1"></script>
+  <script src="/js/order-detail-checkout.js?v=20261107_customer_history_isolated_v1"></script>
   <script src="/js/line-order-presentation.js?v=20261030_line_portions_v3"></script>
     <script src="/js/client-checkout.js?v=20261107_pickup_time_sheet_v3"></script>
+    <script src="/js/client-order-history.js?v=20261107_customer_history_isolated_v1"></script>
     <script>
         if (window.__TENANT_RESOLUTION_FAILED) {
             document.getElementById('page-body-content').style.display = 'none';

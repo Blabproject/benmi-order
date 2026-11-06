@@ -47,6 +47,8 @@ export const BOOTSTRAP_VERSION = 3;
 export interface BootstrapResponse {
   bootstrapVersion: number;
   menuComplete: boolean;
+  /** Allows a customer draft to detect menu changes between quote and bootstrap. */
+  menuCatalogRevision?: number;
   /** Display lookup for legacy order IDs; never a source of selectable options. */
   optionDisplayNames?: Record<string, string>;
   customizationCategoryId?: string | null;
@@ -1045,6 +1047,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
 
     if (unifiedMenuEnabled(env)) {
       const options = await loadOptionCatalog(env, tenantId);
+      payload.menuCatalogRevision = options.revision || 0;
       payload.optionDisplayNames = Object.fromEntries([
         ...modifiers.flatMap(m => (m.options || []).filter((o: any) => o?.id && o?.name).map((o: any) => [o.id, o.name])),
         ...options.products.map(p => [p.id, p.name]),

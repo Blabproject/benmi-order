@@ -69,5 +69,11 @@ var DetailCheckout = (function () {
     if (!sources.has(key)) sources.set(key, []);
     sources.get(key).push(line);
   }
-  return { enabled, selections, items, prepare, completed, setContext, register };
+  function reset() {
+    context = null;
+    sources.clear();
+    pending = null;
+    try { sessionStorage.removeItem(storageKey()); } catch (_) {}
+  }
+  return { enabled, selections, items, prepare, completed, setContext, register, reset };
 })();
