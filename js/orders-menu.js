@@ -2029,6 +2029,7 @@ function renderMenuCategoryEditor(index) {
         </div>
         <div class="menu-item-status-block">
           <button type="button" class="menu-item-stock-toggle ${item.isOos ? 'is-oos' : 'is-instock'}"
+            id="menu-item-stock-${index}-${iIdx}" aria-haspopup="dialog" aria-controls="stockModal"
             onclick="openStockModal(${index}, ${iIdx})" title="${oosText}" aria-label="${escapeHtml(item.name + ': ' + oosText)}">
             <span class="stock-toggle-dot"></span>
             <span>${oosText}</span>
@@ -2303,7 +2304,8 @@ function renderOrderCustomizationEditor(container, cat, cIdx) {
               </label>
               <div class="menu-item-actions" style="margin-left: auto;">
                 <button type="button" class="menu-item-btn" style="background: ${oosBg}; color: ${oosColor}; border: 1px solid ${oosBorder}; display: inline-flex; align-items: center; gap: 5px;"
-                  onclick="openStockModalForCustomization(${cIdx}, ${gIdx}, ${oIdx})" title="${oosText}">
+                  id="menu-option-stock-${cIdx}-${gIdx}-${oIdx}" aria-haspopup="dialog" aria-controls="stockModal"
+                  onclick="openStockModalForCustomization(${cIdx}, ${gIdx}, ${oIdx})" title="${oosText}" aria-label="${escapeHtml(opt.name + ': ' + oosText)}">
                   <span style="width: 7px; height: 7px; border-radius: 50%; background: currentColor; display: inline-block;"></span> <span>${oosText}</span>
                 </button>
                 <button type="button" class="menu-item-btn btn-ghost" style="border: 1px solid #fee2e2; background: #fff5f5; color: var(--brand-red); display:inline-flex; align-items:center; gap:4px;"
@@ -3546,6 +3548,9 @@ let currentStockCidx = null;
 let currentStockIidx = null;
 let currentStockGidx = null;
 let currentStockOidx = null;
+let stockReturnFocus = null;
+let stockReturnFocusId = null;
+let stockBodyOverflow = '';
 
 function openStockModal(cIdx, iIdx) {
   if (isStockSaving || isMenuSaving) return;
@@ -3558,19 +3563,7 @@ function openStockModal(cIdx, iIdx) {
   currentStockOidx = null;
 
   const item = currentMenuData[cIdx].items[iIdx];
-  document.getElementById("stock-modal-title").innerText = t("stockModalItem", { name: item.name });
-
-  // Set values
-  const statusSelect = document.getElementById("stock-status-select");
-  statusSelect.value = item.isOos ? "out_of_stock" : "in_stock";
-
-  // Reset duration & date
-  document.getElementById("stock-duration-select").value = "today";
-  document.getElementById("oos-until-date").value = "";
-
-  handleStockStatusChange();
-
-  document.getElementById("stockModal").style.display = "flex";
+  showStockDrawer(item.name, item.isOos, false, `menu-item-stock-${cIdx}-${iIdx}`);
 }
 
 function openStockModalForCustomization(cIdx, gIdx, oIdx) {
@@ -3585,41 +3578,64 @@ function openStockModalForCustomization(cIdx, gIdx, oIdx) {
   const option = group?.options?.[oIdx];
   if (!group || !option) return;
 
-  const titleEl = document.getElementById("stock-modal-title");
-  if (titleEl) titleEl.innerText = t("stockModalItem", { name: `${group.title} - ${option.name}` });
-
-  const statusSelect = document.getElementById("stock-status-select");
-  if (statusSelect) statusSelect.value = option.isOos ? "out_of_stock" : "in_stock";
-
-  const durationSelect = document.getElementById("stock-duration-select");
-  if (durationSelect) durationSelect.value = "today";
-  const untilDateInput = document.getElementById("oos-until-date");
-  if (untilDateInput) untilDateInput.value = "";
-
-  handleStockStatusChange();
-  const modal = document.getElementById("stockModal");
-  if (modal) modal.style.display = "flex";
+  showStockDrawer(`${group.title} — ${option.name}`, option.isOos, true, `menu-option-stock-${cIdx}-${gIdx}-${oIdx}`);
 }
 window.openStockModalForCustomization = openStockModalForCustomization;
+
+function showStockDrawer(name, isOos, isCustom, triggerId) {
+  const modal = document.getElementById('stockModal');
+  // Safari does not focus buttons on pointer activation; keep the actual trigger.
+  stockReturnFocus = document.getElementById(triggerId) || document.activeElement;
+  stockReturnFocusId = triggerId;
+  stockBodyOverflow = document.body?.style.overflow || '';
+  if (document.body) document.body.style.overflow = 'hidden';
+  document.getElementById('stock-item-name').textContent = name;
+  document.getElementById('stock-modal-title').textContent = t('stockModalTitle');
+  const currentStatus = document.getElementById('stock-current-status');
+  currentStatus.textContent = t(isOos ? 'stockOptOutOfStock' : 'stockOptInStock');
+  currentStatus.classList.toggle('is-oos', !!isOos);
+  document.getElementById('stock-linked-notice').hidden = !isCustom;
+  document.getElementById('btn-stock-restore').hidden = !isOos;
+  document.getElementById('stock-status-select').value = isOos ? 'out_of_stock' : 'in_stock';
+  document.getElementById('stock-duration-select').value = 'today';
+  const date = document.getElementById('oos-until-date');
+  date.value = '';
+  // Keep the stock API's existing business-day cutoff (04:00, UTC+7).
+  date.min = new Date(Date.now() + (7 + 24) * 60 * 60 * 1000).toISOString().slice(0, 10);
+  for (const choice of modal.querySelectorAll('input[name="stock-choice"]')) choice.checked = false;
+  setStockError('');
+  handleStockDurationChange();
+  modal.style.display = 'flex';
+  const body = modal.querySelector('.stock-drawer-body');
+  if (body) body.scrollTop = 0;
+  document.getElementById('btn-stock-close')?.focus?.({ preventScroll: true });
+}
 
 function closeStockModal() {
   if (isStockSaving) return;
   document.getElementById("stockModal").style.display = "none";
+  if (document.body) document.body.style.overflow = stockBodyOverflow;
+  const returnFocus = stockReturnFocus?.isConnected ? stockReturnFocus : document.getElementById(stockReturnFocusId);
+  returnFocus?.focus?.({ preventScroll: true });
+  stockReturnFocus = null;
+  stockReturnFocusId = null;
   currentStockCidx = null;
   currentStockIidx = null;
   currentStockGidx = null;
   currentStockOidx = null;
 }
 
-function handleStockStatusChange() {
-  const status = document.getElementById("stock-status-select").value;
-  const optionsContainer = document.getElementById("oos-options-container");
-  if (status === "out_of_stock") {
-    optionsContainer.style.display = "block";
-  } else {
-    optionsContainer.style.display = "none";
-  }
+async function chooseStockStatus(choice) {
+  if (isStockSaving || isMenuSaving || !['in_stock', 'today', 'multiple_days', 'indefinite'].includes(choice)) return;
+  document.getElementById('stock-status-select').value = choice === 'in_stock' ? 'in_stock' : 'out_of_stock';
+  document.getElementById('stock-duration-select').value = choice === 'in_stock' ? 'today' : choice;
+  setStockError('');
   handleStockDurationChange();
+  if (choice === 'multiple_days') {
+    document.getElementById('oos-until-date')?.focus?.();
+  } else {
+    await saveStockStatus();
+  }
 }
 
 function handleStockDurationChange() {
@@ -3632,6 +3648,13 @@ function handleStockDurationChange() {
   } else {
     dateContainer.style.display = "none";
   }
+  updateStockSaveState();
+}
+
+function setStockError(message) {
+  const error = document.getElementById('stock-drawer-error');
+  error.textContent = message;
+  error.hidden = !message;
 }
 
 async function saveStockStatus() {
@@ -3644,10 +3667,13 @@ async function saveStockStatus() {
 
   const status = document.getElementById("stock-status-select").value;
   const duration = document.getElementById("stock-duration-select").value;
-  const untilDate = document.getElementById("oos-until-date").value;
+  const dateInput = document.getElementById("oos-until-date");
+  const untilDate = status === 'out_of_stock' && duration === 'multiple_days' ? dateInput.value : '';
 
-  if (status === "out_of_stock" && duration === "multiple_days" && !untilDate) {
-    alert(t("alertSelectOosDate"));
+  if (status === "out_of_stock" && duration === "multiple_days" && (!untilDate || untilDate < dateInput.min)) {
+    setStockError(t(untilDate ? 'stockDateInvalid' : 'alertSelectOosDate'));
+    dateInput.focus?.();
+    updateStockSaveState();
     return;
   }
 
@@ -3696,7 +3722,7 @@ async function saveStockStatus() {
       throw new Error(errData.error || "Update failed");
     }
   } catch (e) {
-    alert(t("stockUpdateFail") + e.message);
+    setStockError(t('stockSaveError'));
     return;
   } finally {
     isStockSaving = false;
@@ -3705,7 +3731,6 @@ async function saveStockStatus() {
 
   // Stock is already persisted: rebase only its fields, preserving other drafts.
   applySavedStockStatus(targetCategory, targetGroup, targetItem, status === "out_of_stock");
-  closeStockModal();
   const categoryIndex = currentMenuData.indexOf(targetCategory);
   renderMenuCategories();
   if (categoryIndex >= 0) {
@@ -3715,6 +3740,7 @@ async function saveStockStatus() {
       renderMenuCategoryEditor(categoryIndex);
     }
   }
+  closeStockModal();
   checkMenuDirty();
   // Refresh the Unified editor's separate catalog without replacing menu drafts.
   if (window.UnifiedMenu?.enabled) {
@@ -3723,15 +3749,47 @@ async function saveStockStatus() {
 }
 
 function updateStockSaveState() {
-  for (const id of ['btn-stock-save', 'btn-stock-cancel', 'stock-status-select', 'stock-duration-select', 'oos-until-date']) {
+  for (const id of ['btn-stock-save', 'btn-stock-cancel', 'btn-stock-close', 'btn-stock-restore',
+    'stock-status-select', 'stock-duration-select', 'oos-until-date',
+    'stock-choice-today', 'stock-choice-multiple_days', 'stock-choice-indefinite']) {
     const control = document.getElementById(id);
     if (control) control.disabled = isStockSaving;
   }
+  const needsDate = document.getElementById('stock-status-select')?.value === 'out_of_stock'
+    && document.getElementById('stock-duration-select')?.value === 'multiple_days';
+  const hasError = !!document.getElementById('stock-drawer-error')?.textContent;
   const button = document.getElementById('btn-stock-save');
-  if (button) button.textContent = t(isStockSaving ? 'menuSaving' : 'btnStockSave');
+  if (button) {
+    button.hidden = !needsDate && !hasError;
+    button.textContent = t(isStockSaving ? 'menuSaving' : hasError ? 'stockRetry' : 'btnStockSave');
+    const date = document.getElementById('oos-until-date');
+    button.disabled = isStockSaving || (needsDate && (!date.value || date.value < date.min));
+  }
+  const status = document.getElementById('stock-drawer-status');
+  if (status) status.textContent = t(isStockSaving ? 'menuSaving' : 'stockInstantHint');
   document.getElementById('stockModal')?.setAttribute('aria-busy', String(isStockSaving));
   updateMenuSaveState();
 }
+
+document.addEventListener('keydown', event => {
+  const modal = document.getElementById('stockModal');
+  if (!modal || modal.style.display !== 'flex') return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    closeStockModal();
+  } else if (event.key === 'Tab') {
+    const controls = [...modal.querySelectorAll('button:not(:disabled), input:not(:disabled):not([type="hidden"])')]
+      .filter(control => control.getClientRects().length);
+    if (!controls.length) { event.preventDefault(); return; }
+    const first = controls[0], last = controls[controls.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault(); last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault(); first.focus();
+    }
+  }
+}, true);
 
 function applySavedStockStatus(category, group, target, isOos) {
   const sameItem = item => item.id && target.id
