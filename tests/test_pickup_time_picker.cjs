@@ -181,4 +181,18 @@ if (ctx.pickupTimePickerState.asapTime) {
     console.log(`✓ ASAP selection verified: ${elements['pickup-trigger-display-time'].textContent}`);
 }
 
+// Tenant configuration is authoritative; unavailable hours must not invent slots.
+ctx.storeConfig.operatingHours = null;
+assert.equal(ctx.generatePickupSlots(tomorrowStr).length, 0);
+ctx.storeConfig.operatingHours = {};
+elements['pickup-time'].value = '';
+ctx.initPickupTimePicker();
+assert.equal(elements['pickup-time'].value, '', 'A closed day must not default to 11:00');
+
+// Midnight belongs to the following date, not 00:00 on the selected date.
+ctx.storeConfig.operatingHours = Object.fromEntries(Array.from({ length: 7 }, (_, day) => [day, [{ start: '23:30', end: '00:00' }]]));
+const midnightSlots = ctx.generatePickupSlots(tomorrowStr);
+assert.ok(midnightSlots.includes('23:30'));
+assert.ok(!midnightSlots.includes('00:00'));
+console.log('✓ Missing/closed tenant hours and midnight cutoff verified');
 console.log('ALL PICKUP TIME PICKER UNIT TESTS PASSED!');

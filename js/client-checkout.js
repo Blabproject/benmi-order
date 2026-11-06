@@ -586,14 +586,7 @@ function getActiveStoreConfig() {
 
 function getStoreOperatingShifts(dateObj) {
     const cfg = getActiveStoreConfig();
-    if (!cfg || !cfg.operatingHours) {
-        const day = dateObj.getDay();
-        if (day >= 1 && day <= 5) {
-            return [{ start: '11:00', end: '21:00' }];
-        } else {
-            return [{ start: '09:00', end: '21:00' }];
-        }
-    }
+    if (!cfg || !cfg.operatingHours) return [];
     const day = dateObj.getDay();
     const rawShifts = cfg.operatingHours[day] || cfg.operatingHours[String(day)] || [];
     return Array.isArray(rawShifts) ? rawShifts.filter(s => s && s.start && s.end) : [];
@@ -677,7 +670,7 @@ function generatePickupSlots(dateStr) {
             eMin = 1440;
         }
 
-        for (let minVal = sMin; minVal <= eMin; minVal += 15) {
+        for (let minVal = sMin; minVal <= eMin && minVal < 1440; minVal += 15) {
             if (isToday && minVal < minAllowedMin) {
                 continue;
             }
@@ -768,7 +761,7 @@ function initPickupTimePicker() {
                 const tomorrowStr = (typeof formatTaiwanDateTime === 'function') ? formatTaiwanDateTime(tomorrowObj).dateStr : tomorrowObj.toISOString().slice(0, 10);
                 if (dateEl) dateEl.value = tomorrowStr;
                 const tomorrowSlots = generatePickupSlots(tomorrowStr);
-                const firstSlot = tomorrowSlots[0] || '11:00';
+                const firstSlot = tomorrowSlots[0] || '';
                 timeEl.value = firstSlot;
                 pickupTimePickerState.selectedType = 'slot';
                 pickupTimePickerState.selectedTime = firstSlot;
