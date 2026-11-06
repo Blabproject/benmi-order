@@ -5,10 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title id="page-title">線上點餐</title>
-    <link rel="preload" href="/index.css?v=20261107_pickup_time_sheet_v2" as="style">
-    <link rel="preload" href="/js/client-core.js?v=20261107_pickup_time_sheet_v2" as="script">
+    <link rel="preload" href="/index.css?v=20261107_pickup_time_sheet_v4" as="style">
+    <link rel="preload" href="/js/client-core.js?v=20261107_pickup_time_sheet_v4" as="script">
     <link rel="preload" href="/js/client-menu.js?v=20261106_inline_nested_options_v2" as="script">
-    <link rel="stylesheet" href="/index.css?v=20261107_pickup_time_sheet_v2">
+    <link rel="stylesheet" href="/index.css?v=20261107_pickup_time_sheet_v4">
     <style>html.tenant-resolution-failed body > :not(#tenant-resolution-error) { display: none !important; }</style>
     <script>
         // Redirect root visits on blabfood.app to /landing
@@ -899,8 +899,9 @@
             </div>
 
             <div class="pickup-sheet-body">
-                <!-- Date Selector Tabs (Today, Tomorrow, Day+2) -->
+                <!-- Date Selector Tabs (Today, Tomorrow, Day+2, ... 7 days + More) -->
                 <div class="pickup-date-tabs" id="pickup-date-tabs"></div>
+                <input type="date" id="pickup-custom-date-picker" style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;" tabindex="-1">
 
                 <!-- ASAP Quick Option Card -->
                 <div class="pickup-asap-card" id="pickup-asap-card" onclick="selectPickupAsap()">
@@ -938,7 +939,7 @@
     </div>
 
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <script src="/js/client-core.js?v=20261107_pickup_time_sheet_v2"></script>
+    <script src="/js/client-core.js?v=20261107_pickup_time_sheet_v4"></script>
     <script src="/js/client-menu.js?v=20261106_inline_nested_options_v2"></script>
     <script src="/js/client-customizations.js?v=20261106_unified_cart_actions_v1"></script>
     <script src="/js/client-bundle.js?v=20261103_note_placeholder_v1"></script>
@@ -971,7 +972,7 @@
   <script src="/js/order-detail-view.js?v=20261017_order_detail_v1"></script>
   <script src="/js/order-detail-checkout.js?v=20261017_order_detail_v1"></script>
   <script src="/js/line-order-presentation.js?v=20261030_line_portions_v3"></script>
-    <script src="/js/client-checkout.js?v=20261107_pickup_time_sheet_v3"></script>
+    <script src="/js/client-checkout.js?v=20261107_pickup_time_sheet_v4"></script>
     <script>
         if (window.__TENANT_RESOLUTION_FAILED) {
             document.getElementById('page-body-content').style.display = 'none';

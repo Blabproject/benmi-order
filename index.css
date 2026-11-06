@@ -2946,7 +2946,8 @@ input[type="checkbox"] {
     gap: 8px;
     margin-bottom: 16px;
     overflow-x: auto;
-    padding-bottom: 4px;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
 }
 
@@ -2955,9 +2956,9 @@ input[type="checkbox"] {
 }
 
 .pickup-date-tab {
-    flex: 1;
-    min-width: 90px;
-    padding: 10px 12px;
+    flex: 0 0 auto;
+    min-width: 82px;
+    padding: 8px 10px;
     background: #f8fafc;
     border: 1.5px solid #e2e8f0;
     border-radius: 12px;
@@ -2965,6 +2966,16 @@ input[type="checkbox"] {
     cursor: pointer;
     transition: all 0.18s ease;
     user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.pickup-date-tab:hover {
+    border-color: #cbd5e1;
+    background: #f1f5f9;
 }
 
 .pickup-date-tab.active {
@@ -2973,10 +2984,18 @@ input[type="checkbox"] {
     box-shadow: 0 2px 8px rgba(0, 185, 0, 0.15);
 }
 
+.pickup-date-tab.is-off {
+    opacity: 0.6;
+    background: #f1f5f9;
+}
+
 .pickup-date-tab-main {
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 800;
     color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .pickup-date-tab.active .pickup-date-tab-main {
@@ -2984,7 +3003,7 @@ input[type="checkbox"] {
 }
 
 .pickup-date-tab-sub {
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 600;
     color: #64748b;
     margin-top: 2px;
@@ -2992,6 +3011,36 @@ input[type="checkbox"] {
 
 .pickup-date-tab.active .pickup-date-tab-sub {
     color: #166534;
+}
+
+.pickup-date-tab-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-top: 3px;
+    line-height: 1.2;
+}
+
+.pickup-date-tab-badge.badge-closed {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.pickup-date-tab-badge.badge-off {
+    background: #e2e8f0;
+    color: #64748b;
+}
+
+.pickup-date-tab-more {
+    border-style: dashed;
+    border-color: #cbd5e1;
+    color: #475569;
+}
+
+.pickup-date-tab-more:hover {
+    border-color: var(--primary);
+    color: var(--primary);
 }
 
 /* ASAP Card */
@@ -3057,12 +3106,12 @@ input[type="checkbox"] {
     margin-left: 12px;
 }
 
-/* Slots Section */
+/* Slots Section & Meal Period Grouping */
 .pickup-slots-section-title {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     font-size: 13.5px;
     font-weight: 800;
     color: #334155;
@@ -3070,6 +3119,43 @@ input[type="checkbox"] {
 
 .pickup-slots-step-hint {
     font-size: 12px;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.pickup-period-group {
+    margin-bottom: 18px;
+}
+
+.pickup-period-group:last-child {
+    margin-bottom: 6px;
+}
+
+.pickup-period-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2px 2px 8px;
+    border-bottom: 1px dashed #e2e8f0;
+    margin-bottom: 10px;
+}
+
+.pickup-period-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #334155;
+}
+
+.pickup-period-title svg {
+    color: #64748b;
+    flex-shrink: 0;
+}
+
+.pickup-period-count {
+    font-size: 11.5px;
     font-weight: 600;
     color: #94a3b8;
 }

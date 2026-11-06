@@ -731,42 +731,87 @@ function syncPickupTimeDisplay() {
     }
 }
 
+function findFirstAvailableDate(maxDays = 14) {
+    const twNow = (typeof getTaiwanDate === 'function') ? getTaiwanDate() : new Date();
+    const todayStr = (typeof formatTaiwanDateTime === 'function') ? formatTaiwanDateTime(twNow).dateStr : twNow.toISOString().slice(0, 10);
+
+    const todayAsap = calcAsapPickupTime(twNow);
+    const todaySlots = generatePickupSlots(todayStr);
+
+    if (todayAsap || todaySlots.length > 0) {
+        return {
+            dateStr: todayStr,
+            isToday: true,
+            hasAsap: Boolean(todayAsap),
+            defaultTime: todayAsap ? todayAsap.timeStr : (todaySlots[0] || ''),
+            defaultType: todayAsap ? 'asap' : 'slot'
+        };
+    }
+
+    // Today is closed or has no shifts left; search subsequent days
+    for (let offset = 1; offset <= maxDays; offset++) {
+        const dObj = new Date(twNow.getTime() + offset * 86400000);
+        const dStr = (typeof formatTaiwanDateTime === 'function') ? formatTaiwanDateTime(dObj).dateStr : dObj.toISOString().slice(0, 10);
+        const shifts = getStoreOperatingShifts(dObj);
+        if (shifts.length === 0) continue;
+        const slots = generatePickupSlots(dStr);
+        if (slots.length > 0) {
+            return {
+                dateStr: dStr,
+                isToday: false,
+                hasAsap: false,
+                defaultTime: slots[0],
+                defaultType: 'slot'
+            };
+        }
+    }
+
+    return {
+        dateStr: todayStr,
+        isToday: true,
+        hasAsap: false,
+        defaultTime: '',
+        defaultType: 'slot'
+    };
+}
+
 function initPickupTimePicker() {
     const twNow = (typeof getTaiwanDate === 'function') ? getTaiwanDate() : new Date();
     const todayStr = (typeof formatTaiwanDateTime === 'function') ? formatTaiwanDateTime(twNow).dateStr : twNow.toISOString().slice(0, 10);
     const dateEl = document.getElementById('pickup-date');
     const timeEl = document.getElementById('pickup-time');
 
-    if (dateEl && !dateEl.value) {
-        dateEl.value = todayStr;
+    const avail = findFirstAvailableDate();
+
+    if (dateEl) {
         dateEl.min = todayStr;
+        if (!dateEl.value || dateEl.value < todayStr) {
+            dateEl.value = avail.dateStr;
+        }
     }
 
-    const asap = calcAsapPickupTime(twNow);
+    const curDate = (dateEl && dateEl.value) ? dateEl.value : avail.dateStr;
+    const isToday = (curDate === todayStr);
+    const asap = isToday ? calcAsapPickupTime(twNow) : null;
+    const slots = generatePickupSlots(curDate);
+
     if (timeEl && !timeEl.value) {
-        if (asap) {
+        if (isToday && asap) {
             timeEl.value = asap.timeStr;
             pickupTimePickerState.selectedType = 'asap';
             pickupTimePickerState.selectedTime = asap.timeStr;
             pickupTimePickerState.selectedDate = todayStr;
+        } else if (slots.length > 0) {
+            timeEl.value = slots[0];
+            pickupTimePickerState.selectedType = 'slot';
+            pickupTimePickerState.selectedTime = slots[0];
+            pickupTimePickerState.selectedDate = curDate;
         } else {
-            const todaySlots = generatePickupSlots(todayStr);
-            if (todaySlots.length > 0) {
-                timeEl.value = todaySlots[0];
-                pickupTimePickerState.selectedType = 'slot';
-                pickupTimePickerState.selectedTime = todaySlots[0];
-                pickupTimePickerState.selectedDate = todayStr;
-            } else {
-                const tomorrowObj = new Date(twNow.getTime() + 86400000);
-                const tomorrowStr = (typeof formatTaiwanDateTime === 'function') ? formatTaiwanDateTime(tomorrowObj).dateStr : tomorrowObj.toISOString().slice(0, 10);
-                if (dateEl) dateEl.value = tomorrowStr;
-                const tomorrowSlots = generatePickupSlots(tomorrowStr);
-                const firstSlot = tomorrowSlots[0] || '';
-                timeEl.value = firstSlot;
-                pickupTimePickerState.selectedType = 'slot';
-                pickupTimePickerState.selectedTime = firstSlot;
-                pickupTimePickerState.selectedDate = tomorrowStr;
-            }
+            if (dateEl) dateEl.value = avail.dateStr;
+            timeEl.value = avail.defaultTime;
+            pickupTimePickerState.selectedType = avail.defaultType;
+            pickupTimePickerState.selectedTime = avail.defaultTime;
+            pickupTimePickerState.selectedDate = avail.dateStr;
         }
     }
 
@@ -786,6 +831,37 @@ function initPickupTimePicker() {
         });
     }
 
+    // Custom date picker change listener
+    const customPicker = document.getElementById('pickup-custom-date-picker');
+    if (customPicker && typeof customPicker.addEventListener === 'function' && !customPicker.__pickupCustomAttached) {
+        customPicker.__pickupCustomAttached = true;
+        customPicker.addEventListener('change', () => {
+            if (customPicker.value) {
+                switchPickupDateTab(customPicker.value);
+            }
+        });
+    }
+
+    // Periodic 60s background refresh of ASAP time to avoid drift
+    if (typeof window !== 'undefined' && typeof setInterval === 'function' && !window.__pickupAsapTimer) {
+        window.__pickupAsapTimer = setInterval(() => {
+            if (pickupTimePickerState.selectedType === 'asap') {
+                const tw = (typeof getTaiwanDate === 'function') ? getTaiwanDate() : new Date();
+                const { dateStr: tStr } = (typeof formatTaiwanDateTime === 'function') ? formatTaiwanDateTime(tw) : { dateStr: tw.toISOString().slice(0, 10) };
+                const dEl = document.getElementById('pickup-date');
+                if (dEl && dEl.value === tStr) {
+                    const freshAsap = calcAsapPickupTime(tw);
+                    if (freshAsap) {
+                        const tEl = document.getElementById('pickup-time');
+                        if (tEl) tEl.value = freshAsap.timeStr;
+                        pickupTimePickerState.selectedTime = freshAsap.timeStr;
+                        syncPickupTimeDisplay();
+                    }
+                }
+            }
+        }, 60000);
+    }
+
     syncPickupTimeDisplay();
 }
 
@@ -799,13 +875,25 @@ function openPickupTimeModal() {
     const dateEl = document.getElementById('pickup-date');
     const timeEl = document.getElementById('pickup-time');
 
-    const curDate = (dateEl && dateEl.value) ? dateEl.value : todayStr;
-    const curTime = (timeEl && timeEl.value) ? timeEl.value : '';
+    let curDate = (dateEl && dateEl.value) ? dateEl.value : todayStr;
+    let curTime = (timeEl && timeEl.value) ? timeEl.value : '';
+
+    const isToday = (curDate === todayStr);
+    const curAsap = isToday ? calcAsapPickupTime(twNow) : null;
+    const curSlots = generatePickupSlots(curDate);
+
+    // If curDate has no slots, auto-fallback to first available date
+    if (!curAsap && curSlots.length === 0) {
+        const avail = findFirstAvailableDate();
+        curDate = avail.dateStr;
+        curTime = avail.defaultTime;
+        pickupTimePickerState.selectedType = avail.defaultType;
+    }
 
     pickupTimePickerState.activeTabDate = curDate;
     pickupTimePickerState.tempDate = curDate;
     pickupTimePickerState.tempTime = curTime;
-    pickupTimePickerState.tempType = pickupTimePickerState.selectedType || 'asap';
+    pickupTimePickerState.tempType = pickupTimePickerState.selectedType || (isToday && curAsap ? 'asap' : 'slot');
 
     renderPickupDateTabs();
     renderPickupModalBodyForDate(curDate);
@@ -820,6 +908,30 @@ function closePickupTimeModal() {
     document.body.style.overflow = '';
 }
 
+function triggerCustomDatePicker() {
+    const picker = document.getElementById('pickup-custom-date-picker');
+    if (!picker) return;
+
+    const twNow = (typeof getTaiwanDate === 'function') ? getTaiwanDate() : new Date();
+    const todayStr = (typeof formatTaiwanDateTime === 'function') ? formatTaiwanDateTime(twNow).dateStr : twNow.toISOString().slice(0, 10);
+    const maxDate = new Date(twNow.getTime() + 30 * 86400000);
+    const maxStr = (typeof formatTaiwanDateTime === 'function') ? formatTaiwanDateTime(maxDate).dateStr : maxDate.toISOString().slice(0, 10);
+
+    picker.min = todayStr;
+    picker.max = maxStr;
+    if (pickupTimePickerState.activeTabDate) {
+        picker.value = pickupTimePickerState.activeTabDate;
+    }
+
+    if (typeof picker.showPicker === 'function') {
+        try {
+            picker.showPicker();
+            return;
+        } catch (e) {}
+    }
+    picker.click();
+}
+
 function renderPickupDateTabs() {
     const container = document.getElementById('pickup-date-tabs');
     if (!container) return;
@@ -828,28 +940,110 @@ function renderPickupDateTabs() {
     const daysName = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
 
     const dates = [];
-    for (let offset = 0; offset <= 2; offset++) {
+    for (let offset = 0; offset <= 6; offset++) {
         const dObj = new Date(twNow.getTime() + offset * 86400000);
         const dStr = (typeof formatTaiwanDateTime === 'function') ? formatTaiwanDateTime(dObj).dateStr : dObj.toISOString().slice(0, 10);
-        const dayLabel = offset === 0 ? '今天' : offset === 1 ? '明天' : daysName[dObj.getDay()];
+        let dayLabel = '';
+        if (offset === 0) dayLabel = '今天';
+        else if (offset === 1) dayLabel = '明天';
+        else if (offset === 2) dayLabel = '後天';
+        else dayLabel = daysName[dObj.getDay()];
+
         const subLabel = `${dObj.getMonth() + 1}/${dObj.getDate()}`;
-        dates.push({ dateStr: dStr, dayLabel, subLabel });
+        const shifts = getStoreOperatingShifts(dObj);
+        const isStoreOff = (shifts.length === 0);
+
+        let badge = '';
+        let badgeType = '';
+        if (offset === 0) {
+            const todayAsap = calcAsapPickupTime(twNow);
+            const todaySlots = generatePickupSlots(dStr);
+            if (!todayAsap && todaySlots.length === 0) {
+                badge = '已打烊';
+                badgeType = 'badge-closed';
+            }
+        } else if (isStoreOff) {
+            badge = '店休';
+            badgeType = 'badge-off';
+        }
+
+        dates.push({
+            dateStr: dStr,
+            dayLabel,
+            subLabel,
+            badge,
+            badgeType,
+            isOff: isStoreOff
+        });
     }
 
-    container.innerHTML = dates.map(d => {
-        const isActive = (d.dateStr === pickupTimePickerState.activeTabDate);
+    const activeDate = pickupTimePickerState.activeTabDate;
+    const isCustomDate = activeDate && !dates.some(d => d.dateStr === activeDate);
+    let customTabHtml = '';
+    if (isCustomDate) {
+        const [cy, cm, cd] = activeDate.split('-').map(Number);
+        const cObj = new Date(cy, cm - 1, cd, 12, 0, 0);
+        const cLabel = daysName[cObj.getDay()];
+        const cSub = `${cm}/${cd}`;
+        customTabHtml = `
+            <div class="pickup-date-tab active" onclick="switchPickupDateTab('${activeDate}')">
+                <div class="pickup-date-tab-main">${cLabel}</div>
+                <div class="pickup-date-tab-sub">${cSub}</div>
+                <span class="pickup-date-tab-badge" style="background:#e0f2fe;color:#0284c7;">預約</span>
+            </div>
+        `;
+    }
+
+    const tabsHtml = dates.map(d => {
+        const isActive = (d.dateStr === activeDate);
         return `
-            <div class="pickup-date-tab ${isActive ? 'active' : ''}" onclick="switchPickupDateTab('${d.dateStr}')">
+            <div class="pickup-date-tab ${isActive ? 'active' : ''} ${d.isOff ? 'is-off' : ''}"
+                 onclick="switchPickupDateTab('${d.dateStr}')">
                 <div class="pickup-date-tab-main">${d.dayLabel}</div>
                 <div class="pickup-date-tab-sub">${d.subLabel}</div>
+                ${d.badge ? `<span class="pickup-date-tab-badge ${d.badgeType}">${d.badge}</span>` : ''}
             </div>
         `;
     }).join('');
+
+    const moreTabHtml = `
+        <div class="pickup-date-tab pickup-date-tab-more" onclick="triggerCustomDatePicker()" role="button" title="選擇更多日期">
+            <div class="pickup-date-tab-main">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <span>更多</span>
+            </div>
+            <div class="pickup-date-tab-sub">日曆</div>
+        </div>
+    `;
+
+    container.innerHTML = tabsHtml + customTabHtml + moreTabHtml;
 }
 
 function switchPickupDateTab(dateStr) {
     pickupTimePickerState.activeTabDate = dateStr;
     pickupTimePickerState.tempDate = dateStr;
+
+    const twNow = (typeof getTaiwanDate === 'function') ? getTaiwanDate() : new Date();
+    const todayStr = (typeof formatTaiwanDateTime === 'function') ? formatTaiwanDateTime(twNow).dateStr : twNow.toISOString().slice(0, 10);
+    const isToday = (dateStr === todayStr);
+
+    const slots = generatePickupSlots(dateStr);
+    const asap = isToday ? calcAsapPickupTime(twNow) : null;
+
+    if (isToday && asap && pickupTimePickerState.tempType === 'asap') {
+        pickupTimePickerState.tempTime = asap.timeStr;
+    } else {
+        if (!slots.includes(pickupTimePickerState.tempTime)) {
+            pickupTimePickerState.tempType = 'slot';
+            pickupTimePickerState.tempTime = slots.length > 0 ? slots[0] : '';
+        }
+    }
+
     renderPickupDateTabs();
     renderPickupModalBodyForDate(dateStr);
 }
@@ -866,6 +1060,9 @@ function renderPickupModalBodyForDate(dateStr) {
     const slotsEmpty = document.getElementById('pickup-slots-empty');
     const confirmBtn = document.getElementById('pickup-sheet-confirm-btn');
 
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d, 12, 0, 0);
+    const shifts = getStoreOperatingShifts(dateObj);
     const slots = generatePickupSlots(dateStr);
     const asap = isToday ? calcAsapPickupTime(twNow) : null;
 
@@ -892,22 +1089,59 @@ function renderPickupModalBodyForDate(dateStr) {
         if (slots.length === 0) {
             slotsGrid.style.display = 'none';
             slotsEmpty.style.display = 'block';
-            slotsEmpty.textContent = isToday ? '本日營業時間已結束，請選擇明日或其他日期' : '此日期暫無營業時段';
+            if (isToday) {
+                slotsEmpty.textContent = '本日營業時間已結束，請選擇明日或其他日期';
+            } else if (shifts.length === 0) {
+                slotsEmpty.textContent = '本日為門市公休日 (店休)';
+            } else {
+                slotsEmpty.textContent = '此日期暫無可預約時段';
+            }
         } else {
-            slotsGrid.style.display = 'grid';
+            slotsGrid.style.display = 'block';
             slotsEmpty.style.display = 'none';
 
-            slotsGrid.innerHTML = slots.map(timeStr => {
-                const isSelected = (pickupTimePickerState.tempType === 'slot' && pickupTimePickerState.tempTime === timeStr);
-                return `
-                    <div class="pickup-slot-chip ${isSelected ? 'selected' : ''}"
-                         role="button"
-                         tabindex="0"
-                         onclick="selectPickupSlot('${timeStr}')">
-                        ${timeStr}
+            // Point 3: Group slots into meal periods
+            const morningSlots = slots.filter(s => parseInt(s.split(':')[0], 10) < 14);
+            const afternoonSlots = slots.filter(s => {
+                const h = parseInt(s.split(':')[0], 10);
+                return h >= 14 && h < 17;
+            });
+            const eveningSlots = slots.filter(s => parseInt(s.split(':')[0], 10) >= 17);
+
+            const sunIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>`;
+            const teaIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>`;
+            const moonIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+
+            const periodGroups = [
+                { id: 'morning', title: '上午 / 午餐', icon: sunIcon, list: morningSlots },
+                { id: 'afternoon', title: '下午茶時段', icon: teaIcon, list: afternoonSlots },
+                { id: 'evening', title: '晚間 / 晚餐', icon: moonIcon, list: eveningSlots }
+            ].filter(g => g.list.length > 0);
+
+            slotsGrid.innerHTML = periodGroups.map(g => `
+                <div class="pickup-period-group">
+                    <div class="pickup-period-header">
+                        <div class="pickup-period-title">
+                            ${g.icon}
+                            <span>${g.title}</span>
+                        </div>
+                        <span class="pickup-period-count">${g.list.length} 個時段</span>
                     </div>
-                `;
-            }).join('');
+                    <div class="pickup-slots-grid">
+                        ${g.list.map(timeStr => {
+                            const isSelected = (pickupTimePickerState.tempType === 'slot' && pickupTimePickerState.tempTime === timeStr);
+                            return `
+                                <div class="pickup-slot-chip ${isSelected ? 'selected' : ''}"
+                                     role="button"
+                                     tabindex="0"
+                                     onclick="selectPickupSlot('${timeStr}')">
+                                    ${timeStr}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `).join('');
         }
     }
 
@@ -917,10 +1151,19 @@ function renderPickupModalBodyForDate(dateStr) {
 }
 
 function selectPickupAsap() {
-    if (!pickupTimePickerState.asapTime) return;
+    const twNow = (typeof getTaiwanDate === 'function') ? getTaiwanDate() : new Date();
+    const todayStr = (typeof formatTaiwanDateTime === 'function') ? formatTaiwanDateTime(twNow).dateStr : twNow.toISOString().slice(0, 10);
+    const asap = calcAsapPickupTime(twNow);
+    if (!asap) return;
+
+    pickupTimePickerState.activeTabDate = todayStr;
+    pickupTimePickerState.tempDate = todayStr;
     pickupTimePickerState.tempType = 'asap';
-    pickupTimePickerState.tempTime = pickupTimePickerState.asapTime;
-    renderPickupModalBodyForDate(pickupTimePickerState.activeTabDate);
+    pickupTimePickerState.tempTime = asap.timeStr;
+    pickupTimePickerState.asapTime = asap.timeStr;
+
+    renderPickupDateTabs();
+    renderPickupModalBodyForDate(todayStr);
 }
 
 function selectPickupSlot(timeStr) {
@@ -956,6 +1199,8 @@ if (typeof window !== 'undefined') {
     window.selectPickupAsap = selectPickupAsap;
     window.selectPickupSlot = selectPickupSlot;
     window.switchPickupDateTab = switchPickupDateTab;
+    window.triggerCustomDatePicker = triggerCustomDatePicker;
+    window.findFirstAvailableDate = findFirstAvailableDate;
     window.confirmPickupTimeSelection = confirmPickupTimeSelection;
     window.syncPickupTimeDisplay = syncPickupTimeDisplay;
     window.pickupTimePickerState = pickupTimePickerState;
@@ -2158,6 +2403,20 @@ async function submitOrder() {
     } else {
         dateInput = document.getElementById('pickup-date') ? document.getElementById('pickup-date').value : '';
         timeInput = document.getElementById('pickup-time') ? document.getElementById('pickup-time').value : '';
+
+        const { dateStr: todayStr } = formatTaiwanDateTime(twNow);
+
+        // Auto-refresh ASAP time if selectedType is 'asap' and order is for today to prevent stale drift
+        if (pickupTimePickerState && pickupTimePickerState.selectedType === 'asap' && dateInput === todayStr) {
+            const freshAsap = calcAsapPickupTime(twNow);
+            if (freshAsap) {
+                timeInput = freshAsap.timeStr;
+                const timeEl = document.getElementById('pickup-time');
+                if (timeEl) timeEl.value = timeInput;
+                pickupTimePickerState.selectedTime = timeInput;
+                syncPickupTimeDisplay();
+            }
+        }
 
         if (!dateInput || !timeInput) {
             highlightMissingPickupTime();

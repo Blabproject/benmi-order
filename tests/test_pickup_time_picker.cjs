@@ -41,6 +41,7 @@ class MockElement {
 const elements = {
     'pickup-date': new MockElement('pickup-date', 'input'),
     'pickup-time': new MockElement('pickup-time', 'input'),
+    'pickup-custom-date-picker': new MockElement('pickup-custom-date-picker', 'input'),
     'pickup-time-trigger': new MockElement('pickup-time-trigger'),
     'pickup-trigger-display-time': new MockElement('pickup-trigger-display-time'),
     'pickup-trigger-display-date': new MockElement('pickup-trigger-display-date'),
@@ -115,6 +116,8 @@ const sandbox = {
     Boolean,
     clearTimeout: () => {},
     setTimeout: (fn) => fn(),
+    clearInterval: () => {},
+    setInterval: () => {},
     customAlert: (msg) => { sandbox.lastAlert = msg; },
     storeConfig: defaultStoreConfig
 };
@@ -158,7 +161,24 @@ console.log(`✓ initPickupTimePicker populated inputs & trigger display: ${elem
 ctx.openPickupTimeModal();
 assert.equal(elements['pickup-time-modal'].style.display, 'flex', 'Modal should be shown');
 assert.ok(elements['pickup-date-tabs'].innerHTML.includes('pickup-date-tab'), 'Date tabs rendered');
-console.log('✓ openPickupTimeModal opened modal and rendered date tabs');
+assert.ok(elements['pickup-date-tabs'].innerHTML.includes('pickup-date-tab-more'), 'More dates button rendered');
+assert.ok(elements['pickup-slots-grid'].innerHTML.includes('pickup-period-group'), 'Slots should be grouped into meal periods');
+assert.ok(elements['pickup-slots-grid'].innerHTML.includes('上午 / 午餐'), 'Should have lunch period header');
+assert.ok(elements['pickup-slots-grid'].innerHTML.includes('晚間 / 晚餐'), 'Should have dinner period header');
+console.log('✓ openPickupTimeModal opened modal, rendered 7-day tabs + more button + meal period groups');
+
+// 3b. Test tab switching and tempTime auto-sync
+ctx.pickupTimePickerState.tempTime = '03:15'; // Non-existent time
+ctx.switchPickupDateTab(tomorrowStr);
+assert.notEqual(ctx.pickupTimePickerState.tempTime, '03:15', 'Invalid tempTime must be reset to a valid slot on date switch');
+assert.equal(ctx.pickupTimePickerState.tempType, 'slot', 'tempType should be slot');
+console.log(`✓ Tab switch validated & synced tempTime: ${ctx.pickupTimePickerState.tempTime}`);
+
+// 3c. Test findFirstAvailableDate
+const avail = ctx.findFirstAvailableDate();
+assert.ok(avail.dateStr, 'First available date returned');
+assert.ok(avail.defaultTime, 'Default time returned');
+console.log(`✓ findFirstAvailableDate returned date: ${avail.dateStr}, time: ${avail.defaultTime}`);
 
 // 4. Test selecting a specific slot and confirming
 ctx.selectPickupSlot('12:30');
