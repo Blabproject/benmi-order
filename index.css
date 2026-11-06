@@ -2517,6 +2517,58 @@ input[type="checkbox"] {
     flex-shrink: 0;
 }
 
+.cart-portion-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 12px;
+    margin: 0 0 10px 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #475569;
+}
+
+.cart-portion-detail {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.cart-portion-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.cart-portion-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-width: 48px;
+    min-height: 48px;
+    box-sizing: border-box;
+    padding: 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    color: #334155;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.cart-portion-action--remove {
+    color: #dc2626;
+}
+
+.cart-portion-action:focus-visible {
+    outline: 2px solid var(--primary, #059669);
+    outline-offset: 2px;
+}
+
 .bundle-edit-btn {
     pointer-events: auto;
     display: flex;

@@ -427,8 +427,8 @@ function updateQty(category, origName, change) {
         }
     }
 
-    // Decrement non-bundle item with modifiers: remove the last portion customization
-    if (!bundleRule && hasModifiers && change < 0) {
+    // Notes also belong to plain items; keep their portion indices aligned.
+    if (!bundleRule && change < 0) {
         const cData = window.customizeData || customizeData;
         if (cData && cData[key] && cData[key].length > 0) {
             cData[key].pop();
@@ -461,6 +461,55 @@ function updateQty(category, origName, change) {
         renderComboDrinksInline(origName, cartObj[key]);
     }
 
+    updateTotal();
+}
+
+function editCartPortion(category, origName, index) {
+    const key = category + '_' + origName;
+    const cartObj = window.cart || cart || {};
+    if (!Number.isInteger(index) || index < 0 || index >= Number(cartObj[key] || 0)) return;
+    if (typeof isItemOutOfStock === 'function' && isItemOutOfStock(key)) return;
+    if (typeof checkDesktopAuthGuard === 'function' && !checkDesktopAuthGuard()) return;
+    const info = resolveCatalogItem(key);
+    const rule = info?.bundleRule || info?.targetItem?.bundleRule;
+    if (rule?.groups?.length) {
+        window.openBundleBuilderModal(category, origName, index);
+    } else {
+        window.openItemCustomizeModal(category, origName, index);
+    }
+}
+
+function removeCartPortion(category, origName, index) {
+    const key = category + '_' + origName;
+    const cartObj = window.cart || cart || {};
+    const quantity = Number(cartObj[key] || 0);
+    if (!Number.isInteger(index) || index < 0 || index >= quantity) return;
+    for (const state of [window.customizeData, window.bundleCartData]) {
+        if (!Array.isArray(state?.[key])) continue;
+        state[key].splice(index, 1);
+        if (quantity === 1 || state[key].length === 0) delete state[key];
+    }
+    window.bundleCartData?.[key]?.forEach((portion, portionIndex) => {
+        if (portion) portion.portionIndex = portionIndex;
+    });
+    const drinks = window.comboDrinkData;
+    if (Array.isArray(drinks?.[origName])) {
+        drinks[origName].splice(index, 1);
+        if (quantity === 1 || drinks[origName].length === 0) delete drinks[origName];
+        if (typeof renderComboDrinksInline === 'function') renderComboDrinksInline(origName);
+    }
+    cartObj[key] = quantity - 1;
+    const qty = document.getElementById('qty-' + category + '-' + origName);
+    if (qty) {
+        qty.textContent = String(cartObj[key]);
+        qty.style.color = cartObj[key] > 0 ? 'var(--primary)' : 'inherit';
+    }
+    if (cartObj[key] === 0) {
+        for (const prefix of ['customize-btn-', 'bundle-edit-btn-']) {
+            const button = document.getElementById(prefix + category + '-' + origName);
+            if (button) button.style.display = 'none';
+        }
+    }
     updateTotal();
 }
 
@@ -513,6 +562,8 @@ function updateTotal() {
     let totalQty = 0;
     let summaryHTML = '';
     const zhNumbers = ['第一份', '第二份', '第三份', '第四份', '第五份', '第六份', '第七份', '第八份', '第九份', '第十份'];
+    const cartIsVietnamese = (typeof currentLocale !== 'undefined' ? currentLocale : document.documentElement?.lang) === 'vi';
+    const escapeCartText = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 
     const bData = window.bootstrapData || bootstrapData;
     const cartObj = window.cart || cart || {};
@@ -650,6 +701,9 @@ function updateTotal() {
             const { key, catSlug, itemName, displayName, qty, price, isOutOfStock } = it;
             let itemModifiersTotal = 0;
             let portionsHTML = '';
+            const portionDetails = [];
+            const bundleRule = it.itemInfo?.bundleRule || it.itemInfo?.targetItem?.bundleRule;
+            const hasBundleGroups = Boolean(bundleRule?.groups?.length);
 
             if (cData[key]) {
                 cData[key].slice(0, qty).forEach((c, i) => {
@@ -695,20 +749,12 @@ function updateTotal() {
                         Object.values(c.subOptions || {}).forEach(sub => { itemModifiersTotal += Number(sub?.price || 0); });
                     }
 
-                    if (!it.itemInfo?.bundleRule && parts.length > 0) {
-                        const zhIdx = zhNumbers[i] || `第 ${i + 1} 份`;
-                        const safeCat = String(catSlug).replace(/'/g, "\\'");
-                        const safeName = String(itemName).replace(/'/g, "\\'");
-                        portionsHTML += `<div style="font-size:13px; color:#6b7280; margin-left:10px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
-                            <span>↳ ${zhIdx}: ${parts.join(', ')}</span>
-                            <span><button type="button" onclick="openItemCustomizeModal('${safeCat}','${safeName}', ${i})" style="min-height:32px; border:1px solid #cbd5e1; background:#fff; border-radius:6px; padding:2px 8px; font-size:12px; font-weight:700; cursor:pointer; margin-left:8px;">調整</button></span>
-                        </div>`;
-                    }
+                    if (!hasBundleGroups) portionDetails[i] = parts.join(', ');
                 });
             }
 
             let bundleExtra = 0;
-            if (it.itemInfo?.bundleRule && window.bundleCartData && window.bundleCartData[key] && window.bundlePortionExtra) {
+            if (hasBundleGroups && window.bundleCartData && window.bundleCartData[key] && window.bundlePortionExtra) {
                 bundleExtra = window.bundleCartData[key].slice(0, qty).reduce((sum, portion) => sum + (window.bundlePortionExtra(portion) || 0), 0);
             }
             if (!isOutOfStock) itemModifiersTotal += bundleExtra;
@@ -735,10 +781,9 @@ function updateTotal() {
                     </div>
                 `;
 
-                if (it.itemInfo?.bundleRule && window.bundleCartData && window.bundleCartData[key]) {
+                if (hasBundleGroups && window.bundleCartData && window.bundleCartData[key]) {
                     const portions = window.bundleCartData[key].slice(0, qty);
                     portions.forEach((p, pIdx) => {
-                        const pNum = zhNumbers[pIdx] || `第 ${pIdx + 1} 份`;
                         const bundleParts = [];
                         (p.groups || []).forEach(g => {
                             const itemsStr = (g.items || []).map(item => `${item.name} x${item.quantity}${(item.modifiers || []).length ? ` (${item.modifiers.map(mod => mod.name).join('、')})` : ''}`).join('、');
@@ -776,14 +821,7 @@ function updateTotal() {
                         const detailItems = [];
                         if (bundleParts.length > 0) detailItems.push(bundleParts.join('、'));
                         if (customParts.length > 0) detailItems.push(customParts.join('、'));
-                        const detailStr = detailItems.join(' ｜ ');
-
-                        if (detailStr) {
-                            portionsHTML += `<div style="font-size:13px; color:#475569; margin-left:10px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
-                                <span>↳ ${pNum} ${detailStr}</span>
-                                <span><button type="button" onclick="openBundleBuilderModal('${catSlug}','${itemName.replace(/'/g, "\\'")}', ${pIdx})" style="min-height:36px; border:1px solid #cbd5e1; background:#fff; border-radius:6px; padding:4px 8px; font-size:12px; font-weight:700; cursor:pointer; margin-left:8px;">調整</button><button type="button" onclick="bundleRemovePortion('${catSlug}','${itemName.replace(/'/g, "\\'")}', ${pIdx})" style="min-height:36px; border:1px solid #cbd5e1; background:#fff; border-radius:6px; padding:4px 8px; font-size:12px; font-weight:700; cursor:pointer; margin-left:6px; color:#ef4444;">移除</button></span>
-                            </div>`;
-                        }
+                        portionDetails[pIdx] = detailItems.join(' ｜ ');
                     });
                 }
 
@@ -795,6 +833,18 @@ function updateTotal() {
                     if (drinkStr) summaryHTML += `<div style="font-size:13px; color:#6b7280; margin-left:10px; margin-bottom:6px;">↳ 飲料：${drinkStr}</div>`;
                 }
 
+                for (let index = 0; index < qty; index++) {
+                    const label = cartIsVietnamese ? `Phần ${index + 1}` : (zhNumbers[index] || `第 ${index + 1} 份`);
+                    const detail = portionDetails[index];
+                    const contextLabel = escapeCartText(`${displayName}, ${label}`);
+                    portionsHTML += `<div class="cart-portion-row">
+                        <span class="cart-portion-detail">${label}${detail ? ': ' + escapeCartText(detail) : ''}</span>
+                        <span class="cart-portion-actions" data-category="${escapeCartText(catSlug)}" data-item="${escapeCartText(itemName)}" data-portion="${index}">
+                            <button type="button" class="cart-portion-action" aria-label="${cartIsVietnamese ? 'Điều chỉnh' : '調整'} ${contextLabel}" onclick="editCartPortion(this.parentElement.dataset.category, this.parentElement.dataset.item, Number(this.parentElement.dataset.portion))">${cartIsVietnamese ? 'Điều chỉnh' : '調整'}</button>
+                            <button type="button" class="cart-portion-action cart-portion-action--remove" aria-label="${cartIsVietnamese ? 'Xóa' : '移除'} ${contextLabel}" onclick="removeCartPortion(this.parentElement.dataset.category, this.parentElement.dataset.item, Number(this.parentElement.dataset.portion))">${cartIsVietnamese ? 'Xóa' : '移除'}</button>
+                        </span>
+                    </div>`;
+                }
                 summaryHTML += portionsHTML;
                 total += lineTotal;
             }

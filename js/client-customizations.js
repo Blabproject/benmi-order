@@ -369,16 +369,11 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
     const portionIdx = (typeof targetPortionIndex === 'number') ? targetPortionIndex : currentQty;
     const isAddingNew = portionIdx >= currentQty;
 
-    const modifiers = getItemModifiers(category, origName);
-    if (!modifiers || modifiers.length === 0) {
-        if (isAddingNew && typeof updateQty === 'function') {
-            cartObj[key] = (cartObj[key] || 0) + 1;
-            const qtySpan = document.getElementById('qty-' + category + '-' + origName);
-            if (qtySpan) {
-                qtySpan.innerText = cartObj[key];
-                qtySpan.style.color = 'var(--primary)';
-            }
-            if (typeof updateTotal === 'function') updateTotal();
+    const modifiers = getItemModifiers(category, origName) || [];
+    if (modifiers.length === 0 && isAddingNew) {
+        if (typeof updateQty === 'function') updateQty(category, origName, 1);
+        if (currentQty > 0 && Number(cartObj[key]) > currentQty) {
+            openItemCustomizeModal(category, origName, currentQty);
         }
         return;
     }
