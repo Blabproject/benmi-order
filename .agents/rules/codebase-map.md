@@ -21,6 +21,7 @@ Thứ tự load trong `index.html` (từ dòng ~854):
    - `resolveCatalogItem(cartKey)`: Tra cứu thông tin món từ `cartKey` (`<catSlug>_<itemName>`).
 2. [`js/client-menu.js`](file:///Users/duccao/Documents/benmi-order/js/client-menu.js) (~625 dòng):
    - `renderDynamicCatalog()`: Render danh mục món ăn, badge hết hàng, nút `+` / `客製化`.
+   - `renderCustomizationsPanel()` / `toggleFlavorSubOptions()`: Tùy chọn toàn đơn; phần con nằm trong `.flavor-option-container` ngay dưới lựa chọn cha. Popup món dùng `drawGroup()` trong `client-option-groups.js` với cùng quan hệ cha/con.
 3. [`js/client-customizations.js`](file:///Users/duccao/Documents/benmi-order/js/client-customizations.js) (~1,085 dòng):
    - Modal tùy biến món truyền thống (`openItemCustomizeModal`, `initPortionDefaults`, `calculatePortionExtra`).
    - Lưu lựa chọn vào `customizeData[cartKey][portionIdx]` (`single`, `multiple`, `selectedDetails`, `note`).
@@ -31,6 +32,7 @@ Thứ tự load trong `index.html` (từ dòng ~854):
    - Modal chọn combo/bundle thế hệ cũ (`openBundleBuilderModal`).
 6. [`js/client-cart.js`](file:///Users/duccao/Documents/benmi-order/js/client-cart.js) (~940 dòng):
    - `updateQty(category, origName, change)`: Tăng/giảm số lượng món, kiểm tra mở modal bắt buộc.
+   - `editCartPortion(category, origName, index)` / `removeCartPortion(...)`: Chỉnh/xóa từng phần của mọi món trong giỏ; đồng bộ tùy chọn, ghi chú và số lượng trên thẻ món.
    - `updateTotal()`: Tính tổng tiền giỏ hàng, kiểm tra điều kiện ngưỡng (`minOrderSubtotal` auto-promote), và render drawer `#cart-summary`.
 7. [`js/order-detail-view.js`](file:///Users/duccao/Documents/benmi-order/js/order-detail-view.js) (~73 dòng - Shared Browser & Worker):
    - **`OrderDetailView`**: Pure contract hiển thị `detailSnapshot` (`schemaVersion === 1`): `isSnapshot`, `choices`, `lines`, `printItems`, `globalChoices`, `notes`, `text`.

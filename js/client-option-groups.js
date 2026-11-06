@@ -263,7 +263,7 @@
           (value) => (value.id || value.name) === (sub.id || sub.name || sub),
         );
         const unavailable = sub.isOutOfStock || sub.isOos;
-        return `<label class="modifier-checkbox-chip ${chosen ? "active" : ""}"><input type="checkbox" data-sub="${path}" data-index="${index}" ${unavailable && !chosen ? "disabled" : ""} ${chosen ? "checked" : ""}><span>${esc(sub.name || sub)}${Number(sub.price) ? ` ${priceLabel(sub.price)}` : ""}${unavailable ? ` · ${esc(msg("已售完", "Hết món"))}` : ""}</span></label>`;
+        return `<label class="modifier-checkbox-chip ${chosen ? "active" : ""}"><input type="checkbox" data-sub="${path}" data-index="${index}" ${unavailable && !chosen ? "disabled" : ""} ${chosen ? "checked" : ""}><span class="uoc-sub-label"><span class="uoc-sub-name">${esc(sub.name || sub)}${unavailable ? ` · ${esc(msg("已售完", "Hết món"))}` : ""}</span>${Number(sub.price) ? ` <small class="uoc-sub-price">${priceLabel(sub.price)}</small>` : ""}</span></label>`;
       })
       .join("")}</div>`;
   }
@@ -310,12 +310,13 @@
   function drawGroup(g, selection, key) {
     const chips = simpleGroup(g),
       total = selection.items.length;
+    const inlineChildren = chips && options(g).some(o => (o.subOptions || []).length > 0);
     const title = `<div class="modifier-group-title"><span>${esc(g.name)}</span><span class="${minimum(g) ? "modifier-required-badge" : "modifier-optional-badge"}">${esc(groupHint(g))}</span></div>`;
     const details = (o, item, si) => {
       const path = `${key}.${si}`,
         label = `${item.name}${g.allowRepeats || g.included ? ` · ${si + 1}` : ""}`;
       const subs = (o.subOptions || []).length
-        ? `<div class="uoc-inline-subs"><strong>${esc(label)}</strong>${drawSubs(o, item, path)}</div>`
+        ? `<div class="uoc-inline-subs" role="group" aria-label="${esc(label)}">${inlineChildren ? '' : `<strong>${esc(label)}</strong>`}${drawSubs(o, item, path)}</div>`
         : "";
       if (!(o.optionGroups || []).length) return subs;
       const names = (item.groups || [])
@@ -344,8 +345,12 @@
               )?.error_message ||
               msg("未達最低餐點金額", "Chưa đạt giá trị món tối thiểu")
           : "";
-        if (chips)
-          return `<button type="button" class="${maximum(g) === 1 ? "modifier-pill" : "modifier-checkbox-chip"} ${chosen ? "active" : ""}" data-choose="${key}" data-option="${oi}" aria-pressed="${Boolean(chosen)}" ${blocked || (full && !chosen && maximum(g) !== 1) ? "disabled" : ""}><span>${esc(o.name)}</span>${Number(o.price) ? `<small>${priceLabel(o.price)}</small>` : ""}${warning ? `<small>${esc(warning)}</small>` : ""}</button>`;
+        if (chips) {
+          const choice = `<button type="button" class="${maximum(g) === 1 ? "modifier-pill" : "modifier-checkbox-chip"} ${chosen ? "active" : ""}" data-choose="${key}" data-option="${oi}" aria-pressed="${Boolean(chosen)}" ${blocked || (full && !chosen && maximum(g) !== 1) ? "disabled" : ""}><span class="uoc-choice-name">${esc(o.name)}</span>${Number(o.price) ? `<small class="uoc-choice-price">${priceLabel(o.price)}</small>` : ""}${warning ? `<small class="uoc-choice-warning">${esc(warning)}</small>` : ""}</button>`;
+          return inlineChildren
+            ? `<div class="uoc-option-entry">${choice}${selected.map(({ item, si }) => details(o, item, si)).join("")}</div>`
+            : choice;
+        }
         const imageSrc = optionImageSource(o);
         const image = context.images.get(imageSrc)?.state === "ready"
           ? `<img class="uoc-item-image" src="${esc(imageSrc)}" alt="" width="48" height="48">`
@@ -358,10 +363,10 @@
         const o = options(g).find((o) => o.id === item.optionId);
         if (!o)
           return `<div class="bundle-v2-detail"><span>${esc(item.name)} · ${esc(msg("已無法選擇", "Không còn khả dụng"))}</span><button type="button" data-remove="${key}" data-index="${si}" ${g.included ? "disabled" : ""}>${esc(msg("移除", "Gỡ"))}</button></div>`;
-        return chips ? details(o, item, si) : "";
+        return chips && !inlineChildren ? details(o, item, si) : "";
       })
       .join("");
-    return `<section class="uoc-group" data-group="${key}">${title}${!chips ? `<p class="uoc-count">${esc(msg("已選", "Đã chọn"))} ${total}/${maximum(g)}</p>` : ""}<div class="${chips ? (maximum(g) === 1 ? "modifier-pills-row" : "modifier-checkbox-grid") : "uoc-items"}">${rows || `<p>${esc(msg("目前沒有可選項目", "Chưa có lựa chọn"))}</p>`}</div>${detachedDetails}</section>`;
+    return `<section class="uoc-group" data-group="${key}">${title}${!chips ? `<p class="uoc-count">${esc(msg("已選", "Đã chọn"))} ${total}/${maximum(g)}</p>` : ""}<div class="${chips ? (maximum(g) === 1 ? "modifier-pills-row" : "modifier-checkbox-grid") : "uoc-items"}${inlineChildren ? " uoc-inline-choices" : ""}">${rows || `<p>${esc(msg("目前沒有可選項目", "Chưa có lựa chọn"))}</p>`}</div>${detachedDetails}</section>`;
   }
   function root() {
     let el = document.getElementById("unified-option-modal");

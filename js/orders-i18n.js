@@ -792,17 +792,28 @@ const I18N = {
     imageDeleting: "正在刪除圖片...",
     imageDeleteFail: "刪除圖片失敗：",
     // Stock Modal
-    stockModalTitle: "庫存狀態設定",
+    stockModalTitle: "供應狀態",
     stockModalItem: "庫存設定：{name}",
     stockLabelStatus: "狀態：",
-    stockOptInStock: "正常供應 (In Stock)",
-    stockOptOutOfStock: "暫時售完 (Out of Stock)",
-    stockLabelDuration: "售完時限：",
-    stockOptToday: "今日 (明日凌晨 4:00 自動恢復)",
-    stockOptMultipleDays: "指定日期 (選擇恢復日期)",
-    stockOptIndefinite: "無限期 (手動恢復)",
-    stockLabelDate: "恢復供應日期：",
-    btnStockSave: "儲存變更",
+    stockOptInStock: "正常供應",
+    stockOptOutOfStock: "暫停供應",
+    stockLabelDuration: "暫停供應至",
+    stockOptToday: "今日結束",
+    stockOptMultipleDays: "指定日期",
+    stockOptIndefinite: "手動恢復前",
+    stockLabelDate: "恢復供應日期",
+    btnStockSave: "套用",
+    stockDrawerHint: "選擇售完時限後立即儲存。",
+    stockInstantHint: "變更會立即套用至顧客菜單。",
+    stockTodayHint: "明日凌晨 4:00 自動恢復供應",
+    stockDateChoiceHint: "選擇恢復供應日期",
+    stockIndefiniteHint: "準備好後，再手動恢復供應",
+    stockDateHint: "所選日期凌晨 4:00 恢復供應",
+    stockLinkedNotice: "此變更會套用至所有使用此選項的餐點。",
+    stockRestore: "恢復供應",
+    stockRetry: "重試",
+    stockSaveError: "尚未儲存。請檢查網路連線後重試。",
+    stockDateInvalid: "請選擇明日或之後的日期。",
     alertSelectOosDate: "請選擇恢復供應日期！",
     stockUpdateFail: "庫存狀態更新失敗：",
     customizationManageTitle: "整單口味與客製化設定",
@@ -1757,17 +1768,28 @@ const I18N = {
     imageDeleting: "Đang xóa ảnh...",
     imageDeleteFail: "Lỗi xóa ảnh: ",
     // Stock Modal
-    stockModalTitle: "Cài đặt trạng thái kho",
+    stockModalTitle: "Trạng thái bán",
     stockModalItem: "Cài đặt kho: {name}",
     stockLabelStatus: "Trạng thái:",
-    stockOptInStock: "Còn hàng (In Stock)",
-    stockOptOutOfStock: "Hết hàng (Out of Stock)",
-    stockLabelDuration: "Thời hạn hết hàng:",
-    stockOptToday: "Hôm nay (Tự hồi phục lúc 4h sáng mai)",
-    stockOptMultipleDays: "Nhiều ngày (Chọn ngày khôi phục)",
-    stockOptIndefinite: "Vô thời hạn (Chờ mở thủ công)",
-    stockLabelDate: "Ngày khôi phục bán:",
-    btnStockSave: "Lưu thay đổi",
+    stockOptInStock: "Đang bán",
+    stockOptOutOfStock: "Tạm ngừng bán",
+    stockLabelDuration: "Tạm ngừng bán đến",
+    stockOptToday: "Hết hôm nay",
+    stockOptMultipleDays: "Ngày cụ thể",
+    stockOptIndefinite: "Khi mở bán lại",
+    stockLabelDate: "Ngày mở bán lại",
+    btnStockSave: "Áp dụng",
+    stockDrawerHint: "Chọn thời hạn để lưu ngay trạng thái hết món.",
+    stockInstantHint: "Thay đổi áp dụng ngay trên thực đơn khách.",
+    stockTodayHint: "Tự mở bán lại lúc 4 giờ sáng mai",
+    stockDateChoiceHint: "Chọn ngày mở bán lại",
+    stockIndefiniteHint: "Mở bán lại thủ công khi món sẵn sàng",
+    stockDateHint: "Mở bán lại lúc 4 giờ sáng ngày đã chọn",
+    stockLinkedNotice: "Thay đổi áp dụng cho mọi món dùng lựa chọn này.",
+    stockRestore: "Mở bán lại ngay",
+    stockRetry: "Thử lại",
+    stockSaveError: "Chưa lưu được. Kiểm tra kết nối rồi thử lại.",
+    stockDateInvalid: "Chọn ngày từ ngày mai trở đi.",
     alertSelectOosDate: "Vui lòng chọn ngày khôi phục bán!",
     stockUpdateFail: "Lỗi cập nhật trạng thái kho: ",
     customizationManageTitle: "Cài đặt khẩu vị & tùy chọn gọi món",
@@ -3010,7 +3032,7 @@ function applyLanguageToDOM() {
 
   // Stock Modal
   const stkModT = document.getElementById("stock-modal-title");
-  if (stkModT && (typeof currentStockCidx === 'undefined' || currentStockCidx === null)) stkModT.innerText = dict.stockModalTitle;
+  if (stkModT) stkModT.innerText = dict.stockModalTitle;
   const stkLblSt = document.getElementById("i18n-stock-label-status");
   if (stkLblSt) stkLblSt.innerText = dict.stockLabelStatus;
   const stkOptIn = document.getElementById("stock-opt-in-stock");
@@ -3031,6 +3053,20 @@ function applyLanguageToDOM() {
   if (btnStkSv) btnStkSv.innerText = dict.btnStockSave;
   const btnStkCan = document.getElementById("btn-stock-cancel");
   if (btnStkCan) btnStkCan.innerText = dict.btnCancel;
+  [
+    ['stock-drawer-hint', 'stockDrawerHint'],
+    ['stock-today-hint', 'stockTodayHint'],
+    ['stock-date-choice-hint', 'stockDateChoiceHint'],
+    ['stock-indefinite-hint', 'stockIndefiniteHint'],
+    ['stock-date-hint', 'stockDateHint'],
+    ['stock-linked-notice', 'stockLinkedNotice'],
+    ['btn-stock-restore', 'stockRestore']
+  ].forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = dict[key];
+  });
+  document.getElementById('btn-stock-close')?.setAttribute('aria-label', dict.btnClose);
+  if (typeof updateStockSaveState === 'function') updateStockSaveState();
 
   // Dining Filter Buttons
   const btnFilterAll = document.getElementById("filter-btn-all");
