@@ -8,7 +8,6 @@
   <base href="/" />
   <script src="js/orders-display.js?v=20261007_dev_main_sync_v1"></script>
   <link rel="stylesheet" href="css/orders.css?v=20261104_settings_mobile_scroll_v1" />
-  <link rel="stylesheet" href="css/orders-stock.css?v=20261107_stock_drawer_v1" />
   <link rel="stylesheet" href="css/orders-menu.css?v=20261102_menu_mobile_v5" />
     <script>
       (function () {
@@ -2224,57 +2223,44 @@
     </div>
   </div>
 
-  <!-- Stock actions save immediately; only a specific date needs confirmation. -->
-  <div id="stockModal" class="modal stock-drawer" role="dialog" aria-modal="true"
-    aria-labelledby="stock-modal-title" aria-describedby="stock-drawer-hint" style="display: none;"
-    onclick="if (event.target === this) closeStockModal()">
-    <div class="stock-drawer-panel">
-      <header class="stock-drawer-header">
-        <div class="stock-drawer-heading">
-          <p id="stock-item-name" class="stock-item-name"></p>
-          <h2 id="stock-modal-title">供應狀態</h2>
-          <span id="stock-current-status" class="stock-current-status"></span>
-        </div>
-        <button type="button" class="stock-drawer-close" id="btn-stock-close" onclick="closeStockModal()" aria-label="關閉">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
-        </button>
-      </header>
-      <div class="stock-drawer-body">
-        <p id="stock-drawer-hint" class="stock-drawer-hint">選擇售完時限後立即儲存。</p>
-        <p id="stock-linked-notice" class="stock-linked-notice" hidden>此變更會套用至所有使用此選項的餐點。</p>
-        <button type="button" class="stock-restore" id="btn-stock-restore" onclick="chooseStockStatus('in_stock')" hidden>恢復供應</button>
-        <fieldset class="stock-choices" id="oos-options-container">
-          <legend id="i18n-stock-label-duration">暫停供應至</legend>
-          <label class="stock-choice">
-            <input type="radio" name="stock-choice" id="stock-choice-today" value="today" onchange="chooseStockStatus(this.value)">
-            <span><strong id="stock-opt-today">今日結束</strong><small id="stock-today-hint">明日凌晨 4:00 自動恢復供應</small></span>
-          </label>
-          <label class="stock-choice">
-            <input type="radio" name="stock-choice" id="stock-choice-multiple_days" value="multiple_days" onchange="chooseStockStatus(this.value)">
-            <span><strong id="stock-opt-multiple-days">指定日期</strong><small id="stock-date-choice-hint">選擇恢復供應日期</small></span>
-          </label>
-          <label class="stock-choice">
-            <input type="radio" name="stock-choice" id="stock-choice-indefinite" value="indefinite" onchange="chooseStockStatus(this.value)">
-            <span><strong id="stock-opt-indefinite">手動恢復前</strong><small id="stock-indefinite-hint">準備好後，再手動恢復供應</small></span>
-          </label>
-        </fieldset>
-        <!-- Shared form values consumed by the existing item and option stock API. -->
-        <input type="hidden" id="stock-status-select">
-        <input type="hidden" id="stock-duration-select">
-        <div id="oos-date-container" class="stock-date-container" style="display: none;">
-          <label for="oos-until-date" id="i18n-stock-label-date">恢復供應日期</label>
-          <input type="date" id="oos-until-date" oninput="updateStockSaveState()" aria-describedby="stock-date-hint">
-          <small id="stock-date-hint">所選日期凌晨 4:00 恢復供應</small>
-        </div>
-        <p id="stock-drawer-error" class="stock-drawer-error" role="alert" hidden></p>
+  <!-- Modal Quản lý Hết Hàng (Stock Management) -->
+  <div id="stockModal" class="modal">
+    <div class="modal-content" style="max-width: 480px;">
+      <div class="modal-title">
+        <h3 id="stock-modal-title">庫存狀態設定</h3>
+        <div class="modal-close" onclick="closeStockModal()">✕</div>
       </div>
-      <footer class="stock-drawer-footer">
-        <p id="stock-drawer-status" role="status" aria-live="polite"></p>
-        <div class="stock-drawer-actions">
-          <button type="button" class="btn btn-ghost" id="btn-stock-cancel" onclick="closeStockModal()">取消</button>
-          <button type="button" class="btn btn-primary" id="btn-stock-save" onclick="saveStockStatus()" hidden>套用</button>
+      <div class="modal-body">
+        <div style="margin-top: 10px;">
+          <label style="display: block; font-weight: 900; margin-bottom: 8px; font-size: var(--pos-text-body);" id="i18n-stock-label-status">狀態：</label>
+          <select id="stock-status-select"
+            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: var(--pos-text-body);"
+            onchange="handleStockStatusChange()">
+            <option value="in_stock" id="stock-opt-in-stock">正常供應 (In Stock)</option>
+            <option value="out_of_stock" id="stock-opt-out-stock">暫時售完 (Out of Stock)</option>
+          </select>
         </div>
-      </footer>
+        <div id="oos-options-container" style="margin-top: 16px; display: none;">
+          <label style="display: block; font-weight: 900; margin-bottom: 8px; font-size: var(--pos-text-body);" id="i18n-stock-label-duration">售完時限：</label>
+          <select id="stock-duration-select"
+            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: var(--pos-text-body);"
+            onchange="handleStockDurationChange()">
+            <option value="today" id="stock-opt-today">今日 (明日凌晨 4:00 自動恢復)</option>
+            <option value="multiple_days" id="stock-opt-multiple-days">指定日期 (選擇恢復日期)</option>
+            <option value="indefinite" id="stock-opt-indefinite">無限期 (手動恢復)</option>
+          </select>
+
+          <div id="oos-date-container" style="margin-top: 16px; display: none;">
+            <label style="display: block; font-weight: 900; margin-bottom: 8px; font-size: var(--pos-text-body);" id="i18n-stock-label-date">恢復供應日期：</label>
+            <input type="date" id="oos-until-date"
+              style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: var(--pos-text-body);">
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions two" style="margin-top: 14px;">
+        <button class="btn btn-primary btn-block" id="btn-stock-save" onclick="saveStockStatus()">儲存變更</button>
+        <button class="btn btn-ghost btn-block" id="btn-stock-cancel" onclick="closeStockModal()">取消</button>
+      </div>
     </div>
   </div>
 
@@ -3051,7 +3037,7 @@
   </section>
 
   <!-- Benmi POS Modular Architecture Scripts -->
-  <script src="js/orders-i18n.js?v=20261107_stock_drawer_v1"></script>
+  <script src="js/orders-i18n.js?v=20261105_print_after_accept_v1"></script>
   <script src="js/orders-core.js?v=20261105_tenant_branding_v1"></script>
   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
@@ -3063,7 +3049,7 @@
   <script src="js/orders-reports.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/orders-settings.js?v=20261104_staff_order_no_pin_v1"></script>
   <script src="js/orders-menu-model.js?v=20261104_menu_model_v1"></script>
-  <script src="js/orders-menu.js?v=20261107_stock_restore_v2"></script>
+  <script src="js/orders-menu.js?v=20261104_menu_model_v1"></script>
   <script src="js/orders-bundle-wizard.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/orders-option-groups.js?v=20261102_menu_toggle_fix_v1"></script>
 

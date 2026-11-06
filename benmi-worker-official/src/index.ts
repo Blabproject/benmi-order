@@ -1,5 +1,4 @@
 import { handlePaymentRoute, processPayments } from './modules/payments';
-import { handleCustomerOrdersRoute } from './modules/customer-orders';
 import { tenantIsDeleted } from './utils/tenant-lifecycle';
 import { getOptionCatalog, saveOptionEntity } from './modules/option-groups';
 import { getModifierLibrary } from './modules/modifier-library';
@@ -72,7 +71,6 @@ export default {
       const tenantCtx = await resolveTenantContext(tenantId, env);
 
       if (path.startsWith('/api/payments/')) return handlePaymentRoute(request, env, tenantCtx, path);
-      if (path === '/api/customer/orders' || path.startsWith('/api/customer/orders/')) return handleCustomerOrdersRoute(request, env, tenantCtx, path);
 
       // 4. Staff API Routes
       if (path.startsWith("/api/staff")) {

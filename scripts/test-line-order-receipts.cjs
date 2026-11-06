@@ -71,26 +71,6 @@ async function create(f, changes = {}) { return (await orders.createOrder(req({ 
 async function push(f, notification, target = tenant) { return receipts.requestOrderReceiptPush(req(notification), f.env, target); }
 const text = result => `訂單編號：${result.key}\n📦 訂單內容：\none meal\n訂單參考：${result.key}\n確認參考：${result.notification.id}`;
 
-test('ordinary ordering messages stay silent with redirect enabled, with or without an old draft', async t => {
-  const f = fixture(t);
-  t.mock.method(require('../benmi-worker-official/src/integrations/groq.ts'), 'callAI', async () => {
-    assert.fail('ordinary chat must not invoke AI ordering classification');
-  });
-  for (const draft of [null, JSON.stringify({ text: 'one meal', lastUpdate: Date.now() })]) {
-    f.env.ORDER_STATE.get = async key => key === `draft:${userId}` ? draft : JSON.stringify(tenant);
-    for (const message of ['我要一份飯糰，明天早上七點四十分取餐', '再加一杯豆漿']) {
-      const tasks = [];
-      const response = await line.handleLineWebhook(req({ events: [{ type: 'message', source: { userId },
-        replyToken: 'reply-chat', message: { type: 'text', text: message } }] }), f.env,
-        { waitUntil(task) { tasks.push(task); } }, { ...tenant, aiOrderRedirectEnabled: true });
-      await Promise.all(tasks);
-      assert.equal(response.status, 200);
-    }
-  }
-  assert.equal(f.requests.length, 0, 'chat must not call AI or send a LIFF suggestion');
-  assert.equal(f.db.prepare('SELECT COUNT(*) n FROM orders').get().n, 0);
-});
-
 test('order and receipt commit together; webhook reply saves quota and redelivery never duplicates', async t => {
   const f = fixture(t), result = await create(f);
   assert(result.notification.token); assert.equal(f.row(result.notification.id).status, 'pending'); assert.equal(f.requests.length, 0);

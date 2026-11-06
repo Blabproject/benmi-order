@@ -1,13 +1,13 @@
-# Graph Report - benmi-order  (2026-11-07)
+# Graph Report - benmi-pos-branding-release-o1XcRB  (2026-11-05)
 
 ## Corpus Check
-- 656 files · ~1,032,533 words
+- 542 files · ~830,666 words
 - Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 79 file(s) not represented in the graph (top: .apk 23, (none) 14, .css 11)
+- Unclassified: 68 file(s) not represented in the graph (top: .apk 23, (none) 15, .xml 10)
 
 ## Summary
-- 5452 nodes · 9423 edges · 373 communities (277 shown, 96 thin omitted)
-- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 483 edges (avg confidence: 0.92)
+- 4970 nodes · 8624 edges · 330 communities (242 shown, 88 thin omitted)
+- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 507 edges (avg confidence: 0.93)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
@@ -16,128 +16,122 @@
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- ref_node_path
-- payments.ts
-- stock-drawer-production-20261107/release-baseline-summary.json
-- stock-drawer-production-20261107/pages-worker.mjs
+- ref_node_fs
+- line-order-receipts.ts
+- menu-drawer-dom.cjs
+- client-customizations.js
 - orders-settings.js
 - staff-order.js
-- line.ts
+- orders.ts
 - test-menu-safety.cjs
 - ExampleInstrumentedTest.java
-- bundle-rules.test.cjs
-- long-text.cjs
+- test-line-tenant-redirect.mjs
+- copy_tenant_prod_to_dev.mjs
 - src/index.ts
-- check-release-baseline.mjs
-- env.ts
+- ref_node_path
+- TenantRepository
 - orders-menu.js
 - PrinterService
 - ThermalPrinterPlugin
 - orders-option-groups.js
-- bundle-rules.ts
-- staff-ordering.cjs
-- run.mjs
+- option-groups.ts
+- staff.ts
+- bundle-rules.test.cjs
 - mock_printer_server.py
-- benmi-worker-official/package.json
-- stock-drawer-restore-production-20261107/pages-worker.mjs
-- scripts
+- test_pos_tenant_branding.cjs
+- ref_node_assert
+- test_customer_option_images_browser.cjs
 - .convertBitmapToEscPosRaster
-- PDP: Unify modifier sources — audit and migration plan
-- test_order_item_note_dedup.cjs
+- PDP: Chuyển hoàn toàn dữ liệu tuỳ chọn menu sang canonical schema
+- payments.ts
 - client-payments.js
 - syncMenuDataFromDOM
 - test_bill_and_ui_optimizations.js
-- client-order-history.js
+- verify_interactive_tabs.js
 - test_order_detail_groups.cjs
-- stock-drawer-production-20261107/deploy.mjs
-- test-line-order-receipts.cjs
-- saveStockStatus
-- test-line-tenant-redirect.mjs
+- test_payment_redirect.cjs
+- test_dapinglin_bundle_rules.js
+- document
+- formatContentHtml
 - test_order_print_subtotal_bundle.cjs
-- test-line-runtime.mjs
+- test_cluster2_combo_bundle_rules.cjs
 - bootstrap.ts
 - ref_fs
 - orders-core.js
-- test_menu_global_group_order.cjs
-- orders-history.js
-- Kế Hoạch Chi Tiết: Rút Gọn Nút Bấm Trên Từng Thẻ Món Ăn (Item Card Action Bar Modernization & Detail Hub Modal)
-- test_staff_ordering_browser.cjs
+- ref_node_test
+- Báo cáo readiness: dev lên main
+- scripts
+- test_payment_result_browser.cjs
 - client-core.js
 - scripts
-- Customer order domain rollout
+- line-order-layout.cjs
 - test_bundle_display_all_touchpoints.cjs
 - client-checkout.js
 - r01-evidence.json
-- inventory.mjs
+- Order detail snapshots
 - test_order_detail_mobile_scroll.cjs
 - 0065_unified_option_groups.sql
 - orders-modals.js
-- test_pos_tenant_branding.cjs
-- Detailed Design
+- bundle-rules.ts
+- 4. Kế hoạch Phân rã File (Module Breakdown)
 - orders-bundle-wizard.js
 - verify_autohide_header.js
 - test_item_customization_note.cjs
 - test_menu_bundle_editor.cjs
-- release-tracker.md
-- ref_path
+- R01 — Baseline hồi quy và checklist release
+- inventory.mjs
 - orders
 - ref_vm
 - with
-- Deleted options still visible in LIFF — 2026-10-29
+- test_order_identity_print.cjs
 - PDP: Tenant Feature Packaging & Modular Subscription Add-ons [New]
 - ref_benmi_worker_official_node_modules_typescript
 - scripts
 - PDP: Kiến Trúc Hợp Nhất Bundle Combo & Tuỳ Chọn Thực Đơn (Unified Bundle & Customization Architecture)
-- test_pickup_time_picker.cjs
+- Feature Cluster C: Quản lý Đơn hàng và Giao dịch (Orders) - Direct Switch-Out
 - checkMenuDirty
-- stock-drawer-restore-production-20261107/deploy.mjs
+- test_pos_confirmed_print.cjs
 - PDP: Structured Order Items Data Architecture & Item-Level Analytics
-- hotfix-liff-dafobenwan-20261106/release-baseline-summary.json
-- release-baseline-summary.json
-- stock-drawer-restore-production-20261107/release-baseline-summary.json
+- B. Bảng Quản Lý Đơn Hàng POS (`orders.html` — Tablet / iPad First)
+- 4. Migration & Rollout Strategy
+- createOrder
 - PDP: Đề xuất Chuyển đổi và Tối ưu hóa Benmi sang mô hình SaaS Đa Hộ Thuê (Multi-Tenant SaaS)
 - test_printer_system.js
 - test_return_context.cjs
-- orders.ts
-- verify_app_web_separation.js
+- PDP: Refactoring Data Access Layer (DAL) for benmi-worker-official
+- test_required_option_popup_browser.cjs
 - client-option-groups.js
-- inline-nested-options-production-20261106/release-baseline-summary.json
+- test_pos_polling_timeout.cjs
 - 3. Kiến trúc đề xuất
-- Kế hoạch copy dữ liệu menu cũ sang schema mới
+- test_line_order_layout.cjs
 - pr_agent_job
 - test_customization_editor.js
 - Element
-- ref_path
-- unified-cart-actions-production-20261106/release-baseline-summary.json
-- PDP: Chuyển hoàn toàn dữ liệu tuỳ chọn menu sang canonical schema
+- 8. Verification & Test Plan
+- test_staff_pos.cjs
+- Staff ordering rebased onto production — 29 October 2026
 - renderListRight
-- marketplace.js
+- R02 — Kiểm tra CI ngày 22/10/2026 JST
 - 0075_line_pay_v4.sql
-- renderMenuCategoryEditor
+- saveMenuData
 - client-menu.js
 - Kế hoạch Tích hợp LINE Pay v3 & Continuous Delivery lên Production
 - verify_review_modal.js
-- client-customizations.js
-- R02 — Schema capability staff mặc định đóng
+- R01 — Kiểm tra CI lần đầu trên PR #74
 - PDP: KV to D1 & R2 Migration for Orders, Config, and Media [Migrate/Refactor]
 - PDP: Modular Domain Architecture & Lightweight Routing for `benmi-worker-official` [Refactor/Replace]
 - orders-payments.js
-- Element
-- test_store_activation.js
-- test_line_order_layout.cjs
-- ref_node_assert
-- production-js__client-menu.js
-- bundle-rules.test.cjs
+- Quy Chuẩn Kiểm Thử Tinh Gọn Khi Phát Triển (Tiered Testing Workflow)
 - 0067_tenant_lifecycle.sql
 - PDP: Modular Client Menu Architecture v2 (Refactoring Monolithic `index.html`) [Replace]
 - PDP: Dashboard Order Latency Fix
 - orders-live.js
-- formatContentHtml
-- test_store_pin_browser.cjs
+- PDP: Menu Compatibility & Customization Hardening — Fix
+- setupPOSContract
 - test_order_identity.cjs
-- PDP: Refactoring Data Access Layer (DAL) for benmi-worker-official
-- test_pos_tab_persistence.cjs
-- test_menu_workspace.cjs
+- 3. Proposed Architecture
+- test_order_item_note_dedup.cjs
+- getStoreModifiersList
 - PDP: Dine-In Order Append & Multi-Round Ordering Architecture (加點餐點架構)
 - PDP: Mở rộng Benmi cho chuỗi suất ăn ký túc xá và bếp trung tâm [New]
 - line-order-presentation.js
@@ -145,83 +139,40 @@
 - PDP: LINE Order Receipt Portion Layout — Fix
 - renderBundleEditorSidebar
 - test_customization_price_e2e.cjs
-- customer-orders.ts
-- long-text.cjs
-- renderPickupModalBodyForDate
 - Hướng Dẫn Cài Đặt & Cấu Hình Máy In Bill Nhiệt (ESC/POS) Cho Tablet POS Benmi
 - PDP: Adaptive Compact KDS & Real-Time Live Orders Architecture
-- 4. Kế hoạch Phân rã File (Module Breakdown)
+- PDP: Nhiệm vụ 1.0 - Chuyển đổi sang TypeScript và Tách Module cho Benmi Worker
 - test_yanxiansuji_option_display_hotfix.cjs
 - A. Trang Thực Đơn Khách Hàng (`index.html` — Mobile / LINE LIFF First)
-- document
-- loadMenuEditor
-- Báo cáo readiness: dev lên main
-- copy_tenant_prod_to_dev.mjs
-- 4. Migration & Rollout Strategy
-- 8. Verification & Test Plan
-- test_pos_polling_timeout.cjs
-- test_combo_price_recovery_browser.cjs
-- 6. Kế hoạch chuyển đổi hoàn toàn
+- test_customer_option_children_browser.cjs
+- test_option_surcharge_cart.cjs
+- test_store_activation.js
 - PDP: Multi-Tenant LIFF Initialization Lifecycle & Webhook Progress Synchronization Fix
 - PDP: Modular Client Menu Architecture (Refactoring Monolithic `index.html`)
 - applyLanguageToDOM
-- 4. Kế hoạch Phân rã File (Module Breakdown)
-- line-order-layout.cjs
-- test_menu_dirty_detection.cjs
-- PDP: AI Order-Intent Classifier → Clef-flash [Replace]
-- R01 — Baseline hồi quy và checklist release
-- customer-history-local-20261105/README.md
-- getStoreModifiersList
-- test_pos_confirmed_print.cjs
 - cloudflare-d1.cjs
-- test_order_identity_print.cjs
 - clearTimeout
 - PDP: Hỗ Trợ Đơn Lấy Mang Đi (Takeaway) & Ăn Tại Quán (Dine-in)
-- B. Bảng Quản Lý Đơn Hàng POS (`orders.html` — Tablet / iPad First)
-- cart-actions-local-20261105/README.md
 - PDP: Multi-Tenant Config, Images, Passwords & D1 Menu Sync [Refactor/Fix]
 - Specification: Go Backend Refactor & PostgreSQL Migration
 - payment-session.js
 - verify_history_and_menu_ui.js
-- stock-drawer-production-20261107/README.md
-- Điều tra sự cố khách không đặt được đơn — zhadantongxue
-- ref_node_fs
-- 3. Proposed Architecture
-- fetchOrders
-- test_payment_redirect.cjs
-- 8. Verification & Test Plan
-- 5. Architectural Solutions for Critical Technical Concerns
-- buildStructuredCartItems
-- verify_menu_and_settings.js
-- production-js__client-cart.js
-- Lịch sử đơn hàng và đặt lại
-- Các task nhỏ
 - Blab POS - Universal Multi-Tenant Android POS Tablet App
-- ref_benmi_worker_official_node_modules_typescript
 - PDP: Hệ thống Quản lý Thực đơn Đa hộ thuê & Báo Hết hàng (Cloudflare D1 & KV)
 - PDP: Orders Live Query Row Read Optimization [Fix/Optimize]
 - PDP: Structured Customizations, Flavor Taxonomy & Hybrid Order Schema Architecture
-- Điều tra nút điều chỉnh xuất hiện trên production
 - test_menu_compatibility_regression.cjs
-- test_menu_sort_button_visibility.cjs
-- test_staff_pos.cjs
-- provision-linepay.mjs
-- menu-editor-loader.cjs
-- Order detail snapshots
-- stock-drawer-restore-production-20261107/README.md
-- Feature Cluster C: Quản lý Đơn hàng và Giao dịch (Orders) - Direct Switch-Out
-- Danh sách Task nhỏ cần thực hiện
+- test-line-runtime.mjs
 - PDP: Kiến Trúc Ứng Dụng POS Đa Điểm Bán Mở Rộng Cho Hàng Nghìn Quán (Universal Multi-Tenant POS Platform)
-- inline-nested-options-20261106/README.md
-- inline-nested-options-long-text-20261106/README.md
-- inline-nested-options-production-20261106/README.md
-- unified-cart-actions-main-20261106/README.md
+- orders-history.js
+- test-line-order-receipts.cjs
 - test_zhadantongxue_no_bundle_duplication.cjs
 - Checkpoint: Menu Compatibility & Customization Hardening — Complete Implementation Status
 - verify_totals.js
 - 0057_create_staff_ordering_and_tables.sql
-- transitionToSubEditor
+- isCustomizationCategory
 - PDP: BSC Multi-Tenant Platform Unification & Interactive Notification Architecture [Migrate/Enhance]
+- PDP: AI Order-Intent Classifier → Clef-flash [Replace]
 - PDP: Multi-Tenant Marketplace & Interactive Map Discovery Platform [New]
 - 3. Proposed Architecture
 - PDP: Dine-In Order UUID Tracking & Automatic Append Engine
@@ -237,13 +188,15 @@
 - verify_contact_modal.js
 - verify_startup_modals.js
 - test_bundle_stepper_v2.cjs
-- onRequest
+- test_pos_tab_persistence.cjs
+- _middleware.js
 - compilerOptions
 - PDP: Cơ Chế Thiết Lập Combo & Giá Khuyến Mãi Theo Nhóm Danh Mục (Universal Category Bundle Pricing Engine)
 - Tài liệu Tư vấn Giải pháp & Chiến lược Đàm phán (Bản dành cho Business / Sale)
 - orders-audio.js
 - package.json
 - verify_dual_printer_cards_status.js
+- ref_path
 - verify_store_info_and_printer_pill.js
 - test_pos_live_mobile.cjs
 - 2. Non-Negotiable Architectural Rules
@@ -252,6 +205,7 @@
 - test_item_selection_modal_flow.cjs
 - PDP: Dine-In Experience, Multi-Round Order Formatting & PAID Status Enhancement
 - _restore.sql
+- 3. Proposed Architecture
 - test_staff_capability_schema.cjs
 - PDP: Desktop Web Order LINE Confirmation & Flex Message Dispatch
 - Kế hoạch Tích hợp Frontend & Rollout (Frontend & Rollout Plan)
@@ -261,9 +215,10 @@
 - setupFrontendSandbox
 - Bản dịch yêu cầu: Hệ thống đặt trước cơm hộp tại nhiều ký túc xá lao động nước ngoài
 - PDP: Cloudflare Edge Caching Strategy [Performance/Infrastructure]
-- 0065_unified_option_groups.sql
+- menu_categories
 - test_threshold_bowl_autopromote.cjs
 - Cloudflare Worker Backend (`benmi-worker-official`) - AI Agent Instructions
+- Deleted options still visible in LIFF — 2026-10-29
 - Tiến độ chuyển đổi từng Cụm Menu sang Schema Mới
 - LINE Pay v4 — vận hành và nghiệm thu
 - R00 — Hiện trạng trước khi tách release staff ordering
@@ -277,16 +232,19 @@
 - Thiết kế API & Logic Báo Hết Hàng (Out-of-Stock API Design)
 - 1. So sánh Cấu trúc Bảng Hiện tại vs Đích
 - Benmi_danh_gia_va_ke_hoach_1_dev_44c8e931.md
+- marketplace.js
 - test_order_detail_groups_browser.cjs
 - Multi-Tenant Scalability & Architecture Rules (Quy Tắc Thiết Kế Mở Rộng 1,000+ Tenants)
 - MainActivity.java
 - 0001_initialize_menu_tables.sql
 - tenant_config
-- menu_bundle_rules
+- menu_items
 - 0061_unified_bundle_and_customization_schema.sql
 - runtime-bindings.d.ts
 - Dev rebase and data validation — 2026-10-17
 - Danh sách Task nhỏ cần thực hiện
+- release-tracker.md
+- 0046_add_order_uuid_and_daily_counter.sql
 - render
 - smoke-test-live-worker.mjs
 - Thiết kế Cơ sở Dữ liệu D1 (D1 Database Design)
@@ -295,6 +253,7 @@
 - Feature Cluster B: Quản lý hình ảnh và tệp tin (Media & Images)
 - 1. Executive Summary & Objectives
 - Bắt Buộc Cập Nhật Version Cache-Buster Khi Sửa CSS / JS (Frontend Cache Busting Rule)
+- openItemDetailModal
 - line-pay-brand-asset.md
 - order_detail_snapshots
 - Production migration to Cloudflare cf — 2026-10-07
@@ -303,7 +262,7 @@
 - orders-reports.js
 - test-staging-orders.ts
 - PDP: Xác thực và phân quyền server cho API POS [New/Replace/Fix]
-- tenants
+- tenant_config
 - 0065_line_order_receipts.sql
 - Seeds & Tenant Data Provisioning
 - Master Prompt: Trích Xuất Menu & Thông Tin Quán Dành Cho Sale (Unified Menu v2/v3)
@@ -322,28 +281,28 @@
 - menu-p0-safety.md
 
 ## God Nodes (most connected - your core abstractions)
-1. `json()` - 62 edges
+1. `json()` - 60 edges
 2. `PrinterService` - 56 edges
 3. `fetch()` - 45 edges
 4. `getTenantId()` - 44 edges
 5. `scripts` - 44 edges
 6. `syncMenuDataFromDOM()` - 39 edges
-7. `handleLineWebhook()` - 37 edges
+7. `handleLineWebhook()` - 38 edges
 8. `renderMenuCategoryEditor()` - 37 edges
 9. `renderMenuCategories()` - 36 edges
 10. `main()` - 36 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `3.7 Purge job — `scheduled()` handler trong `src/index.ts`` --references--> `scheduled()`  [INFERRED]
-  docs/proposals/clef-flash-intent-classifier/pdp.md → benmi-worker-official/src/index.ts
-- `7. Step-by-Step Execution Plan` --references--> `scheduled()`  [INFERRED]
-  docs/proposals/clef-flash-intent-classifier/pdp.md → benmi-worker-official/src/index.ts
+- `[ ] Task 2.1: Đồng bộ hóa tham số Tenant trên Admin Dashboard (`orders.html`)` --references--> `fetch()`  [INFERRED]
+  docs/proposals/menu_proposal/task_2_frontend_integration.md → benmi-worker-official/src/index.ts
 - `3.4 Classifier — `src/modules/aiIntent.ts` (mới)` --references--> `callAI()`  [INFERRED]
   docs/proposals/clef-flash-intent-classifier/pdp.md → benmi-worker-official/src/integrations/groq.ts
-- `1.1 Problem Statement` --references--> `getTenantBootstrap()`  [INFERRED]
-  docs/proposals/instant_hydration_multi_tenant_bootstrap/pdp_instant_hydration_multi_tenant_bootstrap.md → benmi-worker-official/src/modules/bootstrap.ts
 - `A. Zero-Trust Pricing Validation (Chống Giả Mạo Giá Server-Side)` --references--> `validateBundleOrderItems()`  [INFERRED]
   docs/proposals/unified_bundle_and_customization_architecture/PDP_Unified_Bundle_and_Customization_Architecture.md → benmi-worker-official/src/modules/bundle-rules.ts
+- `B. Mục Tiêu Trọng Tâm (Goals - In-Scope)` --references--> `validateBundleOrderItems()`  [INFERRED]
+  docs/proposals/unified_bundle_and_customization_architecture/PDP_Unified_Bundle_and_Customization_Architecture.md → benmi-worker-official/src/modules/bundle-rules.ts
+- `[ ] Task 1.3: Cô lập Ảnh trong `image.ts` (`src/modules/image.ts`)` --references--> `getImageList()`  [INFERRED]
+  docs/proposals/menu_proposal/task_1_backend_menu_sync.md → benmi-worker-official/src/modules/image.ts
 
 ## Import Cycles
 - 2-file cycle: `benmi-worker-official/src/modules/line.ts -> benmi-worker-official/src/modules/orders.ts -> benmi-worker-official/src/modules/line.ts`
@@ -363,227 +322,223 @@
 - 4-file cycle: `benmi-worker-official/src/modules/line-order-receipts.ts -> benmi-worker-official/src/modules/line.ts -> benmi-worker-official/src/modules/orders.ts -> benmi-worker-official/src/modules/payments.ts -> benmi-worker-official/src/modules/line-order-receipts.ts`
 - 4-file cycle: `benmi-worker-official/src/modules/bootstrap.ts -> benmi-worker-official/src/modules/order-detail.ts -> benmi-worker-official/src/modules/option-groups.ts -> benmi-worker-official/src/modules/menu.ts -> benmi-worker-official/src/modules/bootstrap.ts`
 
-## Communities (373 total, 96 thin omitted)
+## Communities (330 total, 88 thin omitted)
 
-### Community 0 - "ref_node_path"
+### Community 0 - "ref_node_fs"
+Cohesion: 0.04
+Nodes (42): fs, source, source, assert, fs, path, { test }, vm (+34 more)
+
+### Community 1 - "line-order-receipts.ts"
+Cohesion: 0.12
+Nodes (27): deliverOrderReceipt(), Flow, handleOrderReceiptPageWebhook(), handleOrderReceiptWebhook(), logReceipt(), processPendingOrderReceipts(), Receipt, receiptMessages() (+19 more)
+
+### Community 2 - "menu-drawer-dom.cjs"
 Cohesion: 0.05
-Nodes (31): { execFileSync }, path, root, assert, fs, path, test, assert (+23 more)
+Nodes (30): data, id, iv, keyBytes, url, fs, setup(), context (+22 more)
 
-### Community 1 - "payments.ts"
-Cohesion: 0.06
-Nodes (69): linePayCall(), linePaySignature(), parseLinePay(), paymentHash(), getNextDailyOrderSeq(), activeStatuses, paymentAttentionCount(), paymentAttentionRows() (+61 more)
-
-### Community 2 - "stock-drawer-production-20261107/release-baseline-summary.json"
-Cohesion: 0.10
-Nodes (20): application, changedFromHead, fileCount, sha256, branch, commit, dependencies, lockfiles (+12 more)
-
-### Community 3 - "stock-drawer-production-20261107/pages-worker.mjs"
-Cohesion: 0.22
-Nodes (19): arrayToRegexp(), escapeString(), executeRequest(), fetch(), flags(), isLineCallback(), isPosRoute(), lexer() (+11 more)
+### Community 3 - "client-customizations.js"
+Cohesion: 0.26
+Nodes (15): closePopup(), getCategoryModifiers(), getItemModifiers(), getUniqueModifierOptionId(), initPortionDefaults(), isOptionSelectedInMultiple(), isOptionSelectedInSingle(), openItemCustomizeModal() (+7 more)
 
 ### Community 4 - "orders-settings.js"
 Cohesion: 0.06
 Nodes (68): addShift(), attachPrinterAutoSave(), beginStorePinChangeForPayments(), cancelStorePinChangeReturn(), checkStaffOrderingCapability(), clearStorePinChangeForm(), closeTableEditorModal(), createDefaultOperatingHours() (+60 more)
 
 ### Community 5 - "staff-order.js"
-Cohesion: 0.08
-Nodes (66): applyI18nLabels(), changeCartItemQty(), changeModalQty(), clearDraftCart(), closeItemModal(), closeOrderReview(), confirmAddItemToCart(), createItemCardHtml() (+58 more)
-
-### Community 6 - "line.ts"
 Cohesion: 0.09
-Nodes (49): 1. Architecture & Multi-Tenant Routing, syncToGoogleSheets(), buildMessages(), callAI(), callGroq(), callOpenRouterFallback(), FewShotExample, getLineToken() (+41 more)
+Nodes (65): applyI18nLabels(), changeCartItemQty(), changeModalQty(), clearDraftCart(), closeItemModal(), closeOrderReview(), confirmAddItemToCart(), createItemCardHtml() (+57 more)
+
+### Community 6 - "orders.ts"
+Cohesion: 0.09
+Nodes (51): 1. Architecture & Multi-Tenant Routing, syncToGoogleSheets(), buildMessages(), callAI(), callGroq(), callOpenRouterFallback(), FewShotExample, getLineToken() (+43 more)
 
 ### Community 7 - "test-menu-safety.cjs"
-Cohesion: 0.10
-Nodes (10): assert, backend, { DatabaseSync }, fs, migration0061Sql, migration0063Sql, migration0064Sql, source (+2 more)
+Cohesion: 0.03
+Nodes (42): assert, backend, { DatabaseSync }, editor(), fs, migration0061Sql, migration0063Sql, migration0064Sql (+34 more)
 
 ### Community 8 - "ExampleInstrumentedTest.java"
 Cohesion: 0.18
 Nodes (3): ReceiptRasterTest, ExampleInstrumentedTest, ExampleUnitTest
 
-### Community 9 - "bundle-rules.test.cjs"
-Cohesion: 0.12
-Nodes (13): { chromium }, insert(), order(), report, require, devWorker, quote(), require (+5 more)
+### Community 9 - "test-line-tenant-redirect.mjs"
+Cohesion: 0.15
+Nodes (6): html, liffRuntime(), context, resolveTenant(), root, storage()
 
-### Community 10 - "long-text.cjs"
-Cohesion: 0.05
-Nodes (33): assert, children, fixture, fs, path, playwright, report, rule (+25 more)
+### Community 10 - "copy_tenant_prod_to_dev.mjs"
+Cohesion: 0.07
+Nodes (27): __dirname, __filename, sqlStatements, tableData, tables, tempSqlFile, WORKER_DIR, applyCopy() (+19 more)
 
 ### Community 11 - "src/index.ts"
-Cohesion: 0.12
-Nodes (48): fetch(), scheduled(), handleCreateTempLink(), handleVerifyTempLink(), invalidateBootstrapCache(), getConfig(), updateConfig(), deleteImage() (+40 more)
+Cohesion: 0.11
+Nodes (54): fetch(), DEFAULT_PASSWORD, handleAuth(), handleAuthChange(), handleCreateTempLink(), handleVerifyTempLink(), invalidateBootstrapCache(), loadBundleCatalog() (+46 more)
 
-### Community 12 - "check-release-baseline.mjs"
-Cohesion: 0.03
-Nodes (44): before, checks, config, health, output, root, run, temp (+36 more)
-
-### Community 13 - "env.ts"
-Cohesion: 0.10
-Nodes (31): handleAdminRoute(), verifyAdminAuth(), getMarketplaceTenants(), invalidateMarketplaceCache(), isStoreCurrentlyOpen(), MarketplaceTenantItem, updateOrderDomain(), PrintItem (+23 more)
+### Community 12 - "ref_node_path"
+Cohesion: 0.05
+Nodes (33): assert, fs, path, test, assert, fs, path, root (+25 more)
 
 ### Community 14 - "orders-menu.js"
-Cohesion: 0.05
-Nodes (40): addCustomizationGroup(), addNewMenuItem(), applyMenuItemFilters(), cancelRenameCustomizationGroup(), closeCreationTypeModal(), collapsedMenuSections, commitMenuDisplayRanks(), currentLibraryOptionGroups (+32 more)
+Cohesion: 0.04
+Nodes (44): addCustomizationGroup(), applyMenuItemFilters(), cancelNewCustomizationGroup(), cancelRenameCustomizationGroup(), closeAddCategoryModal(), closeStockModal(), collapsedMenuSections, computeEligibleItemsCount() (+36 more)
 
 ### Community 18 - "orders-option-groups.js"
+Cohesion: 0.13
+Nodes (41): action(), affectedIds(), back(), close(), commitOption(), dismissConfirmation(), ensureDrawer(), entitySnapshot() (+33 more)
+
+### Community 19 - "option-groups.ts"
+Cohesion: 0.12
+Nodes (29): generateUniqueModifierId(), syncMenuToD1(), validateMenuUpdate(), effectiveGroups(), groupOptions(), integer(), invalidate(), loadOptionCatalog() (+21 more)
+
+### Community 20 - "staff.ts"
+Cohesion: 0.06
+Nodes (61): 2. Backend Cloudflare Worker (`benmi-worker-official/src/`), getStoredPassword(), amount(), buildDetailRound(), DetailError, detailProjection(), detailStatement(), fail() (+53 more)
+
+### Community 21 - "bundle-rules.test.cjs"
 Cohesion: 0.09
-Nodes (48): action(), affectedIds(), back(), close(), commitOption(), dismissConfirmation(), ensureDrawer(), entitySnapshot() (+40 more)
-
-### Community 19 - "bundle-rules.ts"
-Cohesion: 0.20
-Nodes (13): BundleCheck, BundleGroup, BundleSource, loadBundleCatalog(), money(), normalizeBundleConfig(), positiveInt(), validateBundleOrderItems() (+5 more)
-
-### Community 20 - "staff-ordering.cjs"
-Cohesion: 0.08
-Nodes (43): DEFAULT_PASSWORD, getStoredPassword(), handleAuth(), handleAuthChange(), detailProjection(), detailStatement(), readDetail(), paymentStaffSession() (+35 more)
-
-### Community 21 - "run.mjs"
-Cohesion: 0.24
-Nodes (17): action(), browserSession(), drawer(), editGroup(), field(), newGroup(), newProduct(), playwright (+9 more)
+Nodes (30): assert, bundleModule, categories, fs, items, modifierOptions, Module, path (+22 more)
 
 ### Community 22 - "mock_printer_server.py"
 Cohesion: 0.25
 Nodes (3): parse_and_display_payload(), render_ascii_bitmap(), start_mock_server()
 
-### Community 23 - "benmi-worker-official/package.json"
-Cohesion: 0.12
-Nodes (19): devDependencies, cf@1.0.0-beta.12, @cloudflare/workers-types@5.20261007.1, esbuild@0.28.1, miniflare@5.20261006.0-alpha, typescript@^6.0.3, wrangler@4.148.0, engines (+11 more)
+### Community 23 - "test_pos_tenant_branding.cjs"
+Cohesion: 0.14
+Nodes (12): assert, benmiCache, core, earlyBrand, earlyTenant, fs, html, inlineScripts (+4 more)
 
-### Community 24 - "stock-drawer-restore-production-20261107/pages-worker.mjs"
-Cohesion: 0.22
-Nodes (19): arrayToRegexp(), escapeString(), executeRequest(), fetch(), flags(), isLineCallback(), isPosRoute(), lexer() (+11 more)
+### Community 24 - "ref_node_assert"
+Cohesion: 0.09
+Nodes (20): assetReferences(), cacheBusterErrors(), checkCacheBusters(), changedSourceFiles, directory, menuOnly, report, root (+12 more)
 
-### Community 25 - "scripts"
-Cohesion: 0.11
-Nodes (19): scripts, build, build:dev, build:production, build:staging, check, db:migrations:apply:dev, db:migrations:apply:production (+11 more)
+### Community 25 - "test_customer_option_images_browser.cjs"
+Cohesion: 0.18
+Nodes (7): assert, fixture(), fs, path, read(), root, { test, before, after }
 
-### Community 27 - "PDP: Unify modifier sources — audit and migration plan"
-Cohesion: 0.15
-Nodes (11): Alternatives and trade-offs, Compatibility rollout (2026-09-28), Cross-cutting concerns, Evidence and current architecture, Execution status, Migration and rollout, Objectives and scope, PDP: Unify modifier sources — audit and migration plan (+3 more)
+### Community 27 - "PDP: Chuyển hoàn toàn dữ liệu tuỳ chọn menu sang canonical schema"
+Cohesion: 0.06
+Nodes (30): 10. Các lựa chọn và đánh đổi, 11. Kế hoạch PR/milestone và tiêu chí nghiệm thu, 12. Verification plan, 13. Ranh giới giữa đề xuất và thực thi, 1. Tóm tắt và mục tiêu, 3. Bối cảnh và bằng chứng hiện tại, 4. Kiến trúc đích và nguyên tắc chuyển, 5. Các rủi ro cần giải quyết trước khi migrate (+22 more)
 
-### Community 28 - "test_order_item_note_dedup.cjs"
-Cohesion: 0.11
-Nodes (15): assert, bundle, count(), flexText(), fs, sandbox, { test }, vm (+7 more)
+### Community 28 - "payments.ts"
+Cohesion: 0.06
+Nodes (70): linePayCall(), linePaySignature(), parseLinePay(), paymentHash(), activeStatuses, paymentAttentionCount(), paymentAttentionRows(), paymentDateRange() (+62 more)
 
 ### Community 29 - "client-payments.js"
-Cohesion: 0.17
-Nodes (24): Hợp đồng công cụ và đầu ra đề xuất, blocked(), buttonLabel(), cancelCurrent(), init(), inspect(), launch(), manage() (+16 more)
+Cohesion: 0.06
+Nodes (50): Bộ kiểm tra bắt buộc của công cụ copy, Chính sách đối với canonical đã tồn tại, Context đầy đủ cho session tiếp theo, Các cột bổ sung dự kiến, Các task nhỏ, Danh sách file cần đọc trước khi viết script, Dữ liệu được copy, Hợp đồng công cụ và đầu ra đề xuất (+42 more)
 
 ### Community 30 - "syncMenuDataFromDOM"
 Cohesion: 0.17
-Nodes (25): 5. Danh Sách 10 Rủi Ro & Giải Pháp Phòng Ngừa Chi Tiết (Architectural Risk Register), addCustomizationOption(), cancelNewCustomizationGroup(), closeAddCategoryModal(), confirmAddCategory(), formatPlusBtnText(), markMenuDirty(), moveMenuItem() (+17 more)
+Nodes (37): 5. Danh Sách 10 Rủi Ro & Giải Pháp Phòng Ngừa Chi Tiết (Architectural Risk Register), Bước 3: Cải Tiến Render Hàng Món, addCustomizationOption(), closeCategoriesManager(), confirmAddCategory(), confirmLeaveMenu(), deleteCategoryAtIndex(), duplicateMenuItemAt() (+29 more)
 
 ### Community 31 - "test_bill_and_ui_optimizations.js"
 Cohesion: 0.07
 Nodes (27): assert, diningOp, document, domElements, drawnOperations, extractedFlavors, flavorHeaderOp, flavorItemOp (+19 more)
 
-### Community 32 - "client-order-history.js"
-Cohesion: 0.18
-Nodes (44): announceStatus(), appendHistoricalGroups(), applyOrderScopeSelections(), buildUI(), cancelPendingRequest(), checkMobileOnlyPolicy(), clearCartInPlace(), clearOrderScopeInputs() (+36 more)
+### Community 32 - "verify_interactive_tabs.js"
+Cohesion: 0.15
+Nodes (11): fs, mainCloseIdx, mainLayoutIdx, ordersCoreJs, ordersHtml, ordersMenuJs, ordersSettingsJs, path (+3 more)
 
 ### Community 33 - "test_order_detail_groups.cjs"
 Cohesion: 0.28
 Nodes (7): assert, choice(), fs, group(), line(), { test }, vm
 
-### Community 34 - "stock-drawer-production-20261107/deploy.mjs"
-Cohesion: 0.14
-Nodes (9): blake3, { build }, config, contentTypes, output, require, root, sha() (+1 more)
+### Community 34 - "test_payment_redirect.cjs"
+Cohesion: 0.22
+Nodes (7): assert, fs, path, production, source, {test}, vm
 
-### Community 35 - "test-line-order-receipts.cjs"
-Cohesion: 0.16
-Nodes (10): assert, base, create(), { DatabaseSync }, fs, push(), req(), tenant (+2 more)
-
-### Community 36 - "saveStockStatus"
-Cohesion: 0.27
-Nodes (12): chooseStockStatus(), closeStockModal(), handleStockDurationChange(), openStockModal(), openStockModalForCustomization(), readStockChoice(), saveStockStatus(), setStockError() (+4 more)
-
-### Community 37 - "test-line-tenant-redirect.mjs"
+### Community 35 - "test_dapinglin_bundle_rules.js"
 Cohesion: 0.15
-Nodes (7): error(), html, liffRuntime(), context, resolveTenant(), root, storage()
+Nodes (12): assert, catMap, expectedCombos, fs, indexHtml, migrationPath, migrationSql, mockCatalog (+4 more)
+
+### Community 36 - "document"
+Cohesion: 0.22
+Nodes (3): customer(), context, document
+
+### Community 37 - "formatContentHtml"
+Cohesion: 0.16
+Nodes (15): 2. Context & Current Architecture, A. Luồng Dữ Liệu Hiện Tại (Legacy Text Serialization), B. Điểm Yếu Kiến Trúc:, extractBundleFromItem(), extractCustomerChanges(), extractFlavorSettings(), formatContentHtml(), getOrderItemsPreview() (+7 more)
 
 ### Community 38 - "test_order_print_subtotal_bundle.cjs"
 Cohesion: 0.08
 Nodes (25): assert, canvases, contentFallback, coreCode, document, drawnText, fs, legacy (+17 more)
 
-### Community 39 - "test-line-runtime.mjs"
-Cohesion: 0.17
-Nodes (8): base, encrypted(), fixture(), keyBytes, keyring, repoUrl, runtimeUrl, tenantUrl
+### Community 39 - "test_cluster2_combo_bundle_rules.cjs"
+Cohesion: 0.06
+Nodes (23): assert, { DatabaseSync }, fs, { test }, assert, { DatabaseSync }, FIXTURE_CLUSTER1_NEW_SCHEMA, fs (+15 more)
 
 ### Community 40 - "bootstrap.ts"
-Cohesion: 0.11
-Nodes (26): BENMI_TRANSLATIONS, BOOTSTRAP_VERSION, BootstrapBundleGroup, BootstrapBundleRule, BootstrapResponse, formatOperatingHoursForDisplay(), getTenantBootstrap(), parseOperatingHours() (+18 more)
+Cohesion: 0.08
+Nodes (40): handleAdminRoute(), verifyAdminAuth(), BENMI_TRANSLATIONS, BOOTSTRAP_VERSION, BootstrapBundleGroup, BootstrapBundleRule, BootstrapResponse, formatOperatingHoursForDisplay() (+32 more)
 
 ### Community 41 - "ref_fs"
 Cohesion: 0.06
-Nodes (31): assert, cssContent, fs, assert, css, fs, html, assert (+23 more)
+Nodes (31): assert, cssContent, fs, assert, coreJs, css, escPosJava, fs (+23 more)
 
 ### Community 42 - "orders-core.js"
-Cohesion: 0.10
-Nodes (23): Cấp 2: Kiểm thử Mục tiêu theo Module (Targeted Tests - 0.5s đến 3s), applyTenantBranding(), _coreParams, ensureTenantCustomizations(), formatDineInElapsedTime(), formatSubmissionElapsedTime(), getInitialTab(), getTenantIdFromUrl() (+15 more)
+Cohesion: 0.09
+Nodes (28): applyTenantBranding(), _coreParams, ensureTenantCustomizations(), formatDineInElapsedTime(), formatDineInTimeDisplay(), formatEta(), formatOrderSubmissionTime(), formatSubmissionElapsedTime() (+20 more)
 
-### Community 43 - "test_menu_global_group_order.cjs"
+### Community 43 - "ref_node_test"
 Cohesion: 0.04
-Nodes (46): assert, fs, { DatabaseSync }, fixture(), fs, moduleFor(), schemaTrueFixture(), vm (+38 more)
+Nodes (43): assert, fs, { DatabaseSync }, fixture(), fs, moduleFor(), schemaTrueFixture(), vm (+35 more)
 
-### Community 44 - "orders-history.js"
-Cohesion: 0.22
-Nodes (16): clearHistorySearch(), currentRenderedDates, expandedHistoryDates, fetchHistoryOrders(), getTaiwanTodayStr(), groupByDate(), isOrderDineIn(), lastHistoryOrders (+8 more)
+### Community 44 - "Báo cáo readiness: dev lên main"
+Cohesion: 0.29
+Nodes (6): Báo cáo readiness: dev lên main, Kiểm tra đã đạt, Rollback, Rủi ro chặn release, Trạng thái Git, Điều kiện bắt buộc trước release
 
-### Community 45 - "Kế Hoạch Chi Tiết: Rút Gọn Nút Bấm Trên Từng Thẻ Món Ăn (Item Card Action Bar Modernization & Detail Hub Modal)"
-Cohesion: 0.13
-Nodes (14): 1. Bối Cảnh & Vấn Đề Hiện Tại (Problem Statement), 2. Kết Quả Thống Nhất Qua Phỏng Vấn `/grill-me` & Double-Check Kỹ Thuật, 4.1. File `orders.html`, 4.2. File `css/orders.css`, 4.5. File `js/orders-i18n.js`, 4. Đặc Tả Kỹ Thuật & Kiến Trúc Xử Lý 10 Rủi Ro Kỹ Thuật, 6. Kế Hoạch Triển Khai Từng Bước (Step-by-Step Implementation Workflow), 7. Tiêu Chí Nghiệm Thu (Acceptance Criteria) (+6 more)
+### Community 45 - "scripts"
+Cohesion: 0.06
+Nodes (38): devDependencies, cf@1.0.0-beta.12, @cloudflare/workers-types@5.20261007.1, esbuild@0.28.1, miniflare@5.20261006.0-alpha, typescript@^6.0.3, wrangler@4.148.0, engines (+30 more)
 
-### Community 46 - "test_staff_ordering_browser.cjs"
+### Community 46 - "test_payment_result_browser.cjs"
 Cohesion: 0.05
-Nodes (37): assert, {chromium,webkit}, fs, pos, {test}, assert, fs, path (+29 more)
+Nodes (31): resultUrl(), assert, {chromium,webkit}, fs, pos, {test}, assert, {chromium,webkit} (+23 more)
 
 ### Community 47 - "client-core.js"
-Cohesion: 0.13
-Nodes (35): Follow-up repair — 2026-10-30, 4. Exact 64-Function Mapping Table, applyPickupConfig(), applyTenantTheme(), checkDesktopAuthGuard(), checkStoreStatus(), closeAndExitLiff(), closeCustomAlert() (+27 more)
+Cohesion: 0.11
+Nodes (44): Follow-up repair — 2026-10-30, 4. Exact 64-Function Mapping Table, 3.2 Target Directory & Module Mapping, checkAllBundlesComplete(), applyPickupConfig(), applyTenantTheme(), buildModifierPriceMap(), calculatePortionExtra() (+36 more)
 
 ### Community 48 - "scripts"
 Cohesion: 0.05
 Nodes (44): scripts, build, check, check:cache-busters, check:frontend, check:pos, graphify, graphify:update (+36 more)
 
-### Community 49 - "Customer order domain rollout"
-Cohesion: 0.38
-Nodes (6): Code rollback baseline, Customer order domain rollout, Deployment verification — 2026-10-06, Switching one tenant, Tenant rollback, legacy()
+### Community 49 - "line-order-layout.cjs"
+Cohesion: 0.26
+Nodes (11): Code rollback baseline, Customer order domain rollout, Deployment verification — 2026-10-06, Switching one tenant, Tenant rollback, choice(), group(), legacy() (+3 more)
 
 ### Community 50 - "test_bundle_display_all_touchpoints.cjs"
 Cohesion: 0.05
 Nodes (37): assert, cleanedCode, coreJs, domSandbox, extractMatch, flexJson, flexOutput, formatMatch (+29 more)
 
 ### Community 51 - "client-checkout.js"
-Cohesion: 0.14
-Nodes (31): cancelAppendMode(), closePickupTimeModal(), confirmPickupTimeSelection(), customConfirm(), dismissEditOrderLoadingOverlay(), doSubmitOrderExecution(), findItemInCatalog(), generateOrderNumber() (+23 more)
+Cohesion: 0.13
+Nodes (36): D. Chuẩn Kiến Trúc Tùy Chọn Món (Unified Option Groups vs Legacy Modifiers), Self-review — 2026-10-30, buildStructuredCartItems(), cancelAppendMode(), customConfirm(), dismissEditOrderLoadingOverlay(), doSubmitOrderExecution(), findItemInCatalog() (+28 more)
 
 ### Community 52 - "r01-evidence.json"
 Cohesion: 0.06
 Nodes (36): application, changedFromHead, fileCount, sha256, artifactDirectory, branch, browsers, cloudflareMutations (+28 more)
 
-### Community 53 - "inventory.mjs"
-Cohesion: 0.11
-Nodes (23): applyToDev(), __dirname, __filename, REPO_ROOT, applyToProduction(), __dirname, __filename, REPO_ROOT (+15 more)
+### Community 53 - "Order detail snapshots"
+Cohesion: 0.33
+Nodes (5): Contract, Order detail snapshots, Readers and compatibility, Rollout, Verification
 
 ### Community 54 - "test_order_detail_mobile_scroll.cjs"
 Cohesion: 0.33
 Nodes (6): assert, { chromium }, fs, path, root, run()
 
 ### Community 55 - "0065_unified_option_groups.sql"
-Cohesion: 0.12
-Nodes (17): tenant_line_runtime, tenant_line_webhook_probes, tenant_line_webhook_probes_expiry, unified_category_modifier_links_delete, unified_category_modifier_links_insert, unified_category_modifier_links_update, unified_item_modifier_links_delete, unified_item_modifier_links_insert (+9 more)
+Cohesion: 0.08
+Nodes (30): tenant_line_runtime, tenant_line_webhook_probes, tenant_line_webhook_probes_expiry, idx_modifier_product, menu_catalog_revisions, menu_write_guards, unified_category_modifier_links_delete, unified_category_modifier_links_insert (+22 more)
 
 ### Community 56 - "orders-modals.js"
 Cohesion: 0.11
 Nodes (29): adjustTimeMinutes(), applyTimePreset(), clearSoldOutItems(), closeBlabContactModal(), closeStoreActivationModal(), confirmAction(), fetchTenantMenuItems(), formatOrderDetailHeaderTime() (+21 more)
 
-### Community 57 - "test_pos_tenant_branding.cjs"
-Cohesion: 0.14
-Nodes (12): assert, benmiCache, core, earlyBrand, earlyTenant, fs, html, inlineScripts (+4 more)
+### Community 57 - "bundle-rules.ts"
+Cohesion: 0.32
+Nodes (7): BundleCheck, BundleGroup, BundleSource, money(), positiveInt(), validateBundleOrderItems(), validMoney()
 
-### Community 58 - "Detailed Design"
+### Community 58 - "4. Kế hoạch Phân rã File (Module Breakdown)"
 Cohesion: 0.20
-Nodes (10): 3.1 Binding & biến môi trường (`cloudflare.config.ts`, cả dev / staging / production), 3.2 Schema D1 — migration `0065_ai_intent_clef_flash.sql`, 3.3 Clef client — `src/integrations/clefFlash.ts` (mới), 3.4 Classifier — `src/modules/aiIntent.ts` (mới), 3.5 Thay đổi ở `line.ts`, 3.6 Tenant & Admin, 3.7 Purge job — `scheduled()` handler trong `src/index.ts`, 3. Proposed Architecture (+2 more)
+Nodes (10): 1. `src/utils/http.ts`, 2. `src/integrations/googleSheets.ts`, 3. `src/integrations/openRouter.ts`, 4. Kế hoạch Phân rã File (Module Breakdown), 4. `src/modules/config.ts`, 5. `src/modules/menu.ts`, 6. `src/modules/auth.ts`, 7. `src/modules/orders.ts` (+2 more)
 
 ### Community 59 - "orders-bundle-wizard.js"
 Cohesion: 0.18
@@ -601,17 +556,17 @@ Nodes (33): appendMsg, assert, checkoutJsContent, checkoutJsPath, checkoutSandbo
 Cohesion: 0.06
 Nodes (31): assert, context, coreCode, cssContent, draftRule, editingTarget, eligibleMainCount, eligibleSideCount (+23 more)
 
-### Community 63 - "release-tracker.md"
-Cohesion: 0.11
-Nodes (13): Bản sửa đã được xác nhận, Các check khác, Kết quả và nguyên nhân, R01 — Kiểm tra CI lần đầu trên PR #74, Lần đầu: PR trỏ vào dev, R02 — Kiểm tra CI ngày 22/10/2026 JST, Sau khi người dùng xác nhận đổi sang main, Dev migration and deployment procedure (+5 more)
+### Community 63 - "R01 — Baseline hồi quy và checklist release"
+Cohesion: 0.33
+Nodes (6): Baseline và môi trường, Chạy lại, Giới hạn và cổng còn mở, Kết quả kiểm chứng, R01 — Baseline hồi quy và checklist release, Thay đổi đã chuẩn bị
 
-### Community 64 - "ref_path"
-Cohesion: 0.08
-Nodes (26): applyCopy(), __dirname, __filename, REPO_ROOT, buildMappings(), __dirname, __filename, generateTargetId() (+18 more)
+### Community 64 - "inventory.mjs"
+Cohesion: 0.09
+Nodes (29): applyToDev(), __dirname, __filename, REPO_ROOT, applyToProduction(), __dirname, __filename, REPO_ROOT (+21 more)
 
 ### Community 65 - "orders"
-Cohesion: 0.09
-Nodes (24): idx_orders_tenant_created, idx_orders_tenant_status, idx_orders_user, orders, idx_menu_categories_tenant_sort, idx_menu_items_tenant_cat_name, idx_menu_items_tenant_sort, idx_orders_tenant_created (+16 more)
+Cohesion: 0.10
+Nodes (23): idx_orders_tenant_created, idx_orders_tenant_status, idx_orders_user, orders, idx_menu_items_tenant_cat_name, idx_menu_items_tenant_sort, idx_orders_tenant_created, idx_orders_tenant_status (+15 more)
 
 ### Community 66 - "ref_vm"
 Cohesion: 0.08
@@ -621,9 +576,9 @@ Nodes (19): COLORS, { execSync }, fs, HTML_FILES, jsDir, path, ROOT_DIR, vm (+11
 Cohesion: 0.06
 Nodes (32): concurrency, cancel-in-progress, group, jobs, regression, name, on, pull_request (+24 more)
 
-### Community 68 - "Deleted options still visible in LIFF — 2026-10-29"
-Cohesion: 0.33
-Nodes (5): Deleted options still visible in LIFF — 2026-10-29, Local repair, Pre-push validation — 2026-10-30 (JST), Production evidence (read-only investigation), Verification
+### Community 68 - "test_order_identity_print.cjs"
+Cohesion: 0.22
+Nodes (8): assert, document, fs, order, printedText, storage, vm, window
 
 ### Community 69 - "PDP: Tenant Feature Packaging & Modular Subscription Add-ons [New]"
 Cohesion: 0.06
@@ -631,43 +586,43 @@ Nodes (31): 1.1. Problem Statement, 1.2. Goals (In-Scope), 1.3. Non-Goals (Out-o
 
 ### Community 70 - "ref_benmi_worker_official_node_modules_typescript"
 Cohesion: 0.06
-Nodes (23): assert, configRequest, {DatabaseSync}, fs, payload, {test}, assert, { DatabaseSync } (+15 more)
+Nodes (26): assert, context, fs, messages, path, { test }, vm, assert (+18 more)
 
 ### Community 71 - "scripts"
 Cohesion: 0.07
 Nodes (28): config, remoteUrl, dependencies, @capacitor/android@^6.2.0, @capacitor/cli@^6.2.0, @capacitor/core@^6.2.0, description, devDependencies (+20 more)
 
 ### Community 72 - "PDP: Kiến Trúc Hợp Nhất Bundle Combo & Tuỳ Chọn Thực Đơn (Unified Bundle & Customization Architecture)"
-Cohesion: 0.07
-Nodes (26): 1. Giữ Trọn Vẹn Khả Năng Kéo Thả (Drag & Drop) Sidebar, 2. Bối Cảnh & Kiến Trúc Hiện Tại (Current Architecture Context), 2. Điểm Vào Khởi Tạo Hợp Nhất (Unified Header Action), 3. Form Nhập Liệu Chi Tiết Bước 2, 3. Kiến Trúc Đề Xuất (Target Architecture & Data Model), 4. Thiết Kế Giao Diện & Trải Nghiệm Thao Tác (UI / UX Flow), 5. Chuẩn Hoá Snapshot Đơn Hàng & In Bếp POS (`order_items`), 6. Các Mối Quan Tâm Xuyên Suốt (Cross-Cutting Concerns) (+18 more)
+Cohesion: 0.06
+Nodes (30): 1. Giữ Trọn Vẹn Khả Năng Kéo Thả (Drag & Drop) Sidebar, 1. Tóm Tắt Điều Hành & Mục Tiêu (Executive Summary & Objectives), 2. Bối Cảnh & Kiến Trúc Hiện Tại (Current Architecture Context), 2. Điểm Vào Khởi Tạo Hợp Nhất (Unified Header Action), 3. Form Nhập Liệu Chi Tiết Bước 2, 3. Kiến Trúc Đề Xuất (Target Architecture & Data Model), 4. Thiết Kế Giao Diện & Trải Nghiệm Thao Tác (UI / UX Flow), 5. Chuẩn Hoá Snapshot Đơn Hàng & In Bếp POS (`order_items`) (+22 more)
 
-### Community 73 - "test_pickup_time_picker.cjs"
-Cohesion: 0.09
-Nodes (17): assert, clientCheckoutSrc, clientCoreSrc, ctx, dd, defaultStoreConfig, elements, fs (+9 more)
+### Community 73 - "Feature Cluster C: Quản lý Đơn hàng và Giao dịch (Orders) - Direct Switch-Out"
+Cohesion: 0.40
+Nodes (4): Feature Cluster C: Quản lý Đơn hàng và Giao dịch (Orders) - Direct Switch-Out, Hướng dẫn xác minh (Verification Plan) [VERIFIED LOCAL], Task C.1: Thiết lập SQL Schema bảng Orders [DONE], Task C.3: Backfill dữ liệu & Bàn giao (Cutover) [IN PROGRESS]
 
 ### Community 74 - "checkMenuDirty"
-Cohesion: 0.12
-Nodes (23): 3.1. Cấu trúc Hàng Món Ăn Mới (Streamlined Item Row), 3.2. Cấu Trúc Hub Modal — Trung Tâm Thiết Lập Món (`#itemDetailModal`), 3. Thiết Kế Chi Tiết Giao Diện (Detailed UI/UX Design), 4.3. File `js/orders-menu.js`, A. Kiến Trúc Đồng Bộ & Tránh Mất Dữ Liệu (`syncMenuDataFromDOM` & Auto-Commit), B. Cơ Chế Stacked Return Flow với `window._hubModalReturnState`, Bước 4: Viết Controller Cho Hub Modal, C. Quản Lý Ảnh Tích Hợp (Integrated Photo Management) (+15 more)
+Cohesion: 0.09
+Nodes (29): 1. Bối Cảnh & Vấn Đề Hiện Tại (Problem Statement), 2. Kết Quả Thống Nhất Qua Phỏng Vấn `/grill-me` & Double-Check Kỹ Thuật, 3.1. Cấu trúc Hàng Món Ăn Mới (Streamlined Item Row), 3.2. Cấu Trúc Hub Modal — Trung Tâm Thiết Lập Món (`#itemDetailModal`), 3. Thiết Kế Chi Tiết Giao Diện (Detailed UI/UX Design), 4.1. File `orders.html`, 4.2. File `css/orders.css`, 4.3. File `js/orders-menu.js` (+21 more)
 
-### Community 75 - "stock-drawer-restore-production-20261107/deploy.mjs"
-Cohesion: 0.15
-Nodes (9): blake3, { build }, config, contentTypes, output, require, root, sha() (+1 more)
+### Community 75 - "test_pos_confirmed_print.cjs"
+Cohesion: 0.20
+Nodes (9): assert, core, fs, live, printer, refresh, { test }, update (+1 more)
 
 ### Community 76 - "PDP: Structured Order Items Data Architecture & Item-Level Analytics"
-Cohesion: 0.11
-Nodes (18): 1. Executive Summary & Objectives, 1. Payload Nhận Đơn Mới (`POST /api/create`):, 2. Context & Current Architecture, 2. Xử Lý Ghi Dữ Liệu Transaction:, 3. Proposed Architecture, 4. Migration & Rollout Strategy (Zero-Risk & Zero-Downtime), 5. Alternatives Considered & Trade-Offs, A. Sơ Đồ Kiến Trúc Mới (Hybrid Relational & Snapshot Architecture) (+10 more)
+Cohesion: 0.17
+Nodes (11): 1. Executive Summary & Objectives, 2. Context & Current Architecture, 4. Migration & Rollout Strategy (Zero-Risk & Zero-Downtime), 5. Alternatives Considered & Trade-Offs, A. Vấn đề Hiện Tại (Problem Statement), B. Mục tiêu Thiết kế (In-Scope Goals), C. Giới hạn Không Thuộc Phạm Vi (Non-Goals), Hạn Chế: (+3 more)
 
-### Community 77 - "hotfix-liff-dafobenwan-20261106/release-baseline-summary.json"
-Cohesion: 0.10
-Nodes (20): application, changedFromHead, fileCount, sha256, branch, commit, dependencies, lockfiles (+12 more)
+### Community 77 - "B. Bảng Quản Lý Đơn Hàng POS (`orders.html` — Tablet / iPad First)"
+Cohesion: 0.22
+Nodes (9): B. Bảng Quản Lý Đơn Hàng POS (`orders.html` — Tablet / iPad First), 6. Lịch Sử Các Phiên Bản (Changelog), Build v1.8.6 (09/09/2026), Vị Trí Code Hiện Tại:, flavors(), globalChoices(), receiptLines(), escapeHtml() (+1 more)
 
-### Community 78 - "release-baseline-summary.json"
-Cohesion: 0.10
-Nodes (20): application, changedFromHead, fileCount, sha256, branch, commit, dependencies, lockfiles (+12 more)
+### Community 78 - "4. Migration & Rollout Strategy"
+Cohesion: 0.50
+Nodes (4): 4.1. Enrollment và PIN cũ, 4.2. Thứ tự phát hành, 4.3. Rollback an toàn, 4. Migration & Rollout Strategy
 
-### Community 79 - "stock-drawer-restore-production-20261107/release-baseline-summary.json"
-Cohesion: 0.10
-Nodes (20): application, changedFromHead, fileCount, sha256, branch, commit, dependencies, lockfiles (+12 more)
+### Community 79 - "createOrder"
+Cohesion: 0.07
+Nodes (47): prepareOrderReceipt(), pushOrderReceiptInBackground(), unifiedMenuEnabled(), appendOrder(), createOrder(), executeAppendOrderInternal(), extractAllOrderSearchNames(), formatItemsToText() (+39 more)
 
 ### Community 80 - "PDP: Đề xuất Chuyển đổi và Tối ưu hóa Benmi sang mô hình SaaS Đa Hộ Thuê (Multi-Tenant SaaS)"
 Cohesion: 0.07
@@ -681,29 +636,29 @@ Nodes (29): assert, cashierPng, customSettings, defaultSettings, dims100x150, di
 Cohesion: 0.14
 Nodes (13): assert, code, fs, lastHistoryOrders, latestOrders, mockDom, nextKey, path (+5 more)
 
-### Community 83 - "orders.ts"
-Cohesion: 0.06
-Nodes (65): prepareOrderReceipt(), pushOrderReceiptInBackground(), buildOrderFlexMessage(), renderReceiptItem(), unifiedMenuEnabled(), detailRequestHash(), digest(), Kind (+57 more)
+### Community 83 - "PDP: Refactoring Data Access Layer (DAL) for benmi-worker-official"
+Cohesion: 0.09
+Nodes (22): 1. Executive Summary & Objectives, 1. `TenantRepository` (`src/db/repositories/tenant.repository.ts`), 2. Context & Current Architecture, 2. `MenuRepository` (`src/db/repositories/menu.repository.ts`), 3. `OrdersRepository` (`src/db/repositories/orders.repository.ts`), 3. Proposed Architecture, 4. Migration & Rollout Strategy, 4. `PendingActionsRepository` (`src/db/repositories/pendingActions.repository.ts`) (+14 more)
 
-### Community 84 - "verify_app_web_separation.js"
-Cohesion: 0.20
-Nodes (9): assert, coreJs, css, escPosJava, fs, html, i18nJs, pluginJava (+1 more)
+### Community 84 - "test_required_option_popup_browser.cjs"
+Cohesion: 0.06
+Nodes (22): DB_MAP, __dirname, __filename, REPO_ROOT, sqlStatements, WORKER_DIR, assert, migration (+14 more)
 
 ### Community 85 - "client-option-groups.js"
 Cohesion: 0.20
 Nodes (26): child(), close(), confirm(), defaults(), drawGroup(), drawSubs(), extra(), focusSelector() (+18 more)
 
-### Community 86 - "inline-nested-options-production-20261106/release-baseline-summary.json"
-Cohesion: 0.10
-Nodes (20): application, changedFromHead, fileCount, sha256, branch, commit, dependencies, lockfiles (+12 more)
+### Community 86 - "test_pos_polling_timeout.cjs"
+Cohesion: 0.25
+Nodes (5): assert, context, fs, test, vm
 
 ### Community 87 - "3. Kiến trúc đề xuất"
 Cohesion: 0.29
 Nodes (7): 3.1. Domain và môi trường, 3.2. Tenant và URL, 3.3. URL builder và đăng nhập, 3.4. Backend, D1 và KV, 3. Kiến trúc đề xuất, 3.2. Middleware và hợp đồng nội bộ, tenant()
 
-### Community 88 - "Kế hoạch copy dữ liệu menu cũ sang schema mới"
-Cohesion: 0.11
-Nodes (17): Bộ kiểm tra bắt buộc của công cụ copy, Chính sách đối với canonical đã tồn tại, Context đầy đủ cho session tiếp theo, Các cột bổ sung dự kiến, Danh sách file cần đọc trước khi viết script, Dữ liệu được copy, Kế hoạch copy dữ liệu menu cũ sang schema mới, Lưu ý đã xác nhận từ code (+9 more)
+### Community 88 - "test_line_order_layout.cjs"
+Cohesion: 0.20
+Nodes (8): assert, boxes(), fs, portionBoxes(), { test }, text(), texts(), vm
 
 ### Community 89 - "pr_agent_job"
 Cohesion: 0.08
@@ -713,41 +668,37 @@ Nodes (25): GEMINI_API_KEY, GEMINI_KEY, GITHUB_TOKEN, GOOGLE_API_KEY, PR_AGENT.M
 Cohesion: 0.07
 Nodes (23): canonicalMenuSnapshot(), clean(), assert, bscCustomGroups, clientMenuJs, fs, I18N, i18nContent (+15 more)
 
-### Community 91 - "Element"
-Cohesion: 0.05
-Nodes (28): cp, crypto, fs, fs, setup(), context, doc, vm (+20 more)
+### Community 92 - "8. Verification & Test Plan"
+Cohesion: 0.50
+Nodes (4): 8.1. Automated tests bắt buộc, 8.2. Manual verification trên dev/staging, 8.3. Release gates và bằng chứng bàn giao, 8. Verification & Test Plan
 
-### Community 92 - "ref_path"
-Cohesion: 0.08
-Nodes (20): filePath, fs, path, fs, mainCloseIdx, mainLayoutIdx, ordersCoreJs, ordersHtml (+12 more)
+### Community 93 - "test_staff_pos.cjs"
+Cohesion: 0.25
+Nodes (6): action, assert, fs, source, {test}, vm
 
-### Community 93 - "unified-cart-actions-production-20261106/release-baseline-summary.json"
-Cohesion: 0.10
-Nodes (20): application, changedFromHead, fileCount, sha256, branch, commit, dependencies, lockfiles (+12 more)
-
-### Community 94 - "PDP: Chuyển hoàn toàn dữ liệu tuỳ chọn menu sang canonical schema"
-Cohesion: 0.17
-Nodes (12): 10. Các lựa chọn và đánh đổi, 11. Kế hoạch PR/milestone và tiêu chí nghiệm thu, 12. Verification plan, 13. Ranh giới giữa đề xuất và thực thi, 1. Tóm tắt và mục tiêu, 3. Bối cảnh và bằng chứng hiện tại, 4. Kiến trúc đích và nguyên tắc chuyển, 5. Các rủi ro cần giải quyết trước khi migrate (+4 more)
+### Community 94 - "Staff ordering rebased onto production — 29 October 2026"
+Cohesion: 0.29
+Nodes (6): Dev migration and deployment procedure, Inherited release-baseline repairs, Provenance and preservation, Runtime and UI, Staff ordering rebased onto production — 29 October 2026, Validation and remaining rollout gates
 
 ### Community 95 - "renderListRight"
-Cohesion: 0.39
-Nodes (8): C. Nâng Cấp Giao Diện POS (Tablet-First UI), formatLiveOrderTimeDisplay(), getOrderTableNumber(), isOrderDineIn(), renderEmptyLiveState(), renderListLeft(), renderListRight(), updateDiningFilterStats()
+Cohesion: 0.48
+Nodes (7): formatLiveOrderTimeDisplay(), getOrderTableNumber(), isOrderDineIn(), renderEmptyLiveState(), renderListLeft(), renderListRight(), updateDiningFilterStats()
 
-### Community 96 - "marketplace.js"
-Cohesion: 0.33
-Nodes (3): 2. Hiện trạng đã kiểm tra, buildMarketplaceOrderUrl(), resolveApiBase()
+### Community 96 - "R02 — Kiểm tra CI ngày 22/10/2026 JST"
+Cohesion: 0.50
+Nodes (3): Lần đầu: PR trỏ vào dev, R02 — Kiểm tra CI ngày 22/10/2026 JST, Sau khi người dùng xác nhận đổi sang main
 
 ### Community 97 - "0075_line_pay_v4.sql"
 Cohesion: 0.17
 Nodes (15): payment_connection_current, payment_events, payment_order_delete_guard, payment_order_money_guard, payment_publish_guard, payment_rate_limits, payment_refunds, payments (+7 more)
 
-### Community 98 - "renderMenuCategoryEditor"
-Cohesion: 0.13
-Nodes (36): captureMenuDisplayOrder(), clearMenuDirty(), closeCategoriesManager(), confirmLeaveMenu(), deleteCategoryAtIndex(), duplicateMenuItemAt(), getMenuDeletions(), getMenuDisplayEntries() (+28 more)
+### Community 98 - "saveMenuData"
+Cohesion: 0.24
+Nodes (12): 7. Tiêu Chí Nghiệm Thu (Acceptance Criteria), applySavedStockStatus(), canonicalMenuSnapshot(), clearMenuDirty(), getMenuDeletions(), getMenuModel(), loadMenuData(), saveMenuData() (+4 more)
 
 ### Community 99 - "client-menu.js"
-Cohesion: 0.21
-Nodes (12): clientMenuLanguage(), createDynamicItemCard(), fetchMenu(), getDynamicItemFooterHTML(), handleCustomizationChange(), handleItemCardClick(), renderCustomizationsPanel(), renderDynamicCatalog() (+4 more)
+Cohesion: 0.13
+Nodes (20): 1.1 Problem Statement, Danh sách Task nhỏ cần thực hiện, Nhiệm vụ 2: Tích hợp Frontend & Truyền tham số Tenant, [ ] Task 2.1: Đồng bộ hóa tham số Tenant trên Admin Dashboard (`orders.html`), [ ] Task 2.2: Đồng bộ hóa tham số Tenant trên Giao diện Khách hàng (`index.html`), 5.1 Deterministic Single Bootloader (Eliminating Cached vs. Uncached Race Conditions), The Problem:, The Solution: (+12 more)
 
 ### Community 100 - "Kế hoạch Tích hợp LINE Pay v3 & Continuous Delivery lên Production"
 Cohesion: 0.08
@@ -757,13 +708,9 @@ Nodes (24): 1. Goal Description, 2. Kiến trúc Giải pháp & Sơ đồ luồn
 Cohesion: 0.08
 Nodes (22): assert, changes, coreContent, cssContent, flavors, fs, html1, html2 (+14 more)
 
-### Community 102 - "client-customizations.js"
-Cohesion: 0.25
-Nodes (16): 3.2 Target Directory & Module Mapping, closePopup(), getCategoryModifiers(), getItemModifiers(), getUniqueModifierOptionId(), initPortionDefaults(), isOptionSelectedInMultiple(), isOptionSelectedInSingle() (+8 more)
-
-### Community 103 - "R02 — Schema capability staff mặc định đóng"
-Cohesion: 0.18
-Nodes (9): Database và điều kiện trước apply, R02 — Runbook apply một migration sau khi được xác nhận, Thực hiện một môi trường mỗi lượt, Đối soát sau apply, Các cổng tiếp theo, Kiểm chứng local, R02 — Schema capability staff mặc định đóng, Thay đổi (+1 more)
+### Community 102 - "R01 — Kiểm tra CI lần đầu trên PR #74"
+Cohesion: 0.50
+Nodes (4): Bản sửa đã được xác nhận, Các check khác, Kết quả và nguyên nhân, R01 — Kiểm tra CI lần đầu trên PR #74
 
 ### Community 104 - "PDP: KV to D1 & R2 Migration for Orders, Config, and Media [Migrate/Refactor]"
 Cohesion: 0.08
@@ -777,25 +724,13 @@ Nodes (23): 1.1 Problem Statement, 1.2 Goals (In-Scope), 1.3 Non-Goals (Out-of-S
 Cohesion: 0.15
 Nodes (43): api(), applyFilters(), authorized(), cancelledAuth(), closeDetail(), dialog(), showPinChange(), ensureContext() (+35 more)
 
-### Community 109 - "test_line_order_layout.cjs"
-Cohesion: 0.20
-Nodes (8): assert, boxes(), fs, portionBoxes(), { test }, text(), texts(), vm
-
-### Community 110 - "ref_node_assert"
-Cohesion: 0.11
-Nodes (16): assetReferences(), cacheBusterErrors(), checkCacheBusters(), guardWrite(), target, verifyIdentity(), assert, fs (+8 more)
-
-### Community 111 - "production-js__client-menu.js"
-Cohesion: 0.22
-Nodes (11): clientMenuLanguage(), createDynamicItemCard(), fetchMenu(), getDynamicItemFooterHTML(), handleCustomizationChange(), handleItemCardClick(), renderCustomizationsPanel(), renderDynamicCatalog() (+3 more)
-
-### Community 112 - "bundle-rules.test.cjs"
-Cohesion: 0.12
-Nodes (13): assert, bundleModule, categories, fs, items, modifierOptions, Module, path (+5 more)
+### Community 112 - "Quy Chuẩn Kiểm Thử Tinh Gọn Khi Phát Triển (Tiered Testing Workflow)"
+Cohesion: 0.33
+Nodes (5): Cấp 2: Kiểm thử Mục tiêu theo Module (Targeted Tests - 0.5s đến 3s), Cấp 3: Menu Gate Cục bộ (Local Menu QA - Khi sửa lớn UI/Layout Menu), Cấp 4: Full Release Baseline (Pre-Release Gate - ~115 giây), Quy Chuẩn Kiểm Thử Tinh Gọn Khi Phát Triển (Tiered Testing Workflow), getInitialTab()
 
 ### Community 113 - "0067_tenant_lifecycle.sql"
-Cohesion: 0.12
-Nodes (18): idx_pending_actions_tenant_user, daily_order_counters, lifecycle_daily_order_counters_insert, lifecycle_daily_order_counters_update, lifecycle_menu_customization_option_rules_insert, lifecycle_menu_customization_option_rules_update, lifecycle_menu_customizations_insert, lifecycle_menu_customizations_update (+10 more)
+Cohesion: 0.10
+Nodes (22): idx_pending_actions_tenant_user, pending_actions, idx_pending_actions_tenant_user, admin_menu_seed_receipts, idx_admin_menu_seed_receipts_tenant, lifecycle_admin_menu_seed_receipts_insert, lifecycle_admin_menu_seed_receipts_update, lifecycle_menu_customization_option_rules_insert (+14 more)
 
 ### Community 114 - "PDP: Modular Client Menu Architecture v2 (Refactoring Monolithic `index.html`) [Replace]"
 Cohesion: 0.09
@@ -809,29 +744,29 @@ Nodes (26): 1. Executive Summary & Objectives, 2. Context & Current Architecture
 Cohesion: 0.15
 Nodes (16): captureReturnContext(), dismissNewAlert(), dismissReviewModal(), finishReviewFlow(), getRemainingNewOrderKey(), LIVE_MOBILE_LIST_IDS, liveMobileScrollPositions, markReadyFromReview() (+8 more)
 
-### Community 117 - "formatContentHtml"
-Cohesion: 0.17
-Nodes (16): 3. Bảng Tra Cứu Nhanh Khi Debug (Quick Symptom-to-File Lookup), B. Điểm Yếu Kiến Trúc:, A. Vấn đề Hiện Tại (Problem Statement), shortItems(), extractBundleFromItem(), extractCustomerChanges(), extractFlavorSettings(), formatContentHtml() (+8 more)
-
-### Community 118 - "test_store_pin_browser.cjs"
+### Community 117 - "PDP: Menu Compatibility & Customization Hardening — Fix"
 Cohesion: 0.20
-Nodes (8): assert, { chromium, webkit }, fs, path, read(), root, setup(), { test }
+Nodes (9): 1. Mục tiêu và phạm vi, 2. Bối cảnh và bằng chứng, 3. Kiến trúc đề xuất, 4. Migration, rollout và rollback, 5. Phương án và đánh đổi, 6. Các yêu cầu xuyên suốt, 7. Kế hoạch thực thi, 8. Xác minh (+1 more)
+
+### Community 118 - "setupPOSContract"
+Cohesion: 0.33
+Nodes (3): setupPOSContract(), context, doc
 
 ### Community 119 - "test_order_identity.cjs"
 Cohesion: 0.11
 Nodes (13): assert, { execFileSync }, fs, identity, line, mf, { Miniflare, convertV4MiniflareOptions }, orders (+5 more)
 
-### Community 120 - "PDP: Refactoring Data Access Layer (DAL) for benmi-worker-official"
-Cohesion: 0.05
-Nodes (23): 1. Executive Summary & Objectives, 1. `TenantRepository` (`src/db/repositories/tenant.repository.ts`), 2. Context & Current Architecture, 2. `MenuRepository` (`src/db/repositories/menu.repository.ts`), 3. `OrdersRepository` (`src/db/repositories/orders.repository.ts`), 3. Proposed Architecture, 4. Migration & Rollout Strategy, 4. `PendingActionsRepository` (`src/db/repositories/pendingActions.repository.ts`) (+15 more)
+### Community 120 - "3. Proposed Architecture"
+Cohesion: 0.22
+Nodes (9): 1. Ingestion (`POST /api/orders` & `POST /api/checkout`), 2. Retrieval (`GET /api/orders`), 3. New Endpoint: Báo Cáo Phân Tích Khẩu Vị (`GET /api/reports/taste-analytics`), 3. Proposed Architecture, A. Sơ Đồ Kiến Trúc Mới (Hybrid Schema & Structured Ingestion Architecture), B. Database Schema Design (Cloudflare D1 Migration), C. Chuẩn Hóa JSON Schema Cho `customizations`, D. Cập Nhật API Phía Cloudflare Worker (+1 more)
 
-### Community 121 - "test_pos_tab_persistence.cjs"
-Cohesion: 0.14
-Nodes (6): assert, fs, path, root, test, vm
+### Community 121 - "test_order_item_note_dedup.cjs"
+Cohesion: 0.11
+Nodes (15): assert, bundle, count(), flexText(), fs, sandbox, { test }, vm (+7 more)
 
-### Community 122 - "test_menu_workspace.cjs"
-Cohesion: 0.17
-Nodes (6): assert, card, fs, path, test, vm
+### Community 122 - "getStoreModifiersList"
+Cohesion: 0.32
+Nodes (8): getInheritedItemModifierGroups(), getStoreModifiersList(), isModifierAppliedToCategory(), onAddCategoryTypeChange(), openAddCategoryModal(), selectAllCategoryModifiers(), toggleCategoryModifierSelectAll(), updateAddCategoryViewport()
 
 ### Community 123 - "PDP: Dine-In Order Append & Multi-Round Ordering Architecture (加點餐點架構)"
 Cohesion: 0.10
@@ -842,36 +777,24 @@ Cohesion: 0.09
 Nodes (22): 10. Bằng chứng mã nguồn, 1. Kết luận và mục tiêu, 2. Đối chiếu từng yêu cầu với hiện trạng, 3.1. Ranh giới dữ liệu, 3.2. Mô hình dữ liệu dự kiến, 3.3. API và các luồng nghiệp vụ, 3.4. Giao dịch tiền và nhiều thiết bị, 3.5. Đối soát và nhận diện doanh thu (+14 more)
 
 ### Community 125 - "line-order-presentation.js"
-Cohesion: 0.24
-Nodes (15): bundlePortions(), choice(), choiceText(), extra(), flex(), groups(), item(), paginate() (+7 more)
+Cohesion: 0.18
+Nodes (20): Mapping field cần hiện thực, 2. So sánh schema hiện tại và schema đích, Phần schema cần bổ sung tối thiểu, 1.2. Bảng Lựa chọn Chi tiết (`modifier_options`), bundlePortions(), choice(), choiceText(), extra() (+12 more)
 
 ### Community 126 - "PDP: Instant Hydration, Zero-Flash Multi-Tenant Bootstrap & Safe LIFF Initialization Architecture"
-Cohesion: 0.08
-Nodes (28): 1.1 Problem Statement, 1.2 In-Scope Goals, 1.3 Out-of-Scope (Non-Goals), 1. Executive Summary & Objectives, 2. Context & Current Architecture Analysis, 3.1 Architecture Overview, 3.2 Detailed Design Components, 3. Proposed Architecture (+20 more)
+Cohesion: 0.09
+Nodes (21): 1.2 In-Scope Goals, 1.3 Out-of-Scope (Non-Goals), 1. Executive Summary & Objectives, 2. Context & Current Architecture Analysis, 3.1 Architecture Overview, 3.2 Detailed Design Components, 3. Proposed Architecture, 4.1 Deployment Workflow (+13 more)
 
 ### Community 127 - "PDP: LINE Order Receipt Portion Layout — Fix"
 Cohesion: 0.09
 Nodes (20): Kiểm chứng tự động, Kết quả triển khai LINE receipt theo từng phần, Phần còn lại trước phát hành, Thay đổi đã hoàn tất, 1. Mục tiêu và phạm vi, 3.1 Presentation model dành riêng cho LINE, 3.2 Quy tắc layout, 3.3 Quy tắc gộp phần giống nhau (+12 more)
 
 ### Community 128 - "renderBundleEditorSidebar"
-Cohesion: 0.18
-Nodes (16): addBundleGroup(), computeEligibleItemsCount(), deleteBundleGroup(), openBundleEditorModal(), renderBundleEditorSidebar(), renderBundleEligiblePreview(), renderBundleGroupConfigPanel(), renderBundleSourcesSection() (+8 more)
+Cohesion: 0.24
+Nodes (12): addBundleGroup(), autoCommitItemDetailFields(), deleteBundleGroup(), openBundleEditorModal(), renderBundleEditorSidebar(), renderBundleGroupConfigPanel(), saveBundleConfig(), selectBundleGroup() (+4 more)
 
 ### Community 129 - "test_customization_price_e2e.cjs"
 Cohesion: 0.09
 Nodes (20): assert, cheeseOption, computedTotal, context, domElements, files, foodSubtotal, fs (+12 more)
-
-### Community 130 - "customer-orders.ts"
-Cohesion: 0.07
-Nodes (68): 2. Backend Cloudflare Worker (`benmi-worker-official/src/`), authenticateCustomer(), checkKey(), CustomerOrderDetailDTO, CustomerOrderError, CustomerOrderListItemDTO, getCustomerOrderDetail(), handleCustomerOrdersRoute() (+60 more)
-
-### Community 131 - "long-text.cjs"
-Cohesion: 0.18
-Nodes (8): assert, children, fixture, fs, path, playwright, report, rule
-
-### Community 132 - "renderPickupModalBodyForDate"
-Cohesion: 0.24
-Nodes (11): calcAsapPickupTime(), generatePickupSlots(), getStoreOperatingShifts(), highlightMissingPickupTime(), initPickupTimePicker(), openPickupTimeModal(), renderPickupDateTabs(), renderPickupModalBodyForDate() (+3 more)
 
 ### Community 133 - "Hướng Dẫn Cài Đặt & Cấu Hình Máy In Bill Nhiệt (ESC/POS) Cho Tablet POS Benmi"
 Cohesion: 0.10
@@ -881,7 +804,7 @@ Nodes (20): 1. Cài Đặt Ứng Dụng Benmi POS Lên Tablet Android, 2. Chuẩ
 Cohesion: 0.10
 Nodes (20): 1. Phân Tích Thực Địa & Các Điểm Gãy Của KDS 3 Cột Tĩnh, 2. Kiến Trúc Cải Tiến: "Adaptive Compact KDS", 3. Bảng So Sánh Hai Hướng Tiếp Cận, 4. Thanh Gom Món Bếp (Mise en place Aggregator), 5. Bản Đồ Khẩn Cấp Thị Giác (Temporal Visual Urgency Spectrum), 6. Chiến Lược Responsive & Quy Chuẩn Multi-Tenant, 7. Kế Hoạch Triển Khai Từng Bước (Implementation Roadmap), 8. Kết Luận Kiến Trúc (Architectural Sign-off) (+12 more)
 
-### Community 135 - "4. Kế hoạch Phân rã File (Module Breakdown)"
+### Community 135 - "PDP: Nhiệm vụ 1.0 - Chuyển đổi sang TypeScript và Tách Module cho Benmi Worker"
 Cohesion: 0.12
 Nodes (15): 1. Mục tiêu & Phạm vi, 2. Kiến trúc Thư mục Mới, 3.1 Cấu hình Môi trường (`src/types/env.ts`), 3.2 Kiểu Dữ liệu Nghiệp vụ (`src/types/index.ts`), 3. Thiết lập Kiểu dữ liệu (TypeScript Types & Interfaces), 5. Kế hoạch triển khai từng bước, 6. Kế hoạch Xác minh & Kiểm thử (Verification Plan), Bước 1: Chuẩn bị Môi trường & Dependencies (+7 more)
 
@@ -890,92 +813,32 @@ Cohesion: 0.10
 Nodes (16): assert, clientCartCode, clientCheckoutCode, clientCoreCode, clientCustomizationsCode, createBaseDomMock(), fs, ordersCoreCode (+8 more)
 
 ### Community 137 - "A. Trang Thực Đơn Khách Hàng (`index.html` — Mobile / LINE LIFF First)"
-Cohesion: 0.21
-Nodes (15): A. Trang Thực Đơn Khách Hàng (`index.html` — Mobile / LINE LIFF First), items(), prepare(), register(), selections(), setContext(), choices(), choiceText() (+7 more)
-
-### Community 138 - "document"
 Cohesion: 0.22
-Nodes (3): customer(), context, document
+Nodes (16): A. Trang Thực Đơn Khách Hàng (`index.html` — Mobile / LINE LIFF First), 2. Kết quả khảo sát code hiện tại, items(), prepare(), register(), selections(), setContext(), choices() (+8 more)
 
-### Community 139 - "loadMenuEditor"
-Cohesion: 0.20
-Nodes (8): editor(), loadMenuEditor(), assert, fs, setup(), test, vm, setup()
-
-### Community 140 - "Báo cáo readiness: dev lên main"
+### Community 140 - "test_customer_option_children_browser.cjs"
 Cohesion: 0.29
-Nodes (6): Báo cáo readiness: dev lên main, Kiểm tra đã đạt, Rollback, Rủi ro chặn release, Trạng thái Git, Điều kiện bắt buộc trước release
+Nodes (5): assert, fs, path, root, { test, before, after }
 
-### Community 141 - "copy_tenant_prod_to_dev.mjs"
-Cohesion: 0.20
-Nodes (7): __dirname, __filename, sqlStatements, tableData, tables, tempSqlFile, WORKER_DIR
-
-### Community 142 - "4. Migration & Rollout Strategy"
-Cohesion: 0.50
-Nodes (4): 4.1. Enrollment và PIN cũ, 4.2. Thứ tự phát hành, 4.3. Rollback an toàn, 4. Migration & Rollout Strategy
-
-### Community 143 - "8. Verification & Test Plan"
-Cohesion: 0.50
-Nodes (4): 8.1. Automated tests bắt buộc, 8.2. Manual verification trên dev/staging, 8.3. Release gates và bằng chứng bàn giao, 8. Verification & Test Plan
-
-### Community 144 - "test_pos_polling_timeout.cjs"
-Cohesion: 0.25
-Nodes (5): assert, context, fs, test, vm
-
-### Community 145 - "test_combo_price_recovery_browser.cjs"
+### Community 141 - "test_option_surcharge_cart.cjs"
 Cohesion: 0.29
-Nodes (5): assert, fs, path, root, { test }
-
-### Community 146 - "6. Kế hoạch chuyển đổi hoàn toàn"
-Cohesion: 0.29
-Nodes (7): 6. Kế hoạch chuyển đổi hoàn toàn, Giai đoạn 0 — Đóng băng hợp đồng và baseline, Giai đoạn 1 — Hoàn thiện canonical schema và API, Giai đoạn 2 — Backfill có kiểm soát, chưa đổi nguồn đọc, Giai đoạn 3 — Đối chiếu và chạy shadow, Giai đoạn 4 — Cutover đọc/ghi theo tenant, Giai đoạn 5 — Retire legacy sources
+Nodes (5): assert, fs, path, test, vm
 
 ### Community 147 - "PDP: Multi-Tenant LIFF Initialization Lifecycle & Webhook Progress Synchronization Fix"
-Cohesion: 0.12
-Nodes (15): 2. Context & Current Architecture, 3.1 Bulletproof Dynamic LIFF Resolution Gate, 3.2 Key Technical Specifications, 3. Proposed Architecture, 4.1 Zero-Downtime Hotfix Deployment, 4.2 Rollback Plan, 4. Migration & Rollout Strategy, 5. Alternatives Considered & Trade-offs (+7 more)
+Cohesion: 0.10
+Nodes (19): 1.1 Problem Statement, 1.2 Goals (In-Scope), 1.3 Non-Goals (Out-of-Scope), 1. Executive Summary & Objectives, 2. Context & Current Architecture, 3.1 Bulletproof Dynamic LIFF Resolution Gate, 3.2 Key Technical Specifications, 3. Proposed Architecture (+11 more)
 
 ### Community 148 - "PDP: Modular Client Menu Architecture (Refactoring Monolithic `index.html`)"
-Cohesion: 0.14
-Nodes (13): 1.1 Problem Statement, 1.2 Objectives & Key Results (In-Scope), 1.3 Non-Goals (Out-of-Scope), 1. Executive Summary & Objectives, 2.1 Monolith Dissection, 2.2 Shared State Inventory, 2. Context & Codebase Audit, 3.1 Structural System Diagram (+5 more)
+Cohesion: 0.10
+Nodes (19): 1.1 Problem Statement, 1.2 Objectives & Key Results (In-Scope), 1.3 Non-Goals (Out-of-Scope), 1. Executive Summary & Objectives, 2.1 Monolith Dissection, 2.2 Shared State Inventory, 2. Context & Codebase Audit, 3.1 Structural System Diagram (+11 more)
 
 ### Community 149 - "applyLanguageToDOM"
-Cohesion: 0.14
-Nodes (13): Cấp 1: Kiểm thử Tức thì (Instant Feedback - Dưới 1 giây), Cấp 3: Menu Gate Cục bộ (Local Menu QA - Khi sửa lớn UI/Layout Menu), Cấp 4: Full Release Baseline (Pre-Release Gate - ~115 giây), Quy Chuẩn Kiểm Thử Tinh Gọn Khi Phát Triển (Tiered Testing Workflow), 1. Bảng Quản Lý Đơn Hàng (`orders.html` / `orders.css` / Dashboard POS), 2. Trang Thực Đơn & Đặt Món Cho Khách (`index.html` / `index.css` / Menu LIFF), 3. Phong Cách Thiết Kế Tối Giản & Quy Chuẩn Icon (Minimalist Iconography), Triết Lý Thiết Kế Giao Diện (UI/UX Design Philosophy) (+5 more)
-
-### Community 150 - "4. Kế hoạch Phân rã File (Module Breakdown)"
-Cohesion: 0.20
-Nodes (10): 1. `src/utils/http.ts`, 2. `src/integrations/googleSheets.ts`, 3. `src/integrations/openRouter.ts`, 4. Kế hoạch Phân rã File (Module Breakdown), 4. `src/modules/config.ts`, 5. `src/modules/menu.ts`, 6. `src/modules/auth.ts`, 7. `src/modules/orders.ts` (+2 more)
-
-### Community 151 - "line-order-layout.cjs"
-Cohesion: 0.52
-Nodes (5): choice(), group(), line(), portions(), snapshot()
-
-### Community 152 - "test_menu_dirty_detection.cjs"
-Cohesion: 0.22
-Nodes (7): assert, createDOMEnvironment(), fs, path, stockFixture(), test, vm
-
-### Community 153 - "PDP: AI Order-Intent Classifier → Clef-flash [Replace]"
-Cohesion: 0.14
-Nodes (13): 1. Executive Summary & Objectives, 2. Context & Current Architecture, 4. Migration & Rollout Strategy, 5. Alternatives Considered & Trade-offs, 6. Cross-Cutting Concerns, 7. Step-by-Step Execution Plan, Goals (In-Scope), Observability (+5 more)
-
-### Community 154 - "R01 — Baseline hồi quy và checklist release"
-Cohesion: 0.33
-Nodes (6): Baseline và môi trường, Chạy lại, Giới hạn và cổng còn mở, Kết quả kiểm chứng, R01 — Baseline hồi quy và checklist release, Thay đổi đã chuẩn bị
-
-### Community 156 - "getStoreModifiersList"
-Cohesion: 0.60
-Nodes (5): getInheritedItemModifierGroups(), getStoreModifiersList(), isModifierAppliedToCategory(), selectAllCategoryModifiers(), toggleCategoryModifierSelectAll()
-
-### Community 157 - "test_pos_confirmed_print.cjs"
-Cohesion: 0.20
-Nodes (9): assert, core, fs, live, printer, refresh, { test }, update (+1 more)
+Cohesion: 0.18
+Nodes (11): Cấp 1: Kiểm thử Tức thì (Instant Feedback - Dưới 1 giây), 1. Bảng Quản Lý Đơn Hàng (`orders.html` / `orders.css` / Dashboard POS), 2. Trang Thực Đơn & Đặt Món Cho Khách (`index.html` / `index.css` / Menu LIFF), 3. Phong Cách Thiết Kế Tối Giản & Quy Chuẩn Icon (Minimalist Iconography), Triết Lý Thiết Kế Giao Diện (UI/UX Design Philosophy), Bước 2: Chuẩn Hóa I18N, applyLanguageToDOM(), I18N (+3 more)
 
 ### Community 158 - "cloudflare-d1.cjs"
-Cohesion: 0.09
-Nodes (20): CF_BIN, { execFileSync }, executeD1(), executeD1File(), executeD1Query(), fs, os, parseQueryResults() (+12 more)
-
-### Community 159 - "test_order_identity_print.cjs"
-Cohesion: 0.22
-Nodes (8): assert, document, fs, order, printedText, storage, vm, window
+Cohesion: 0.08
+Nodes (23): CF_BIN, { execFileSync }, executeD1(), executeD1File(), executeD1Query(), fs, os, parseQueryResults() (+15 more)
 
 ### Community 160 - "clearTimeout"
 Cohesion: 0.14
@@ -984,10 +847,6 @@ Nodes (12): client(), createCheckoutEnvironment(), sandbox, setupFrontendSandbox
 ### Community 161 - "PDP: Hỗ Trợ Đơn Lấy Mang Đi (Takeaway) & Ăn Tại Quán (Dine-in)"
 Cohesion: 0.11
 Nodes (18): 1.1 Problem Statement, 1.2 Goals (In-Scope), 1.3 Non-Goals (Out-of-Scope), 1. Executive Summary & Objectives, 2. Context & Current Architecture, 3.1 Luồng Tương Tác Hệ Thống (Mermaid Diagram), 3.2.1 D1 Database Migration (`0020_add_dining_options.sql`), 3.2.2 Cập Nhật TypeScript Types (`src/types/index.ts`, `src/types/tenant.ts`) (+10 more)
-
-### Community 162 - "B. Bảng Quản Lý Đơn Hàng POS (`orders.html` — Tablet / iPad First)"
-Cohesion: 0.28
-Nodes (6): 1. Kiến Trúc Tải File & Phạm Vi Biến (Global Scope Architecture), B. Bảng Quản Lý Đơn Hàng POS (`orders.html` — Tablet / iPad First), Bản Đồ Chỉ Mục Codebase (Codebase Architecture & Symbol Map), flavors(), globalChoices(), receiptLines()
 
 ### Community 164 - "PDP: Multi-Tenant Config, Images, Passwords & D1 Menu Sync [Refactor/Fix]"
 Cohesion: 0.11
@@ -998,128 +857,56 @@ Cohesion: 0.11
 Nodes (18): 1. Config APIs, 1. Context & Goal, 2. Menu APIs, 2. Requirements & Behavior, 3. Orders APIs, 3. Technical Design, 4. Edge Cases & Validation, 4. Images APIs (+10 more)
 
 ### Community 166 - "payment-session.js"
-Cohesion: 0.19
-Nodes (19): api(), clearPurchasedDraft(), completeDetail(), detach(), draft(), matches(), openProvider(), paid() (+11 more)
+Cohesion: 0.21
+Nodes (18): api(), clearPurchasedDraft(), completeDetail(), detach(), draft(), matches(), openProvider(), paid() (+10 more)
 
 ### Community 167 - "verify_history_and_menu_ui.js"
 Cohesion: 0.11
 Nodes (18): assert, forbiddenEmojis, fs, historyJs, i18nContext, i18nJs, menuJs, mockOrders (+10 more)
 
-### Community 169 - "Điều tra sự cố khách không đặt được đơn — zhadantongxue"
-Cohesion: 0.22
-Nodes (8): Bằng chứng production, Kiểm tra mở rộng khi không có thông tin từ khách, Kết luận hiện tại, Phần chưa xác minh, Thay đổi menu quan sát được trong lúc điều tra, Tái hiện trên trình duyệt, Điều tra sự cố khách không đặt được đơn — zhadantongxue, Điểm thiếu bằng chứng
-
-### Community 170 - "ref_node_fs"
-Cohesion: 0.04
-Nodes (42): fs, source, source, assert, fs, path, { test }, vm (+34 more)
-
-### Community 171 - "3. Proposed Architecture"
-Cohesion: 0.22
-Nodes (9): 1. Ingestion (`POST /api/orders` & `POST /api/checkout`), 2. Retrieval (`GET /api/orders`), 3. New Endpoint: Báo Cáo Phân Tích Khẩu Vị (`GET /api/reports/taste-analytics`), 3. Proposed Architecture, A. Sơ Đồ Kiến Trúc Mới (Hybrid Schema & Structured Ingestion Architecture), B. Database Schema Design (Cloudflare D1 Migration), C. Chuẩn Hóa JSON Schema Cho `customizations`, D. Cập Nhật API Phía Cloudflare Worker (+1 more)
-
-### Community 172 - "fetchOrders"
-Cohesion: 0.28
-Nodes (9): escapeHtml(), fetchOrders(), formatDineInTimeDisplay(), formatEta(), formatOrderSubmissionTime(), getOrderEffectiveDineInTimeMs(), parsePickupTimeMs(), renderAll() (+1 more)
-
-### Community 173 - "test_payment_redirect.cjs"
-Cohesion: 0.22
-Nodes (7): assert, fs, path, production, source, {test}, vm
-
-### Community 174 - "8. Verification & Test Plan"
-Cohesion: 0.50
-Nodes (4): 8. Verification & Test Plan, Automated, Eval offline (gate trước staging), Manual
-
-### Community 176 - "5. Architectural Solutions for Critical Technical Concerns"
-Cohesion: 0.18
-Nodes (11): 5.1 Deterministic Single Bootloader (Eliminating Cached vs. Uncached Race Conditions), 5.2 Shared State Consistency (Bidirectional Reference Synchronization), 5.3 Behavioral & Stateful Parity Test Suite (Proof of Zero Regressions), 5. Architectural Solutions for Critical Technical Concerns, The Problem:, The Problem:, The Problem:, The Solution: (+3 more)
-
-### Community 177 - "buildStructuredCartItems"
-Cohesion: 0.43
-Nodes (8): DetailChoice, Self-review — 2026-10-30, 2. Kết quả khảo sát code hiện tại, buildStructuredCartItems(), formatAppendItemsOnlyText(), formatGlobalCustomizationsText(), formatOrderTextMessage(), resolveOptionDisplayName()
-
-### Community 178 - "verify_menu_and_settings.js"
-Cohesion: 0.20
-Nodes (9): assert, coreJs, css, fs, html, menuJs, selfClosing, settingsJs (+1 more)
-
-### Community 179 - "production-js__client-cart.js"
-Cohesion: 0.50
-Nodes (8): calculateCategoryBundleSubtotal(), calculateCurrentFoodSubtotal(), getActiveThresholdViolations(), parseCartKey(), updateCustomizationThresholdUI(), updateQty(), updateTotal(), validateCustomizationThresholds()
-
-### Community 180 - "Lịch sử đơn hàng và đặt lại"
-Cohesion: 0.25
-Nodes (7): Dữ liệu lịch sử và dữ liệu bán hiện tại, Luồng khách hàng, Lịch sử đơn hàng và đặt lại, Migration, Phạm vi khôi phục tự động, Quyền truy cập, Tương tác với các luồng khác
-
-### Community 181 - "Các task nhỏ"
-Cohesion: 0.25
-Nodes (8): Các task nhỏ, T01 — Chốt nguồn/đích và kiểm kê read-only, T02 — Tạo snapshot nhất quán và bản database riêng, T03 — Chốt mapping từng field và identity, T04 — Viết DDL bổ sung tối thiểu, T06 — Copy vào database riêng, T07 — Đối chiếu dữ liệu sau copy, T08 — Đánh giá đích vận hành và bàn giao
-
 ### Community 182 - "Blab POS - Universal Multi-Tenant Android POS Tablet App"
-Cohesion: 0.11
-Nodes (17): 1. Tính Năng Nổi Bật, 2. Kiến Trúc Universal Multi-Tenant POS Platform, 3. Cấu Trúc Thư Mục Dự Án, 4. Hướng Dẫn Cài Đặt & Phát Triển (Development Setup), 5. Hướng Dẫn Kích Hoạt & Cấu Hình Máy In Trong Ứng Dụng, 6. Lịch Sử Các Phiên Bản (Changelog), A. Kích Hoạt Điểm Bán Lần Đầu (Store Activation), A. Yêu Cầu Môi Trường (Prerequisites) (+9 more)
-
-### Community 183 - "ref_benmi_worker_official_node_modules_typescript"
-Cohesion: 0.06
-Nodes (27): assert, client(), context, fs, messages, path, { test }, vm (+19 more)
+Cohesion: 0.12
+Nodes (15): 1. Tính Năng Nổi Bật, 2. Kiến Trúc Universal Multi-Tenant POS Platform, 3. Cấu Trúc Thư Mục Dự Án, 4. Hướng Dẫn Cài Đặt & Phát Triển (Development Setup), 5. Hướng Dẫn Kích Hoạt & Cấu Hình Máy In Trong Ứng Dụng, A. Kích Hoạt Điểm Bán Lần Đầu (Store Activation), A. Yêu Cầu Môi Trường (Prerequisites), B. Cài Đặt Thư Viện (+7 more)
 
 ### Community 184 - "PDP: Hệ thống Quản lý Thực đơn Đa hộ thuê & Báo Hết hàng (Cloudflare D1 & KV)"
 Cohesion: 0.11
 Nodes (17): 1. Tóm tắt Dự án & Mục tiêu, 2. Bối cảnh & Kiến trúc hiện tại, 3. Kiến trúc Đề xuất, 4. Phân chia các Tài liệu Thiết kế Chi tiết & Kế hoạch, 5. Đánh giá Giải pháp Thay thế & Đánh đổi, 6. Lộ trình Thực hiện (Roadmap), 7. Kế hoạch Kiểm thử & Xác minh (Verification Plan), Kiểm thử Thủ công (Manual Testing) (+9 more)
 
 ### Community 185 - "PDP: Orders Live Query Row Read Optimization [Fix/Optimize]"
-Cohesion: 0.11
-Nodes (17): 1. Executive Summary & Objectives, 2. Context & Current Architecture, 3. Proposed Architecture, 4. Bảng So Sánh Hiệu Năng & Chi Phí (Performance & Cost Analysis), 5. Alternatives Considered & Trade-offs, 6. Chi Tiết Thực Hiện (Implementation Diff), 7. Execution & Verification Plan, Execution Steps: (+9 more)
+Cohesion: 0.12
+Nodes (16): 1. Executive Summary & Objectives, 2. Context & Current Architecture, 3. Proposed Architecture, 4. Bảng So Sánh Hiệu Năng & Chi Phí (Performance & Cost Analysis), 5. Alternatives Considered & Trade-offs, 6. Chi Tiết Thực Hiện (Implementation Diff), 7. Execution & Verification Plan, Execution Steps: (+8 more)
 
 ### Community 186 - "PDP: Structured Customizations, Flavor Taxonomy & Hybrid Order Schema Architecture"
-Cohesion: 0.10
-Nodes (19): 1. Executive Summary & Objectives, 2. Context & Current Architecture, 4. Migration & Rollout Strategy (Zero-Downtime Cutover), 5. Alternatives Considered & Trade-offs, 6. Cross-Cutting Concerns, 8. Verification & Test Plan, A. Automated Tests, A. Luồng Dữ Liệu Hiện Tại (Legacy Text Serialization) (+11 more)
-
-### Community 187 - "Điều tra nút điều chỉnh xuất hiện trên production"
-Cohesion: 0.25
-Nodes (7): Bằng chứng kèm theo, Bổ sung: mốc phát hành bộ nút hiện tại lên production, Giới hạn, Kết luận, Lịch sử deployment, Phân biệt source cũ và bản sửa, Điều tra nút điều chỉnh xuất hiện trên production
+Cohesion: 0.11
+Nodes (17): 1. Executive Summary & Objectives, 4. Migration & Rollout Strategy (Zero-Downtime Cutover), 5. Alternatives Considered & Trade-offs, 6. Cross-Cutting Concerns, 8. Verification & Test Plan, A. Automated Tests, A. Security & Input Sanitization, A. Vấn đề Hiện Tại (Problem Statement) (+9 more)
 
 ### Community 188 - "test_menu_compatibility_regression.cjs"
 Cohesion: 0.18
 Nodes (10): FIXTURE_CONTROL, FIXTURE_HYBRID, FIXTURE_LEGACY, FIXTURE_NEW, assert, { DatabaseSync }, fs, path (+2 more)
 
-### Community 189 - "test_menu_sort_button_visibility.cjs"
-Cohesion: 0.25
-Nodes (5): assert, fs, path, test, vm
-
-### Community 190 - "test_staff_pos.cjs"
-Cohesion: 0.25
-Nodes (6): action, assert, fs, source, {test}, vm
-
-### Community 191 - "provision-linepay.mjs"
-Cohesion: 0.29
-Nodes (5): data, id, iv, keyBytes, url
-
-### Community 192 - "menu-editor-loader.cjs"
-Cohesion: 0.29
-Nodes (6): fs, menuCode, modelCode, path, root, vm
-
-### Community 193 - "Order detail snapshots"
-Cohesion: 0.33
-Nodes (5): Contract, Order detail snapshots, Readers and compatibility, Rollout, Verification
-
-### Community 195 - "Feature Cluster C: Quản lý Đơn hàng và Giao dịch (Orders) - Direct Switch-Out"
-Cohesion: 0.40
-Nodes (4): Feature Cluster C: Quản lý Đơn hàng và Giao dịch (Orders) - Direct Switch-Out, Hướng dẫn xác minh (Verification Plan) [VERIFIED LOCAL], Task C.1: Thiết lập SQL Schema bảng Orders [DONE], Task C.3: Backfill dữ liệu & Bàn giao (Cutover) [IN PROGRESS]
-
-### Community 196 - "Danh sách Task nhỏ cần thực hiện"
-Cohesion: 0.40
-Nodes (4): Danh sách Task nhỏ cần thực hiện, Nhiệm vụ 2: Tích hợp Frontend & Truyền tham số Tenant, [ ] Task 2.1: Đồng bộ hóa tham số Tenant trên Admin Dashboard (`orders.html`), [ ] Task 2.2: Đồng bộ hóa tham số Tenant trên Giao diện Khách hàng (`index.html`)
+### Community 190 - "test-line-runtime.mjs"
+Cohesion: 0.17
+Nodes (8): base, encrypted(), fixture(), keyBytes, keyring, repoUrl, runtimeUrl, tenantUrl
 
 ### Community 198 - "PDP: Kiến Trúc Ứng Dụng POS Đa Điểm Bán Mở Rộng Cho Hàng Nghìn Quán (Universal Multi-Tenant POS Platform)"
 Cohesion: 0.12
 Nodes (16): 1.1. Bối Cảnh & Vấn Đề (Problem Statement), 1.2. Mục Tiêu Đạt Được (Goals - In-Scope), 1.3. Ngoài Phạm Vi (Non-Goals), 1. Tóm Tắt Tổng Quan & Bối Cảnh (Executive Summary), 2. Kiến Trúc Hệ Thống (System Architecture), 3.1. Luồng Mở App Lần Đầu (First-Time Store Activation), 3.2. Luồng Khởi Động Ở Các Lần Tiếp Theo (Seamless Auto-Login), 3.3. Luồng Chuyển Đổi Quán / Hủy Ghép Đôi (Unlink Device / Switch Tenant) (+8 more)
+
+### Community 200 - "orders-history.js"
+Cohesion: 0.22
+Nodes (16): clearHistorySearch(), currentRenderedDates, expandedHistoryDates, fetchHistoryOrders(), getTaiwanTodayStr(), groupByDate(), isOrderDineIn(), lastHistoryOrders (+8 more)
+
+### Community 212 - "test-line-order-receipts.cjs"
+Cohesion: 0.16
+Nodes (10): assert, base, create(), { DatabaseSync }, fs, push(), req(), tenant (+2 more)
 
 ### Community 220 - "test_zhadantongxue_no_bundle_duplication.cjs"
 Cohesion: 0.13
 Nodes (14): assert, bundleInfo, coreJs, domSandbox, fs, html, i18nJs, liveJs (+6 more)
 
 ### Community 223 - "Checkpoint: Menu Compatibility & Customization Hardening — Complete Implementation Status"
-Cohesion: 0.13
-Nodes (16): 1. Bảng Trạng Thái Triển Khai Theo Bước (T0 → T8), 2. Kết Quả Kiểm Thử Toàn Diện (Verification Matrix), 3. Bằng Chứng Tái Hiện & Khắc Phục Lỗi (Regression Suite Evidence), 4. Ma Trận Fixtures Bắt Buộc (Mục E) — Kết Quả Kiểm Chứng, 5. Quy Chuẩn Giao Diện (UI/UX) & Cache-Busting (T7/T8), 6. Hướng Dẫn Rollout & Release Quy Chuẩn, 7. Giới Hạn Hiện Tại & Khuyến Nghị Thiết Bị Thật, Bug 1: Lỗ hổng ghi chéo tenant (`menu.ts`) (Mã kiểm thử: S1) — **ĐÃ XỬ LÝ (PASS)** (+8 more)
+Cohesion: 0.15
+Nodes (12): 1. Bảng Trạng Thái Triển Khai Theo Bước (T0 → T8), 2. Kết Quả Kiểm Thử Toàn Diện (Verification Matrix), 3. Bằng Chứng Tái Hiện & Khắc Phục Lỗi (Regression Suite Evidence), 4. Ma Trận Fixtures Bắt Buộc (Mục E) — Kết Quả Kiểm Chứng, 5. Quy Chuẩn Giao Diện (UI/UX) & Cache-Busting (T7/T8), 6. Hướng Dẫn Rollout & Release Quy Chuẩn, 7. Giới Hạn Hiện Tại & Khuyến Nghị Thiết Bị Thật, Bug 1: Lỗ hổng ghi chéo tenant (`menu.ts`) (Mã kiểm thử: S1) — **ĐÃ XỬ LÝ (PASS)** (+4 more)
 
 ### Community 224 - "verify_totals.js"
 Cohesion: 0.12
@@ -1129,13 +916,17 @@ Nodes (14): assert, fs, html, i18n, modals, orderFallbackText, orderUserReported
 Cohesion: 0.17
 Nodes (14): idx_orders_active_staff_table, idx_restaurant_tables_tenant_active, idx_restaurant_tables_tenant_label, idx_staff_order_requests_order, idx_staff_sessions_tenant, restaurant_tables, staff_order_requests, staff_sessions (+6 more)
 
-### Community 249 - "transitionToSubEditor"
-Cohesion: 0.24
-Nodes (10): autoCommitItemDetailFields(), filterItemModifierCards(), openItemModifiersModal(), openModifierLibraryModal(), renderItemModifiersEditor(), selectAllItemModifiers(), setItemModifierFilter(), toggleItemModifierCardSelection() (+2 more)
+### Community 249 - "isCustomizationCategory"
+Cohesion: 0.16
+Nodes (18): captureMenuDisplayOrder(), commitMenuDisplayRanks(), filterItemModifierCards(), getMenuDisplayEntries(), getMenuOrderGroups(), isCustomizationCategory(), openItemModifiersModal(), openModifierLibraryModal() (+10 more)
 
 ### Community 250 - "PDP: BSC Multi-Tenant Platform Unification & Interactive Notification Architecture [Migrate/Enhance]"
 Cohesion: 0.13
 Nodes (14): 1.1. Problem Statement, 1.2. In-Scope Goals, 1.3. Non-Goals, 1. Executive Summary & Objectives, 2. Architecture & Data Flow, 3.1. D1 Database Migration: Seed Tenant `bsc` (干城鹹水雞), 3.3. Desktop Browser Handling & Seamless LINE Login (`index.html`), 3. Detailed Component Specifications (+6 more)
+
+### Community 251 - "PDP: AI Order-Intent Classifier → Clef-flash [Replace]"
+Cohesion: 0.07
+Nodes (28): scheduled(), 1. Executive Summary & Objectives, 2. Context & Current Architecture, 3.1 Binding & biến môi trường (`cloudflare.config.ts`, cả dev / staging / production), 3.2 Schema D1 — migration `0065_ai_intent_clef_flash.sql`, 3.3 Clef client — `src/integrations/clefFlash.ts` (mới), 3.4 Classifier — `src/modules/aiIntent.ts` (mới), 3.5 Thay đổi ở `line.ts` (+20 more)
 
 ### Community 252 - "PDP: Multi-Tenant Marketplace & Interactive Map Discovery Platform [New]"
 Cohesion: 0.13
@@ -1182,8 +973,8 @@ Cohesion: 0.14
 Nodes (13): 1. Executive Summary & Objectives, 2. Context & Current Architecture, 3. Proposed Architecture, 4. Migration & Rollout Strategy, 5. Alternatives Considered & Trade-offs, 6. Cross-Cutting Concerns, 7. Step-by-Step Execution Plan, 8. Verification & Test Plan (+5 more)
 
 ### Community 301 - "D. Kế hoạch theo bước"
-Cohesion: 0.04
-Nodes (44): 1. Đối chiếu thực trạng codebase Benmi với yêu cầu khách hàng, 3. Kiến trúc dữ liệu đề xuất (Vừa vặn cho 1 Dev triển khai trên D1), 4. Kế hoạch phát triển và Ước lượng thời gian (Cơ sở: 1 Developer), 5. Ba lưu ý sống còn dành cho CTO khi làm việc với Sale, Bóc tách chi tiết từng hạng mục công việc:, Giai đoạn 1: Xây dựng Hệ thống Lõi, Bếp Trung Tâm, Ví Liên Thông & Pilot 1-2 Điểm, Giai đoạn 2: Hệ thống Marketing (Voucher, MGM, Điểm, Vòng quay) & Nhân rộng 20 Điểm, Giả định tính toán: (+36 more)
+Cohesion: 0.05
+Nodes (35): 1. Đối chiếu thực trạng codebase Benmi với yêu cầu khách hàng, 3. Kiến trúc dữ liệu đề xuất (Vừa vặn cho 1 Dev triển khai trên D1), 4. Kế hoạch phát triển và Ước lượng thời gian (Cơ sở: 1 Developer), 5. Ba lưu ý sống còn dành cho CTO khi làm việc với Sale, Bóc tách chi tiết từng hạng mục công việc:, Giai đoạn 1: Xây dựng Hệ thống Lõi, Bếp Trung Tâm, Ví Liên Thông & Pilot 1-2 Điểm, Giai đoạn 2: Hệ thống Marketing (Voucher, MGM, Điểm, Vòng quay) & Nhân rộng 20 Điểm, Giả định tính toán: (+27 more)
 
 ### Community 304 - "verify_contact_modal.js"
 Cohesion: 0.14
@@ -1197,7 +988,11 @@ Nodes (13): assert, audio, audioPath, css, cssPath, fs, html, htmlPath (+5 more)
 Cohesion: 0.14
 Nodes (13): assert, cssContent, cssPath, domElements, fs, htmlContent, htmlPath, jsContent (+5 more)
 
-### Community 308 - "onRequest"
+### Community 307 - "test_pos_tab_persistence.cjs"
+Cohesion: 0.14
+Nodes (6): assert, fs, path, root, test, vm
+
+### Community 308 - "_middleware.js"
 Cohesion: 0.50
 Nodes (7): isLineCallback(), isPosRoute(), onRequest(), orderError(), RESERVED_POS_PATHS, serveCustomerOrder(), serveInternalAsset()
 
@@ -1206,8 +1001,8 @@ Cohesion: 0.15
 Nodes (12): compilerOptions, allowJs, checkJs, isolatedModules, lib, module, moduleResolution, noEmit (+4 more)
 
 ### Community 350 - "PDP: Cơ Chế Thiết Lập Combo & Giá Khuyến Mãi Theo Nhóm Danh Mục (Universal Category Bundle Pricing Engine)"
-Cohesion: 0.14
-Nodes (13): 1. Tóm Tắt Điều Hành & Mục Tiêu (Executive Summary & Objectives), 2. Kiến Trúc Cơ Sở Dữ Liệu & Mô Hình Dữ Liệu (Data Architecture), 3. Thuật Toán Tính Giá Combo Tổng Quát (Core Calculation Engine), 4. Tích Hợp Giao Diện Người Dùng (UI/UX Integration), 5. Kế Hoạch Triển Khai Từng Bước (Execution Plan), A. Hiển Thị Menu Danh Mục (`index.html`), A. Mở Rộng Bảng `menu_categories` (Cloudflare D1), A. Vấn Đề Nghiệp Vụ (Problem Statement) (+5 more)
+Cohesion: 0.15
+Nodes (12): 1. Tóm Tắt Điều Hành & Mục Tiêu (Executive Summary & Objectives), 2. Kiến Trúc Cơ Sở Dữ Liệu & Mô Hình Dữ Liệu (Data Architecture), 3. Thuật Toán Tính Giá Combo Tổng Quát (Core Calculation Engine), 4. Tích Hợp Giao Diện Người Dùng (UI/UX Integration), A. Hiển Thị Menu Danh Mục (`index.html`), A. Mở Rộng Bảng `menu_categories` (Cloudflare D1), A. Vấn Đề Nghiệp Vụ (Problem Statement), B. Cấu Trúc JSON Schema Của `pricing_rules` (+4 more)
 
 ### Community 351 - "Tài liệu Tư vấn Giải pháp & Chiến lược Đàm phán (Bản dành cho Business / Sale)"
 Cohesion: 0.15
@@ -1225,6 +1020,10 @@ Nodes (12): author, description, devDependencies, playwright@1.64.1, engines, no
 Cohesion: 0.15
 Nodes (10): context, fs, mockElements, mockPrinterService, ordersHtml, ordersI18nJs, ordersSettingsJs, path (+2 more)
 
+### Community 356 - "ref_path"
+Cohesion: 0.10
+Nodes (15): filePath, fs, path, fs, ordersCss, ordersHtml, ordersI18nJs, ordersSettingsJs (+7 more)
+
 ### Community 357 - "verify_store_info_and_printer_pill.js"
 Cohesion: 0.15
 Nodes (10): fs, mockElements, mockLocalStorage, mockSessionStorage, ordersHtml, ordersI18nJs, ordersSettingsJs, path (+2 more)
@@ -1234,28 +1033,32 @@ Cohesion: 0.18
 Nodes (9): assert, { chromium }, fs, loadFixture(), path, readSource(), root, swipeQueue() (+1 more)
 
 ### Community 361 - "2. Non-Negotiable Architectural Rules"
-Cohesion: 0.18
-Nodes (10): 1. System Architecture Overview, 2. Non-Negotiable Architectural Rules, 3. Database & Caching Architecture, A. 1,000+ Multi-Tenant Scalability (Zero Hardcoding), B. UI/UX Design Principles, Benmi Multi-Tenant Order Platform - AI Agent Instructions, C. Bắt Buộc Cache-Busting Khi Chỉnh Sửa Frontend (CSS / JS), D. Chuẩn Kiến Trúc Tùy Chọn Món (Unified Option Groups vs Legacy Modifiers) (+2 more)
+Cohesion: 0.20
+Nodes (9): 1. System Architecture Overview, 2. Non-Negotiable Architectural Rules, 3. Database & Caching Architecture, A. 1,000+ Multi-Tenant Scalability (Zero Hardcoding), B. UI/UX Design Principles, Benmi Multi-Tenant Order Platform - AI Agent Instructions, C. Bắt Buộc Cache-Busting Khi Chỉnh Sửa Frontend (CSS / JS), Directory Structure: (+1 more)
 
 ### Community 362 - "order_items"
 Cohesion: 0.21
 Nodes (10): idx_order_items_order_key, idx_order_items_tenant_created, idx_order_items_tenant_item, order_items, lifecycle_order_items_insert, lifecycle_order_items_update, payment_items_delete_guard, payment_items_insert_guard (+2 more)
 
 ### Community 363 - "updateTotal"
-Cohesion: 0.50
-Nodes (8): calculateCategoryBundleSubtotal(), calculateCurrentFoodSubtotal(), getActiveThresholdViolations(), parseCartKey(), updateCustomizationThresholdUI(), updateQty(), updateTotal(), validateCustomizationThresholds()
+Cohesion: 0.27
+Nodes (13): 1. Kiến Trúc Tải File & Phạm Vi Biến (Global Scope Architecture), 3. Bảng Tra Cứu Nhanh Khi Debug (Quick Symptom-to-File Lookup), Bản Đồ Chỉ Mục Codebase (Codebase Architecture & Symbol Map), 5. Kế Hoạch Triển Khai Từng Bước (Execution Plan), The Solution:, calculateCategoryBundleSubtotal(), calculateCurrentFoodSubtotal(), getActiveThresholdViolations() (+5 more)
 
 ### Community 391 - "test_item_selection_modal_flow.cjs"
 Cohesion: 0.15
 Nodes (12): assert, builderCode, cartCode, ctx, customizationsCode, domMock, fs, itemMods (+4 more)
 
 ### Community 404 - "PDP: Dine-In Experience, Multi-Round Order Formatting & PAID Status Enhancement"
-Cohesion: 0.18
-Nodes (10): 1. Executive Summary & Objectives, 2. Context & Current Architecture, 3. Detailed Technical Design, 4. Multi-Tenant Scalability Validation, A. Định Dạng Nội Dung Đơn Nhiều Round (Mới $\rightarrow$ Cũ), D. Tinh Gọn LINE Flex Message, In-Scope Goals, Non-Goals (+2 more)
+Cohesion: 0.17
+Nodes (11): 1. Executive Summary & Objectives, 2. Context & Current Architecture, 3. Detailed Technical Design, 4. Multi-Tenant Scalability Validation, A. Định Dạng Nội Dung Đơn Nhiều Round (Mới $\rightarrow$ Cũ), C. Nâng Cấp Giao Diện POS (Tablet-First UI), D. Tinh Gọn LINE Flex Message, In-Scope Goals (+3 more)
 
 ### Community 405 - "_restore.sql"
 Cohesion: 0.30
 Nodes (11): category_modifier_links, d1_migrations, item_modifier_links, menu_categories, menu_customization_option_rules, menu_customizations, menu_items, modifier_groups (+3 more)
+
+### Community 406 - "3. Proposed Architecture"
+Cohesion: 0.22
+Nodes (9): 1. Payload Nhận Đơn Mới (`POST /api/create`):, 2. Xử Lý Ghi Dữ Liệu Transaction:, 3. Proposed Architecture, A. Sơ Đồ Kiến Trúc Mới (Hybrid Relational & Snapshot Architecture), B. Database Schema Design (Cloudflare D1 Migration), C. Data Ingestion & Write Path (Worker Backend), D. Analytics API & Aggregation Engine, E. Giao Diện POS Dashboard (UI/UX) (+1 more)
 
 ### Community 407 - "test_staff_capability_schema.cjs"
 Cohesion: 0.18
@@ -1289,9 +1092,9 @@ Nodes (9): 1. Giới thiệu doanh nghiệp và mục tiêu hợp tác, 2. Mô h
 Cohesion: 0.20
 Nodes (9): 1. Executive Summary & Objectives, 2.1. Cấu hình Caching trên Cloudflare Edge CDN, 2.2. Luồng dữ liệu và Đồng bộ hóa, 2.3. Lợi ích khi thay đổi Trạng thái Kho hàng (OOS Invalidation), 2. Proposed Architecture, 4. Verification & Test Plan, Goals, PDP: Cloudflare Edge Caching Strategy [Performance/Infrastructure] (+1 more)
 
-### Community 554 - "0065_unified_option_groups.sql"
-Cohesion: 0.09
-Nodes (26): category_modifier_links, idx_cat_mod_links, idx_modifier_product, menu_catalog_revisions, menu_write_guards, unified_legacy_item_revision, unified_menu_categories_delete, unified_menu_categories_insert (+18 more)
+### Community 554 - "menu_categories"
+Cohesion: 0.22
+Nodes (8): idx_menu_categories_tenant_sort, category_modifier_links, idx_cat_mod_links, unified_menu_categories_delete, unified_menu_categories_insert, unified_menu_categories_update, lifecycle_menu_categories_insert, lifecycle_menu_categories_update
 
 ### Community 578 - "test_threshold_bowl_autopromote.cjs"
 Cohesion: 0.25
@@ -1300,6 +1103,10 @@ Nodes (6): assert, createClientContext(), fs, path, test, vm
 ### Community 596 - "Cloudflare Worker Backend (`benmi-worker-official`) - AI Agent Instructions"
 Cohesion: 0.22
 Nodes (8): 2. Core Development Rules, 3. Build & Deployment Commands, 4. Cloudflare Workers Documentation References, A. Zero Hardcoding (Multi-Tenant First), B. Database & Migrations (Cloudflare D1), C. KV Cache Invalidation, Cloudflare Worker Backend (`benmi-worker-official`) - AI Agent Instructions, Common Migration Commands:
+
+### Community 600 - "Deleted options still visible in LIFF — 2026-10-29"
+Cohesion: 0.33
+Nodes (5): Deleted options still visible in LIFF — 2026-10-29, Local repair, Pre-push validation — 2026-10-30 (JST), Production evidence (read-only investigation), Verification
 
 ### Community 602 - "Tiến độ chuyển đổi từng Cụm Menu sang Schema Mới"
 Cohesion: 0.22
@@ -1310,12 +1117,12 @@ Cohesion: 0.22
 Nodes (8): API và quyền truy cập, Cấu hình và phát hành, Giới hạn bản đầu, Hủy phiên và đổi giỏ hàng (0076), Khi cần can thiệp, LINE Pay v4 — vận hành và nghiệm thu, Quy trình sandbox bắt buộc, Trang kết quả thanh toán
 
 ### Community 605 - "R00 — Hiện trạng trước khi tách release staff ordering"
-Cohesion: 0.15
-Nodes (12): 1. Quy trình xác nhận, 2. Nguồn code và baseline, 3. Tenant demo và trạng thái D1, 4. Deploy đang chạy và mốc quay lui, 5. Công cụ và giới hạn kiểm chứng, 6. Điểm cần chốt trước triển khai, Hai cơ chế auto-deploy production, Migration ledger khác nhau giữa các môi trường (+4 more)
+Cohesion: 0.25
+Nodes (8): 1. Quy trình xác nhận, 2. Nguồn code và baseline, 3. Tenant demo và trạng thái D1, 5. Công cụ và giới hạn kiểm chứng, 6. Điểm cần chốt trước triển khai, Migration ledger khác nhau giữa các môi trường, R00 — Hiện trạng trước khi tách release staff ordering, Schema liên quan
 
 ### Community 606 - "main"
-Cohesion: 0.17
-Nodes (16): 4. Development & Deployment Workflow, Quy trình Release (Dev -> Staging -> Production):, A. Trước khi bắt đầu, B. Trước push / PR / merge, C. Nếu có schema hoặc dữ liệu, Checklist cho một release staff ordering, D. Trước mở capability demo, E. Kết thúc task (+8 more)
+Cohesion: 0.13
+Nodes (20): 4. Development & Deployment Workflow, Quy trình Release (Dev -> Staging -> Production):, 4. Deploy đang chạy và mốc quay lui, Hai cơ chế auto-deploy production, Production Pages, Production Worker, A. Trước khi bắt đầu, B. Trước push / PR / merge (+12 more)
 
 ### Community 607 - "PDP: Strong Consistency for Pending Actions via D1 [Reliability/Infrastructure]"
 Cohesion: 0.22
@@ -1338,8 +1145,8 @@ Cohesion: 0.28
 Nodes (8): assert, { chromium }, fs, path, read(), root, run(), setupPage()
 
 ### Community 618 - "Bảng Quy chiếu Mapping Dữ liệu (Field Mapping Specification)"
-Cohesion: 0.33
-Nodes (5): 1. Định danh Nhóm Tuỳ chọn (Group Identity Mapping), 2. Quy tắc Định danh Lựa chọn (Option Identity Allocation), 3. Bảo toàn Dữ liệu Sub-options và Rules, 4. Xử lý Mâu thuẫn (Conflicts / Unresolved Report), Bảng Quy chiếu Mapping Dữ liệu (Field Mapping Specification)
+Cohesion: 0.29
+Nodes (6): 1. Định danh Nhóm Tuỳ chọn (Group Identity Mapping), 2. Quy tắc Định danh Lựa chọn (Option Identity Allocation), 3. Bảo toàn Dữ liệu Sub-options và Rules, 4. Xử lý Mâu thuẫn (Conflicts / Unresolved Report), Bảng Quy chiếu Mapping Dữ liệu (Field Mapping Specification), order()
 
 ### Community 657 - "Thiết kế API & Logic Báo Hết Hàng (Out-of-Stock API Design)"
 Cohesion: 0.25
@@ -1352,6 +1159,10 @@ Nodes (7): 1.1. Bảng Nhóm Tuỳ chọn (`modifier_groups`), 1.3. Bảng Liên
 ### Community 659 - "Benmi_danh_gia_va_ke_hoach_1_dev_44c8e931.md"
 Cohesion: 0.25
 Nodes (7): Sheet: Bản dịch, Sheet: Cần chốt, Sheet: Kế hoạch, Sheet: Nghiệm thu, Sheet: Thiết kế, Sheet: Tổng quan, Sheet: Đối chiếu
+
+### Community 660 - "marketplace.js"
+Cohesion: 0.33
+Nodes (3): 2. Hiện trạng đã kiểm tra, buildMarketplaceOrderUrl(), resolveApiBase()
 
 ### Community 662 - "test_order_detail_groups_browser.cjs"
 Cohesion: 0.29
@@ -1369,9 +1180,9 @@ Nodes (6): idx_menu_categories_tenant, idx_menu_items_out_of_stock, idx_menu_ite
 Cohesion: 0.29
 Nodes (4): idx_tenant_marketplace, idx_tenant_config_order_prefix_unique, lifecycle_tenant_config_insert, lifecycle_tenant_config_update
 
-### Community 705 - "menu_bundle_rules"
-Cohesion: 0.38
-Nodes (6): idx_customization_option_rules_lookup, idx_menu_bundle_rules_lookup, menu_bundle_rules, menu_customization_option_rules, lifecycle_menu_bundle_rules_insert, lifecycle_menu_bundle_rules_update
+### Community 705 - "menu_items"
+Cohesion: 0.16
+Nodes (12): idx_customization_option_rules_lookup, idx_menu_bundle_rules_lookup, menu_bundle_rules, menu_customization_option_rules, unified_legacy_item_revision, unified_menu_items_delete, unified_menu_items_insert, unified_menu_items_update (+4 more)
 
 ### Community 706 - "0061_unified_bundle_and_customization_schema.sql"
 Cohesion: 0.52
@@ -1388,6 +1199,14 @@ Nodes (6): Applied migrations and data parity, Dev cache isolation, Dev rebase a
 ### Community 713 - "Danh sách Task nhỏ cần thực hiện"
 Cohesion: 0.29
 Nodes (6): Danh sách Task nhỏ cần thực hiện, Nhiệm vụ 1: Triển khai Backend API & Smart D1 Menu Sync, [ ] Task 1.1: Đồng bộ Menu thông minh trong `updateMenu` (`src/modules/menu.ts`), [ ] Task 1.2: Cô lập Cấu hình trong `config.ts` (`src/modules/config.ts`), [ ] Task 1.3: Cô lập Ảnh trong `image.ts` (`src/modules/image.ts`), [ ] Task 1.4: Cô lập Mật khẩu trong `auth.ts` (`src/modules/auth.ts`)
+
+### Community 714 - "release-tracker.md"
+Cohesion: 0.14
+Nodes (9): Database và điều kiện trước apply, R02 — Runbook apply một migration sau khi được xác nhận, Thực hiện một môi trường mỗi lượt, Đối soát sau apply, Các cổng tiếp theo, Kiểm chứng local, R02 — Schema capability staff mặc định đóng, Thay đổi (+1 more)
+
+### Community 715 - "0046_add_order_uuid_and_daily_counter.sql"
+Cohesion: 0.33
+Nodes (5): daily_order_counters, idx_orders_tenant_date_key, idx_orders_uuid, lifecycle_daily_order_counters_insert, lifecycle_daily_order_counters_update
 
 ### Community 716 - "render"
 Cohesion: 0.62
@@ -1414,12 +1233,16 @@ Cohesion: 0.33
 Nodes (5): 1. Cấu hình R2 và SQL Migration, Feature Cluster B: Quản lý hình ảnh và tệp tin (Media & Images), Hướng dẫn xác minh (Verification Plan), Task B.1: Cấu hình R2, Schema Metadata & Refactor API, Task B.2: Backfill hình ảnh từ KV sang R2 và Cutover
 
 ### Community 755 - "1. Executive Summary & Objectives"
-Cohesion: 0.18
-Nodes (10): Mapping field cần hiện thực, 2. So sánh schema hiện tại và schema đích, Phần schema cần bổ sung tối thiểu, 1.2. Bảng Lựa chọn Chi tiết (`modifier_options`), 1. Executive Summary & Objectives, 2. Thư mục Nhiệm vụ (Task Index), [CRITICAL RISK] Bảo toàn trạng thái hết hàng (Sell out), PDP: Menu Synchronization & Multi-Tenant Isolation [Overview] (+2 more)
+Cohesion: 0.33
+Nodes (5): 1. Executive Summary & Objectives, 2. Thư mục Nhiệm vụ (Task Index), [CRITICAL RISK] Bảo toàn trạng thái hết hàng (Sell out), PDP: Menu Synchronization & Multi-Tenant Isolation [Overview], Problem Statement
 
 ### Community 757 - "Bắt Buộc Cập Nhật Version Cache-Buster Khi Sửa CSS / JS (Frontend Cache Busting Rule)"
 Cohesion: 0.40
 Nodes (4): 1. Bắt buộc Bump Version khi có thay đổi, 2. Quy chuẩn Định dạng Version, 3. Check trước khi Commit, Bắt Buộc Cập Nhật Version Cache-Buster Khi Sửa CSS / JS (Frontend Cache Busting Rule)
+
+### Community 788 - "openItemDetailModal"
+Cohesion: 0.13
+Nodes (15): addNewMenuItem(), checkItemDetailImage(), clearBundleConfig(), closeBundleEditorModal(), closeCreationTypeModal(), getItemImageUrl(), handleItemThumbClick(), handleMenuCreateClick() (+7 more)
 
 ### Community 818 - "order_detail_snapshots"
 Cohesion: 0.60
@@ -1449,10 +1272,6 @@ Nodes (4): createTestOrder(), fetchTenantOrders(), OrderResponse, runAllTests()
 Cohesion: 0.12
 Nodes (15): 1.1. Vấn đề đã xác nhận, 1.2. Quyết định đề xuất, 1.3. Mục tiêu và tiêu chí hoàn thành, 1.4. Giới hạn chủ động, 1. Executive Summary & Objectives, 2.1. Bản đồ mã nguồn, 2.2. Ràng buộc kỹ thuật, 2. Context & Current Architecture (+7 more)
 
-### Community 850 - "tenants"
-Cohesion: 0.15
-Nodes (12): idx_pending_actions_tenant_user, pending_actions, idx_tenant_config_active, tenant_config, admin_menu_seed_receipts, idx_admin_menu_seed_receipts_tenant, lifecycle_admin_menu_seed_receipts_insert, lifecycle_admin_menu_seed_receipts_update (+4 more)
-
 ### Community 868 - "0065_line_order_receipts.sql"
 Cohesion: 0.83
 Nodes (3): idx_line_receipts_due, idx_line_receipts_order, line_order_receipts
@@ -1474,22 +1293,22 @@ Cohesion: 0.50
 Nodes (3): Sheet: Doi_Chieu_Chuc_Nang, Sheet: Ke_Hoach_Phat_Trien, Sheet: Phan_Loai_Mo_Dun_Gia_Tri
 
 ## Knowledge Gaps
-- **96 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **88 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `price()` connect `1. Executive Summary & Objectives` to `checkMenuDirty`, `line-order-presentation.js`?**
-  _High betweenness centrality (0.084) - this node is a cross-community bridge._
-- **Should `ref_node_path` be split into smaller, more focused modules?**
-  _Cohesion score 0.05 - nodes in this community are weakly interconnected._
-- **Why does `A. Kiến Trúc Đồng Bộ & Tránh Mất Dữ Liệu (`syncMenuDataFromDOM` & Auto-Commit)` connect `checkMenuDirty` to `1. Executive Summary & Objectives`, `syncMenuDataFromDOM`?**
-  _High betweenness centrality (0.076) - this node is a cross-community bridge._
-- **Should `payments.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.058333333333333334 - nodes in this community are weakly interconnected._
-- **Why does `syncMenuDataFromDOM()` connect `syncMenuDataFromDOM` to `renderBundleEditorSidebar`, `renderMenuCategoryEditor`, `saveStockStatus`, `checkMenuDirty`, `Kế Hoạch Chi Tiết: Rút Gọn Nút Bấm Trên Từng Thẻ Món Ăn (Item Card Action Bar Modernization & Detail Hub Modal)`, `orders-menu.js`, `transitionToSubEditor`, `getStoreModifiersList`?**
-  _High betweenness centrality (0.051) - this node is a cross-community bridge._
-- **Should `stock-drawer-production-20261107/release-baseline-summary.json` be split into smaller, more focused modules?**
-  _Cohesion score 0.1 - nodes in this community are weakly interconnected._
+- **Why does `main()` connect `main` to `inventory.mjs`, `Production migration to Cloudflare cf — 2026-10-07`, `Benmi & Multi-Tenant Order Platform Architecture & Deployment Guide`, `R01 — Kiểm tra CI lần đầu trên PR #74`, `PDP: Nhiệm vụ 1.0 - Chuyển đổi sang TypeScript và Tách Module cho Benmi Worker`, `release-tracker.md`, `copy_tenant_prod_to_dev.mjs`, `Báo cáo readiness: dev lên main`, `B. Bảng Quản Lý Đơn Hàng POS (`orders.html` — Tablet / iPad First)`, `createOrder`, `Quy Chuẩn Kiểm Thử Tinh Gọn Khi Phát Triển (Tiered Testing Workflow)`, `PDP: Modular Client Menu Architecture (Refactoring Monolithic `index.html`)`, `PDP: Orders Live Query Row Read Optimization [Fix/Optimize]`, `PDP: BSC Multi-Tenant Platform Unification & Interactive Notification Architecture [Migrate/Enhance]`, `R00 — Hiện trạng trước khi tách release staff ordering`, `PDP: Instant Hydration, Zero-Flash Multi-Tenant Bootstrap & Safe LIFF Initialization Architecture`, `R01 — Baseline hồi quy và checklist release`?**
+  _High betweenness centrality (0.065) - this node is a cross-community bridge._
+- **Should `ref_node_fs` be split into smaller, more focused modules?**
+  _Cohesion score 0.0384180790960452 - nodes in this community are weakly interconnected._
+- **Why does `price()` connect `line-order-presentation.js` to `checkMenuDirty`, `1. Executive Summary & Objectives`?**
+  _High betweenness centrality (0.058) - this node is a cross-community bridge._
+- **Should `line-order-receipts.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.11942959001782531 - nodes in this community are weakly interconnected._
+- **Why does `3.2 Target Directory & Module Mapping` connect `client-core.js` to `client-bundle.js`, `client-customizations.js`, `client-menu.js`, `updateTotal`, `PDP: Modular Client Menu Architecture v2 (Refactoring Monolithic `index.html`) [Replace]`, `client-checkout.js`?**
+  _High betweenness centrality (0.054) - this node is a cross-community bridge._
+- **Should `menu-drawer-dom.cjs` be split into smaller, more focused modules?**
+  _Cohesion score 0.050505050505050504 - nodes in this community are weakly interconnected._
 - **Should `orders-settings.js` be split into smaller, more focused modules?**
   _Cohesion score 0.05570745044429255 - nodes in this community are weakly interconnected._

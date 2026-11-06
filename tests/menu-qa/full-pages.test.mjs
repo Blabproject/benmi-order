@@ -23,9 +23,11 @@ for (const language of ['zh-TW', 'vi']) {
       const originalPrice = await row.locator('.menu-item-price-input').inputValue();
       await row.locator('.menu-item-price-input').fill(String(Number(originalPrice) + 7));
       await row.locator('.menu-item-stock-toggle').click();
-      assert.equal(await page.locator('#btn-stock-save').isVisible(), false);
+      await page.locator('#stock-status-select').selectOption('out_of_stock');
+      await page.locator('#stock-duration-select').selectOption('indefinite');
+      assert.equal(await page.locator('#btn-stock-save').textContent(), language === 'vi' ? 'Lưu thay đổi' : '儲存變更');
       await page.screenshot({ path: session.directory + '/stock-dialog.png', fullPage: true });
-      await page.locator('label:has(#stock-choice-indefinite)').click();
+      await page.locator('#btn-stock-save').click();
       await page.locator('#stockModal').waitFor({ state: 'hidden' });
       assert.equal((await readStock()).out_of_stock_until, '9999-12-31T23:59:59.000Z');
       assert.equal(await row.locator('.menu-item-price-input').inputValue(), String(Number(originalPrice) + 7));
@@ -43,8 +45,8 @@ for (const language of ['zh-TW', 'vi']) {
       const reloadedRow = page.locator('#menu-editor-body .menu-item-row-card').first();
       assert.ok((await reloadedRow.locator('.menu-item-stock-toggle').getAttribute('class')).includes('is-oos'));
       await reloadedRow.locator('.menu-item-stock-toggle').click();
-      assert.equal(await page.locator('#stock-choice-indefinite').isChecked(), true, 'Reload restores the persisted selection');
-      await page.locator('#btn-stock-restore').click();
+      await page.locator('#stock-status-select').selectOption('in_stock');
+      await page.locator('#btn-stock-save').click();
       await page.locator('#stockModal').waitFor({ state: 'hidden' });
       assert.equal((await readStock()).out_of_stock_until, null);
       assert.equal(await page.evaluate(() => isMenuDirty), false);

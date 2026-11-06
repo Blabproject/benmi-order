@@ -350,12 +350,6 @@ function stockFixture(kind = 'catalog') {
   sandbox.renderMenuCategoryEditor = () => {};
   sandbox.renderOrderCustomizationEditor = () => {};
   const alerts = [], requests = [];
-  const stockChoices = new Map();
-  sandbox.localStorage = {
-    getItem: key => stockChoices.get(key) || null,
-    setItem: (key, value) => stockChoices.set(key, value),
-    removeItem: key => stockChoices.delete(key)
-  };
   sandbox.alert = message => alerts.push(message);
   sandbox.fetch = async (url, request) => {
     requests.push({ url, body: JSON.parse(request.body) });
@@ -487,10 +481,7 @@ for (const failure of ['offline', 'http', 'non-json']) {
     assert.equal(app.getIsMenuDirty(), false);assert.equal(app.control('stockModal').style.display, 'flex');
     assert.equal(app.control('stock-duration-select').value, 'multiple_days');
     assert.equal(app.control('oos-until-date').value, '2026-11-12');
-    assert.equal(app.control('btn-stock-save').disabled, false);
-    assert.equal(app.control('stock-drawer-error').hidden, false);
-    assert.equal(app.control('stock-drawer-error').textContent, 'stockSaveError');
-    assert.equal(app.alerts.length, 0, 'Errors stay in the drawer instead of blocking the POS');
+    assert.equal(app.control('btn-stock-save').disabled, false);assert.equal(app.alerts.length, 1);
     app.sandbox.fetch = async () => ({ ok: true });await app.sandbox.saveStockStatus();
     assert.equal(app.target().isOos, true);assert.equal(app.getIsMenuDirty(), false);
     assert.equal(app.control('stockModal').style.display, 'none');
@@ -526,76 +517,7 @@ test('all existing stock durations preserve the API payload and missing dates pr
   }
   const app = stockFixture();app.choose('out_of_stock', 'multiple_days');
   await app.sandbox.saveStockStatus();assert.equal(app.requests.length, 0);
-  assert.equal(app.control('stockModal').style.display, 'flex');
-  assert.equal(app.control('stock-drawer-error').textContent, 'alertSelectOosDate');
-});
-
-for (const kind of ['catalog', 'order_customization', 'modifier']) {
-  test(`${kind}: choosing a stock duration saves immediately and restoring takes one action`, async () => {
-    const app = stockFixture(kind);
-    for (const duration of ['today', 'indefinite']) {
-      app.open();
-      assert.equal(app.control('btn-stock-save').hidden, true);
-      await app.sandbox.chooseStockStatus(duration);
-      assert.equal(app.target().isOos, true);
-      assert.equal(app.requests.at(-1).body.duration, duration);
-      assert.equal(app.control('stockModal').style.display, 'none');
-      app.open();
-      assert.equal(app.control('stock-duration-select').value, duration, 'Reopening restores the persisted duration');
-      assert.equal(app.control('btn-stock-restore').hidden, false);
-      await app.sandbox.chooseStockStatus('in_stock');
-      assert.equal(app.target().isOos, false);
-      assert.equal(app.requests.at(-1).body.status, 'in_stock');
-    }
-    assert.equal(app.requests.length, 4);
-    assert.equal(app.getIsMenuDirty(), false);
-  });
-}
-
-test('a specific date is not saved before applying, and past dates cannot write', async () => {
-  const app = stockFixture();
-  await app.sandbox.chooseStockStatus('multiple_days');
-  assert.equal(app.requests.length, 0);
-  assert.equal(app.control('oos-date-container').style.display, 'block');
-  assert.equal(app.control('btn-stock-save').hidden, false);
-  assert.equal(app.control('btn-stock-save').disabled, true);
-  app.control('oos-until-date').value = '2000-01-01';
-  await app.sandbox.saveStockStatus();
-  assert.equal(app.requests.length, 0);
-  assert.equal(app.control('stock-drawer-error').textContent, 'stockDateInvalid');
-  const date = app.control('oos-until-date').min;
-  app.control('oos-until-date').value = date;
-  await app.sandbox.saveStockStatus();
-  assert.equal(app.requests.length, 1);
-  assert.equal(app.requests[0].body.until_date, date + 'T04:00:00+07:00');
-  app.open();
-  assert.equal(app.control('stock-duration-select').value, 'multiple_days');
-  assert.equal(app.control('oos-until-date').value, date);
-  assert.equal(app.requests.length, 1, 'Reopening does not save again');
-});
-
-test('server expiry restores a saved selection without storage and ignores stale cached choices', async () => {
-  const app = stockFixture();
-  const date = new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10);
-  app.choose('out_of_stock', 'multiple_days', date);await app.sandbox.saveStockStatus();
-  assert.equal(app.saved()[0].items[0].outOfStockUntil, new Date(date + 'T04:00:00+07:00').toISOString());
-  app.target().outOfStockUntil = '9999-12-31T23:59:59.000Z';app.open();
-  assert.equal(app.control('stock-duration-select').value, 'indefinite', 'Server state wins over an old remembered date');
-  app.sandbox.localStorage = { getItem() { throw new Error('Unavailable'); } };
-  app.target().outOfStockUntil = new Date(date + 'T04:00:00+07:00').toISOString();app.open();
-  assert.equal(app.control('stock-duration-select').value, 'multiple_days');
-  assert.equal(app.control('oos-until-date').value, date);
-});
-
-test('switching from a date to a quick duration drops the unused expiry and cancellation sends nothing', async () => {
-  const app = stockFixture();
-  await app.sandbox.chooseStockStatus('multiple_days');
-  app.control('oos-until-date').value = app.control('oos-until-date').min;
-  await app.sandbox.chooseStockStatus('indefinite');
-  assert.equal(app.requests.length, 1);
-  assert.equal(app.requests[0].body.until_date, null);
-  app.open();app.sandbox.closeStockModal();
-  assert.equal(app.requests.length, 1);
+  assert.equal(app.control('stockModal').style.display, 'flex');assert.equal(app.alerts.length, 1);
 });
 
 test('an unavailable Unified catalog refresh cannot turn a successful stock write into a save error', async () => {
