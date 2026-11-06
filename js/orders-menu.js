@@ -359,6 +359,7 @@ async function loadMenuData() {
             name: it.name,
             price: it.price,
             isOos: it.isOutOfStock,
+            outOfStockUntil: it.outOfStockUntil || it.out_of_stock_until || null,
             badgeText: it.badgeText || (it.badge || ''),
             isRecommended: it.isRecommended || false,
             bundleRule: it.bundleRule || null,
@@ -3563,7 +3564,7 @@ function openStockModal(cIdx, iIdx) {
   currentStockOidx = null;
 
   const item = currentMenuData[cIdx].items[iIdx];
-  showStockDrawer(item.name, item.isOos, false, `menu-item-stock-${cIdx}-${iIdx}`);
+  showStockDrawer(item.name, item, false, `menu-item-stock-${cIdx}-${iIdx}`, stockChoiceKey(currentMenuData[cIdx], null, item));
 }
 
 function openStockModalForCustomization(cIdx, gIdx, oIdx) {
@@ -3578,11 +3579,41 @@ function openStockModalForCustomization(cIdx, gIdx, oIdx) {
   const option = group?.options?.[oIdx];
   if (!group || !option) return;
 
-  showStockDrawer(`${group.title} — ${option.name}`, option.isOos, true, `menu-option-stock-${cIdx}-${gIdx}-${oIdx}`);
+  showStockDrawer(`${group.title} — ${option.name}`, option, true, `menu-option-stock-${cIdx}-${gIdx}-${oIdx}`, stockChoiceKey(currentMenuData[cIdx], group, option));
 }
 window.openStockModalForCustomization = openStockModalForCustomization;
 
-function showStockDrawer(name, isOos, isCustom, triggerId) {
+function stockTomorrowDate() {
+  return new Date(Date.now() + (7 + 24) * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+function stockChoiceKey(category, group, target) {
+  return 'benmi:stock-choice:' + JSON.stringify([getTenantIdFromUrl(),
+    group?.canonicalId || group?.id || category.id, target.id || target.originalName || target.name]);
+}
+
+function readStockChoice(target, key) {
+  const until = target.outOfStockUntil || target.out_of_stock_until;
+  const timestamp = Date.parse(until);
+  if (!target.isOos || (Number.isFinite(timestamp) && timestamp <= Date.now())) return { duration: '', date: '' };
+  if (!Number.isFinite(timestamp) || new Date(timestamp).getUTCFullYear() === 9999) return { duration: 'indefinite', date: '' };
+  const expiry = new Date(timestamp).toISOString();
+  const date = new Date(timestamp + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  // Today and a specific date can share the same cutoff. Remember only that
+  // display choice; the server's expiry must still match before using it.
+  try {
+    const cached = JSON.parse(localStorage.getItem(key));
+    if (cached?.until === expiry && ['today', 'multiple_days'].includes(cached.duration)) {
+      return { duration: cached.duration, date: cached.duration === 'multiple_days' ? date : '' };
+    }
+  } catch { /* Storage is optional; the saved expiry remains authoritative. */ }
+  const todayUntil = Date.parse(stockTomorrowDate() + 'T04:00:00+07:00');
+  return timestamp === todayUntil ? { duration: 'today', date: '' } : { duration: 'multiple_days', date };
+}
+
+function showStockDrawer(name, target, isCustom, triggerId, choiceKey) {
+  const selected = readStockChoice(target, choiceKey);
+  const isOos = !!target.isOos;
   const modal = document.getElementById('stockModal');
   // Safari does not focus buttons on pointer activation; keep the actual trigger.
   stockReturnFocus = document.getElementById(triggerId) || document.activeElement;
@@ -3597,12 +3628,12 @@ function showStockDrawer(name, isOos, isCustom, triggerId) {
   document.getElementById('stock-linked-notice').hidden = !isCustom;
   document.getElementById('btn-stock-restore').hidden = !isOos;
   document.getElementById('stock-status-select').value = isOos ? 'out_of_stock' : 'in_stock';
-  document.getElementById('stock-duration-select').value = 'today';
+  document.getElementById('stock-duration-select').value = selected.duration || 'today';
   const date = document.getElementById('oos-until-date');
-  date.value = '';
+  date.value = selected.date;
   // Keep the stock API's existing business-day cutoff (04:00, UTC+7).
-  date.min = new Date(Date.now() + (7 + 24) * 60 * 60 * 1000).toISOString().slice(0, 10);
-  for (const choice of modal.querySelectorAll('input[name="stock-choice"]')) choice.checked = false;
+  date.min = selected.date && selected.date < stockTomorrowDate() ? selected.date : stockTomorrowDate();
+  for (const choice of modal.querySelectorAll('input[name="stock-choice"]')) choice.checked = choice.value === selected.duration;
   setStockError('');
   handleStockDurationChange();
   modal.style.display = 'flex';
@@ -3730,7 +3761,15 @@ async function saveStockStatus() {
   }
 
   // Stock is already persisted: rebase only its fields, preserving other drafts.
-  applySavedStockStatus(targetCategory, targetGroup, targetItem, status === "out_of_stock");
+  const outOfStockUntil = status !== 'out_of_stock' ? null : duration === 'indefinite'
+    ? '9999-12-31T23:59:59.000Z'
+    : new Date(`${duration === 'today' ? stockTomorrowDate() : untilDate}T04:00:00+07:00`).toISOString();
+  applySavedStockStatus(targetCategory, targetGroup, targetItem, status === "out_of_stock", outOfStockUntil);
+  try {
+    const key = stockChoiceKey(targetCategory, targetGroup, targetItem);
+    if (outOfStockUntil) localStorage.setItem(key, JSON.stringify({ until: outOfStockUntil, duration }));
+    else localStorage.removeItem(key);
+  } catch { /* A successful stock write must not depend on browser storage. */ }
   const categoryIndex = currentMenuData.indexOf(targetCategory);
   renderMenuCategories();
   if (categoryIndex >= 0) {
@@ -3791,7 +3830,7 @@ document.addEventListener('keydown', event => {
   }
 }, true);
 
-function applySavedStockStatus(category, group, target, isOos) {
+function applySavedStockStatus(category, group, target, isOos, until = null) {
   const sameItem = item => item.id && target.id
     ? String(item.id) === String(target.id)
     : (item.originalName || item.name) === (target.originalName || target.name);
@@ -3800,14 +3839,11 @@ function applySavedStockStatus(category, group, target, isOos) {
     .some(id => id && groupIds.has(String(id)));
   const update = item => {
     item.isOos = isOos;
+    item.outOfStockUntil = isOos ? until : null;
     for (const key of ['isOutOfStock', 'is_out_of_stock']) {
       if (Object.prototype.hasOwnProperty.call(item, key)) item[key] = isOos;
     }
-    if (!isOos) {
-      for (const key of ['outOfStockUntil', 'out_of_stock_until']) {
-        if (Object.prototype.hasOwnProperty.call(item, key)) item[key] = null;
-      }
-    }
+    if (Object.prototype.hasOwnProperty.call(item, 'out_of_stock_until')) item.out_of_stock_until = isOos ? until : null;
   };
   const updateGroup = candidate => {
     for (const option of candidate.options || []) {

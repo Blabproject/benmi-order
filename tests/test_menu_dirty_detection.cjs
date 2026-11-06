@@ -350,6 +350,12 @@ function stockFixture(kind = 'catalog') {
   sandbox.renderMenuCategoryEditor = () => {};
   sandbox.renderOrderCustomizationEditor = () => {};
   const alerts = [], requests = [];
+  const stockChoices = new Map();
+  sandbox.localStorage = {
+    getItem: key => stockChoices.get(key) || null,
+    setItem: (key, value) => stockChoices.set(key, value),
+    removeItem: key => stockChoices.delete(key)
+  };
   sandbox.alert = message => alerts.push(message);
   sandbox.fetch = async (url, request) => {
     requests.push({ url, body: JSON.parse(request.body) });
@@ -535,6 +541,7 @@ for (const kind of ['catalog', 'order_customization', 'modifier']) {
       assert.equal(app.requests.at(-1).body.duration, duration);
       assert.equal(app.control('stockModal').style.display, 'none');
       app.open();
+      assert.equal(app.control('stock-duration-select').value, duration, 'Reopening restores the persisted duration');
       assert.equal(app.control('btn-stock-restore').hidden, false);
       await app.sandbox.chooseStockStatus('in_stock');
       assert.equal(app.target().isOos, false);
@@ -561,6 +568,23 @@ test('a specific date is not saved before applying, and past dates cannot write'
   await app.sandbox.saveStockStatus();
   assert.equal(app.requests.length, 1);
   assert.equal(app.requests[0].body.until_date, date + 'T04:00:00+07:00');
+  app.open();
+  assert.equal(app.control('stock-duration-select').value, 'multiple_days');
+  assert.equal(app.control('oos-until-date').value, date);
+  assert.equal(app.requests.length, 1, 'Reopening does not save again');
+});
+
+test('server expiry restores a saved selection without storage and ignores stale cached choices', async () => {
+  const app = stockFixture();
+  const date = new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10);
+  app.choose('out_of_stock', 'multiple_days', date);await app.sandbox.saveStockStatus();
+  assert.equal(app.saved()[0].items[0].outOfStockUntil, new Date(date + 'T04:00:00+07:00').toISOString());
+  app.target().outOfStockUntil = '9999-12-31T23:59:59.000Z';app.open();
+  assert.equal(app.control('stock-duration-select').value, 'indefinite', 'Server state wins over an old remembered date');
+  app.sandbox.localStorage = { getItem() { throw new Error('Unavailable'); } };
+  app.target().outOfStockUntil = new Date(date + 'T04:00:00+07:00').toISOString();app.open();
+  assert.equal(app.control('stock-duration-select').value, 'multiple_days');
+  assert.equal(app.control('oos-until-date').value, date);
 });
 
 test('switching from a date to a quick duration drops the unused expiry and cancellation sends nothing', async () => {

@@ -24,6 +24,8 @@ for (const name of browserNames) {
         const errors = [], requests = [];
         page.on('pageerror', error => errors.push(error.message));
         page.on('dialog', dialog => { errors.push(dialog.message()); void dialog.dismiss(); });
+        await page.route('http://stock.test/', route => route.fulfill({ contentType: 'text/html', body: '<!DOCTYPE html><html></html>' }));
+        await page.goto('http://stock.test/');
         await page.setContent(`<!DOCTYPE html><html><body><main style="padding:32px">
           <h1>BLAB Demo</h1><button id="menu-item-stock-0-0" onclick="openStockModal(0,0)">雞胸肉</button>
           <button id="menu-option-stock-1-0-0" onclick="openStockModalForCustomization(1,0,0)">小辣</button>
@@ -78,6 +80,7 @@ for (const name of browserNames) {
         assert.equal(requests[0].status, 'out_of_stock');assert.equal(requests[0].until_date, null);
         assert.equal(await page.evaluate(() => document.activeElement.id), 'menu-item-stock-0-0');
         await page.click('#menu-item-stock-0-0');
+        assert.equal(await page.locator('#stock-choice-today').isChecked(), true);
         await page.click('#btn-stock-restore');await waitClosed();
         assert.equal(requests.at(-1).status, 'in_stock');
 
@@ -93,6 +96,11 @@ for (const name of browserNames) {
         await page.click('#btn-stock-save');await waitClosed();
         assert.equal(requests.length, 3);assert.equal(requests.at(-1).customization_key, 'spice');
         assert.equal(requests.at(-1).until_date, min + 'T04:00:00+07:00');
+        await page.click('#menu-option-stock-1-0-0');
+        assert.equal(await page.locator('#stock-choice-multiple_days').isChecked(), true);
+        assert.equal(await page.locator('#oos-until-date').inputValue(), min);
+        await page.click('#btn-stock-cancel');await waitClosed();
+        assert.equal(requests.length, 3, 'Reopening a saved date does not write');
 
         // A failed instant write stays visible and can be retried without reopening.
         fail = true;
@@ -108,7 +116,9 @@ for (const name of browserNames) {
 
         let finish;
         pending = new Promise(resolve => { finish = resolve; });
-        await page.click('#menu-item-stock-0-0');await page.click('#btn-stock-restore');
+        await page.click('#menu-item-stock-0-0');
+        assert.equal(await page.locator('#stock-choice-indefinite').isChecked(), true);
+        await page.click('#btn-stock-restore');
         await page.waitForFunction(() => document.getElementById('stockModal').getAttribute('aria-busy') === 'true');
         assert.equal(await page.locator('#btn-stock-close').isDisabled(), true);
         assert.equal(await page.locator('#stock-choice-today').isDisabled(), true);

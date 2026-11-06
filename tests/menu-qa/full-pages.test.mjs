@@ -43,6 +43,7 @@ for (const language of ['zh-TW', 'vi']) {
       const reloadedRow = page.locator('#menu-editor-body .menu-item-row-card').first();
       assert.ok((await reloadedRow.locator('.menu-item-stock-toggle').getAttribute('class')).includes('is-oos'));
       await reloadedRow.locator('.menu-item-stock-toggle').click();
+      assert.equal(await page.locator('#stock-choice-indefinite').isChecked(), true, 'Reload restores the persisted selection');
       await page.locator('#btn-stock-restore').click();
       await page.locator('#stockModal').waitFor({ state: 'hidden' });
       assert.equal((await readStock()).out_of_stock_until, null);
