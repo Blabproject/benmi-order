@@ -55,6 +55,8 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  assert.equal(await page.locator('#view-tables,#view-review').count(),0);
  assert.equal(await page.locator('select#dinein-table-number').count(),1);
  assert.equal(await page.locator('#dinein-table-number').inputValue(),'');
+ assert.equal(await page.locator('#pickup-time-dinein-notice').isVisible(),false);
+ assert.equal(await page.locator('#pickup-time-section-title').isVisible(),false);
  assert.equal(await page.locator('#desktop-center-auth-overlay').isVisible(),false);
  assert.equal(await page.evaluate(()=>Object.values(cart).reduce((n,q)=>n+q,0)),0);
  assert(await page.evaluate(()=>!!localStorage.getItem('cart_save_a')));
@@ -149,7 +151,9 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  assert.equal(await page.locator('#dining-option-wrapper').isVisible(),false);
  assert.equal(await page.locator('#checkout-dining-option-group').isVisible(),false);
  assert.equal(await page.locator('#pickup-time-picker-group').isVisible(),false);
- assert.equal(await page.locator('#pickup-time-asap-notice').isVisible(),true);
+ assert.equal(await page.locator('#pickup-time-asap-notice').isVisible(),false);
+ assert.equal(await page.locator('#pickup-time-dinein-notice').isVisible(),false);
+ assert.equal(await page.locator('#pickup-time-section-title').isVisible(),false);
  assert.match(await page.locator('#staff-order-status').innerText(),/Đơn mang đi lấy ngay sẽ tạo đơn mới/);
  await add();
  await submit();

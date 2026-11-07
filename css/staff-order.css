@@ -3,7 +3,9 @@ html.staff-order-mode #store-header-box,
 html.staff-order-mode #dining-option-wrapper,
 html.staff-order-mode .powered-by-blab-wrap,
 html.staff-order-mode #desktop-auth-bar,
-html.staff-order-mode #desktop-center-auth-overlay { display: none !important; }
+html.staff-order-mode #desktop-center-auth-overlay,
+html.staff-order-mode #pickup-time-dinein-notice,
+html.staff-order-mode #pickup-time-asap-notice { display: none !important; }
 html.staff-order-mode button,
 html.staff-order-mode select,
 html.staff-order-mode .btn-qty,

@@ -854,13 +854,15 @@ function applyPickupConfig() {
     }
 
     const tableGroup = document.getElementById('dinein-table-input-group');
+    const secTitle = document.getElementById('pickup-time-section-title');
     const secTitleText = document.getElementById('pickup-time-title-text');
 
     if (window.currentDiningOption === 'dine_in') {
+        if (secTitle) secTitle.style.display = window.isStaffOrderMode ? 'none' : '';
         if (secTitleText) secTitleText.innerText = '點餐時間';
         if (pickerGroup) pickerGroup.style.display = 'none';
         if (asapNotice) asapNotice.style.display = 'none';
-        if (dineInNotice) dineInNotice.style.display = 'block';
+        if (dineInNotice) dineInNotice.style.display = window.isStaffOrderMode ? 'none' : 'block';
         if (tableGroup) {
             tableGroup.style.display = window.isAppendMode ? 'none' : 'block';
             if (window.currentTableNumber) {
@@ -871,16 +873,18 @@ function applyPickupConfig() {
                 }
             }
         }
-        updateAsapTimeDisplay();
+        if (!window.isStaffOrderMode) updateAsapTimeDisplay();
     } else {
         if (secTitleText) secTitleText.innerText = '取餐時間';
         if (dineInNotice) dineInNotice.style.display = 'none';
         if (tableGroup) tableGroup.style.display = 'none';
         if (storeConfig && storeConfig.allowScheduledPickup === false) {
+            if (secTitle) secTitle.style.display = window.isStaffOrderMode ? 'none' : '';
             if (pickerGroup) pickerGroup.style.display = 'none';
-            if (asapNotice) asapNotice.style.display = 'block';
-            updateAsapTimeDisplay();
+            if (asapNotice) asapNotice.style.display = window.isStaffOrderMode ? 'none' : 'block';
+            if (!window.isStaffOrderMode) updateAsapTimeDisplay();
         } else {
+            if (secTitle) secTitle.style.display = '';
             if (pickerGroup) pickerGroup.style.display = 'block';
             if (asapNotice) asapNotice.style.display = 'none';
             setTodayDate(false);

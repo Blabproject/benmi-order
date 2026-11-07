@@ -1,7 +1,7 @@
 # Graph Report - benmi-order  (2026-11-07)
 
 ## Corpus Check
-- 744 files · ~1,176,118 words
+- 744 files · ~1,176,165 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 97 file(s) not represented in the graph (top: .apk 23, .log 22, (none) 14)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `a581603d`
+- Built from commit: `c7c7665b`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -28,7 +28,7 @@
 - ref_benmi_worker_official_node_modules_typescript
 - baseline-summary.json
 - staff-single-dining-release-20261107/baseline-summary.json
-- test-order-domain-api.cjs
+- ref_node_child_process
 - types/index.ts
 - orders-menu.js
 - PrinterService
@@ -89,10 +89,10 @@
 - scripts
 - PDP: Kiến Trúc Hợp Nhất Bundle Combo & Tuỳ Chọn Thực Đơn (Unified Bundle & Customization Architecture)
 - test_line_order_layout.cjs
-- Kế hoạch copy dữ liệu menu cũ sang schema mới
+- renderMenuCategoryEditor
 - loadOperatingHours
 - openSettings
-- ref_node_child_process
+- Kế hoạch copy dữ liệu menu cũ sang schema mới
 - release-baseline-summary.json
 - test_pos_confirmed_print.cjs
 - PDP: Đề xuất Chuyển đổi và Tối ưu hóa Benmi sang mô hình SaaS Đa Hộ Thuê (Multi-Tenant SaaS)
@@ -111,7 +111,7 @@
 - pickup-only/tests/test_pickup_time_picker.cjs
 - Element
 - check-release-baseline.mjs
-- renderMenuCategoryEditor
+- long-text.cjs
 - 0075_line_pay_v4.sql
 - manual-store-status-release-20261107/release-summary.json
 - 5. Architectural Solutions for Critical Technical Concerns
@@ -174,7 +174,7 @@
 - production-js__client-cart.js
 - renderStoreLogoUI
 - cloudflare-d1.cjs
-- Điều tra sự cố khách không đặt được đơn — zhadantongxue
+- PDP: AI Order-Intent Classifier → Clef-flash [Replace]
 - clearTimeout
 - PDP: Hỗ Trợ Đơn Lấy Mang Đi (Takeaway) & Ăn Tại Quán (Dine-in)
 - verify_store_info_and_printer_pill.js
@@ -183,10 +183,10 @@
 - Specification: Go Backend Refactor & PostgreSQL Migration
 - payment-session.js
 - verify_history_and_menu_ui.js
-- long-text.cjs
-- verify_settings_isolated_tabs.js
+- set-order-domain.mjs
+- test-liff-message-retry.cjs
 - _this
-- Customer order domain rollout
+- test-order-domain-api.cjs
 - pickup-db-release-20261107/README.md
 - Danh sách Task nhỏ cần thực hiện
 - verify_menu_and_settings.js
@@ -211,11 +211,11 @@
 - test_threshold_bowl_autopromote.cjs
 - copy_tenant_prod_to_dev.mjs
 - Production migration to Cloudflare cf — 2026-10-07
-- 4. Exact 64-Function Mapping Table
+- Điều tra sự cố khách không đặt được đơn — zhadantongxue
 - PDP: Kiến Trúc Ứng Dụng POS Đa Điểm Bán Mở Rộng Cho Hàng Nghìn Quán (Universal Multi-Tenant POS Platform)
 - 3. Proposed Architecture
 - inline-nested-options-20261106/README.md
-- set-order-domain.mjs
+- 4. Exact 64-Function Mapping Table
 - Staff ordering — Theo dõi release và xác nhận
 - 3. Proposed Architecture
 - 4. Deploy đang chạy và mốc quay lui
@@ -223,12 +223,12 @@
 - R02 — Runbook apply một migration sau khi được xác nhận
 - R02 — Kiểm tra CI ngày 22/10/2026 JST
 - test_payment_redirect.cjs
-- test-liff-message-retry.cjs
+- test-modifier-library.cjs
 - test_order_detail_groups.cjs
 - switchSettingTab
 - renderScheduledPickupSetting
 - Feature Cluster A: Cấu hình và Xác thực Admin (Auth & Config)
-- Order detail snapshots
+- Customer order domain rollout
 - Detailed Design
 - test_pickup_eta.cjs
 - test_zhadantongxue_no_bundle_duplication.cjs
@@ -236,9 +236,9 @@
 - test_order_detail_mobile_scroll.cjs
 - Checkpoint: Menu Compatibility & Customization Hardening — Complete Implementation Status
 - verify_totals.js
-- transitionToSubEditor
+- getStoreModifiersList
 - ref_node_vm
-- PDP: AI Order-Intent Classifier → Clef-flash [Replace]
+- Các task nhỏ
 - update.mjs
 - Graph Report - benmi-order  (2026-11-07)
 - test_pos_menu_mobile.cjs
@@ -246,19 +246,19 @@
 - 1. So sánh Cấu trúc Bảng Hiện tại vs Đích
 - 3. Proposed Architecture
 - finishReviewFlow
-- test-modifier-library.cjs
-- Các task nhỏ
+- verify_settings_isolated_tabs.js
+- test_order_prefix_unique.js
 - test_cluster1_category_item_modifiers.cjs
 - test_required_option_popup_browser.cjs
-- test_order_prefix_unique.js
 - test_table_qr_ordering.cjs
+- line-order-layout.cjs
 - marketplace.js
 - Đánh giá kỹ thuật và kế hoạch phát triển (Bản dành cho CTO)
-- line-order-layout.cjs
+- 1. Executive Summary & Objectives
 - 3. Kiến trúc đề xuất
 - 4. Kế hoạch phát triển và Ước lượng thời gian (Cơ sở: 1 Developer)
 - 0057_create_staff_ordering_and_tables.sql
-- 1. Executive Summary & Objectives
+- Order detail snapshots
 - PDP: BSC Multi-Tenant Platform Unification & Interactive Notification Architecture [Migrate/Enhance]
 - 4. Kế hoạch triển khai cho một dev
 - PDP: Multi-Tenant Marketplace & Interactive Map Discovery Platform [New]
@@ -446,9 +446,9 @@ Nodes (20): application, changedFromHead, fileCount, sha256, branch, commit, dep
 Cohesion: 0.10
 Nodes (20): application, changedFromHead, fileCount, sha256, branch, commit, dependencies, lockfiles (+12 more)
 
-### Community 12 - "test-order-domain-api.cjs"
-Cohesion: 0.20
-Nodes (6): assert, configRequest, {DatabaseSync}, fs, payload, {test}
+### Community 12 - "ref_node_child_process"
+Cohesion: 0.08
+Nodes (23): before, checks, config, health, output, root, run, temp (+15 more)
 
 ### Community 13 - "types/index.ts"
 Cohesion: 0.09
@@ -682,9 +682,9 @@ Nodes (39): BundleCheck, BundleGroup, BundleSource, loadBundleCatalog(), money()
 Cohesion: 0.09
 Nodes (22): buildAppendConfirmationFlexMessage(), buildOrderFlexMessage(), renderReceiptItem(), createOrderModifiedConfirmationFlexBubble(), OrderItemInput, itemNoteKey(), remainingItemNote(), assert (+14 more)
 
-### Community 74 - "Kế hoạch copy dữ liệu menu cũ sang schema mới"
-Cohesion: 0.11
-Nodes (17): Bộ kiểm tra bắt buộc của công cụ copy, Chính sách đối với canonical đã tồn tại, Context đầy đủ cho session tiếp theo, Các cột bổ sung dự kiến, Danh sách file cần đọc trước khi viết script, Dữ liệu được copy, Kế hoạch copy dữ liệu menu cũ sang schema mới, Lưu ý đã xác nhận từ code (+9 more)
+### Community 74 - "renderMenuCategoryEditor"
+Cohesion: 0.21
+Nodes (20): God Nodes (most connected - your core abstractions), closeCategoriesManager(), confirmLeaveMenu(), duplicateMenuItemAt(), goToCustomizationTabFromItemModal(), handleCreateComboFromSidebar(), handleCreateCustomFromSidebar(), isComboCategory() (+12 more)
 
 ### Community 75 - "loadOperatingHours"
 Cohesion: 0.23
@@ -694,9 +694,9 @@ Nodes (12): addShift(), createDefaultOperatingHours(), ensureParsedOperatingHour
 Cohesion: 0.24
 Nodes (11): loadStoreStatus(), onDineInModeChange(), openSettings(), renderDineInSetting(), renderLanguageSetting(), renderReportsSetting(), renderStorePairingSection(), renderStoreStatusUI() (+3 more)
 
-### Community 77 - "ref_node_child_process"
-Cohesion: 0.08
-Nodes (23): before, checks, config, health, output, root, run, temp (+15 more)
+### Community 77 - "Kế hoạch copy dữ liệu menu cũ sang schema mới"
+Cohesion: 0.11
+Nodes (17): Bộ kiểm tra bắt buộc của công cụ copy, Chính sách đối với canonical đã tồn tại, Context đầy đủ cho session tiếp theo, Các cột bổ sung dự kiến, Danh sách file cần đọc trước khi viết script, Dữ liệu được copy, Kế hoạch copy dữ liệu menu cũ sang schema mới, Lưu ý đã xác nhận từ code (+9 more)
 
 ### Community 78 - "release-baseline-summary.json"
 Cohesion: 0.50
@@ -770,9 +770,9 @@ Nodes (13): decode(), Element, assert, fs, test, vm, assert, customer() (+5 more
 Cohesion: 0.16
 Nodes (11): changedSourceFiles, directory, menuOnly, report, root, sourceFiles, sourceHash, sourcePaths (+3 more)
 
-### Community 96 - "renderMenuCategoryEditor"
-Cohesion: 0.21
-Nodes (20): God Nodes (most connected - your core abstractions), closeCategoriesManager(), confirmLeaveMenu(), duplicateMenuItemAt(), goToCustomizationTabFromItemModal(), handleCreateComboFromSidebar(), handleCreateCustomFromSidebar(), isComboCategory() (+12 more)
+### Community 96 - "long-text.cjs"
+Cohesion: 0.18
+Nodes (8): assert, children, fixture, fs, path, playwright, report, rule
 
 ### Community 97 - "0075_line_pay_v4.sql"
 Cohesion: 0.17
@@ -1022,9 +1022,9 @@ Nodes (8): deleteStoreLogoSetting(), handleSettingLogoSelect(), renderStoreLogoU
 Cohesion: 0.13
 Nodes (16): CF_BIN, { execFileSync }, executeD1(), executeD1File(), executeD1Query(), fs, os, parseQueryResults() (+8 more)
 
-### Community 159 - "Điều tra sự cố khách không đặt được đơn — zhadantongxue"
+### Community 159 - "PDP: AI Order-Intent Classifier → Clef-flash [Replace]"
 Cohesion: 0.22
-Nodes (8): Bằng chứng production, Kiểm tra mở rộng khi không có thông tin từ khách, Kết luận hiện tại, Phần chưa xác minh, Thay đổi menu quan sát được trong lúc điều tra, Tái hiện trên trình duyệt, Điều tra sự cố khách không đặt được đơn — zhadantongxue, Điểm thiếu bằng chứng
+Nodes (10): formatMenuForPrompt(), 1. Executive Summary & Objectives, 2. Context & Current Architecture, 4. Migration & Rollout Strategy, 5. Alternatives Considered & Trade-offs, Goals (In-Scope), Non-Goals (Out-of-Scope), PDP: AI Order-Intent Classifier → Clef-flash [Replace] (+2 more)
 
 ### Community 160 - "clearTimeout"
 Cohesion: 0.14
@@ -1058,17 +1058,17 @@ Nodes (19): api(), clearPurchasedDraft(), completeDetail(), detach(), draft(), m
 Cohesion: 0.11
 Nodes (18): assert, forbiddenEmojis, fs, historyJs, i18nContext, i18nJs, menuJs, mockOrders (+10 more)
 
-### Community 168 - "long-text.cjs"
-Cohesion: 0.18
-Nodes (8): assert, children, fixture, fs, path, playwright, report, rule
+### Community 168 - "set-order-domain.mjs"
+Cohesion: 0.20
+Nodes (7): args, domain, expectedDomain, expectedLiffId, legacyEndpoint, payload, tenantId
 
-### Community 169 - "verify_settings_isolated_tabs.js"
-Cohesion: 0.25
-Nodes (6): fs, ordersCss, ordersHtml, ordersI18nJs, ordersSettingsJs, path
+### Community 169 - "test-liff-message-retry.cjs"
+Cohesion: 0.20
+Nodes (8): assert, client(), context, fs, messages, path, { test }, vm
 
-### Community 171 - "Customer order domain rollout"
-Cohesion: 0.32
-Nodes (7): 3.1 Binding & biến môi trường (`cloudflare.config.ts`, cả dev / staging / production), Code rollback baseline, Customer order domain rollout, Deployment verification — 2026-10-06, Switching one tenant, Tenant rollback, legacy()
+### Community 171 - "test-order-domain-api.cjs"
+Cohesion: 0.20
+Nodes (6): assert, configRequest, {DatabaseSync}, fs, payload, {test}
 
 ### Community 173 - "Danh sách Task nhỏ cần thực hiện"
 Cohesion: 0.40
@@ -1130,9 +1130,9 @@ Nodes (7): __dirname, __filename, sqlStatements, tableData, tables, tempSqlFile,
 Cohesion: 0.40
 Nodes (4): Deployment and rollback, Impact assessment, Production migration to Cloudflare cf — 2026-10-07, Verified production result
 
-### Community 197 - "4. Exact 64-Function Mapping Table"
-Cohesion: 0.31
-Nodes (9): 4. Exact 64-Function Mapping Table, 3.2 Target Directory & Module Mapping, closeBundleBuilderModal(), confirmBundleSelection(), closePopup(), saveCustomNote(), selectSingleModifier(), toggleMultipleModifier() (+1 more)
+### Community 197 - "Điều tra sự cố khách không đặt được đơn — zhadantongxue"
+Cohesion: 0.22
+Nodes (8): Bằng chứng production, Kiểm tra mở rộng khi không có thông tin từ khách, Kết luận hiện tại, Phần chưa xác minh, Thay đổi menu quan sát được trong lúc điều tra, Tái hiện trên trình duyệt, Điều tra sự cố khách không đặt được đơn — zhadantongxue, Điểm thiếu bằng chứng
 
 ### Community 198 - "PDP: Kiến Trúc Ứng Dụng POS Đa Điểm Bán Mở Rộng Cho Hàng Nghìn Quán (Universal Multi-Tenant POS Platform)"
 Cohesion: 0.12
@@ -1146,9 +1146,9 @@ Nodes (9): 1. Ingestion (`POST /api/orders` & `POST /api/checkout`), 2. Retrieva
 Cohesion: 0.22
 Nodes (16): clearHistorySearch(), currentRenderedDates, expandedHistoryDates, fetchHistoryOrders(), getTaiwanTodayStr(), groupByDate(), isOrderDineIn(), lastHistoryOrders (+8 more)
 
-### Community 201 - "set-order-domain.mjs"
-Cohesion: 0.20
-Nodes (7): args, domain, expectedDomain, expectedLiffId, legacyEndpoint, payload, tenantId
+### Community 201 - "4. Exact 64-Function Mapping Table"
+Cohesion: 0.31
+Nodes (9): 4. Exact 64-Function Mapping Table, 3.2 Target Directory & Module Mapping, closeBundleBuilderModal(), confirmBundleSelection(), closePopup(), saveCustomNote(), selectSingleModifier(), toggleMultipleModifier() (+1 more)
 
 ### Community 203 - "Staff ordering — Theo dõi release và xác nhận"
 Cohesion: 0.40
@@ -1178,9 +1178,9 @@ Nodes (3): Lần đầu: PR trỏ vào dev, R02 — Kiểm tra CI ngày 22/10/20
 Cohesion: 0.22
 Nodes (7): assert, fs, path, production, source, {test}, vm
 
-### Community 210 - "test-liff-message-retry.cjs"
-Cohesion: 0.20
-Nodes (8): assert, client(), context, fs, messages, path, { test }, vm
+### Community 210 - "test-modifier-library.cjs"
+Cohesion: 0.22
+Nodes (7): assert, context, fs, part, source, {test}, vm
 
 ### Community 211 - "test_order_detail_groups.cjs"
 Cohesion: 0.28
@@ -1198,9 +1198,9 @@ Nodes (6): onPickupModeChange(), openCustomPrepTimePrompt(), renderScheduledPick
 Cohesion: 0.33
 Nodes (5): 1. Viết SQL Migration bổ sung, Feature Cluster A: Cấu hình và Xác thực Admin (Auth & Config), Hướng dẫn xác minh (Verification Plan), Task A.1: Thiết lập Schema và Refactor API (Mã hóa mật khẩu & Đọc D1), Task A.2: Di chuyển dữ liệu và Cắt KV (Cutover)
 
-### Community 216 - "Order detail snapshots"
-Cohesion: 0.33
-Nodes (5): Contract, Order detail snapshots, Readers and compatibility, Rollout, Verification
+### Community 216 - "Customer order domain rollout"
+Cohesion: 0.32
+Nodes (7): 3.1 Binding & biến môi trường (`cloudflare.config.ts`, cả dev / staging / production), Code rollback baseline, Customer order domain rollout, Deployment verification — 2026-10-06, Switching one tenant, Tenant rollback, legacy()
 
 ### Community 217 - "Detailed Design"
 Cohesion: 0.17
@@ -1230,7 +1230,7 @@ Nodes (12): 1. Bảng Trạng Thái Triển Khai Theo Bước (T0 → T8), 2. K�
 Cohesion: 0.12
 Nodes (14): assert, fs, html, i18n, modals, orderFallbackText, orderUserReported, orderWithDiscount (+6 more)
 
-### Community 226 - "transitionToSubEditor"
+### Community 226 - "getStoreModifiersList"
 Cohesion: 0.21
 Nodes (13): filterItemModifierCards(), getInheritedItemModifierGroups(), getStoreModifiersList(), isModifierAppliedToCategory(), openItemModifiersModal(), openModifierLibraryModal(), renderItemModifiersEditor(), selectAllCategoryModifiers() (+5 more)
 
@@ -1238,9 +1238,9 @@ Nodes (13): filterItemModifierCards(), getInheritedItemModifierGroups(), getStor
 Cohesion: 0.05
 Nodes (27): source, source, assert, fs, test, vm, assert, fs (+19 more)
 
-### Community 228 - "PDP: AI Order-Intent Classifier → Clef-flash [Replace]"
-Cohesion: 0.22
-Nodes (10): formatMenuForPrompt(), 1. Executive Summary & Objectives, 2. Context & Current Architecture, 4. Migration & Rollout Strategy, 5. Alternatives Considered & Trade-offs, Goals (In-Scope), Non-Goals (Out-of-Scope), PDP: AI Order-Intent Classifier → Clef-flash [Replace] (+2 more)
+### Community 228 - "Các task nhỏ"
+Cohesion: 0.25
+Nodes (8): Các task nhỏ, T01 — Chốt nguồn/đích và kiểm kê read-only, T02 — Tạo snapshot nhất quán và bản database riêng, T03 — Chốt mapping từng field và identity, T04 — Viết DDL bổ sung tối thiểu, T06 — Copy vào database riêng, T07 — Đối chiếu dữ liệu sau copy, T08 — Đánh giá đích vận hành và bàn giao
 
 ### Community 229 - "update.mjs"
 Cohesion: 0.50
@@ -1270,13 +1270,13 @@ Nodes (9): 1. Payload Nhận Đơn Mới (`POST /api/create`):, 2. Xử Lý Ghi 
 Cohesion: 0.33
 Nodes (9): dismissReviewModal(), finishReviewFlow(), getRemainingNewOrderKey(), markReadyFromReview(), reviewAccept(), reviewForceCancel(), showStaffOrderMiniToast(), updateNewAlert() (+1 more)
 
-### Community 237 - "test-modifier-library.cjs"
-Cohesion: 0.22
-Nodes (7): assert, context, fs, part, source, {test}, vm
-
-### Community 238 - "Các task nhỏ"
+### Community 237 - "verify_settings_isolated_tabs.js"
 Cohesion: 0.25
-Nodes (8): Các task nhỏ, T01 — Chốt nguồn/đích và kiểm kê read-only, T02 — Tạo snapshot nhất quán và bản database riêng, T03 — Chốt mapping từng field và identity, T04 — Viết DDL bổ sung tối thiểu, T06 — Copy vào database riêng, T07 — Đối chiếu dữ liệu sau copy, T08 — Đánh giá đích vận hành và bàn giao
+Nodes (6): fs, ordersCss, ordersHtml, ordersI18nJs, ordersSettingsJs, path
+
+### Community 238 - "test_order_prefix_unique.js"
+Cohesion: 0.25
+Nodes (6): assert, migration, path, { readFileSync }, { spawnSync }, { test }
 
 ### Community 239 - "test_cluster1_category_item_modifiers.cjs"
 Cohesion: 0.25
@@ -1286,13 +1286,13 @@ Nodes (7): assert, { DatabaseSync }, FIXTURE_CLUSTER1_NEW_SCHEMA, fs, path, { te
 Cohesion: 0.22
 Nodes (6): assert, { execFileSync }, fs, path, root, { test }
 
-### Community 241 - "test_order_prefix_unique.js"
-Cohesion: 0.25
-Nodes (6): assert, migration, path, { readFileSync }, { spawnSync }, { test }
-
-### Community 242 - "test_table_qr_ordering.cjs"
+### Community 241 - "test_table_qr_ordering.cjs"
 Cohesion: 0.25
 Nodes (6): assert, { DatabaseSync }, fs, path, { test }, vm
+
+### Community 242 - "line-order-layout.cjs"
+Cohesion: 0.52
+Nodes (5): choice(), group(), line(), portions(), snapshot()
 
 ### Community 243 - "marketplace.js"
 Cohesion: 0.33
@@ -1302,9 +1302,9 @@ Nodes (3): 2. Hiện trạng đã kiểm tra, buildMarketplaceOrderUrl(), resolv
 Cohesion: 0.29
 Nodes (6): 3.4. Giao dịch tiền và nhiều thiết bị, 2. Bốn lỗ hổng kỹ thuật trong code hiện tại bắt buộc phải gia cố trước khi làm Ví tiền thật, 3. Kiến trúc dữ liệu đề xuất (Vừa vặn cho 1 Dev triển khai trên D1), 5. Ba lưu ý sống còn dành cho CTO khi làm việc với Sale, Đánh giá kỹ thuật và kế hoạch phát triển (Bản dành cho CTO), batch()
 
-### Community 245 - "line-order-layout.cjs"
-Cohesion: 0.52
-Nodes (5): choice(), group(), line(), portions(), snapshot()
+### Community 245 - "1. Executive Summary & Objectives"
+Cohesion: 0.33
+Nodes (5): 1. Executive Summary & Objectives, 2. Thư mục Nhiệm vụ (Task Index), [CRITICAL RISK] Bảo toàn trạng thái hết hàng (Sell out), PDP: Menu Synchronization & Multi-Tenant Isolation [Overview], Problem Statement
 
 ### Community 246 - "3. Kiến trúc đề xuất"
 Cohesion: 0.33
@@ -1318,9 +1318,9 @@ Nodes (6): 4. Kế hoạch phát triển và Ước lượng thời gian (Cơ s�
 Cohesion: 0.17
 Nodes (14): idx_orders_active_staff_table, idx_restaurant_tables_tenant_active, idx_restaurant_tables_tenant_label, idx_staff_order_requests_order, idx_staff_sessions_tenant, restaurant_tables, staff_order_requests, staff_sessions (+6 more)
 
-### Community 249 - "1. Executive Summary & Objectives"
+### Community 249 - "Order detail snapshots"
 Cohesion: 0.33
-Nodes (5): 1. Executive Summary & Objectives, 2. Thư mục Nhiệm vụ (Task Index), [CRITICAL RISK] Bảo toàn trạng thái hết hàng (Sell out), PDP: Menu Synchronization & Multi-Tenant Isolation [Overview], Problem Statement
+Nodes (5): Contract, Order detail snapshots, Readers and compatibility, Rollout, Verification
 
 ### Community 250 - "PDP: BSC Multi-Tenant Platform Unification & Interactive Notification Architecture [Migrate/Enhance]"
 Cohesion: 0.13
@@ -1644,7 +1644,7 @@ Nodes (3): Sheet: Doi_Chieu_Chuc_Nang, Sheet: Ke_Hoach_Phat_Trien, Sheet: Phan_L
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `createOrder()` connect `orders.ts` to `renderMenuCategoryEditor`, `src/index.ts`, `line.ts`, `test_line_order_layout.cjs`, `PDP: Dashboard Order Latency Fix`, `Đánh giá kỹ thuật và kế hoạch phát triển (Bản dành cho CTO)`, `bootstrap.ts`, `staff.ts`, `PDP: Mở rộng Benmi cho chuỗi suất ăn ký túc xá và bếp trung tâm [New]`?**
+- **Why does `createOrder()` connect `orders.ts` to `src/index.ts`, `line.ts`, `test_line_order_layout.cjs`, `renderMenuCategoryEditor`, `PDP: Dashboard Order Latency Fix`, `Đánh giá kỹ thuật và kế hoạch phát triển (Bản dành cho CTO)`, `bootstrap.ts`, `staff.ts`, `PDP: Mở rộng Benmi cho chuỗi suất ăn ký túc xá và bếp trung tâm [New]`?**
   _High betweenness centrality (0.068) - this node is a cross-community bridge._
 - **Should `src/index.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.10736764161421695 - nodes in this community are weakly interconnected._
