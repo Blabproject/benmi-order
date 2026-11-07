@@ -12845,12 +12845,15 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
   background: #fff;
 }
 
-.restaurant-tables-header {
-  display: flex;
-  justify-content: flex-end;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e2e8f0;
+.settings-content-panel .panel-header:has(#settings-table-tools:not([hidden])) {
+  height: auto;
+  min-height: 64px;
+  padding: 8px 20px;
+  flex-wrap: wrap;
+  gap: 8px 16px;
 }
+.restaurant-tables-header { display: flex; justify-content: flex-end; min-width: 0; max-width: 100%; margin-left: auto; }
+.restaurant-tables-header[hidden] { display: none; }
 .restaurant-tables-header-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; min-width: 0; }
 .restaurant-tables-header-btn, .table-action-btn {
   appearance: none;
@@ -12914,9 +12917,6 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
 .restaurant-tables-empty-icon { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; margin-bottom: 12px; border-radius: 12px; background: #f1f5f9; color: #94a3b8; }
 
 @container restaurant-tables (max-width: 719.98px) {
-  .restaurant-tables-header { padding: 12px; }
-  .restaurant-tables-header-actions { width: 100%; }
-  .restaurant-tables-header-btn { flex: 1 1 auto; }
   #setting-tables-body { padding: 12px !important; }
   .restaurant-tables-table-wrap { border: 0; background: transparent; overflow: visible; }
   .restaurant-tables-table, .restaurant-tables-table tbody { display: block; width: 100%; }
@@ -12931,6 +12931,12 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
   .restaurant-table-actions-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); }
   .table-action-btn { min-width: 0; white-space: normal; }
   .restaurant-tables-table tbody > tr:not(.restaurant-table-row), .restaurant-tables-table tbody > tr:not(.restaurant-table-row) > td { display: block; width: 100%; box-sizing: border-box; }
+}
+
+@media (max-width: 767px) {
+  .settings-content-panel .panel-header:has(#settings-table-tools:not([hidden])) { padding: 8px 10px; }
+  #settings-table-tools, #settings-table-tools .restaurant-tables-header-actions { width: 100%; }
+  #settings-table-tools .restaurant-tables-header-btn { flex: 1 1 auto; }
 }
 
 /* =======================================================

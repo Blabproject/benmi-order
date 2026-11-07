@@ -1630,6 +1630,9 @@ function switchSettingTab(cardId) {
   });
   targetCard.classList.add("active");
 
+  const tableTools = document.getElementById("settings-table-tools");
+  if (tableTools) tableTools.hidden = targetId !== "setting-card-tables";
+
   // 2. Set active TOC item
   if (matchedSec) {
     setActiveTocItem(matchedSec.tocId);

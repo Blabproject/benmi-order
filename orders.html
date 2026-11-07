@@ -7,7 +7,7 @@
   <title id="pos-page-title">Blab POS</title>
   <base href="/" />
   <script src="js/orders-display.js?v=20261007_dev_main_sync_v1"></script>
-  <link rel="stylesheet" href="css/orders.css?v=20261107_tables_ui_v1" />
+  <link rel="stylesheet" href="css/orders.css?v=20261107_tables_header_v2" />
   <link rel="stylesheet" href="css/orders-stock.css?v=20261107_stock_drawer_v1" />
   <link rel="stylesheet" href="css/orders-menu.css?v=20261102_menu_mobile_v5" />
     <script>
@@ -758,6 +758,34 @@
                 <div class="panel-title" id="i18n-settings-title">門市接單狀態</div>
               </div>
             </div>
+            <div class="restaurant-tables-header" id="settings-table-tools" hidden role="group" aria-labelledby="i18n-settings-title">
+              <div class="restaurant-tables-header-actions">
+                <button type="button" class="restaurant-tables-header-btn btn-outline" onclick="printAllTablesQrA4()" id="i18n-table-print-all-btn">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <rect x="6" y="14" width="12" height="8"></rect>
+                  </svg>
+                  <span>列印全部 QR (A4)</span>
+                </button>
+                <button type="button" class="restaurant-tables-header-btn btn-outline" onclick="openBatchTableModal()" id="i18n-table-batch-btn">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                  </svg>
+                  <span>批次新增桌號</span>
+                </button>
+                <button type="button" class="restaurant-tables-header-btn btn-primary" onclick="openAddTableModal()" id="i18n-table-add-btn">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>新增桌號</span>
+                </button>
+              </div>
+            </div>
             <div class="settings-header-right"></div>
           </div>
           <div class="settings-content-body" id="settings-scroll-container">
@@ -1092,35 +1120,6 @@
 
             <!-- Restaurant Tables Setting Card -->
             <div class="settings-card restaurant-tables-card" id="setting-card-tables">
-              <div class="restaurant-tables-header" role="group" aria-labelledby="i18n-settings-title">
-                <div class="restaurant-tables-header-actions">
-                  <button type="button" class="restaurant-tables-header-btn btn-outline" onclick="printAllTablesQrA4()" id="i18n-table-print-all-btn">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                      <rect x="6" y="14" width="12" height="8"></rect>
-                    </svg>
-                    <span>列印全部 QR (A4)</span>
-                  </button>
-                  <button type="button" class="restaurant-tables-header-btn btn-outline" onclick="openBatchTableModal()" id="i18n-table-batch-btn">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="3" y="3" width="7" height="7"></rect>
-                      <rect x="14" y="3" width="7" height="7"></rect>
-                      <rect x="14" y="14" width="7" height="7"></rect>
-                      <rect x="3" y="14" width="7" height="7"></rect>
-                    </svg>
-                    <span>批次新增桌號</span>
-                  </button>
-                  <button type="button" class="restaurant-tables-header-btn btn-primary" onclick="openAddTableModal()" id="i18n-table-add-btn">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <line x1="12" y1="5" x2="12" y2="19"></line>
-                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    <span>新增桌號</span>
-                  </button>
-                </div>
-              </div>
-
               <div id="setting-tables-body" style="padding: 20px;">
                 <!-- Locked Banner if staff ordering is disabled -->
                 <div id="setting-tables-locked-body" style="display: none; background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%); border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 14px 18px; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
@@ -3231,7 +3230,7 @@
   </section>
 
   <!-- Benmi POS Modular Architecture Scripts -->
-  <script src="js/orders-i18n.js?v=20261107_tables_ui_v1"></script>
+  <script src="js/orders-i18n.js?v=20261107_tables_header_v2"></script>
   <script src="js/orders-core.js?v=20261107_relative_time_v1"></script>
   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
@@ -3242,7 +3241,7 @@
   <script src="js/orders-history.js?v=20261101_linepay_v1"></script>
   <script src="js/orders-reports.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/qrcode.min.js?v=20261107_table_qr_v1"></script>
-  <script src="js/orders-settings.js?v=20261107_tables_ui_v1"></script>
+  <script src="js/orders-settings.js?v=20261107_tables_header_v2"></script>
   <script src="js/orders-menu-model.js?v=20261104_menu_model_v1"></script>
   <script src="js/orders-menu.js?v=20261107_stock_restore_v2"></script>
   <script src="js/orders-bundle-wizard.js?v=20261007_dev_main_sync_v1"></script>

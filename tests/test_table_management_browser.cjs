@@ -37,6 +37,12 @@ for(const [name,engine]of Object.entries({chromium,webkit}))test(`${name}: table
  const row=id=>page.locator(`.restaurant-table-row[data-table-id="${id}"]`);
  assert.equal(await page.locator('#i18n-setting-tables-title,#i18n-setting-tables-sub').count(),0);
  assert.equal(await page.locator('#i18n-settings-title').innerText(),'Quản lý bàn');
+ assert.equal(await page.locator('.settings-content-panel > .panel-header #settings-table-tools').count(),1);
+ assert.equal(await page.locator('#setting-card-tables .restaurant-tables-header').count(),0);
+ await page.evaluate(()=>switchSettingTab('setting-card-status'));
+ assert.equal(await page.locator('#settings-table-tools').isVisible(),false);
+ await page.evaluate(()=>switchSettingTab('setting-card-tables'));
+ assert.equal(await page.locator('#settings-table-tools').isVisible(),true);
  assert.equal(await row('table-a').locator('.table-action-btn-disable').isDisabled(),true);
  assert.equal(await row('table-a').locator('.table-action-btn-edit').isDisabled(),false);
  assert.match(await row('table-a').locator('.restaurant-table-action-reason').innerText(),/chưa thanh toán/);
@@ -52,6 +58,15 @@ for(const [name,engine]of Object.entries({chromium,webkit}))test(`${name}: table
    order:[...el.querySelectorAll('.restaurant-table-order-code')].map(n=>({width:n.getBoundingClientRect().width,overflow:n.scrollWidth>n.clientWidth+1}))
   }));
   assert.equal(layout.overflow,false,`${name}/${viewport.width}/${locale}: panel overflow`);
+  const header=await page.locator('.settings-content-panel > .panel-header').evaluate(el=>({
+   overflow:el.scrollWidth>el.clientWidth+1,
+   title:el.querySelector('#i18n-settings-title').getBoundingClientRect().toJSON(),
+   tools:el.querySelector('#settings-table-tools').getBoundingClientRect().toJSON(),
+   controls:[...el.querySelectorAll('#settings-table-tools button')].filter(b=>b.getBoundingClientRect().width).map(b=>({width:b.getBoundingClientRect().width,height:b.getBoundingClientRect().height}))
+  }));
+  assert.equal(header.overflow,false,`${name}/${viewport.width}/${locale}: header overflow`);
+  assert(header.controls.every(b=>b.width>=47.9&&b.height>=47.9));
+  if(viewport.width===1440)assert(header.tools.left>=header.title.right&&header.tools.top<=header.title.bottom,'Toolbar shares the title row');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   assert(layout.controls.every(b=>b.width>=47.9&&b.height>=47.9),JSON.stringify({viewport,layout}));
   assert(layout.controls.every(b=>!['outset','inset'].includes(b.border)),'No native raised button borders');
