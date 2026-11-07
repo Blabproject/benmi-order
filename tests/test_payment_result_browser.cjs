@@ -37,7 +37,7 @@ async function fixture(browser,options={}){
    calls.push({url:url.href,path:url.pathname,method:req.method(),headers:req.headers(),body:req.postData()});
    if(model.delay&&url.pathname.endsWith('/confirm'))await model.delay;
    if(url.pathname.endsWith('/cancel')&&model.cancelReply&&!model.offline)model.data=model.cancelReply;
-   const data=url.pathname.endsWith('/config')?{linePay:{enabled:!model.payDisabled}}:url.pathname.endsWith('/request')?(model.requestReply||{id,status:'PENDING',paymentUrl:'https://sandbox-web-pay.line.me/web/payment/test'}):model.data;
+   const data=url.pathname.endsWith('/config')?{linePay:{enabled:!model.payDisabled},paymentMethods:model.payDisabled?['line_pay']:['line_pay','cash']}:url.pathname.endsWith('/request')?(model.requestReply||{id,status:'PENDING',paymentUrl:'https://sandbox-web-pay.line.me/web/payment/test'}):model.data;
    const offline=model.offline&&!url.pathname.endsWith('/config');
    return route.fulfill({status:offline?503:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify(offline?{code:'UNAVAILABLE'}:data)});
   }
@@ -185,7 +185,7 @@ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('LINE 
   if(process.env.PAYMENT_RESULT_SCREENSHOT_DIR){fs.mkdirSync(process.env.PAYMENT_RESULT_SCREENSHOT_DIR,{recursive:true});await f.page.screenshot({path:path.join(process.env.PAYMENT_RESULT_SCREENSHOT_DIR,'cancel-'+name+'.png'),fullPage:true});}
   await f.page.getByRole('button',{name:'Xác nhận hủy',exact:true}).click();await f.page.waitForSelector('#payment-cancel-dialog',{state:'detached'});
   await other.waitForFunction(()=>!LinePayCheckout.blocked());assert.equal(await other.evaluate(()=>sessionStorage.getItem('order_detail_pending:a')),null);assert.equal(await other.evaluate(()=>cart.meal),1);await other.close();
-  assert.equal(await f.page.evaluate(()=>cart.meal),3);assert.equal(await f.page.evaluate(()=>LinePayCheckout.blocked()),false);assert.equal(await f.page.evaluate(()=>LinePayCheckout.selected()),false);
+  assert.equal(await f.page.evaluate(()=>cart.meal),3);assert.equal(await f.page.evaluate(()=>LinePayCheckout.blocked()),false);assert.equal(await f.page.evaluate(()=>LinePayCheckout.selected()),true);
   assert.equal(await f.page.evaluate(()=>JSON.parse(localStorage.getItem('cart_save_a')).cart.meal),3);
   assert.equal(await f.page.evaluate(()=>sessionStorage.getItem('order_detail_pending:a')),null);
   assert.equal(f.calls.filter(c=>c.path.endsWith('/request')).length,0);assert.equal(f.calls.filter(c=>c.path.endsWith('/cancel')).length,1);
@@ -217,14 +217,16 @@ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('Check
    assert.equal(await f.page.locator('.payment-method-heading svg').count(),1);
    const paymentBox=await f.page.locator('#payment-method').boundingBox(),cartBox=await f.page.locator('#cart-summary').boundingBox();
    assert(paymentBox.y+paymentBox.height<cartBox.y,'Payment choices appear above the cart summary');
-   assert.equal(await f.page.locator('input[name="payment-method"][value="cash"]').isChecked(),true);
+   assert.equal(await f.page.locator('input[name="payment-method"][value="line_pay"]').isChecked(),true);
    for(const box of await f.page.locator('.payment-method-option').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect())))assert(box.height>=48);
    await f.page.locator('#add').click();
    assert.equal(await button.isEnabled(),true);
-   assert.equal(await button.innerText(),lang==='vi'?'Xác nhận đặt món':'確認下單');
+   assert.equal(await button.innerText(),lang==='vi'?'Đến LINE Pay thanh toán':'前往 LINE Pay 付款');
    assert.equal(await f.page.locator('#checkout-empty-cart-hint').isVisible(),false);
    const cash=f.page.locator('input[name="payment-method"][value="cash"]');
-   await cash.focus();await f.page.keyboard.press('ArrowDown');
+   await cash.check();
+   assert.equal(await button.innerText(),lang==='vi'?'Xác nhận đặt món':'確認下單');
+   await cash.focus();await f.page.keyboard.press('ArrowUp');
    assert.equal(await f.page.locator('input[value="line_pay"]').isChecked(),true);
    assert.equal(await button.innerText(),lang==='vi'?'Đến LINE Pay thanh toán':'前往 LINE Pay 付款');
    assert.equal(await f.page.locator('#payment-method-hint').count(),0);
