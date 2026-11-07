@@ -6,9 +6,10 @@ Tài liệu này mô tả chi tiết kiến trúc đa môi trường (**STAGING*
 
 ## 1. Kiến Trúc Tổng Quan (System Architecture)
 
-Hệ thống bao gồm 2 tầng chính:
-- **FrontEnd (Cloudflare Pages):** Gồm trang đặt món khách hàng (`index.html`) và Bảng quản lý đơn hàng POS (`orders.html`), phân tách logic thành các module JS tinh gọn (`js/client-checkout.js`, `js/orders-core.js`, `js/orders-live.js`, `js/orders-menu.js`, v.v.).
-- **BackEnd (Cloudflare Workers, D1 & KV):** Xử lý API, xác thực LINE Webhook, đồng bộ đơn hàng theo thời gian thực (ETag & Cache Optimization) và quản lý cấu hình từng quán (Multi-tenant).
+Hệ thống bao gồm 3 tầng chính:
+- **FrontEnd (Cloudflare Pages):** Gồm trang thực đơn khách hàng (`index.html`) và Bảng quản lý đơn hàng POS (`orders.html`), phân tách logic thành các module JS tinh gọn. Được tích hợp module **WebAssembly (`wasm/pricing-engine/`)** biên dịch trực tiếp từ Rust để tính toán giỏ hàng, combo bundle và kiểm định tùy chọn món theo thời gian thực với tốc độ sub-millisecond.
+- **BackEnd Gateway (Cloudflare Workers, D1 & KV):** Xử lý API, xác thực LINE Webhook, đồng bộ đơn hàng thời gian thực (`benmi-worker-official`).
+- **Lõi Tính Giá & Kiểm Định Đơn Hàng (Rust Engine - `benmi-pricing-rs`):** Microservice viết bằng Rust (`workers-rs`) kết nối qua Service Binding RPC (`env.PRICING_ENGINE`), đảm bảo đối chiếu đơn hàng và xác thực quy tắc tùy biến với số học thập phân chính xác tuyệt đối (`rust_decimal`).
 
 ```mermaid
 graph TD
@@ -159,3 +160,17 @@ git merge staging
 git push origin main
 git checkout staging
 ```
+
+### C. Động Cơ Rust (`benmi-pricing-rs`) & WebAssembly (`wasm/`):
+- **Phía Client (WebAssembly)**:
+  - Bản build WASM được commit sẵn trong `wasm/pricing-engine/`. Khi push lên Git, Cloudflare Pages tự động phân phối như một asset tĩnh với bộ nhớ đệm bất biến 1 năm (`/wasm/*`).
+  - Lệnh build lại WASM khi có thay đổi logic: `npm run build:wasm`.
+  - Lệnh kiểm thử tính toán WASM: `npm run test:wasm`.
+- **Phía Backend (`benmi-pricing-rs`)**:
+  - Worker Rust là stateless microservice, **không cần deploy lại** khi thêm quán mới hay đổi giá món/menu hàng ngày.
+  - Chỉ deploy lại khi thay đổi thuật toán khuyến mãi hoặc schema dữ liệu:
+    ```bash
+    cd benmi-pricing-rs/crates/pricing-worker
+    worker-build --release
+    npx --prefix ../../../benmi-worker-official wrangler deploy
+    ```

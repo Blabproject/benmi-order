@@ -12,8 +12,10 @@ Benmi Order is a serverless, multi-tenant F&B ordering and POS platform built on
 graph TD
     Client[Khách Hàng - LINE LIFF / Mobile] -->|Mobile-First Web App| IndexPage[index.html / client-checkout.js]
     Staff[Nhân Viên / Quầy - Tablet POS] -->|Tablet-First Dashboard| PosPage[orders.html / js/orders-*.js]
+    IndexPage -->|Offline/Realtime WASM| WasmEngine[WebAssembly: wasm/pricing-engine]
     IndexPage -->|REST API| Worker[Cloudflare Worker: benmi-worker-official]
     PosPage -->|REST API / SSE| Worker
+    Worker -->|Service Binding RPC| RustWorker[Rust Engine: benmi-pricing-rs]
     Worker -->|Edge Cache < 10ms| KV[(Cloudflare KV: ORDER_STATE)]
     Worker -->|Single Source of Truth| D1[(Cloudflare D1: SQLite at Edge)]
     Worker -->|Push / Reply| LINE[LINE Messaging API]
@@ -21,8 +23,13 @@ graph TD
 
 ### Directory Structure:
 - **`index.html` & `index.css` & `js/client-checkout.js`**: Customer Menu web app, optimized for LINE LIFF In-App Browser (Mobile-First).
+- **`wasm/pricing-engine/` & `js/client-pricing-wasm.js`**: WebAssembly module compiled from Rust `pricing-core` for instant, edge-identical cart & bundle calculations on client.
 - **`orders.html` & `css/orders.css` & `js/orders-*.js`**: Real-time POS Dashboard for store staff (Tablet/iPad-First).
 - **`benmi-worker-official/`**: Cloudflare Workers backend (TypeScript, D1 migrations, KV edge cache, LINE bot webhook).
+- **`benmi-pricing-rs/`**: High-performance Rust Workspace:
+  - `crates/pricing-core`: Shared pure Rust business logic (Decimal arithmetic, bundle calculations, option graph validator, round builder).
+  - `crates/pricing-worker`: Cloudflare Worker co-processor (`workers-rs`) connected via Service Binding (`env.PRICING_ENGINE`).
+  - `crates/pricing-wasm`: WebAssembly bindings compiled via `wasm-pack` for browser execution.
 - **`docs/proposals/`**: Principal Design Proposals (PDP) for major feature architectures.
 - **`.agents/`**: Repository-specific AI Agent Rules and Skills.
 - **Bản đồ chỉ mục hàm & file (Đọc đầu tiên để định vị code tức thì, không cần grep)**: Xem chi tiết tại [codebase-map.md](file:///.agents/rules/codebase-map.md).
@@ -76,6 +83,15 @@ graph TD
   - Sau khi Graphify trả về node kèm vị trí dòng (`loc=L...`), chỉ đọc đúng dải dòng đó, không đọc tràn lan.
 - **Đồng bộ đồ thị AST sau khi code**: Sau khi hoàn thành sửa đổi code, chạy `npm run graphify:update` (hoặc `graphify update .`) để giữ `graphify-out/graph.json` luôn cập nhật (hoàn toàn miễn phí, không tốn LLM API).
 - **Chỉnh sửa Tức thì khi Sửa Gấp (Surgical Fast-Fixes)**: Khi người dùng yêu cầu sửa nhanh hoặc sửa gấp, đi thẳng vào các điểm cần sửa, thay đổi tối thiểu, chạy kiểm thử Cấp 1 (`npm run check`) và kết thúc lượt, không kéo dài phân tích.
+
+### F. Động Cơ Tính Giá & Kiểm Định Tùy Chọn Rust (Rust Pricing Engine & WASM)
+- **Kiến trúc Chia Sẻ Lõi (Zero Logic Drift)**: Toàn bộ thuật toán tính giá, đối chiếu đơn hàng và xác thực cây tùy chọn đều tập trung tại crate thuần `benmi-pricing-rs/crates/pricing-core`.
+  - **Server-Side (Authoritative Boundary)**: Chạy trên Worker `benmi-pricing-rs` kết nối qua Cloudflare Service Binding (`env.PRICING_ENGINE`). Tự động fallback về TypeScript nếu có sự cố hạ tầng kết nối.
+  - **Client-Side (Realtime Cart WASM)**: Được biên dịch qua `wasm-pack` thành package `wasm/pricing-engine/` và nhúng vào `index.html` qua `js/client-pricing-wasm.js`. Tính toán tức thì ngay trên thiết bị người dùng (sub-millisecond) với số học thập phân chính xác tuyệt đối (`rust_decimal`).
+- **Phạm Vi Trách Nhiệm & Deploy**:
+  - `benmi-pricing-rs` là worker tính toán thuần túy (stateless), không chứa dữ liệu quán và không cần deploy lại khi quán thay đổi món, giá hay cập nhật giao diện web thông thường.
+  - Chỉ deploy lại Rust Worker khi có thay đổi trong thuật toán khuyến mãi mới hoặc thay đổi schema contract.
+  - Lệnh kiểm thử WASM: `npm run test:wasm`. Lệnh build WASM: `npm run build:wasm`.
 
 ---
 
