@@ -1142,6 +1142,8 @@ const I18N = {
     tableOccupied: "使用中",
     tableEmpty: "空桌",
     tableHasActiveOrder: "該桌尚有未結帳訂單，無法修改或停用",
+    tableNoWritePermission: "您沒有修改桌號的權限。",
+    tableDisableOccupied: "此桌尚有未結帳訂單，暫時無法停用。",
     tableDeleteDisabledHint: "系統保留桌號以維護歷史報表完整性，僅支援停用",
     tableConfirmDisable: "確定要停用此桌號嗎？",
     tableSaveSuccess: "桌號儲存成功",
@@ -2314,6 +2316,8 @@ const I18N = {
     tableOccupied: "Có khách",
     tableEmpty: "Bàn trống",
     tableHasActiveOrder: "Bàn đang có đơn chưa thanh toán, không thể sửa hoặc ngừng sử dụng",
+    tableNoWritePermission: "Bạn không có quyền chỉnh sửa bàn.",
+    tableDisableOccupied: "Bàn đang có đơn chưa thanh toán, chưa thể ngừng dùng.",
     tableDeleteDisabledHint: "Hệ thống lưu giữ bàn để bảo toàn lịch sử báo cáo, chỉ hỗ trợ ngừng sử dụng",
     tableConfirmDisable: "Bạn có chắc chắn muốn ngừng sử dụng bàn này?",
     tableSaveSuccess: "Lưu thông tin bàn thành công",
@@ -2870,6 +2874,9 @@ function applyLanguageToDOM() {
   if (thTableStatus) thTableStatus.innerText = dict.tableStatus;
   const thTableAction = document.getElementById("i18n-th-table-action");
   if (thTableAction) thTableAction.innerText = dict.tableAction;
+  if (typeof renderRestaurantTablesList === 'function' && typeof currentRestaurantTables !== 'undefined' && Array.isArray(currentRestaurantTables)) {
+    renderRestaurantTablesList();
+  }
   const btnPrintAllTables = document.getElementById("i18n-table-print-all-btn");
   if (btnPrintAllTables) {
     const span = btnPrintAllTables.querySelector("span");

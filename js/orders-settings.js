@@ -2183,7 +2183,7 @@ function renderRestaurantTablesList() {
     return;
   }
 
-  tbody.innerHTML = currentRestaurantTables.map(table => {
+  tbody.innerHTML = currentRestaurantTables.map((table, index) => {
     const isActive = table.is_active === 1 || table.is_active === true;
     const hasActiveOrder = !!table.active_order_key;
     let statusPill = "";
@@ -2192,8 +2192,8 @@ function renderRestaurantTablesList() {
         const orderCode = escapeHtml(table.active_display_key || table.active_order_id || '');
         statusPill = `<span class="restaurant-table-status-pill status-occupied" title="${t("tableOccupied")} #${orderCode}">
           <span class="restaurant-table-status-dot"></span>
-          <span>${t("tableOccupied")} · #${orderCode}</span>
-        </span>`;
+          <span>${t("tableOccupied")}</span>
+        </span><span class="restaurant-table-order-code">#${orderCode}</span>`;
       } else {
         statusPill = `<span class="restaurant-table-status-pill status-empty">
           <span class="restaurant-table-status-dot"></span>
@@ -2207,31 +2207,27 @@ function renderRestaurantTablesList() {
       </span>`;
     }
 
-    const disableAction = hasActiveOrder || !window.staffOrderingCapabilities?.tables_write ? `disabled title="${t("tableHasActiveOrder")}"` : '';
+    const canWrite = !!window.staffOrderingCapabilities?.tables_write;
+    const disabledReason = !canWrite ? t("tableNoWritePermission") : hasActiveOrder ? t("tableDisableOccupied") : '';
+    const reasonId = `table-action-reason-${index}`;
+    const disableAction = disabledReason ? `disabled aria-describedby="${reasonId}"` : '';
 
     return `
-      <tr>
-        <td>
+      <tr class="restaurant-table-row" data-table-id="${escapeHtml(table.id)}">
+        <td class="table-cell-name" data-label="${escapeHtml(t('tableName'))}">
           <div class="restaurant-table-name-wrap">
-            <div class="restaurant-table-name-icon">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 5h18a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"></path>
-                <path d="M5 11v8"></path>
-                <path d="M19 11v8"></path>
-              </svg>
-            </div>
             <span class="restaurant-table-name-text">${escapeHtml(table.label)}</span>
           </div>
         </td>
-        <td style="text-align: center;">
+        <td class="table-cell-sort" data-label="${escapeHtml(t('tableSort'))}">
           <span class="restaurant-table-sort-badge">${table.sort_order || 0}</span>
         </td>
-        <td>
+        <td class="table-cell-status" data-label="${escapeHtml(t('tableStatus'))}">
           ${statusPill}
         </td>
-        <td style="text-align: right;">
+        <td class="table-cell-actions" data-label="${escapeHtml(t('tableAction'))}">
           <div class="restaurant-table-actions-group">
-            <button type="button" class="table-action-btn table-action-qr" onclick="openTableQrModal('${table.id}')" title="${t("tableQrBtn")}">
+            <button type="button" class="table-action-btn table-action-btn-qr" onclick="openTableQrModal('${table.id}')" title="${t("tableQrBtn")}">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="7" height="7"></rect>
                 <rect x="14" y="3" width="7" height="7"></rect>
@@ -2240,14 +2236,14 @@ function renderRestaurantTablesList() {
               </svg>
               <span>${t("tableQrBtn") || "QR Code"}</span>
             </button>
-            <button type="button" class="table-action-btn table-action-edit" onclick="openEditTableModal('${table.id}')" title="${t("tableEdit")}">
+            <button type="button" class="table-action-btn table-action-btn-edit" ${!canWrite ? `disabled aria-describedby="${reasonId}"` : ''} onclick="openEditTableModal('${table.id}')" title="${escapeHtml(!canWrite ? disabledReason : t('tableEdit'))}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
               </svg>
               <span>${t("tableEdit")}</span>
             </button>
-            <button type="button" class="table-action-btn ${isActive ? 'table-action-disable' : 'table-action-enable'}" ${disableAction} onclick="toggleTableActive('${table.id}', ${isActive ? 0 : 1})" title="${isActive ? t("tableDisable") : t("tableEnable")}">
+            <button type="button" class="table-action-btn ${isActive ? 'table-action-btn-disable' : 'table-action-btn-enable'}" ${disableAction} onclick="toggleTableActive('${table.id}', ${isActive ? 0 : 1})" title="${escapeHtml(disabledReason || (isActive ? t('tableDisable') : t('tableEnable')))}">
               ${isActive ? `
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
@@ -2262,6 +2258,7 @@ function renderRestaurantTablesList() {
               `}
             </button>
           </div>
+          ${disabledReason ? `<p class="restaurant-table-action-reason" id="${reasonId}">${escapeHtml(disabledReason)}</p>` : ''}
         </td>
       </tr>
     `;

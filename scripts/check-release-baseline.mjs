@@ -45,7 +45,7 @@ const suites = [
   ['worker-types', ['benmi-worker-official/node_modules/typescript/bin/tsc', '--noEmit', '-p', 'benmi-worker-official/tsconfig.json']],
   ['cloudflare-config', ['--test', 'scripts/test-cloudflare-cli.mjs']],
   ['staff-runtime', ['--test', 'tests/test_staff_ordering.cjs', 'tests/test_staff_migration.cjs', 'tests/test_store_pin_api.cjs', 'tests/test_store_status.cjs']],
-  ['staff-browser', ['--test', 'tests/test_staff_ordering_browser.cjs', 'tests/test_store_pin_browser.cjs']],
+  ['staff-browser', ['--test', 'tests/test_staff_ordering_browser.cjs', 'tests/test_store_pin_browser.cjs', 'tests/test_table_management_browser.cjs']],
   ['staff-print', ['--test', 'tests/test_staff_print.cjs', 'tests/test_staff_pos.cjs']],
   ['staff-capability-schema', ['--test', 'tests/test_staff_capability_schema.cjs']],
   ['order-identity', ['tests/test_order_identity.cjs']],
