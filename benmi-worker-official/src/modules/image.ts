@@ -67,7 +67,7 @@ export async function getImage(request: Request, env: Env): Promise<Response> {
     if (!dataUri && tenantId === "benmi") {
       dataUri = await env.ORDER_STATE.get(`image:${name}`);
     }
-    if (!dataUri) return new Response("Not found", { status: 404, headers: corsHeaders() });
+    if (!dataUri) return new Response("Not found", { status: 404, headers: { ...corsHeaders(), "Cache-Control": "public, max-age=60" } });
 
     const match = dataUri.match(/^data:(.*?);base64,(.*)$/);
     if (!match) return new Response("Invalid format", { status: 500, headers: corsHeaders() });

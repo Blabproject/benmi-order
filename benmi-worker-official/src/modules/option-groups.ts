@@ -50,6 +50,7 @@ export type OptionCatalog = {
 	links: Row[];
 	categoryLinks: Row[];
 	revision?: number;
+	imageList?: string[];
 };
 const parse = (value: any, fallback: any) => {
 	if (typeof value !== 'string') return value ?? fallback;
@@ -120,6 +121,16 @@ export async function loadOptionCatalog(env: Env, tenantId: string): Promise<Opt
 				})),
 		};
 	});
+	let imageList: string[] | undefined = undefined;
+	if (env.ORDER_STATE) {
+		try {
+			const listRaw = await env.ORDER_STATE.get(`tenant:${tenantId}:image_list`);
+			if (listRaw) {
+				const parsed = JSON.parse(listRaw);
+				if (Array.isArray(parsed)) imageList = parsed;
+			}
+		} catch {}
+	}
 	const catalog = {
 		revision: Number((results[6].results[0] as Row)?.revision || 0),
 		products,
@@ -132,6 +143,7 @@ export async function loadOptionCatalog(env: Env, tenantId: string): Promise<Opt
 			disabled: Boolean(l.is_disabled),
 		})),
 		categoryLinks: [],
+		imageList,
 	};
 	return catalog;
 }
@@ -182,8 +194,8 @@ export function groupOptions(catalog: OptionCatalog, group: OptionGroup): MenuOp
 				};
 			}),
 			imageUrl:
-				product && product.image_key !== ''
-					? `/api/image?tenant_id=${encodeURIComponent(product.tenant_id)}&name=${encodeURIComponent(product.image_key || product.name)}`
+				product && product.image_key && product.image_key.trim() !== '' && (!catalog.imageList || catalog.imageList.includes(product.image_key))
+					? `/api/image?tenant_id=${encodeURIComponent(product.tenant_id)}&name=${encodeURIComponent(product.image_key)}`
 					: null,
 			isOutOfStock: o.isOutOfStock || Boolean(o.productId && (!product || oos(product))),
 		};
