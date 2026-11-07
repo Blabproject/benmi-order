@@ -15,8 +15,9 @@ function fixture() {
     ALTER TABLE menu_items ADD COLUMN max_per_order INTEGER;
     CREATE TABLE orders(key TEXT PRIMARY KEY,order_id TEXT,display_key TEXT,business_date TEXT,uuid TEXT,
     tenant_id TEXT,user_id TEXT,customer_name TEXT,pickup_time TEXT,status TEXT,total_amount REAL,order_content TEXT,
-    reason TEXT,note TEXT,dining_option TEXT,table_number TEXT,round_count INTEGER DEFAULT 1,last_appended_at TEXT,
+    reason TEXT,note TEXT,dining_option TEXT,table_number TEXT,table_id TEXT,round_count INTEGER DEFAULT 1,last_appended_at TEXT,
     created_at TEXT,updated_at TEXT,is_modified INTEGER DEFAULT 0);
+    CREATE TABLE restaurant_tables(id TEXT PRIMARY KEY,tenant_id TEXT,label TEXT,is_active INTEGER DEFAULT 1);
     CREATE UNIQUE INDEX order_uuid ON orders(tenant_id,uuid);
     CREATE TABLE tenant_lifecycle(tenant_id TEXT PRIMARY KEY,state TEXT);
     INSERT INTO tenant_lifecycle VALUES('a','active'),('b','active');

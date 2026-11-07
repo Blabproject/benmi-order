@@ -19,7 +19,8 @@ function fixture(t) {
   for (const file of ['0005_create_orders_table.sql', '0032_create_order_items.sql', '0004_add_tenant_id_to_pending_actions.sql', '0046_add_order_uuid_and_daily_counter.sql']) {
     db.exec(fs.readFileSync('benmi-worker-official/migrations/' + file, 'utf8'));
   }
-  db.exec(`ALTER TABLE orders ADD COLUMN dining_option TEXT DEFAULT 'takeaway'; ALTER TABLE orders ADD COLUMN table_number TEXT;
+  db.exec(`ALTER TABLE orders ADD COLUMN dining_option TEXT DEFAULT 'takeaway'; ALTER TABLE orders ADD COLUMN table_number TEXT; ALTER TABLE orders ADD COLUMN table_id TEXT;
+    CREATE TABLE restaurant_tables(id TEXT PRIMARY KEY, tenant_id TEXT, label TEXT, is_active INTEGER DEFAULT 1);
     ALTER TABLE orders ADD COLUMN round_count INTEGER DEFAULT 1; ALTER TABLE orders ADD COLUMN last_appended_at TEXT;
     ALTER TABLE order_items ADD COLUMN bundle_snapshot_json TEXT;
     CREATE TABLE menu_items(id TEXT, tenant_id TEXT, category_id TEXT, name TEXT, price REAL DEFAULT 0, description TEXT, out_of_stock_until TEXT, max_per_order INTEGER, sort_order INTEGER DEFAULT 0, badge_text TEXT, is_recommended INTEGER DEFAULT 0, image_key TEXT, item_type TEXT DEFAULT 'standard');
