@@ -1,7 +1,7 @@
 # Graph Report - benmi-order  (2026-11-07)
 
 ## Corpus Check
-- 691 files · ~1,151,673 words
+- 691 files · ~1,151,657 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 85 file(s) not represented in the graph (top: .apk 23, (none) 14, .css 11)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `85cb4258`
+- Built from commit: `9fc6efec`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 

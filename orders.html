@@ -824,7 +824,7 @@
                     <div style="font-weight: 800; font-size: var(--pos-text-body); color: #111827;" id="i18n-setting-preptime-title">門市預估備餐時間</div>
                     <span id="setting-preptime-badge" style="font-size: 13px; font-weight: 800; color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 4px 12px; border-radius: 99px;">5 分鐘</span>
                   </div>
-                  <div style="font-size: var(--pos-text-meta); color: #6b7280; margin-bottom: 14px; line-height: 1.5;" id="i18n-setting-preptime-sub">當顧客在點餐頁面選擇「最快取餐」時，系統將自動依據當前下單時間加上此備餐時間（預設 5 分鐘），作為向顧客預告的預估完成時間。店家可配合現場備料及客流狀況隨時調整，確保廚房有充裕時間製作出餐。</div>
+                  <div style="font-size: var(--pos-text-meta); color: #6b7280; margin-bottom: 14px; line-height: 1.5;" id="i18n-setting-preptime-sub">當顧客選擇「盡快取餐」時，系統將依此時間預估完成時間。店家可視現場忙碌狀況隨時調整</div>
                   <div class="preptime-chips-grid" style="display: flex; flex-wrap: wrap; gap: 8px;">
                     <button type="button" class="setting-preptime-btn active" data-minutes="5" onclick="setStorePrepTime(5)">5 分鐘 (預設)</button>
                     <button type="button" class="setting-preptime-btn" data-minutes="10" onclick="setStorePrepTime(10)">10 分鐘</button>
@@ -3070,7 +3070,7 @@
   </section>
 
   <!-- Benmi POS Modular Architecture Scripts -->
-  <script src="js/orders-i18n.js?v=20261107_prep_time_v2"></script>
+  <script src="js/orders-i18n.js?v=20261107_prep_time_v3"></script>
   <script src="js/orders-core.js?v=20261105_tenant_branding_v1"></script>
   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
@@ -3080,7 +3080,7 @@
   <script src="js/orders-modals.js?v=20261101_linepay_v1"></script>
   <script src="js/orders-history.js?v=20261101_linepay_v1"></script>
   <script src="js/orders-reports.js?v=20261007_dev_main_sync_v1"></script>
-  <script src="js/orders-settings.js?v=20261107_prep_time_v2"></script>
+  <script src="js/orders-settings.js?v=20261107_prep_time_v3"></script>
   <script src="js/orders-menu-model.js?v=20261104_menu_model_v1"></script>
   <script src="js/orders-menu.js?v=20261107_stock_restore_v2"></script>
   <script src="js/orders-bundle-wizard.js?v=20261007_dev_main_sync_v1"></script>
