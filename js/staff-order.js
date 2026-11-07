@@ -18,11 +18,27 @@ window.StaffOrder = (() => {
     if (!response.ok || data.ok === false) throw Object.assign(new Error(data.error || 'REQUEST_FAILED'), {status: response.status});
     return data;
   }
+  function dineInAllowed() {
+    if (capabilities?.allowDineIn === false) return false;
+    if (storeConfig && storeConfig.allowDineIn === false) return false;
+    if (storeConfig && Array.isArray(storeConfig.features) && !storeConfig.features.includes('dine_in')) return false;
+    return true;
+  }
+  function scheduledPickupAllowed() {
+    if (capabilities?.allowScheduledPickup === false) return false;
+    if (storeConfig && storeConfig.allowScheduledPickup === false) return false;
+    return true;
+  }
   function tableContext() {
     const table = tables.find(row => row.id === select().value);
     return table?.active_order_key ? `${table.id}:${table.active_order_key}:${table.active_revision}` : `${table?.id || ''}:new`;
   }
   function describeSelection() {
+    if (!dineInAllowed() || window.currentDiningOption === 'takeaway') {
+      return message(scheduledPickupAllowed()
+        ? text('外帶點餐將建立新訂單。', 'Đơn mang đi sẽ tạo đơn mới.')
+        : text('外帶現場排單將建立新訂單。', 'Đơn mang đi lấy ngay sẽ tạo đơn mới.'));
+    }
     if (!tables.length) return message(text('尚未設定桌號，請先在設定中新增桌號。', 'Chưa cấu hình bàn. Hãy thêm bàn trong Cài đặt.'));
     const table = tables.find(row => row.id === select().value);
     message(table?.active_order_key
@@ -30,6 +46,13 @@ window.StaffOrder = (() => {
       : text('空桌將建立新訂單。', 'Bàn trống sẽ tạo đơn mới.'));
   }
   async function refreshTables() {
+    if (!dineInAllowed() || !capabilities?.capabilities?.tables_read) {
+      tables = [];
+      select().replaceChildren(new Option(text('請選擇桌號', 'Chọn bàn'), ''));
+      select().value = '';
+      describeSelection();
+      return;
+    }
     const selected = select().value;
     const data = await api('/api/staff/tables');
     tables = data.tables || [];
@@ -85,7 +108,7 @@ window.StaffOrder = (() => {
       if (!params.get('tenant_id') && !params.get('tenant')) throw new Error('TENANT_REQUIRED');
       document.documentElement.lang = localStorage.getItem(params.get('embedded') === '1' ? 'benmi_lang' : 'staff_order_lang') || 'zh-TW';
       capabilities = await api('/api/staff/capabilities');
-      if (!capabilities.staff_ordering_enabled || !capabilities.capabilities?.tables_read) throw new Error('FEATURE_DISABLED');
+      if (!capabilities.staff_ordering_enabled || (!capabilities.capabilities?.tables_read && !capabilities.capabilities?.create)) throw new Error('FEATURE_DISABLED');
       const input = select();
       const picker = document.createElement('select');
       picker.id = input.id;
@@ -95,9 +118,16 @@ window.StaffOrder = (() => {
       info.id = 'staff-order-status'; info.setAttribute('aria-live', 'polite');
       document.getElementById('dinein-table-input-group').after(info);
       picker.addEventListener('change', () => { describeSelection(); saveDraft(); });
+      const baseSetDining = window.setCustomerDiningOption;
+      if (typeof baseSetDining === 'function') {
+        window.setCustomerDiningOption = opt => {
+          baseSetDining(dineInAllowed() ? opt : 'takeaway');
+          if (initialized && !busy) { describeSelection(); saveDraft(); }
+        };
+      }
       await initApp();
+      setCustomerDiningOption(dineInAllowed() ? 'dine_in' : 'takeaway');
       await refreshTables();
-      setCustomerDiningOption(capabilities.allowDineIn !== false ? 'dine_in' : 'takeaway');
       try {
         const draft = JSON.parse(sessionStorage.getItem(storageKey('draft')) || 'null');
         if (draft) {
@@ -106,7 +136,7 @@ window.StaffOrder = (() => {
           window.bundleCartData = draft.bundleCartData || {};
           document.getElementById('note').value = draft.note || '';
           picker.value = tables.some(row => row.id === draft.table) ? draft.table : '';
-          setCustomerDiningOption(capabilities.allowDineIn === false ? 'takeaway' : draft.dining || 'dine_in');
+          setCustomerDiningOption(dineInAllowed() ? (draft.dining || 'dine_in') : 'takeaway');
           for (const group of draft.orderSelections || []) {
             const definition = (bootstrapData.customizations || []).find(row => (row.id || row.key) === group.groupId);
             if (!definition) continue;
@@ -142,8 +172,8 @@ window.StaffOrder = (() => {
   async function submit() {
     if (!ready()) return;
     if (!Object.values(cart).some(q => q > 0)) return message(text('請先選擇餐點。','Hãy chọn món.'));
-    const dining = window.currentDiningOption;
-    const chosen = tables.find(row => row.id === select().value);
+    const dining = dineInAllowed() && window.currentDiningOption === 'dine_in' ? 'dine_in' : 'takeaway';
+    const chosen = dining === 'dine_in' ? tables.find(row => row.id === select().value) : null;
     if (dining === 'dine_in' && !chosen) { select().focus(); return message(text('請選擇桌號。','Hãy chọn bàn.')); }
     const before = tableContext();
     saveDraft(); busy = true; window.isSubmitting = true;
@@ -152,21 +182,22 @@ window.StaffOrder = (() => {
     document.getElementById('page-body-content').inert = true;
     try {
       const retry = JSON.parse(sessionStorage.getItem(storageKey('pending')) || 'null');
-      const draftSignature = JSON.stringify({dining,table:chosen?.id,items:DetailCheckout.items(),groups:DetailCheckout.selections(),note:document.getElementById('note').value.trim(),total:updateTotal(),date:document.getElementById('pickup-date')?.value,time:document.getElementById('pickup-time')?.value});
+      const useScheduled = dining === 'takeaway' && scheduledPickupAllowed();
+      const draftSignature = JSON.stringify({dining,table:dining === 'dine_in' ? chosen?.id : undefined,items:DetailCheckout.items(),groups:DetailCheckout.selections(),note:document.getElementById('note').value.trim(),total:updateTotal(),date:useScheduled ? document.getElementById('pickup-date')?.value : undefined,time:useScheduled ? document.getElementById('pickup-time')?.value : undefined});
       const replay = retry?.draftSignature === draftSignature;
-      if (!replay) await refreshTables();
+      if (!replay && dining === 'dine_in') await refreshTables();
       if (!replay && dining === 'dine_in' && before !== tableContext()) {
         sessionStorage.removeItem(storageKey('pending'));
         return message(text('桌位訂單已變更，請確認後再次送出。','Đơn tại bàn đã thay đổi. Kiểm tra lại rồi gửi.'));
       }
-      const table = tables.find(row => row.id === chosen?.id);
+      const table = dining === 'dine_in' ? tables.find(row => row.id === chosen?.id) : null;
       const append = dining === 'dine_in' && !!table?.active_order_key;
       if (!capabilities.capabilities[append ? 'append' : 'create']) throw new Error('FEATURE_DISABLED');
       const payload = {detailVersion:1, diningOption:dining, tableId:dining === 'dine_in' ? table.id : undefined,
         expectedRevision:append ? table.active_revision : undefined,
         items:DetailCheckout.items(), orderSelections:DetailCheckout.selections(), total:updateTotal(),
         note:document.getElementById('note').value.trim()};
-      if (dining === 'takeaway' && storeConfig.allowScheduledPickup !== false) {
+      if (useScheduled) {
         const date = document.getElementById('pickup-date')?.value;
         const time = document.getElementById('pickup-time')?.value;
         if (!date || !time) return message(text('請選擇取餐時間。','Hãy chọn giờ nhận món.'));

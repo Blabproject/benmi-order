@@ -122,5 +122,37 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  await page.goto(`http://127.0.0.1:${server.address().port}/staff-order.html?tenant_id=b&env=dev`);
  await page.locator('#staff-access-error').waitFor();
  assert.equal(await page.locator('#dinein-table-number').count(),0);
+
+ // Non-dine-in + no-scheduled-pickup tenant (like bsc) in staff order mode
+ await f.apply(`UPDATE tenant_config SET allow_dine_in=0,allow_scheduled_pickup=0,features='["reports","flex_notifications"]',store_status='open' WHERE tenant_id='a';`);
+ await f.env.ORDER_STATE.delete('tenant:a:config_cache');
+ await invalidateBootstrapCache('a',f.env);
+ await page.unroute('**/api/**');
+ await page.route('**/api/**',async route=>{
+  try{
+   const r=route.request(),url=new URL(r.url()),p=url.pathname;
+   const request=new Request(r.url(),{method:r.method(),headers:r.headers(),...(['GET','HEAD'].includes(r.method())?{}:{body:r.postData()})});
+   let response;
+   if(p==='/api/config'){const ctx=await createTenantRepository(f.env.DB,f.env.ORDER_STATE,f.env).getTenantContext(url.searchParams.get('tenant_id'));response=await (r.method()==='POST'?updateConfig:getConfig)(request,f.env,ctx);}
+   else if(p.startsWith('/api/staff'))response=await handleStaffRoute(request,f.env,p);
+   else if(p==='/api/tenant/bootstrap')response=await getTenantBootstrap(request,f.env);
+   else if(p==='/api/menu/options')response=await getOptionCatalog(request,f.env);
+   else response=new Response('{}');
+   await route.fulfill({status:response.status,body:await response.text(),headers:{'Content-Type':'application/json'}});
+  }catch(e){errors.push(String(e));await route.fulfill({status:500,body:'{}'});}
+ });
+ await page.evaluate(()=>localStorage.setItem('staff_order_lang','vi'));
+ await page.goto(`http://127.0.0.1:${server.address().port}/staff-order.html?tenant_id=a&env=dev`);
+ await page.waitForFunction(()=>window.StaffOrder?.ready());
+ assert.equal(await page.evaluate(()=>window.currentDiningOption),'takeaway');
+ assert.equal(await page.locator('#dinein-table-input-group').isVisible(),false);
+ assert.equal(await page.locator('#dining-option-wrapper').isVisible(),false);
+ assert.equal(await page.locator('#checkout-dining-option-group').isVisible(),false);
+ assert.equal(await page.locator('#pickup-time-picker-group').isVisible(),false);
+ assert.equal(await page.locator('#pickup-time-asap-notice').isVisible(),true);
+ assert.match(await page.locator('#staff-order-status').innerText(),/Đơn mang đi lấy ngay sẽ tạo đơn mới/);
+ await add();
+ await submit();
+ assert.match(await page.locator('#staff-order-status').innerText(),/Đã gửi .*?-T00/);
  assert.deepEqual(errors,[]);
 });

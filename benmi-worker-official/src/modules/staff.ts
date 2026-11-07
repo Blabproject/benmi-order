@@ -76,6 +76,14 @@ export async function verifyStaffSession(
 // 3. MAIN STAFF ROUTE DISPATCHER
 // ==========================================
 
+function isStaffDineInAllowed(tenantCtx: TenantContext): boolean {
+  if (tenantCtx.allowDineIn === false) return false;
+  if (Array.isArray(tenantCtx.features) && !tenantCtx.features.includes('dine_in')) {
+    return false;
+  }
+  return true;
+}
+
 async function dispatchStaffRoute(
   request: Request,
   env: Env,
@@ -112,7 +120,9 @@ async function dispatchStaffRoute(
       staff_ordering_enabled: isStaffEnabled || hasTableQrOrdering,
       table_qr_ordering_enabled: hasTableQrOrdering,
       capabilities,
-      allowDineIn: tenantCtx.allowDineIn ?? true,
+      allowDineIn: isStaffDineInAllowed(tenantCtx),
+      allowScheduledPickup: tenantCtx.allowScheduledPickup !== false,
+      features: tenantCtx.features || [],
       storeStatus: tenantCtx.storeStatus || 'open'
     });
   }
@@ -401,8 +411,11 @@ async function handleStaffOrderWrite(request: Request, env: Env, path: string, t
     }
     if (tenantCtx.storeStatus === 'paused') throw new DetailError('STORE_PAUSED');
     if (await tenantIsDeleted(env.DB, tenant)) throw new DetailError('TENANT_DELETED', 403);
-    const diningOption: 'dine_in' | 'takeaway' = row ? (row.dining_option || 'dine_in') : (body.diningOption === 'takeaway' || body.dining_option === 'takeaway' ? 'takeaway' : 'dine_in');
-    if (diningOption === 'dine_in' && !tenantCtx.allowDineIn) throw new DetailError('DINE_IN_DISABLED',403);
+    const allowDineIn = isStaffDineInAllowed(tenantCtx);
+    const requestedTakeaway = body.diningOption === 'takeaway' || body.dining_option === 'takeaway'
+      || (!allowDineIn && body.diningOption !== 'dine_in' && body.dining_option !== 'dine_in' && !body.tableId);
+    const diningOption: 'dine_in' | 'takeaway' = row ? (row.dining_option || 'dine_in') : (requestedTakeaway ? 'takeaway' : 'dine_in');
+    if (diningOption === 'dine_in' && !allowDineIn) throw new DetailError('DINE_IN_DISABLED',403);
     const requestId = body.requestId;
     if (typeof requestId !== 'string' || requestId.length < 16 || requestId.length > 128) throw new DetailError('INVALID_REQUEST_ID');
     const hash = await sha256Hex(JSON.stringify({kind:create?'create':'append',diningOption,table:body.tableId,key:row?.key,

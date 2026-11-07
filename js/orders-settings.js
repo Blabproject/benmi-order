@@ -2091,7 +2091,7 @@ async function checkStaffOrderingCapability() {
       const tablePermissionsChanged = window.staffOrderingCapabilities?.tables_read !== canReadTables
         || window.staffOrderingCapabilities?.tables_write !== canWriteTables;
       window.staffOrderingCapabilities = { ...data.capabilities, tables_read: canReadTables, tables_write: canWriteTables };
-      window.isStaffOrderingEnabled = canReadTables;
+      window.isStaffOrderingEnabled = Boolean(canReadTables || data.capabilities?.pos_entry || data.capabilities?.create);
       window.hasTableQrOrdering = hasTableQrFeature;
       const btnPill = document.getElementById("btn-staff-order-pill");
       if (btnPill) {

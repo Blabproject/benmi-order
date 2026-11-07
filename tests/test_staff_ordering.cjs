@@ -150,3 +150,36 @@ test('legacy PIN session revocation stays tenant scoped for payment authenticati
   assert.equal(await verifyStaffSession(new Request(request.url,{headers:{Authorization:'Bearer '+next.token}}),f.env,'a'),null);
   assert.equal((await f.call('/api/staff/tables')).http,200);
 });
+
+test('non-dine-in and no-scheduled-pickup tenant supports staff takeaway orders without tables',async t=>{
+  const f=await fixture(t);
+  const takeawayOnlyCapabilities={...f.capabilities,tables_read:false,tables_write:false,append:false};
+  await f.apply(`DELETE FROM restaurant_tables WHERE tenant_id='a';
+    UPDATE tenant_config SET allow_dine_in=0,allow_scheduled_pickup=0,features='["reports","flex_notifications"]',staff_ordering_capabilities='${JSON.stringify(takeawayOnlyCapabilities)}' WHERE tenant_id='a';`);
+  const callReal = async (path,body,method=body?'POST':'GET') => {
+    const response = await handleStaffRoute(new Request(`https://local.test${path}?tenant_id=a`,{
+      method,headers:{'Content-Type':'application/json',Authorization:'Bearer '+f.token},...(body?{body:JSON.stringify(body)}:{})}),f.env,path);
+    return {http:response.status,...await response.json()};
+  };
+  const caps = await callReal('/api/staff/capabilities');
+  assert.equal(caps.http,200);
+  assert.equal(caps.allowDineIn,false);
+  assert.equal(caps.allowScheduledPickup,false);
+  assert.equal(caps.capabilities.create,true);
+  assert.equal(caps.capabilities.tables_read,false);
+
+  // Attempting dine_in on a non-dine-in tenant is rejected with 403 DINE_IN_DISABLED
+  const rejectedDineIn = await callReal('/api/staff/orders',{requestId:crypto.randomUUID(),diningOption:'dine_in',tableId:'table-a',total:100,orderSelections:[],items:[{itemId:'meal-a',quantity:1}]});
+  assert.equal(rejectedDineIn.http,403);
+  assert.equal(rejectedDineIn.error,'DINE_IN_DISABLED');
+
+  // Takeaway order without tableId or scheduled pickup time succeeds (including implicit takeaway when allowDineIn=false)
+  const asapOrder = await callReal('/api/staff/orders',{requestId:crypto.randomUUID(),total:100,orderSelections:[],items:[{itemId:'meal-a',quantity:1}],customer:'Khách lẻ',note:'Lấy ngay'});
+  assert.equal(asapOrder.http,201,JSON.stringify(asapOrder));
+  assert.equal(asapOrder.diningOption,'takeaway');
+  assert.equal(asapOrder.tableId,null);
+  assert.ok(asapOrder.displayKey.includes('-T'));
+  const saved = await f.DB.prepare('SELECT dining_option,table_id,pickup_time,customer_name,note FROM orders WHERE key=?').bind(asapOrder.key).first();
+  assert.match(saved.pickup_time,/^\d{2}:\d{2}$/);
+  assert.deepEqual({dining_option:saved.dining_option,table_id:saved.table_id,customer_name:saved.customer_name,note:saved.note},{dining_option:'takeaway',table_id:null,customer_name:'Khách lẻ',note:'Lấy ngay'});
+});
