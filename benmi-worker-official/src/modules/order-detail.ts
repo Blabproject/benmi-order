@@ -3,6 +3,7 @@ import type { Order } from '../types';
 import type { DetailGroup, DetailLine, DetailRound, OrderDetailSnapshot } from '../types/order-detail';
 import { loadOptionCatalog, effectiveGroups, groupOptions, validateOptionSelection, type OptionCatalog } from './option-groups';
 import DetailView from '../../../js/order-detail-view.js';
+import { pricingRustEnabled, callRustBuildDetailRound } from './pricing-engine-client';
 
 export { DetailView };
 export const detailReads = (env: Env) => env.ORDER_DETAIL_READS !== 'false';
@@ -26,8 +27,16 @@ const sameSelections = (a: any[], b: any[]) => JSON.stringify(selectionIdentity(
 
 /** Same catalog validation for every write. Inputs never supply sale labels/prices. */
 export async function buildDetailRound(env: Env, tenant: string, input: any, roundNumber: number,
-  previous?: DetailRound): Promise<DetailRound> {
+  previous?: DetailRound, features?: string[]): Promise<DetailRound> {
   const catalog = await loadOptionCatalog(env, tenant);
+  if (pricingRustEnabled(env, tenant, features)) {
+    try {
+      return await callRustBuildDetailRound(env, catalog, input, roundNumber, previous);
+    } catch (err) {
+      if (err instanceof DetailError) throw err;
+      console.warn('[PricingEngine] Rust engine error, falling back to TypeScript:', err);
+    }
+  }
   if (!Array.isArray(input.items) || !input.items.length || input.items.length > 200) fail('EMPTY_OR_TOO_MANY_ITEMS');
   const unchangedLine = (i: any) => {
     const old = previous?.items.find(l => l.lineId === i.lineId && l.itemId === (i.itemId || i.item_id));

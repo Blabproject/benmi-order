@@ -82,7 +82,7 @@ export async function writeDetailedOrder(env: Env, tenant: string, input: any, k
     const roundNumber = kind === 'modify' ? input.targetRound : Math.max(0, ...snapshot.rounds.map(r => r.roundNumber)) + 1;
     const previous = kind === 'modify' ? snapshot.rounds.find(r => r.roundNumber === roundNumber) : undefined;
     if (kind === 'modify' && (!previous || previous.legacyContent !== undefined)) throw new DetailError('INVALID_TARGET_ROUND');
-    const round = await buildDetailRound(env, tenant, input, roundNumber, previous);
+    const round = await buildDetailRound(env, tenant, input, roundNumber, previous, tenantCtx?.features);
     if (previous) snapshot.rounds[snapshot.rounds.indexOf(previous)] = round;
     else snapshot.rounds.push(round);
     snapshot.total = Math.round(snapshot.rounds.reduce((n, r) => n + r.total, 0) * 100) / 100;

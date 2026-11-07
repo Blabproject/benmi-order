@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "crates/pricing-core",
+    "crates/pricing-worker",
+    "crates/pricing-wasm"
+]
+resolver = "2"

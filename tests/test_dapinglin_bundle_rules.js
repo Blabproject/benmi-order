@@ -48,13 +48,13 @@ for (const catId of requiredCategories) {
 }
 console.log('✓ Test 2 Passed: Sources contain all 4 categories (蔬菜類, 滷味類, 內臟類, 招牌菜)');
 
-console.log('Test 3: Verify index.html resolves category shortName in renderBundleCategoryTabs...');
-const indexHtml = fs.readFileSync(path.resolve(__dirname, '../index.html'), 'utf-8');
+console.log('Test 3: Verify client-bundle.js resolves category shortName in renderBundleCategoryTabs...');
+const clientBundleJs = fs.readFileSync(path.resolve(__dirname, '../js/client-bundle.js'), 'utf-8');
 assert.ok(
-    indexHtml.includes('let cleanCatName = (cat.shortName || cat.short_name) || (cat.name || \'\')'),
-    'index.html renderBundleCategoryTabs must prioritize shortName'
+    clientBundleJs.includes('let cleanCatName = (cat.shortName || cat.short_name) || (cat.name || \'\')'),
+    'client-bundle.js renderBundleCategoryTabs must prioritize shortName'
 );
-console.log('✓ Test 3 Passed: index.html prioritizes cat.shortName for clean tabs');
+console.log('✓ Test 3 Passed: client-bundle.js prioritizes cat.shortName for clean tabs');
 
 console.log('Test 4: Simulate category tab rendering logic...');
 const mockCatalog = [

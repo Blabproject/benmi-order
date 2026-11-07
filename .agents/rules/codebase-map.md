@@ -14,7 +14,9 @@ Tài liệu này giúp AI Agent định vị **tức thì** file và hàm cần 
 Hệ thống Frontend chạy thuần Vanilla JS (không bundler), chia sẻ hàm qua `window.*` theo đúng thứ tự thẻ `<script>`:
 
 ### A. Trang Thực Đơn Khách Hàng (`index.html` — Mobile / LINE LIFF First)
-Thứ tự load trong `index.html` (từ dòng ~854):
+Thứ tự load trong `index.html` (từ dòng ~966):
+0. [`js/client-pricing-wasm.js`](file:///Users/duccao/Documents/benmi-order/js/client-pricing-wasm.js) (~50 dòng):
+   - **`window.PricingWasm`**: Nạp module Rust WebAssembly (`wasm/pricing-engine/pricing_wasm.js` + `.wasm`) bất đồng bộ, tính toán giỏ hàng, combo bundle và validation tùy chọn món với tốc độ microsecond. Tự động fallback về JS thuần nếu WASM chưa tải xong hoặc trình duyệt cũ.
 1. [`js/client-core.js`](file:///Users/duccao/Documents/benmi-order/js/client-core.js) (~1,640 dòng):
    - Khởi tạo LIFF, tải `/api/tenant/bootstrap`, quản lý `bootstrapData`, `cart`, `customizeData`, `storeConfig`.
    - `getEffectiveItemModifierGroups(catSlug, origName)`: Lấy nhóm tùy biến của món (nếu `targetItem.unifiedOptions === true` thì trả về `[]` để nhường quyền cho Unified Option Groups).

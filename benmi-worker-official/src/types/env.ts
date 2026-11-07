@@ -8,6 +8,9 @@ export interface Env extends Partial<Pick<RuntimeBindings,
   UNIFIED_MENU_ENABLED?: string;
   ORDER_DETAIL_READS?: string;
   ORDER_DETAIL_WRITES?: string;
+  PRICING_ENGINE?: Fetcher;
+  PRICING_RUST_ENABLED?: string;
+  PRICING_RUST_TENANTS?: string;
   // Bindings
   ORDER_STATE: KVNamespace;
   DB: D1Database;

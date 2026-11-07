@@ -1,16 +1,661 @@
-/* Staff uses the customer menu; only staff-specific differences belong here. */
+/* Staff Counter POS Layout — BLAB Design System */
 html.staff-order-mode #store-header-box,
 html.staff-order-mode #dining-option-wrapper,
+html.staff-order-mode #checkout-dining-option-group,
 html.staff-order-mode .powered-by-blab-wrap,
 html.staff-order-mode #desktop-auth-bar,
 html.staff-order-mode #desktop-center-auth-overlay,
 html.staff-order-mode #pickup-time-dinein-notice,
-html.staff-order-mode #pickup-time-asap-notice { display: none !important; }
-html.staff-order-mode button,
-html.staff-order-mode select,
-html.staff-order-mode .btn-qty,
-html.staff-order-mode .custom-option { min-height: 48px; }
-html.staff-order-mode .btn-qty { min-width: 48px; }
-html.staff-order-mode #dinein-table-number { width: 100%; min-height: 48px; font: inherit; padding: 12px; border: 2px solid #c4b5fd; border-radius: 10px; background: white; }
-html.staff-order-mode #staff-order-status { margin: 8px 0; line-height: 1.5; }
-html.staff-order-mode #staff-access-error { max-width: 480px; margin: 15vh auto; padding: 24px; font-family: sans-serif; }
+html.staff-order-mode #pickup-time-asap-notice,
+html.staff-order-mode #pickup-time-section-title,
+html.staff-order-mode #sec-checkout > .checkout-section-title,
+html.staff-order-mode .footer {
+  display: none !important;
+}
+
+html.staff-order-mode,
+html.staff-order-mode body {
+  margin: 0;
+  padding: 0;
+  background: #f1f5f9;
+  color: #0f172a;
+  overscroll-behavior: none;
+}
+
+html.staff-order-mode #page-body-content {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 10px 12px 12px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (min-width: 768px) {
+  html.staff-order-mode,
+  html.staff-order-mode body {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  html.staff-order-mode #page-body-content {
+    height: 100dvh;
+    overflow: hidden;
+  }
+}
+
+/* 1. Top Table & Dining Mode Bar */
+html.staff-order-mode #staff-table-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 8px 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  flex-shrink: 0;
+}
+
+html.staff-order-mode .staff-table-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+html.staff-order-mode .staff-chip {
+  min-height: 36px;
+  padding: 6px 13px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.14s ease;
+  user-select: none;
+  line-height: 1.2;
+}
+
+html.staff-order-mode .staff-chip:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+html.staff-order-mode .staff-chip.on {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.14);
+}
+
+html.staff-order-mode .staff-dot-occupied {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #f59e0b;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+html.staff-order-mode #dinein-table-input-group {
+  margin: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+html.staff-order-mode #dinein-table-input-group > label {
+  display: none !important;
+}
+
+html.staff-order-mode #dinein-table-number {
+  width: auto;
+  min-width: 128px;
+  min-height: 36px;
+  height: 36px;
+  padding: 4px 28px 4px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+html.staff-order-mode .staff-bar-legend {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+/* 2. Two-Column Counter Workspace */
+html.staff-order-mode .container.main-order-layout {
+  max-width: none !important;
+  width: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  html.staff-order-mode .container.main-order-layout {
+    flex-direction: row !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    overflow: hidden;
+  }
+}
+
+/* Left Column: Category Tabs + Tile Grid */
+html.staff-order-mode .menu-catalog-col {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+html.staff-order-mode #main-nav.sticky-nav {
+  position: static !important;
+  top: auto !important;
+  margin: 0 !important;
+  padding: 8px 10px !important;
+  background: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+html.staff-order-mode #main-nav .nav-btn {
+  min-height: 36px;
+  padding: 6px 13px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: #64748b !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: none !important;
+}
+
+html.staff-order-mode #main-nav .nav-btn:hover {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+html.staff-order-mode #main-nav .nav-btn.active {
+  background: #ecfdf5 !important;
+  color: #059669 !important;
+  border-color: #a7f3d0 !important;
+}
+
+html.staff-order-mode .catalog-sections-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+html.staff-order-mode #catalog-sections .section-container {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+html.staff-order-mode #catalog-sections .section-container.staff-tab-hidden {
+  display: none !important;
+}
+
+html.staff-order-mode #catalog-sections .section-container:not(#sec-order-option) > .section-title {
+  display: none !important;
+}
+
+/* Counter Dish Tile Grid */
+html.staff-order-mode #catalog-sections .grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)) !important;
+  gap: 10px !important;
+}
+
+html.staff-order-mode #catalog-sections .card {
+  position: relative;
+  margin: 0 !important;
+  padding: 11px 11px 10px !important;
+  border-radius: 10px !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+  transition: border-color 0.12s ease, background-color 0.12s ease, transform 0.08s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 84px;
+}
+
+html.staff-order-mode #catalog-sections .card:active {
+  transform: scale(0.985);
+}
+
+html.staff-order-mode #catalog-sections .card.staff-tile-has {
+  border-color: var(--primary, #059669) !important;
+  background: #f0fdf4 !important;
+}
+
+html.staff-order-mode #catalog-sections .card .item-img,
+html.staff-order-mode #catalog-sections .card .qty-control,
+html.staff-order-mode #catalog-sections .card .customize-btn,
+html.staff-order-mode #catalog-sections .card .bundle-edit-btn,
+html.staff-order-mode #catalog-sections .card [id^="combo-container-"] {
+  display: none !important;
+}
+
+html.staff-order-mode #catalog-sections .card .card-main {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  height: 100%;
+  padding: 0 !important;
+  gap: 8px !important;
+}
+
+html.staff-order-mode #catalog-sections .card .card-info {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  height: 100%;
+  width: 100%;
+  gap: 8px;
+}
+
+html.staff-order-mode #catalog-sections .card .card-title {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  line-height: 1.32 !important;
+  min-height: 36px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  padding-right: 22px;
+}
+
+html.staff-order-mode #catalog-sections .card .card-info > div:first-child > div:not(.card-title) {
+  display: none !important;
+}
+
+html.staff-order-mode #catalog-sections .card .card-footer {
+  margin-top: auto !important;
+  padding-top: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 4px;
+}
+
+html.staff-order-mode #catalog-sections .card .card-price {
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+  color: #059669 !important;
+}
+
+html.staff-order-mode .staff-tile-qty {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--primary, #059669);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+html.staff-order-mode .staff-tile-req {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* Right Column: Counter Cart Panel */
+html.staff-order-mode .checkout-sidebar-col {
+  width: 100%;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+@media (min-width: 768px) {
+  html.staff-order-mode .checkout-sidebar-col {
+    width: 315px !important;
+    max-width: 315px !important;
+    height: 100%;
+  }
+}
+
+html.staff-order-mode #sec-checkout.checkout-sidebar-card {
+  position: static !important;
+  margin: 0 !important;
+  padding: 12px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+html.staff-order-mode #staff-cart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 6px;
+  flex-shrink: 0;
+}
+
+html.staff-order-mode #staff-cart-target {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+html.staff-order-mode #staff-cart-round {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  white-space: nowrap;
+}
+
+html.staff-order-mode #staff-order-status {
+  margin: 0 0 8px 0 !important;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+html.staff-order-mode #pickup-time-section {
+  margin: 0 !important;
+  flex-shrink: 0;
+}
+
+html.staff-order-mode #pickup-time-picker-group {
+  margin-bottom: 8px !important;
+}
+
+html.staff-order-mode #pickup-time-picker-group > label {
+  display: none !important;
+}
+
+html.staff-order-mode .pickup-time-trigger-card {
+  padding: 7px 10px !important;
+  border-radius: 8px !important;
+  min-height: 38px !important;
+}
+
+html.staff-order-mode #cart-summary {
+  flex: 1;
+  min-height: 120px;
+  overflow-y: auto;
+  margin: 0 !important;
+  padding: 2px 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
+html.staff-order-mode .staff-cart-empty {
+  padding: 32px 12px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+html.staff-order-mode .staff-cart-line {
+  padding: 9px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+html.staff-order-mode .staff-cart-line-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+html.staff-order-mode .staff-cart-line-info {
+  flex: 1;
+  min-width: 0;
+}
+
+html.staff-order-mode .staff-cart-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+html.staff-order-mode .staff-cart-price {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #059669;
+  margin-top: 2px;
+}
+
+html.staff-order-mode .staff-cart-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+html.staff-order-mode .staff-step-btn {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  padding: 0 !important;
+  border-radius: 7px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+html.staff-order-mode .staff-step-btn:hover {
+  background: #f1f5f9;
+}
+
+html.staff-order-mode .staff-step-qty {
+  min-width: 18px;
+  text-align: center;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+html.staff-order-mode .staff-cart-portions {
+  margin-top: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+html.staff-order-mode .staff-cart-portion-group {
+  font-size: 11.5px;
+  color: #475569;
+  line-height: 1.35;
+  padding: 2px 0 2px 7px;
+  border-left: 2px solid #10b981;
+  cursor: pointer;
+}
+
+html.staff-order-mode .staff-cart-portion-group:hover {
+  color: #0f172a;
+}
+
+html.staff-order-mode .staff-cart-opt-link {
+  margin-top: 3px;
+  padding: 0;
+  min-height: 0 !important;
+  border: none;
+  background: none;
+  color: #059669;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  align-self: flex-start;
+}
+
+/* Collapsible Note & Pinned Submit Footer */
+html.staff-order-mode #staff-note-wrap {
+  padding-top: 8px;
+  border-top: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+html.staff-order-mode #staff-note-toggle {
+  min-height: 28px !important;
+  padding: 3px 8px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+html.staff-order-mode #note {
+  margin-top: 6px;
+  padding: 7px 10px !important;
+  font-size: 13px !important;
+  min-height: 36px !important;
+  height: 36px;
+  border-radius: 8px !important;
+  resize: none;
+}
+
+html.staff-order-mode #staff-note-wrap:not(.staff-note-open) #note {
+  display: none !important;
+}
+
+html.staff-order-mode .desktop-sidebar-submit-wrap {
+  display: flex !important;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px !important;
+  padding-top: 8px !important;
+  border-top: 1px solid #e2e8f0 !important;
+  flex-shrink: 0;
+}
+
+html.staff-order-mode .desktop-sidebar-total-row {
+  display: flex !important;
+  align-items: baseline;
+  justify-content: space-between !important;
+  margin: 0 !important;
+}
+
+html.staff-order-mode #staff-cart-count {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+html.staff-order-mode .desktop-sidebar-price {
+  font-size: 21px !important;
+  font-weight: 900 !important;
+  color: #0f172a !important;
+}
+
+html.staff-order-mode #btn-desktop-submit {
+  width: 100%;
+  min-height: 44px !important;
+  padding: 10px 14px !important;
+  border-radius: 10px !important;
+  font-size: 14.5px !important;
+  font-weight: 800 !important;
+}
+
+html.staff-order-mode #staff-access-error {
+  max-width: 480px;
+  margin: 15vh auto;
+  padding: 24px;
+  font-family: sans-serif;
+}

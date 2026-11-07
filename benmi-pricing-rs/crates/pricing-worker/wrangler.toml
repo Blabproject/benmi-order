@@ -1,0 +1,8 @@
+name = "benmi-pricing-rs"
+main = "build/worker/shim.mjs"
+compatibility_date = "2026-03-28"
+account_id = "525bb177ae7306325d13269246769f50"
+workers_dev = true
+
+[build]
+command = "worker-build --release"

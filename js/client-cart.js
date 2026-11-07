@@ -514,6 +514,17 @@ function removeCartPortion(category, origName, index) {
 }
 
 function calculateCategoryBundleSubtotal(rule, items) {
+    if (window.PricingWasm?.isReady && typeof window.PricingWasm.calculateCategoryBundle === 'function') {
+        try {
+            const wasmRes = window.PricingWasm.calculateCategoryBundle(rule, items);
+            if (wasmRes && typeof wasmRes.categoryTotal === 'number') {
+                return wasmRes;
+            }
+        } catch (wasmErr) {
+            console.warn('[PricingWasm] Category bundle calculation error, fallback to JS:', wasmErr);
+        }
+    }
+
     const regularTotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
     const totalQty = items.reduce((sum, item) => sum + item.qty, 0);
 

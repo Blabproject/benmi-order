@@ -42,6 +42,8 @@
     "test:order-details": "node --experimental-sqlite --test tests/test_order_detail_snapshots.cjs tests/test_order_detail_groups.cjs",
     "test:order-detail-layout": "node --test tests/test_order_detail_groups_browser.cjs",
     "build": "npm run check && node scripts/build-metadata.cjs",
+    "build:wasm": "cd benmi-pricing-rs/crates/pricing-wasm && wasm-pack build --target web --out-dir ../../../wasm/pricing-engine --release --no-gitignore",
+    "test:wasm": "node tests/test_pricing_wasm.cjs",
     "check:cache-busters": "node scripts/check-cache-busters.mjs",
     "test:menu:local": "node scripts/check-release-baseline.mjs --menu",
     "test:menu:dev": "node scripts/menu-qa/dev.mjs",

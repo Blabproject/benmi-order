@@ -2,6 +2,7 @@ import { Env } from '../types/env';
 import { json } from '../utils/http';
 import { getTenantId } from './menu';
 import { invalidateBootstrapCache } from './bootstrap';
+import { pricingRustEnabled, callRustValidateUnifiedItems, callRustValidateCatalogGraph } from './pricing-engine-client';
 
 type Row = Record<string, any>;
 type SubOption = {
@@ -836,11 +837,33 @@ export function validateOptionSelection(
 	});
 	return { groups: snapshots, extra };
 }
-export async function validateUnifiedOrderItems(env: Env, tenantId: string, items: any[]) {
+export type UnifiedValidationResult = {
+	valid: boolean;
+	legacy?: any[];
+	code?: string;
+	error?: string;
+	itemIndex?: number;
+	expectedSubtotal?: number;
+	items?: any[];
+};
+
+export async function validateUnifiedOrderItems(
+	env: Env,
+	tenantId: string,
+	items: any[],
+	features?: string[]
+): Promise<UnifiedValidationResult> {
 	if (!Array.isArray(items) || items.length === 0) {
 		return { valid: true, legacy: [] };
 	}
 	const catalog = await loadOptionCatalog(env, tenantId);
+	if (pricingRustEnabled(env, tenantId, features)) {
+		try {
+			return await callRustValidateUnifiedItems(env, catalog, items);
+		} catch (err) {
+			console.warn('[PricingEngine] Rust validate-unified error, falling back to TypeScript:', err);
+		}
+	}
 	const legacy: any[] = [];
 	const computedSubtotals = new Map<number, { id: string; portions: any[]; subtotal: number }>();
 	let merchandiseSubtotal = 0;

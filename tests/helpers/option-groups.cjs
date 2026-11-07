@@ -70,6 +70,12 @@ function moduleFor(db) {
             json: (body, status = 200) =>
               new Response(JSON.stringify(body), { status }),
           }
+        : name.includes("pricing-engine-client")
+          ? {
+              pricingRustEnabled: () => false,
+              callRustValidateUnifiedItems: async () => ({ valid: true }),
+              callRustValidateCatalogGraph: async () => ({ valid: true }),
+            }
         : name.includes("bootstrap")
           ? {
               invalidateBootstrapCache: async (tenant) =>
