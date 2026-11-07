@@ -273,7 +273,9 @@ export async function handlePaymentRoute(request:Request,env:Env,tenant:TenantCo
   const tenantId=tenant.tenantId;
   if(path==='/api/payments/config'&&request.method==='GET') {
    const configured=await ready(env) && !!await env.DB.prepare('SELECT 1 FROM tenant_payment_connections WHERE tenant_id=? AND environment=?').bind(tenantId,environment(env)).first();
-   return reply({linePay:{enabled:tenant.storeStatus!=='paused' && !!await paymentConnection(env,tenantId),configured,currency:'TWD',orderTypes:['takeaway']}});
+   const conn=await paymentConnection(env,tenantId);
+   const paymentMethods=(tenant.paymentMethods && Array.isArray(tenant.paymentMethods) && tenant.paymentMethods.length>0)?tenant.paymentMethods:['line_pay'];
+   return reply({linePay:{enabled:tenant.storeStatus!=='paused' && !!conn && paymentMethods.includes('line_pay'),configured,currency:'TWD',orderTypes:['takeaway']},paymentMethods});
   }
   if(!await ready(env))throw new PaymentError('PAYMENTS_NOT_READY',503);
   if(path==='/api/payments/attention/count'&&request.method==='GET')return reply(await paymentAttentionCount(env,tenantId));

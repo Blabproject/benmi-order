@@ -70,6 +70,7 @@ export async function getConfig(
     features: finalFeatures,
     storeStatus: domainRow.store_status || tenantCtx?.storeStatus || 'open',
     prepTimeMinutes: (domainRow.prep_time_minutes !== undefined && domainRow.prep_time_minutes !== null) ? Number(domainRow.prep_time_minutes) : (tenantCtx?.prepTimeMinutes ?? 5),
+    paymentMethods: domainRow.payment_methods ? (typeof domainRow.payment_methods === 'string' ? JSON.parse(domainRow.payment_methods) : domainRow.payment_methods) : (tenantCtx?.paymentMethods || ['line_pay']),
     logoUrl: domainRow.logo_url || tenantCtx?.logoUrl || null,
     storeAddress: domainRow.store_address || tenantCtx?.storeAddress || null,
     announcement: domainRow.announcement !== undefined && domainRow.announcement !== null ? domainRow.announcement : (tenantCtx?.announcement || null)
@@ -101,6 +102,7 @@ export async function updateConfig(
       allowDineIn: allowDineInVal,
       storeStatus: payload.storeStatus,
       prepTimeMinutes: payload.prepTimeMinutes !== undefined ? Number(payload.prepTimeMinutes) : undefined,
+      paymentMethods: payload.paymentMethods !== undefined ? payload.paymentMethods : undefined,
       liffId: payload.liffId,
       logoUrl: payload.logoUrl,
       storeAddress: payload.storeAddress,

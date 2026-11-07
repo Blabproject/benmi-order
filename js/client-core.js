@@ -4,7 +4,8 @@
 
 // --- WORKER BASE & TENANT RESOLUTION ---
 const hostname = window.location.hostname;
-const isDevEnv = (
+const staffEnvironment = window.isStaffOrderMode ? new URLSearchParams(location.search).get("env") : null;
+const isDevEnv = staffEnvironment ? staffEnvironment === "dev" : (
     hostname === "localhost" ||
     hostname === "127.0.0.1" ||
     hostname.startsWith("dev.") ||
@@ -12,7 +13,7 @@ const isDevEnv = (
     hostname.includes("-dev.") ||
     hostname.startsWith("dev-")
 );
-const isStagingEnv = (
+const isStagingEnv = staffEnvironment ? staffEnvironment === "staging" : (
     hostname.startsWith("staging.") ||
     hostname.includes(".staging.") ||
     hostname.includes("-staging.") ||
@@ -1142,6 +1143,7 @@ var liffInitPromise = null;
 var isLiffInitialized = false;
 
 function ensureLiffReady() {
+    if (window.isStaffOrderMode) return Promise.resolve(null);
     if (isLiffInitialized && typeof liff !== 'undefined') return Promise.resolve(liff);
     if (liffInitPromise) return liffInitPromise;
 
@@ -1229,6 +1231,7 @@ function ensureLiffReady() {
 window.ensureLiffReady = ensureLiffReady;
 
 function isDesktopOutsideLiff() {
+    if (window.isStaffOrderMode) return false;
     try {
         if (typeof window !== 'undefined' && window.location && typeof URLSearchParams !== 'undefined') {
             const sp = new URLSearchParams(window.location.search);
@@ -1252,6 +1255,7 @@ function isDesktopOutsideLiff() {
 }
 
 function checkDesktopAuthGuard() {
+    if (window.isStaffOrderMode) return !!window.StaffOrder?.ready();
     if (isDesktopOutsideLiff()) {
         let isLoggedIn = false;
         try {
@@ -1570,10 +1574,10 @@ async function initApp() {
 
     await window.menuPromise;
 
-    if (typeof initAppendModeIfPresent === 'function') {
+    if (!window.isStaffOrderMode && typeof initAppendModeIfPresent === 'function') {
         initAppendModeIfPresent();
     }
-    if (typeof initEditOrderModeIfPresent === 'function') {
+    if (!window.isStaffOrderMode && typeof initEditOrderModeIfPresent === 'function') {
         initEditOrderModeIfPresent();
     }
     applyPickupConfig();
@@ -1581,7 +1585,7 @@ async function initApp() {
     try {
         const urlParams = new URLSearchParams(window.location.search);
         const isEditOrderUrl = urlParams.get('mode') === 'edit_order' || urlParams.get('mode') === 'edit';
-        if (!window.isEditOrderMode && !isEditOrderUrl) {
+        if (!window.isStaffOrderMode && !window.isEditOrderMode && !isEditOrderUrl) {
             const saved = localStorage.getItem(`cart_save_${tenantId}`);
             if (saved) {
                 const parsed = JSON.parse(saved);

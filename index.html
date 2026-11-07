@@ -3,14 +3,20 @@
 
 <head>
     <meta charset="UTF-8">
+    <link rel="stylesheet" href="/css/staff-order.css?v=20261107_liff_staff_v1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title id="page-title">線上點餐</title>
     <link rel="preload" href="/index.css?v=20261107_pickup_time_sheet_v6" as="style">
-    <link rel="preload" href="/js/client-core.js?v=20261107_pickup_time_sheet_v6" as="script">
+    <link rel="preload" href="/js/client-core.js?v=20261107_liff_staff_v1" as="script">
     <link rel="preload" href="/js/client-menu.js?v=20261106_inline_nested_options_v2" as="script">
     <link rel="stylesheet" href="/index.css?v=20261107_pickup_time_sheet_v6">
     <style>html.tenant-resolution-failed body > :not(#tenant-resolution-error) { display: none !important; }</style>
     <script>
+        try {
+            window.isStaffOrderMode = new URLSearchParams(location.search).get('mode') === 'staff';
+            if (window.isStaffOrderMode) document.documentElement.classList.add('staff-order-mode');
+        } catch (e) { }
+
         // Redirect root visits on blabfood.app to /landing
         try {
             const h = window.location.hostname;
@@ -120,7 +126,7 @@
                     if (hp.get('mode') === 'edit_order' || hp.get('mode') === 'edit') isEdit = true;
                 }
 
-                if (!isEdit) {
+                if (!isEdit && !window.isStaffOrderMode) {
                     const savedKey = sessionStorage.getItem('benmi_edit_order_key');
                     if (savedKey && !sp.has('table') && !sp.has('takeaway') && !sp.has('mode')) isEdit = true;
                 }
@@ -939,7 +945,7 @@
     </div>
 
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <script src="/js/client-core.js?v=20261107_pickup_time_sheet_v6"></script>
+    <script src="/js/client-core.js?v=20261107_liff_staff_v1"></script>
     <script src="/js/client-menu.js?v=20261106_inline_nested_options_v2"></script>
     <script src="/js/client-customizations.js?v=20261106_unified_cart_actions_v1"></script>
     <script src="/js/client-bundle.js?v=20261103_note_placeholder_v1"></script>
@@ -972,19 +978,21 @@
   <script src="/js/order-detail-view.js?v=20261017_order_detail_v1"></script>
   <script src="/js/order-detail-checkout.js?v=20261017_order_detail_v1"></script>
   <script src="/js/line-order-presentation.js?v=20261030_line_portions_v3"></script>
-    <script src="/js/client-checkout.js?v=20261107_pickup_time_sheet_v6"></script>
+    <script src="/js/client-checkout.js?v=20261107_liff_staff_v1"></script>
+    <script src="/js/staff-order.js?v=20261107_liff_staff_v1"></script>
     <script>
         if (window.__TENANT_RESOLUTION_FAILED) {
             document.getElementById('page-body-content').style.display = 'none';
             document.getElementById('tenant-resolution-error').style.display = 'block';
         } else {
-            initApp();
+            if (window.isStaffOrderMode) StaffOrder.start();
+            else initApp();
         }
     </script>
   <script src="/js/payment-session.js?v=20261103_linepay_mobile_redirect_v1"></script>
   <script src="/js/payment-view.js?v=20261101_payment_result_v1"></script>
   <script src="/js/payment-actions.js?v=20261101_payment_cancel_v1"></script>
-  <script src="/js/client-payments.js?v=20261103_payment_section_top_v1"></script>
+  <script src="/js/client-payments.js?v=20261107_payment_methods_v1"></script>
 </body>
 
 </html>

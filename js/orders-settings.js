@@ -193,6 +193,9 @@ async function loadStoreStatus() {
       if (data.prepTimeMinutes !== undefined) {
         currentPrepTimeMinutes = Number(data.prepTimeMinutes);
       }
+      if (data.paymentMethods && Array.isArray(data.paymentMethods)) {
+        currentPaymentMethods = data.paymentMethods;
+      }
       storeOperatingHours = ensureParsedOperatingHours(data.operatingHours);
     }
   } catch (e) {
@@ -200,6 +203,24 @@ async function loadStoreStatus() {
   }
   renderStoreStatusUI(currentStoreStatus);
   renderStorePrepTimeUI(currentPrepTimeMinutes);
+  renderPaymentMethodsSetting(currentPaymentMethods, isLinePayConfigured);
+  try {
+    const tenantId = typeof getTenantIdFromUrl === 'function' ? getTenantIdFromUrl() : '';
+    if (tenantId) {
+      fetch(`${WORKER_BASE}/api/payments/config?tenant_id=${encodeURIComponent(tenantId)}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(payCfg => {
+          if (payCfg) {
+            isLinePayConfigured = payCfg.linePay?.configured === true;
+            if (payCfg.paymentMethods && Array.isArray(payCfg.paymentMethods)) {
+              currentPaymentMethods = payCfg.paymentMethods;
+            }
+            renderPaymentMethodsSetting(currentPaymentMethods, isLinePayConfigured);
+          }
+        })
+        .catch(() => {});
+    }
+  } catch (_) {}
   if (typeof updateDiningFilterStats === "function" && typeof orders !== "undefined") {
     updateDiningFilterStats(orders);
   }
@@ -314,6 +335,7 @@ async function loadOperatingHours() {
   renderStoreStatusUI(currentStoreStatus);
   renderOperatingHours();
   renderScheduledPickupSetting();
+  renderPaymentMethodsSetting();
   renderDineInSetting();
   if (typeof updateHistoryFilterVisibility === "function") {
     updateHistoryFilterVisibility();
@@ -375,6 +397,107 @@ async function saveScheduledPickupSetting() {
     if (btn) { btn.innerText = oldText; btn.disabled = false; }
   }
 }
+
+var currentPaymentMethods = ['line_pay'];
+var isLinePayConfigured = false;
+
+function togglePaymentCardStyle(opt) {
+  const isLinePay = opt === 'line_pay';
+  const card = document.getElementById(isLinePay ? 'payment-card-linepay' : 'payment-card-cash');
+  const input = document.getElementById(isLinePay ? 'setting-payment-opt-linepay' : 'setting-payment-opt-cash');
+  if (card && input) {
+    if (input.checked) {
+      card.style.borderColor = 'var(--primary)';
+      card.style.background = 'rgba(0, 185, 0, 0.04)';
+    } else {
+      card.style.borderColor = 'var(--border)';
+      card.style.background = '#fff';
+    }
+  }
+}
+window.togglePaymentCardStyle = togglePaymentCardStyle;
+
+function renderPaymentMethodsSetting(methods, linePayConfigured) {
+  if (Array.isArray(methods) && methods.length > 0) {
+    currentPaymentMethods = methods;
+  }
+  if (linePayConfigured !== undefined) {
+    isLinePayConfigured = Boolean(linePayConfigured);
+  }
+
+  const linepayInput = document.getElementById('setting-payment-opt-linepay');
+  const cashInput = document.getElementById('setting-payment-opt-cash');
+  if (linepayInput) {
+    linepayInput.checked = currentPaymentMethods.includes('line_pay');
+  }
+  if (cashInput) {
+    cashInput.checked = currentPaymentMethods.includes('cash');
+  }
+
+  togglePaymentCardStyle('line_pay');
+  togglePaymentCardStyle('cash');
+
+  const badge = document.getElementById('setting-payment-linepay-badge');
+  if (badge) {
+    if (isLinePayConfigured) {
+      badge.textContent = t('paymentBadgeActive') || '已啟用';
+      badge.style.background = '#ecfdf5';
+      badge.style.color = '#047857';
+    } else {
+      badge.textContent = t('paymentBadgeInactive') || '未啟用';
+      badge.style.background = '#f3f4f6';
+      badge.style.color = '#6b7280';
+    }
+  }
+}
+window.renderPaymentMethodsSetting = renderPaymentMethodsSetting;
+
+async function savePaymentMethodsSetting() {
+  const linepay = document.getElementById('setting-payment-opt-linepay')?.checked;
+  const cash = document.getElementById('setting-payment-opt-cash')?.checked;
+
+  if (!linepay && !cash) {
+    alert(t('paymentMinOneRequired') || '請至少選擇一種付款方式！');
+    return;
+  }
+
+  const newMethods = [];
+  if (linepay) newMethods.push('line_pay');
+  if (cash) newMethods.push('cash');
+
+  const btn = document.getElementById('btn-save-payment-setting');
+  const oldText = btn ? btn.innerText : '';
+  if (btn) { btn.innerText = t('saving') || '儲存中...'; btn.disabled = true; }
+
+  try {
+    const tenantId = typeof getTenantIdFromUrl === 'function' ? getTenantIdFromUrl() : '';
+    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${tenantId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentMethods: newMethods })
+    });
+    if (!res.ok) throw new Error('API returned ' + res.status);
+
+    currentPaymentMethods = newMethods;
+    renderPaymentMethodsSetting(newMethods);
+    if (typeof showToast === 'function') {
+      showToast(t('paymentSettingsSaved') || '已成功儲存付款方式設定！');
+    } else {
+      alert(t('paymentSettingsSaved') || '已成功儲存付款方式設定！');
+    }
+  } catch (err) {
+    alert((t('saveFail') || '儲存失敗: ') + err.message);
+  } finally {
+    if (btn) { btn.innerText = oldText || t('btnSaveSetting') || '儲存設定'; btn.disabled = false; }
+  }
+}
+window.savePaymentMethodsSetting = savePaymentMethodsSetting;
+
+function openPaymentSettingsFromWorkspace() {
+  if (typeof switchTab === 'function') switchTab('settings');
+  if (typeof switchSettingTab === 'function') switchSettingTab('setting-card-payment');
+}
+window.openPaymentSettingsFromWorkspace = openPaymentSettingsFromWorkspace;
 
 function updateTocFeatureItem(tocId, labelId, i18nKey, unlockedSvg, isFeatureEnabled) {
   const tocItem = document.getElementById(tocId);
@@ -1382,6 +1505,7 @@ async function testPOSPrinterStation(station) {
 const SETTINGS_SECTIONS = [
   { id: "setting-card-status", tocId: "toc-item-status" },
   { id: "setting-card-ordermode", tocId: "toc-item-ordermode" },
+  { id: "setting-card-payment", tocId: "toc-item-payment" },
   { id: "setting-card-hours", tocId: "toc-item-hours" },
   { id: "setting-card-store-info", tocId: "toc-item-store-info" },
   { id: "setting-card-language", tocId: "toc-item-language" },

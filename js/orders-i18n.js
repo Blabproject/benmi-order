@@ -320,6 +320,7 @@ const I18N = {
     tocSettingsSub: "系統與門市參數",
     tocStoreStatus: "門市接單狀態",
     tocOrderMode: "點餐取餐模式",
+    tocPayment: "付款方式設定",
     tocHours: "營業時間設定",
     tocStoreInfo: "門市基本資訊",
     settingStoreInfoTitle: "門市基本資訊",
@@ -365,6 +366,19 @@ const I18N = {
     modeScheduledSub: "顧客可在點餐頁面自選取餐日期與時間，適合預先排程準備餐點的店家。",
     modeAsapTitle: "僅限現場排隊 / 即刻出餐模式",
     modeAsapSub: "隱藏預約時間選項。顧客送出訂單後，店家將依序即刻製作出餐。",
+    paymentSettingsTitle: "付款方式設定",
+    paymentSettingsSub: "自訂顧客在線上點餐時可使用的付款選項",
+    btnSavePaymentSetting: "儲存設定",
+    paymentOptLinePayTitle: "LINE Pay (線上付款)",
+    paymentOptLinePaySub: "顧客可在點餐頁直接以 LINE Pay 完成線上結帳，款項即時入帳。",
+    paymentOptCashTitle: "取餐時付款 / 現場結帳（訂單先送出）",
+    paymentOptCashSub: "允許顧客先下單，待抵達門市取餐時再以現金或其他臨櫃方式結帳。",
+    paymentSettingsHint: "提示：若僅勾選「LINE Pay」，顧客在點餐頁送出訂單前必須先完成線上付款；若同時勾選「取餐時付款」，顧客可自行選擇線上支付或到店付款。",
+    paymentBadgeActive: "已啟用",
+    paymentBadgeInactive: "未啟用",
+    paymentMinOneRequired: "請至少選擇一種付款方式！",
+    paymentSettingsSaved: "已成功儲存付款方式設定！",
+    paymentSettingsBtn: "付款方式設定",
     hoursTitle: "營業時間設定",
     hoursSub: "設定每日營業時段與公休日",
     btnSaveHours: "儲存時間",
@@ -1432,6 +1446,7 @@ const I18N = {
     tocSettingsSub: "Cấu hình hệ thống",
     tocStoreStatus: "Trạng thái nhận đơn",
     tocOrderMode: "Chế độ nhận đơn",
+    tocPayment: "Thiết lập thanh toán",
     tocHours: "Giờ hoạt động",
     tocStoreInfo: "Thông tin cửa hàng",
     settingStoreInfoTitle: "Thông tin cơ bản cửa hàng",
@@ -1477,6 +1492,19 @@ const I18N = {
     modeScheduledSub: "Khách hàng có thể tự chọn ngày và giờ muốn đến lấy món trên trang đặt hàng. Thích hợp với các quán chuẩn bị theo giờ hẹn của khách.",
     modeAsapTitle: "Tắt hẹn giờ - Nhận đơn làm ngay theo thứ tự",
     modeAsapSub: "Ẩn mục chọn ngày giờ. Khách đặt xong đơn sẽ được tiếp nhận và xử lý làm ngay theo thứ tự vào đơn.",
+    paymentSettingsTitle: "Thiết lập phương thức thanh toán",
+    paymentSettingsSub: "Tùy chỉnh các phương thức thanh toán khách có thể sử dụng khi đặt món",
+    btnSavePaymentSetting: "Lưu thiết lập",
+    paymentOptLinePayTitle: "LINE Pay (Thanh toán trực tuyến)",
+    paymentOptLinePaySub: "Khách hàng thanh toán trực tiếp qua ví LINE Pay khi đặt món, tiền về ngay.",
+    paymentOptCashTitle: "Đặt rồi trả sau (Thanh toán tại quầy khi nhận món)",
+    paymentOptCashSub: "Cho phép khách đặt trước món ăn và thanh toán tiền mặt/quẹt thẻ khi tới lấy hàng.",
+    paymentSettingsHint: "Lưu ý: Nếu chỉ chọn «LINE Pay», khách bắt buộc phải thanh toán online trước khi gửi đơn; nếu chọn cả hai, khách có thể linh hoạt chọn trả trước qua LINE Pay hoặc trả sau tại quầy.",
+    paymentBadgeActive: "Đang bật",
+    paymentBadgeInactive: "Chưa bật",
+    paymentMinOneRequired: "Vui lòng chọn ít nhất một phương thức thanh toán!",
+    paymentSettingsSaved: "Đã lưu thiết lập phương thức thanh toán thành công!",
+    paymentSettingsBtn: "Thiết lập thanh toán",
     hoursTitle: "Giờ hoạt động",
     hoursSub: "Cài đặt khung giờ mở cửa và ngày nghỉ định kỳ",
     btnSaveHours: "Lưu thời gian",
@@ -2709,6 +2737,8 @@ function applyLanguageToDOM() {
   if (tocStatus) tocStatus.innerText = dict.tocStoreStatus;
   const tocOrderMode = document.getElementById("i18n-toc-ordermode");
   if (tocOrderMode) tocOrderMode.innerText = dict.tocOrderMode;
+  const tocPayment = document.getElementById("i18n-toc-payment");
+  if (tocPayment) tocPayment.innerText = dict.tocPayment;
   const tocHours = document.getElementById("i18n-toc-hours");
   if (tocHours) tocHours.innerText = dict.tocHours;
   const tocStoreInfo = document.getElementById("i18n-toc-store-info");
@@ -2810,6 +2840,27 @@ function applyLanguageToDOM() {
   if (modeAsapT) modeAsapT.innerText = dict.modeAsapTitle;
   const modeAsapS = document.getElementById("i18n-mode-asap-sub");
   if (modeAsapS) modeAsapS.innerText = dict.modeAsapSub;
+
+  const paySetT = document.getElementById("i18n-payment-settings-title");
+  if (paySetT) paySetT.innerText = dict.paymentSettingsTitle;
+  const paySetS = document.getElementById("i18n-payment-settings-sub");
+  if (paySetS) paySetS.innerText = dict.paymentSettingsSub;
+  const btnSavePay = document.getElementById("btn-save-payment-setting");
+  if (btnSavePay) btnSavePay.innerText = dict.btnSavePaymentSetting;
+  const payOptLinePayT = document.getElementById("i18n-payment-opt-linepay-title");
+  if (payOptLinePayT) payOptLinePayT.innerText = dict.paymentOptLinePayTitle;
+  const payOptLinePayS = document.getElementById("i18n-payment-opt-linepay-sub");
+  if (payOptLinePayS) payOptLinePayS.innerText = dict.paymentOptLinePaySub;
+  const payOptCashT = document.getElementById("i18n-payment-opt-cash-title");
+  if (payOptCashT) payOptCashT.innerText = dict.paymentOptCashTitle;
+  const payOptCashS = document.getElementById("i18n-payment-opt-cash-sub");
+  if (payOptCashS) payOptCashS.innerText = dict.paymentOptCashSub;
+  const paySetHint = document.getElementById("i18n-payment-settings-hint");
+  if (paySetHint) paySetHint.innerText = dict.paymentSettingsHint;
+  if (typeof renderPaymentMethodsSetting === "function") {
+    renderPaymentMethodsSetting();
+  }
+
   const hrsT = document.getElementById("i18n-hours-title");
   if (hrsT) hrsT.innerText = dict.hoursTitle;
   const hrsS = document.getElementById("i18n-hours-sub");

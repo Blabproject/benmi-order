@@ -118,6 +118,7 @@ export function createTenantRepository(
               allowDineIn: row.allow_dine_in !== undefined && row.allow_dine_in !== null ? Boolean(row.allow_dine_in) : true,
               storeStatus: (row.store_status as any) || 'open',
               prepTimeMinutes: (row.prep_time_minutes !== undefined && row.prep_time_minutes !== null) ? Number(row.prep_time_minutes) : 5,
+              paymentMethods: (row.payment_methods ? (typeof row.payment_methods === 'string' ? JSON.parse(row.payment_methods) : row.payment_methods) : ['line_pay']),
               quickReplies,
               defaultPassword: row.default_password || '12345678',
               locale: row.locale || 'zh-TW',
@@ -202,7 +203,7 @@ export function createTenantRepository(
     async getTenantConfigRow(tenantId: string): Promise<TenantConfigRow | null> {
       if (!db) return null;
       return db.prepare(
-        "SELECT operating_hours, allow_scheduled_pickup, allow_dine_in, store_status, liff_id, logo_url, store_address, announcement, features, customer_order_domain, legacy_liff_endpoint_url FROM tenant_config WHERE tenant_id = ? AND is_active = 1"
+        "SELECT operating_hours, allow_scheduled_pickup, allow_dine_in, store_status, liff_id, logo_url, store_address, announcement, features, payment_methods, customer_order_domain, legacy_liff_endpoint_url FROM tenant_config WHERE tenant_id = ? AND is_active = 1"
       ).bind(tenantId).first<TenantConfigRow>();
     },
 
@@ -229,11 +230,14 @@ export function createTenantRepository(
       const prepTimeVal = input.prepTimeMinutes !== undefined && input.prepTimeMinutes !== null
         ? Number(input.prepTimeMinutes)
         : null;
+      const paymentMethodsVal = input.paymentMethods !== undefined && input.paymentMethods !== null
+        ? (typeof input.paymentMethods === 'string' ? input.paymentMethods : JSON.stringify(input.paymentMethods))
+        : null;
       const brandName = input.brandName || (tenantId === 'benmi' ? 'Benmi 越式法國麵包' : tenantId);
 
       await db.prepare(`
-        INSERT INTO tenant_config (tenant_id, brand_name, operating_hours, allow_scheduled_pickup, allow_dine_in, store_status, liff_id, logo_url, store_address, announcement, features, prep_time_minutes, updated_at)
-        VALUES (?, ?, ?, COALESCE(?, 1), COALESCE(?, 1), COALESCE(?, 'open'), ?, ?, ?, ?, COALESCE(?, '[]'), COALESCE(?, 5), CURRENT_TIMESTAMP)
+        INSERT INTO tenant_config (tenant_id, brand_name, operating_hours, allow_scheduled_pickup, allow_dine_in, store_status, liff_id, logo_url, store_address, announcement, features, prep_time_minutes, payment_methods, updated_at)
+        VALUES (?, ?, ?, COALESCE(?, 1), COALESCE(?, 1), COALESCE(?, 'open'), ?, ?, ?, ?, COALESCE(?, '[]'), COALESCE(?, 5), COALESCE(?, '["line_pay"]'), CURRENT_TIMESTAMP)
         ON CONFLICT(tenant_id) DO UPDATE SET
           operating_hours = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.operating_hours END,
           allow_scheduled_pickup = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.allow_scheduled_pickup END,
@@ -245,6 +249,7 @@ export function createTenantRepository(
           announcement = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.announcement END,
           features = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.features END,
           prep_time_minutes = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.prep_time_minutes END,
+          payment_methods = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.payment_methods END,
           updated_at = CURRENT_TIMESTAMP
       `).bind(
         tenantId,
@@ -259,6 +264,7 @@ export function createTenantRepository(
         announcementVal,
         featuresVal,
         prepTimeVal,
+        paymentMethodsVal,
         opHoursStr, opHoursStr,
         allowPickupInt, allowPickupInt,
         allowDineInInt, allowDineInInt,
@@ -268,7 +274,8 @@ export function createTenantRepository(
         storeAddressVal, storeAddressVal,
         announcementVal, announcementVal,
         featuresVal, featuresVal,
-        prepTimeVal, prepTimeVal
+        prepTimeVal, prepTimeVal,
+        paymentMethodsVal, paymentMethodsVal
       ).run();
 
       await invalidateCache(tenantId);

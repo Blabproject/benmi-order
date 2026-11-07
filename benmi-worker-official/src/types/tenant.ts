@@ -31,6 +31,7 @@ export interface TenantContext {
   allowDineIn?: boolean;
   storeStatus?: 'open' | 'busy' | 'paused';
   prepTimeMinutes?: number | null;
+  paymentMethods?: string[];
   quickReplies: QuickReply[];
   defaultPassword: string;
   locale: string;

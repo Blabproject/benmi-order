@@ -473,7 +473,10 @@
     <div class="content payment-workspace" id="view-payments" style="display:none;">
       <div class="payment-workspace-heading">
         <div><h2>LINE Pay</h2><p data-payment-i18n="paymentWorkspaceIntro">查詢付款、追蹤退款並處理需要確認的交易。</p></div>
-        <button type="button" class="btn btn-ghost" onclick="PaymentPOS.refresh()" data-payment-i18n="paymentRefresh">重新整理</button>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn btn-ghost" onclick="openPaymentSettingsFromWorkspace()" data-payment-i18n="paymentSettingsBtn">付款方式設定</button>
+          <button type="button" class="btn btn-ghost" onclick="PaymentPOS.refresh()" data-payment-i18n="paymentRefresh">重新整理</button>
+        </div>
       </div>
       <div id="payment-workspace-status" class="payment-workspace-status" role="status" aria-live="polite"></div>
       <section id="payment-access-panel" class="payment-access-panel">
@@ -621,6 +624,18 @@
                 </svg>
               </div>
               <span class="toc-item-label" id="i18n-toc-ordermode">點餐取餐模式</span>
+              <svg class="toc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </div>
+            <div class="settings-toc-item" id="toc-item-payment" onclick="switchSettingTab('setting-card-payment')">
+              <div class="toc-icon-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                  <line x1="2" y1="10" x2="22" y2="10"></line>
+                </svg>
+              </div>
+              <span class="toc-item-label" id="i18n-toc-payment">付款方式設定</span>
               <svg class="toc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="9 18 15 12 9 6"></polyline>
               </svg>
@@ -835,6 +850,47 @@
                     <button type="button" class="setting-preptime-btn" data-minutes="60" onclick="setStorePrepTime(60)">60 分鐘</button>
                     <button type="button" class="setting-preptime-btn" data-minutes="custom" onclick="openCustomPrepTimePrompt()">自訂分鐘</button>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Payment Methods Setting Card -->
+            <div class="settings-card" id="setting-card-payment">
+              <div
+                style="padding: 16px 20px; background: #f3f4f6; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <div style="font-weight: 1100; font-size: var(--pos-text-body);" id="i18n-payment-settings-title">付款方式設定</div>
+                  <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600; margin-top: 2px;" id="i18n-payment-settings-sub">自訂顧客在線上點餐時可使用的付款選項</div>
+                </div>
+                <button class="btn btn-primary" style="padding: 10px 20px; font-size: var(--pos-text-body); border-radius: 8px;"
+                  onclick="savePaymentMethodsSetting()" id="btn-save-payment-setting">儲存設定</button>
+              </div>
+
+              <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                <!-- LINE Pay Option -->
+                <label class="setting-payment-card" id="payment-card-linepay" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 12px; border: 2px solid var(--border); cursor: pointer; transition: all 0.15s ease;">
+                  <input type="checkbox" id="setting-payment-opt-linepay" value="line_pay" onchange="togglePaymentCardStyle('line_pay')" style="width: 20px; height: 20px; margin-top: 3px; accent-color: var(--primary);">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span style="font-weight: 1100; font-size: var(--pos-text-body); color: #111827;" id="i18n-payment-opt-linepay-title">LINE Pay (線上付款)</span>
+                      <span id="setting-payment-linepay-badge" style="font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 99px; background: #ecfdf5; color: #047857;">已啟用</span>
+                    </div>
+                    <div style="font-size: var(--pos-text-meta); color: #4b5563; margin-top: 4px; line-height: 1.4;" id="i18n-payment-opt-linepay-sub">顧客可在點餐頁直接以 LINE Pay 完成線上結帳，款項即時入帳。</div>
+                  </div>
+                </label>
+
+                <!-- Cash / Pay Later Option -->
+                <label class="setting-payment-card" id="payment-card-cash" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 12px; border: 2px solid var(--border); cursor: pointer; transition: all 0.15s ease;">
+                  <input type="checkbox" id="setting-payment-opt-cash" value="cash" onchange="togglePaymentCardStyle('cash')" style="width: 20px; height: 20px; margin-top: 3px; accent-color: var(--primary);">
+                  <div style="flex: 1;">
+                    <div style="font-weight: 1100; font-size: var(--pos-text-body); color: #111827;" id="i18n-payment-opt-cash-title">取餐時付款 / 現場結帳（訂單先送出）</div>
+                    <div style="font-size: var(--pos-text-meta); color: #4b5563; margin-top: 4px; line-height: 1.4;" id="i18n-payment-opt-cash-sub">允許顧客先下單，待抵達門市取餐時再以現金或其他臨櫃方式結帳。</div>
+                  </div>
+                </label>
+
+                <!-- Help / Hint notice -->
+                <div style="font-size: 13px; color: #4b5563; line-height: 1.5; padding: 12px 14px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;" id="i18n-payment-settings-hint">
+                  提示：若僅勾選「LINE Pay」，顧客在點餐頁送出訂單前必須先完成線上付款；若同時勾選「取餐時付款」，顧客可自行選擇線上支付或到店付款。
                 </div>
               </div>
             </div>
@@ -3070,7 +3126,7 @@
   </section>
 
   <!-- Benmi POS Modular Architecture Scripts -->
-  <script src="js/orders-i18n.js?v=20261107_prep_time_v3"></script>
+  <script src="js/orders-i18n.js?v=20261107_payment_methods_v1"></script>
   <script src="js/orders-core.js?v=20261105_tenant_branding_v1"></script>
   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
@@ -3080,7 +3136,7 @@
   <script src="js/orders-modals.js?v=20261101_linepay_v1"></script>
   <script src="js/orders-history.js?v=20261101_linepay_v1"></script>
   <script src="js/orders-reports.js?v=20261007_dev_main_sync_v1"></script>
-  <script src="js/orders-settings.js?v=20261107_prep_time_v4"></script>
+  <script src="js/orders-settings.js?v=20261107_payment_methods_v1"></script>
   <script src="js/orders-menu-model.js?v=20261104_menu_model_v1"></script>
   <script src="js/orders-menu.js?v=20261107_stock_restore_v2"></script>
   <script src="js/orders-bundle-wizard.js?v=20261007_dev_main_sync_v1"></script>

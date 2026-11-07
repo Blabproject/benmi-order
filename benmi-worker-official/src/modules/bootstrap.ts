@@ -69,6 +69,7 @@ export interface BootstrapResponse {
     orderPrefix?: string;
     storeStatus: string;
     prepTimeMinutes?: number;
+    paymentMethods?: string[];
     liffId: string | null;
     liffUrl: string | null;
     locale: string;
@@ -1028,6 +1029,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
         orderPrefix: tenantCtx?.orderPrefix || (tenantId === 'benmi' ? 'B' : tenantId.charAt(0).toUpperCase()),
         storeStatus: tenantCtx?.storeStatus || 'open',
         prepTimeMinutes: (typeof tenantCtx?.prepTimeMinutes === 'number') ? tenantCtx.prepTimeMinutes : 5,
+        paymentMethods: tenantCtx?.paymentMethods || ['line_pay'],
         liffId,
         liffUrl,
         locale

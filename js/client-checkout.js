@@ -2252,6 +2252,7 @@ function isPickupTimeValid(dateTime) {
 
 // 9. Thực thi gửi đơn hàng với Timeout 8s & Bảo vệ nút bấm
 async function submitOrder() {
+    if (window.isStaffOrderMode) return StaffOrder.submit();
     if(window.LinePayCheckout?.blocked()){LinePayCheckout.manage();return;}
     if (isSubmitting) return;
     if (typeof checkDesktopAuthGuard === 'function' && !checkDesktopAuthGuard()) {
