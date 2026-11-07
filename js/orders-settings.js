@@ -2162,7 +2162,24 @@ function renderRestaurantTablesList() {
   if (!tbody) return;
 
   if (currentRestaurantTables.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 32px 16px; color: #94a3b8;">${t("staffNoTables")}</td></tr>`;
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="4" style="padding: 0;">
+          <div class="restaurant-tables-empty-state">
+            <div class="restaurant-tables-empty-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+            </div>
+            <div style="font-weight: 800; font-size: 15px; color: #1e293b; margin-bottom: 4px;">${t("tableEmptyList") || t("staffNoTables")}</div>
+            <div style="font-size: 13px; color: #94a3b8;">${t("tableEmptyListSub") || ""}</div>
+          </div>
+        </td>
+      </tr>
+    `;
     return;
   }
 
@@ -2172,19 +2189,20 @@ function renderRestaurantTablesList() {
     let statusPill = "";
     if (isActive) {
       if (hasActiveOrder) {
-        statusPill = `<span style="display:inline-flex; align-items:center; gap:6px; background:#fef3c7; color:#b45309; padding:4px 10px; border-radius:6px; font-weight:700; font-size:12.5px;">
-          <span style="width:6px; height:6px; border-radius:50%; background:#f59e0b;"></span>
-          <span>${t("tableOccupied")} #${escapeHtml(table.active_display_key || table.active_order_id || '')}</span>
+        const orderCode = escapeHtml(table.active_display_key || table.active_order_id || '');
+        statusPill = `<span class="restaurant-table-status-pill status-occupied" title="${t("tableOccupied")} #${orderCode}">
+          <span class="restaurant-table-status-dot"></span>
+          <span>${t("tableOccupied")} · #${orderCode}</span>
         </span>`;
       } else {
-        statusPill = `<span style="display:inline-flex; align-items:center; gap:6px; background:#dcfce7; color:#15803d; padding:4px 10px; border-radius:6px; font-weight:700; font-size:12.5px;">
-          <span style="width:6px; height:6px; border-radius:50%; background:#22c55e;"></span>
+        statusPill = `<span class="restaurant-table-status-pill status-empty">
+          <span class="restaurant-table-status-dot"></span>
           <span>${t("tableEmpty")}</span>
         </span>`;
       }
     } else {
-      statusPill = `<span style="display:inline-flex; align-items:center; gap:6px; background:#f1f5f9; color:#64748b; padding:4px 10px; border-radius:6px; font-weight:700; font-size:12.5px;">
-        <span style="width:6px; height:6px; border-radius:50%; background:#94a3b8;"></span>
+      statusPill = `<span class="restaurant-table-status-pill status-disabled">
+        <span class="restaurant-table-status-dot"></span>
         <span>${t("tableStatusDisabled")}</span>
       </span>`;
     }
@@ -2192,32 +2210,58 @@ function renderRestaurantTablesList() {
     const disableAction = hasActiveOrder || !window.staffOrderingCapabilities?.tables_write ? `disabled title="${t("tableHasActiveOrder")}"` : '';
 
     return `
-      <tr style="border-bottom: 1px solid var(--border); transition: background 0.15s ease;">
-        <td style="padding: 14px 16px; font-weight: 800; color: #1e293b; font-size: 15px;">
-          ${escapeHtml(table.label)}
+      <tr>
+        <td>
+          <div class="restaurant-table-name-wrap">
+            <div class="restaurant-table-name-icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 5h18a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"></path>
+                <path d="M5 11v8"></path>
+                <path d="M19 11v8"></path>
+              </svg>
+            </div>
+            <span class="restaurant-table-name-text">${escapeHtml(table.label)}</span>
+          </div>
         </td>
-        <td style="padding: 14px 16px; color: #64748b; font-weight: 600;">
-          ${table.sort_order || 0}
+        <td style="text-align: center;">
+          <span class="restaurant-table-sort-badge">${table.sort_order || 0}</span>
         </td>
-        <td style="padding: 14px 16px;">
+        <td>
           ${statusPill}
         </td>
-        <td style="padding: 14px 16px; text-align: right; white-space: nowrap;">
-          <button type="button" class="btn btn-ghost btn-sm" style="margin-right: 6px; padding: 6px 12px; font-weight: 700; border-radius: 6px; min-height: 48px; color: #15803d; border-color: #bbf7d0; background: #f0fdf4;" onclick="openTableQrModal('${table.id}')">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -2px;">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
-            </svg>
-            ${t("tableQrBtn") || "QR Code"}
-          </button>
-          <button type="button" class="btn btn-ghost btn-sm" style="margin-right: 6px; padding: 6px 12px; font-weight: 700; border-radius: 6px; min-height: 48px;" onclick="openEditTableModal('${table.id}')">
-            ${t("tableEdit")}
-          </button>
-          <button type="button" class="btn ${isActive ? 'btn-ghost' : 'btn-primary'} btn-sm" style="padding: 6px 12px; font-weight: 700; border-radius: 6px; min-height: 48px; ${isActive ? 'color: #ef4444; border-color: #fee2e2;' : ''}" ${disableAction} onclick="toggleTableActive('${table.id}', ${isActive ? 0 : 1})">
-            ${isActive ? t("tableDisable") : t("tableEnable")}
-          </button>
+        <td style="text-align: right;">
+          <div class="restaurant-table-actions-group">
+            <button type="button" class="table-action-btn table-action-qr" onclick="openTableQrModal('${table.id}')" title="${t("tableQrBtn")}">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              <span>${t("tableQrBtn") || "QR Code"}</span>
+            </button>
+            <button type="button" class="table-action-btn table-action-edit" onclick="openEditTableModal('${table.id}')" title="${t("tableEdit")}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              <span>${t("tableEdit")}</span>
+            </button>
+            <button type="button" class="table-action-btn ${isActive ? 'table-action-disable' : 'table-action-enable'}" ${disableAction} onclick="toggleTableActive('${table.id}', ${isActive ? 0 : 1})" title="${isActive ? t("tableDisable") : t("tableEnable")}">
+              ${isActive ? `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                </svg>
+                <span>${t("tableDisable")}</span>
+              ` : `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>${t("tableEnable")}</span>
+              `}
+            </button>
+          </div>
         </td>
       </tr>
     `;

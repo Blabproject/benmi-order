@@ -1167,6 +1167,9 @@ const I18N = {
     tableBatchCreating: "正在建立桌號...",
     tableBatchSuccess: "成功新增 {count} 個桌號",
     tableBatchFail: "批次建立桌號失敗，請重試",
+    tableEmptyList: "尚未建立任何桌號",
+    tableEmptyListSub: "點擊上方「新增桌號」或「批次新增桌號」開始使用",
+    tableHistoryNotice: "提示：為維護營業歷史報表與數據完整性，使用過之桌號僅能停用，不提供硬性刪除。",
     tableNoPrinterConfigured: "尚未設定出單機，請至「出單與印表機」設定後再行列印",
     tablePrinting: "正在傳送列印任務...",
     tablePrintSuccess: "已送出列印任務",
@@ -2336,6 +2339,9 @@ const I18N = {
     tableBatchCreating: "Đang tạo bàn...",
     tableBatchSuccess: "Đã tạo {count} bàn thành công",
     tableBatchFail: "Tạo dải bàn thất bại, vui lòng thử lại",
+    tableEmptyList: "Chưa có bàn nào trong danh sách",
+    tableEmptyListSub: "Bấm \"Thêm bàn mới\" hoặc \"Tạo nhanh nhiều bàn\" để bắt đầu",
+    tableHistoryNotice: "Lưu ý: Để đảm bảo tính toàn vẹn của lịch sử và báo cáo doanh thu, bàn đã từng sử dụng chỉ có thể ngừng dùng, không được xoá vĩnh viễn.",
     tableNoPrinterConfigured: "Chưa cấu hình máy in, vui lòng thiết lập trong mục Xuất đơn & Máy in",
     tablePrinting: "Đang gửi lệnh in tới máy in...",
     tablePrintSuccess: "Đã gửi lệnh in thành công",
@@ -2851,7 +2857,11 @@ function applyLanguageToDOM() {
   const setTablesS = document.getElementById("i18n-setting-tables-sub");
   if (setTablesS) setTablesS.innerText = dict.tabTablesSub;
   const btnAddTable = document.getElementById("i18n-table-add-btn");
-  if (btnAddTable) btnAddTable.innerText = dict.tableAddBtn;
+  if (btnAddTable) {
+    const span = btnAddTable.querySelector("span");
+    if (span) span.innerText = dict.tableAddBtn;
+    else btnAddTable.innerText = dict.tableAddBtn;
+  }
   const thTableName = document.getElementById("i18n-th-table-name");
   if (thTableName) thTableName.innerText = dict.tableName;
   const thTableSort = document.getElementById("i18n-th-table-sort");
@@ -2870,6 +2880,8 @@ function applyLanguageToDOM() {
     const span = btnBatchTable.querySelector("span");
     if (span) span.innerText = dict.tableBatchAddBtn;
   }
+  const noticeTables = document.getElementById("i18n-setting-tables-notice");
+  if (noticeTables) noticeTables.innerText = dict.tableHistoryNotice;
   const modalQrTitle = document.getElementById("table-qr-modal-title");
   if (modalQrTitle) modalQrTitle.innerText = dict.tableQrTitle;
   const qrDineInBadge = document.getElementById("i18n-table-qr-dinein-badge");

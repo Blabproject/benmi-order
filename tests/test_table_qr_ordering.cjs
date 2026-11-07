@@ -117,6 +117,26 @@ test('Table QR ordering migration 0082 enables feature and seeds demo tables', (
   assert.equal(tables[0].label, '01號桌');
 });
 
+test('Table QR ordering migration 0083 cleans up duplicate seeded tables without affecting active orders', () => {
+  const db = createTestDb();
+  // Existing real tables
+  db.exec(`
+    INSERT INTO tenant_config (tenant_id, features) VALUES ('blab_demo', '["table_qr_ordering"]');
+    INSERT INTO restaurant_tables (id, tenant_id, label, sort_order, is_active) VALUES ('uuid_1', 'blab_demo', '1', 1, 1);
+    INSERT INTO restaurant_tables (id, tenant_id, label, sort_order, is_active) VALUES ('tbl_demo_01', 'blab_demo', '01號桌', 1, 1);
+    INSERT INTO orders (key, order_id, display_key, status, total_amount, tenant_id, table_id, table_number)
+    VALUES ('ord_1', 'ord_1', 'D001', 'ACCEPTED', 100, 'blab_demo', 'uuid_1', '1');
+  `);
+
+  const migration0083 = fs.readFileSync('benmi-worker-official/migrations/0083_cleanup_duplicate_demo_tables.sql', 'utf8');
+  db.exec(migration0083);
+
+  const tables = db.prepare("SELECT id, label FROM restaurant_tables WHERE tenant_id = 'blab_demo'").all();
+  assert.equal(tables.length, 1);
+  assert.equal(tables[0].id, 'uuid_1');
+  assert.equal(tables[0].label, '1');
+});
+
 test('Public table status resolution distinguishes active open order vs empty table', () => {
   const db = createTestDb();
   db.exec(`
