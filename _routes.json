@@ -5,6 +5,7 @@
     "/index.css",
     "/css/*",
     "/js/*",
+    "/wasm/*",
     "/apps/*",
     "/docs/*",
     "/sound/*",
