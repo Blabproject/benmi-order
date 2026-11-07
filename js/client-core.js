@@ -836,7 +836,7 @@ function applyPickupConfig() {
     const diningWrapper = document.getElementById('dining-option-wrapper');
     const checkoutDiningGroup = document.getElementById('checkout-dining-option-group');
 
-    if (window.isAppendMode) {
+    if (window.isAppendMode || window.currentTableNumber) {
         window.currentDiningOption = 'dine_in';
         if (diningWrapper) diningWrapper.style.display = 'none';
         if (checkoutDiningGroup) checkoutDiningGroup.style.display = 'none';
@@ -861,7 +861,16 @@ function applyPickupConfig() {
         if (pickerGroup) pickerGroup.style.display = 'none';
         if (asapNotice) asapNotice.style.display = 'none';
         if (dineInNotice) dineInNotice.style.display = 'block';
-        if (tableGroup) tableGroup.style.display = window.isAppendMode ? 'none' : 'block';
+        if (tableGroup) {
+            tableGroup.style.display = window.isAppendMode ? 'none' : 'block';
+            if (window.currentTableNumber) {
+                const tableInput = document.getElementById('dinein-table-number');
+                if (tableInput) {
+                    tableInput.value = window.currentTableNumber;
+                    tableInput.readOnly = true;
+                }
+            }
+        }
         updateAsapTimeDisplay();
     } else {
         if (secTitleText) secTitleText.innerText = '取餐時間';

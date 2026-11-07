@@ -12830,3 +12830,66 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
   .payment-detail-heading { top:-20px; margin:-20px -20px 16px; padding:20px; }
 }
 @media(max-width:380px) { .payment-filter-fields { grid-template-columns:minmax(0,1fr); } }
+
+/* =======================================================
+   TABLE QR CODE A4 PRINT STYLES
+   ======================================================= */
+@media print {
+  body > *:not(#tables-qr-print-sheet) {
+    display: none !important;
+  }
+  #tables-qr-print-sheet {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12mm !important;
+    padding: 10mm !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    background: #ffffff !important;
+  }
+  .print-table-qr-card {
+    border: 2px solid #0f172a !important;
+    border-radius: 12px !important;
+    padding: 12mm 8mm !important;
+    text-align: center !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    box-sizing: border-box !important;
+    background: #ffffff !important;
+  }
+  .print-table-qr-card .print-store-name {
+    font-size: 18pt !important;
+    font-weight: 900 !important;
+    color: #000000 !important;
+    margin: 0 0 4mm 0 !important;
+  }
+  .print-table-qr-card .print-table-badge {
+    display: inline-block !important;
+    font-size: 26pt !important;
+    font-weight: 1000 !important;
+    color: #000000 !important;
+    border: 2pt solid #000000 !important;
+    border-radius: 6pt !important;
+    padding: 2mm 8mm !important;
+    margin: 3mm 0 6mm 0 !important;
+  }
+  .print-table-qr-card .print-qr-img {
+    width: 48mm !important;
+    height: 48mm !important;
+    margin: 0 auto !important;
+    display: block !important;
+  }
+  .print-table-qr-card .print-instruction-primary {
+    font-size: 13pt !important;
+    font-weight: 900 !important;
+    color: #000000 !important;
+    margin: 5mm 0 1mm 0 !important;
+  }
+  .print-table-qr-card .print-instruction-secondary {
+    font-size: 10pt !important;
+    font-weight: 600 !important;
+    color: #334155 !important;
+    margin: 0 !important;
+  }
+}
+

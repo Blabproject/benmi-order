@@ -618,10 +618,16 @@ export async function createOrder(
         `[${tenantCtx?.brandName || "Benmi"}] 訂單明細 #${order.displayKey || order.key}`,
         buildOrderFlexMessage(order, tenantCtx, rawItems, data.customizations));
       if (rawItems.length > 0 && env.DB) {
+        let tableId: string | null = null;
+        if (order.tableNumber && env.DB) {
+          const tblRow = await env.DB.prepare('SELECT id FROM restaurant_tables WHERE tenant_id=? AND label=? AND is_active=1')
+            .bind(tenantId, order.tableNumber).first<{ id: string }>();
+          if (tblRow) tableId = tblRow.id;
+        }
         const batchStatements: any[] = [
           env.DB.prepare(
-            `INSERT INTO orders (key, order_id, display_key, business_date, uuid, tenant_id, user_id, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, round_count, last_appended_at, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?, ?, 1, NULL, datetime(?, 'unixepoch'), datetime('now'))`
+            `INSERT INTO orders (key, order_id, display_key, business_date, uuid, tenant_id, user_id, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, table_id, round_count, last_appended_at, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?, ?, ?, 1, NULL, datetime(?, 'unixepoch'), datetime('now'))`
           ).bind(
             order.key,
             order.orderId,
@@ -638,6 +644,7 @@ export async function createOrder(
             order.note || "",
             order.diningOption || "takeaway",
             order.tableNumber || null,
+            tableId || null,
             Math.floor((order.createdAt || Date.now()) / 1000)
           ),
           ...rawItems.map(item => {
@@ -1534,9 +1541,15 @@ export async function getHistoryAll(request: Request, env: Env): Promise<Respons
 
 export async function saveOrder(env: Env, order: Order, tenantId: string, createOnly = false, receiptStatement?: D1PreparedStatement): Promise<void> {
   // Save order and receipt atomically.
+  let tableId: string | null = null;
+  if (order.tableNumber && env.DB) {
+    const tblRow = await env.DB.prepare('SELECT id FROM restaurant_tables WHERE tenant_id=? AND label=? AND is_active=1')
+      .bind(tenantId, order.tableNumber).first<{ id: string }>();
+    if (tblRow) tableId = tblRow.id;
+  }
   const statement = env.DB.prepare(
-    `INSERT INTO orders (key, order_id, display_key, business_date, uuid, tenant_id, user_id, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, round_count, last_appended_at, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, 1), ?, datetime(?, 'unixepoch'), datetime('now'))
+    `INSERT INTO orders (key, order_id, display_key, business_date, uuid, tenant_id, user_id, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, table_id, round_count, last_appended_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, 1), ?, datetime(?, 'unixepoch'), datetime('now'))
      ${createOnly ? '' : `ON CONFLICT(key) DO UPDATE SET
        uuid = CASE WHEN excluded.uuid IS NOT NULL THEN excluded.uuid ELSE orders.uuid END,
        status = CASE
@@ -1552,6 +1565,7 @@ export async function saveOrder(env: Env, order: Order, tenantId: string, create
        note = excluded.note,
        dining_option = excluded.dining_option,
        table_number = excluded.table_number,
+       table_id = CASE WHEN excluded.table_id IS NOT NULL THEN excluded.table_id ELSE orders.table_id END,
        round_count = CASE WHEN excluded.round_count > orders.round_count THEN excluded.round_count ELSE orders.round_count END,
        last_appended_at = CASE WHEN excluded.last_appended_at IS NOT NULL THEN excluded.last_appended_at ELSE orders.last_appended_at END,
        updated_at = datetime('now') WHERE orders.tenant_id = excluded.tenant_id`}`
@@ -1572,6 +1586,7 @@ export async function saveOrder(env: Env, order: Order, tenantId: string, create
     order.note || "",
     order.diningOption || "takeaway",
     order.tableNumber || null,
+    tableId || null,
     order.roundCount || order.round_count || 1,
     order.lastAppendedAt || order.last_appended_at || null,
     Math.floor((order.createdAt || Date.now()) / 1000)

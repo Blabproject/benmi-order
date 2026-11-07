@@ -17,6 +17,7 @@ import { handleStaffRoute } from './modules/staff';
 import { getTenantBootstrap } from './modules/bootstrap';
 import { getItemAnalyticsReport } from './modules/reports';
 import { getMarketplaceTenants } from './modules/marketplace';
+import { getTableStatus } from './modules/tables';
 import { requestOrderReceiptPush, processPendingOrderReceipts } from './modules/line-order-receipts';
 import { recordLiffClientError } from './modules/line-client-telemetry';
 
@@ -78,6 +79,7 @@ export default {
       }
 
       // 5. API Endpoints
+      if (request.method === "GET" && (path === "/api/table/status" || path === "/api/tables/status")) return getTableStatus(request, env, tenantCtx);
       if (request.method === "POST" && path === "/api/line/order-receipt/push") return requestOrderReceiptPush(request, env, tenantCtx);
       if (request.method === "POST" && path === "/api/line/client-error") return recordLiffClientError(request, tenantCtx);
       if (request.method === "GET" && (path === "/api/marketplace/tenants" || path === "/api/marketplace")) return getMarketplaceTenants(request, env);

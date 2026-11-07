@@ -126,31 +126,35 @@ window.LinePayCheckout = (function () {
       const config=await(await fetch(WORKER_BASE+'/api/payments/config?tenant_id='+encodeURIComponent(getTenantIdFromUrl()))).json();
       const allowedMethods=Array.isArray(config.paymentMethods)&&config.paymentMethods.length>0?config.paymentMethods:['line_pay'];
       if(!config.linePay?.enabled&&!allowedMethods.includes('cash'))return;
-      const allDefinitions=[
-        ['line_pay','LINE Pay',text('線上付款','Thanh toán trực tuyến')],
-        ['cash',text('取餐時付款','Đặt rồi trả sau'),text('領取餐點時再付款','Thanh toán tại quầy khi nhận món')]
+      const isDineIn = window.currentDiningOption === 'dine_in' || window.isAppendMode || !!window.currentTableNumber;
+      const allDefinitions = isDineIn ? [
+        ['cash', text('現場結帳', 'Thanh toán tại quầy'), text('用餐完畢後至櫃台結帳', 'Thanh toán tại quầy sau khi dùng bữa')]
+      ] : [
+        ['line_pay', 'LINE Pay', text('線上付款', 'Thanh toán trực tuyến')],
+        ['cash', text('取餐時付款', 'Đặt rồi trả sau'), text('領取餐點時再付款', 'Thanh toán tại quầy khi nhận món')]
       ];
-      const choicesList=allDefinitions.filter(([val])=>{
-        if(val==='line_pay')return config.linePay?.enabled&&allowedMethods.includes('line_pay');
-        if(val==='cash')return allowedMethods.includes('cash');
+      const choicesList = allDefinitions.filter(([val]) => {
+        if (isDineIn) return true;
+        if (val === 'line_pay') return config.linePay?.enabled && allowedMethods.includes('line_pay');
+        if (val === 'cash') return allowedMethods.includes('cash');
         return false;
       });
-      if(choicesList.length===0)return;
+      if (choicesList.length === 0) return;
 
-      const group=PaymentView.element('fieldset','payment-method-section');group.id='payment-method';
-      const legend=PaymentView.element('legend','payment-method-label');
-      const heading=PaymentView.element('span','payment-method-heading');
-      heading.append(PaymentView.icon('card'),PaymentView.element('span','',text('付款方式','Phương thức thanh toán')));legend.append(heading);
-      const choices=PaymentView.element('div','payment-method-choices');
-      const defaultChecked=choicesList.some(([v])=>v==='line_pay')?'line_pay':choicesList[0][0];
-      for(const [value,title,description] of choicesList){
-        const option=PaymentView.element('label','payment-method-option');
-        const radio=document.createElement('input');radio.type='radio';radio.name='payment-method';radio.value=value;radio.checked=value===defaultChecked;
-        const copy=PaymentView.element('span','payment-method-copy');
-        copy.append(PaymentView.element('span','payment-method-title',title),PaymentView.element('span','payment-method-description',description));
-        option.append(radio,copy);
-        if(value==='line_pay'){
-          const logo=document.createElement('img');logo.className='payment-method-logo';logo.src='/line-pay-logo.png';logo.alt='';logo.width=238;logo.height=69;
+      const group = PaymentView.element('fieldset', 'payment-method-section'); group.id = 'payment-method';
+      const legend = PaymentView.element('legend', 'payment-method-label');
+      const heading = PaymentView.element('span', 'payment-method-heading');
+      heading.append(PaymentView.icon('card'), PaymentView.element('span', '', text('付款方式', 'Phương thức thanh toán'))); legend.append(heading);
+      const choices = PaymentView.element('div', 'payment-method-choices');
+      const defaultChecked = isDineIn ? 'cash' : (choicesList.some(([v]) => v === 'line_pay') ? 'line_pay' : choicesList[0][0]);
+      for (const [value, title, description] of choicesList) {
+        const option = PaymentView.element('label', 'payment-method-option');
+        const radio = document.createElement('input'); radio.type = 'radio'; radio.name = 'payment-method'; radio.value = value; radio.checked = value === defaultChecked;
+        const copy = PaymentView.element('span', 'payment-method-copy');
+        copy.append(PaymentView.element('span', 'payment-method-title', title), PaymentView.element('span', 'payment-method-description', description));
+        option.append(radio, copy);
+        if (value === 'line_pay') {
+          const logo = document.createElement('img'); logo.className = 'payment-method-logo'; logo.src = '/line-pay-logo.png'; logo.alt = ''; logo.width = 238; logo.height = 69;
           option.append(logo);
         }
         choices.append(option);

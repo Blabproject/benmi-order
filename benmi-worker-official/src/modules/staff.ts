@@ -2,7 +2,7 @@ import { Env } from '../types/env';
 import { json } from '../utils/http';
 import { getTenantId } from './menu';
 import { resolveTenantContext } from './tenant';
-import { TenantContext, resolveTenantOrderPrefix } from '../types/tenant';
+import { TenantContext, resolveTenantOrderPrefix, tenantHasFeature } from '../types/tenant';
 import { getStoredPassword } from './auth';
 import { getNextDailyOrderSeq } from './orders';
 import { resolveOrderKey } from './order-identity';
@@ -99,12 +99,19 @@ async function dispatchStaffRoute(
   // --- 1. GET /api/staff/capabilities ---
   if (request.method === "GET" && path === "/api/staff/capabilities") {
     const isStaffEnabled = await checkStaffOrderingEnabled(env, tenantId);
+    const hasTableQrOrdering = tenantHasFeature(tenantCtx, 'table_qr_ordering');
+    const capabilities = { ...access.capabilities };
+    if (hasTableQrOrdering) {
+      capabilities.tables_read = true;
+      capabilities.tables_write = true;
+    }
     return json({
       ok: true,
       tenantId,
       brandName: tenantCtx.brandName,
-      staff_ordering_enabled: isStaffEnabled,
-      capabilities: access.capabilities,
+      staff_ordering_enabled: isStaffEnabled || hasTableQrOrdering,
+      table_qr_ordering_enabled: hasTableQrOrdering,
+      capabilities,
       allowDineIn: tenantCtx.allowDineIn ?? true,
       storeStatus: tenantCtx.storeStatus || 'open'
     });
@@ -165,18 +172,20 @@ async function dispatchStaffRoute(
 
   // Staff ordering follows normal POS access, with tenant capability and schema guards.
   // The legacy session API above and verifyStaffSession remain available for payment authentication.
+  const hasTableQrOrdering = tenantHasFeature(tenantCtx, 'table_qr_ordering');
+  const isTableManagementPath = path === '/api/staff/tables' || path === '/api/staff/tables/batch' || path.startsWith('/api/staff/tables/');
   const isStaffEnabled = await checkStaffOrderingEnabled(env, tenantId);
-  if (!isStaffEnabled) {
+  if (!isStaffEnabled && !(hasTableQrOrdering && isTableManagementPath)) {
     return json({ ok: false, error: "FEATURE_DISABLED", message: "門市尚未啟用桌邊點餐功能 / Quán chưa kích hoạt tính năng nhận đơn tại bàn" }, 403);
   }
 
-  const required: StaffCapability = path === '/api/staff/tables'
+  const required: StaffCapability = (path === '/api/staff/tables' || path === '/api/staff/tables/batch')
     ? (request.method === 'GET' ? 'tables_read' : 'tables_write')
     : path.startsWith('/api/staff/tables/') ? 'tables_write'
     : path.endsWith('/status') ? 'status'
     : path.endsWith('/rounds') ? 'append'
     : path === '/api/staff/orders' ? 'create' : 'orders_read';
-  if (!access.capabilities[required]) return denied();
+  if (!access.capabilities[required] && !(hasTableQrOrdering && isTableManagementPath)) return denied();
 
   // --- 4. GET /api/staff/tables (List tables with active order info) ---
   if (request.method === "GET" && path === "/api/staff/tables") {
@@ -228,6 +237,49 @@ async function dispatchStaffRoute(
         return json({ ok: false, error: "DUPLICATE_LABEL", message: `桌號【${label}】已存在 / Bàn ${label} đã tồn tại` }, 409);
       }
       throw err;
+    }
+  }
+
+  // --- 5b. POST /api/staff/tables/batch (Batch add tables) ---
+  if (request.method === "POST" && path === "/api/staff/tables/batch") {
+    const body: any = await request.json().catch(() => ({}));
+    const prefix = String(body.prefix ?? "").trim();
+    const start = parseInt(String(body.start ?? 1), 10);
+    const end = parseInt(String(body.end ?? 1), 10);
+    let sortStart = parseInt(String(body.sort_start ?? start), 10);
+    if (isNaN(sortStart)) sortStart = start;
+
+    if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start || (end - start) > 100) {
+      return json({ ok: false, error: "INVALID_RANGE", message: "請輸入有效的桌號範圍 (最多100桌) / Vui lòng nhập dải bàn hợp lệ (tối đa 100 bàn)" }, 400);
+    }
+
+    if (!env.DB) return json({ ok: false, error: "NO_DB" }, 500);
+
+    const statements: D1PreparedStatement[] = [];
+    for (let i = start; i <= end; i++) {
+      const numStr = String(i).padStart(start > 9 || end > 9 ? 2 : 1, '0');
+      const label = prefix ? `${prefix}${numStr}` : `${numStr}號桌`;
+      const tableId = crypto.randomUUID();
+      const sortOrder = sortStart + (i - start);
+      statements.push(
+        env.DB.prepare(
+          `INSERT OR IGNORE INTO restaurant_tables (id, tenant_id, label, sort_order, is_active, created_at, updated_at)
+           VALUES (?, ?, ?, ?, 1, datetime('now'), datetime('now'))`
+        ).bind(tableId, tenantId, label, sortOrder)
+      );
+    }
+
+    try {
+      const results = await env.DB.batch(statements);
+      const createdCount = results.filter((r: any) => (r.meta?.changes ?? 1) > 0).length;
+      return json({
+        ok: true,
+        created_count: createdCount,
+        total_requested: end - start + 1
+      }, 201);
+    } catch (err: any) {
+      console.error("[StaffBatchTables] Error:", err);
+      return json({ ok: false, error: "BATCH_CREATE_FAILED", message: "批次建立桌號失敗 / Tạo dải bàn thất bại" }, 500);
     }
   }
 

@@ -205,7 +205,7 @@ function getUrlParamsWithLiffState() {
 function initAppendModeIfPresent() {
     const urlParams = getUrlParamsWithLiffState();
     let parentOrderKey = urlParams.get('parent_order_key');
-    let paramTableNumber = urlParams.get('table_number');
+    let paramTableNumber = urlParams.get('table_number') || urlParams.get('table');
     let mode = urlParams.get('mode');
 
     // Check sessionStorage fallback if page reloaded
@@ -267,6 +267,95 @@ function initAppendModeIfPresent() {
     }
 }
 
+async function initTableQrModeIfPresent() {
+    const urlParams = getUrlParamsWithLiffState();
+    let paramTable = urlParams.get('table') || urlParams.get('table_number');
+    if (!paramTable) {
+        try {
+            paramTable = sessionStorage.getItem('benmi_table_number');
+        } catch (e) {}
+    }
+    if (!paramTable) return;
+
+    paramTable = paramTable.trim();
+    window.currentTableNumber = paramTable;
+    try {
+        sessionStorage.setItem('benmi_table_number', paramTable);
+    } catch (e) {}
+
+    // Lock Dining Option to Dine-In
+    if (typeof setCustomerDiningOption === 'function') {
+        setCustomerDiningOption('dine_in');
+    }
+    const toggleWrapper = document.getElementById('dining-option-wrapper');
+    if (toggleWrapper) toggleWrapper.style.display = 'none';
+    const checkoutToggleGroup = document.getElementById('checkout-dining-option-group');
+    if (checkoutToggleGroup) checkoutToggleGroup.style.display = 'none';
+
+    // Lock table input
+    const tableInput = document.getElementById('dinein-table-number');
+    if (tableInput) {
+        tableInput.value = paramTable;
+        tableInput.readOnly = true;
+    }
+
+    // If append mode is already explicitly activated, do not duplicate
+    if (window.isAppendMode && window.parentOrderKey) {
+        return;
+    }
+
+    // Query Worker to check if this table has an active open order
+    try {
+        const tenantId = (typeof getTenantIdFromUrl === 'function' && getTenantIdFromUrl()) || '';
+        if (!tenantId) return;
+        const workerUrl = typeof WORKER_BASE !== 'undefined' ? WORKER_BASE : 'https://benmi-worker-official.thuanmnc.workers.dev';
+        const res = await fetch(`${workerUrl}/api/table/status?tenant_id=${encodeURIComponent(tenantId)}&table=${encodeURIComponent(paramTable)}&_t=${Date.now()}`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.ok && data.active_order) {
+                // Table has active order -> seamlessly activate append mode!
+                window.isAppendMode = true;
+                window.parentOrderKey = data.active_order.key;
+                window.parentOrderDisplayKey = data.active_order.display_key || (data.active_order.key.length === 36 ? '' : data.active_order.key);
+                window.appendTableNumber = paramTable;
+                try {
+                    sessionStorage.setItem('benmi_append_parent', data.active_order.key);
+                    sessionStorage.setItem('benmi_append_display', window.parentOrderDisplayKey);
+                    sessionStorage.setItem('benmi_append_table', paramTable);
+                } catch (e) {}
+
+                const bannerEl = document.getElementById('append-mode-banner');
+                if (bannerEl) {
+                    bannerEl.style.display = 'flex';
+                    const tableEl = document.getElementById('append-mode-table');
+                    if (tableEl) tableEl.innerText = `桌號 ${paramTable}`;
+                    const keyEl = document.getElementById('append-mode-key');
+                    if (keyEl) keyEl.innerText = `#${window.parentOrderDisplayKey}`;
+                }
+                const tableBanner = document.getElementById('table-order-banner');
+                if (tableBanner) tableBanner.style.display = 'none';
+
+                const tableGroup = document.getElementById('dinein-table-input-group');
+                if (tableGroup) tableGroup.style.display = 'none';
+
+                const submitBtn = document.getElementById('btn-submit');
+                if (submitBtn) submitBtn.innerText = '確認加點';
+            } else {
+                // Table has no active order -> fresh table order!
+                window.isAppendMode = false;
+                const tableBanner = document.getElementById('table-order-banner');
+                if (tableBanner) {
+                    tableBanner.style.display = 'flex';
+                    const labelEl = document.getElementById('table-order-banner-label');
+                    if (labelEl) labelEl.innerText = paramTable;
+                }
+            }
+        }
+    } catch (e) {
+        console.warn("[TableQR] Failed to query table status:", e);
+    }
+}
+
 function cancelAppendMode() {
     window.isAppendMode = false;
     window.parentOrderKey = null;
@@ -281,18 +370,27 @@ function cancelAppendMode() {
     const bannerEl = document.getElementById('append-mode-banner');
     if (bannerEl) bannerEl.style.display = 'none';
 
-    // Khôi phục ô nhập số bàn
-    const tableGroup = document.getElementById('dinein-table-input-group');
-    if (tableGroup && window.currentDiningOption === 'dine_in') {
-        tableGroup.style.display = 'block';
-    }
-    const tableInput = document.getElementById('dinein-table-number');
-    if (tableInput) {
-        tableInput.value = '';
-        tableInput.readOnly = false;
-        tableInput.style.backgroundColor = '#fff';
-        tableInput.style.color = '#1e1b4b';
-        tableInput.style.cursor = 'text';
+    if (window.currentTableNumber) {
+        const tableBanner = document.getElementById('table-order-banner');
+        if (tableBanner) {
+            tableBanner.style.display = 'flex';
+            const labelEl = document.getElementById('table-order-banner-label');
+            if (labelEl) labelEl.innerText = window.currentTableNumber;
+        }
+    } else {
+        // Khôi phục ô nhập số bàn
+        const tableGroup = document.getElementById('dinein-table-input-group');
+        if (tableGroup && window.currentDiningOption === 'dine_in') {
+            tableGroup.style.display = 'block';
+        }
+        const tableInput = document.getElementById('dinein-table-number');
+        if (tableInput) {
+            tableInput.value = '';
+            tableInput.readOnly = false;
+            tableInput.style.backgroundColor = '#fff';
+            tableInput.style.color = '#1e1b4b';
+            tableInput.style.cursor = 'text';
+        }
     }
 
     // Khôi phục bộ chuyển đổi Dine-In / Takeaway
@@ -1220,6 +1318,7 @@ if (typeof window !== 'undefined') {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initAppendModeIfPresent();
+        initTableQrModeIfPresent();
         initEditOrderModeIfPresent();
         if (typeof initPickupTimePicker === 'function') {
             initPickupTimePicker();
@@ -1227,6 +1326,7 @@ if (document.readyState === 'loading') {
     });
 } else {
     initAppendModeIfPresent();
+    initTableQrModeIfPresent();
     initEditOrderModeIfPresent();
     if (typeof initPickupTimePicker === 'function') {
         initPickupTimePicker();

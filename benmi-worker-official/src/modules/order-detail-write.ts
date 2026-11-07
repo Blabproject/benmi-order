@@ -99,12 +99,18 @@ export async function writeDetailedOrder(env: Env, tenant: string, input: any, k
     const receipt = await prepareOrderReceipt(env, tenant, key, order.userId, kind,
       `[${tenantCtx?.brandName || tenant}] #${displayKey}`, buildOrderFlexMessage(receiptOrder, tenantCtx));
     const statements: D1PreparedStatement[] = [];
+    let tableId: string | null = null;
+    if (order.tableNumber && env.DB) {
+      const tblRow = await env.DB.prepare('SELECT id FROM restaurant_tables WHERE tenant_id=? AND label=? AND is_active=1')
+        .bind(tenant, order.tableNumber).first<{ id: string }>();
+      if (tblRow) tableId = tblRow.id;
+    }
     if (kind === 'create') statements.push(env.DB.prepare(`INSERT INTO orders
       (key,order_id,display_key,business_date,uuid,tenant_id,user_id,customer_name,pickup_time,status,total_amount,
-       order_content,note,dining_option,table_number,round_count,created_at,updated_at)
-      VALUES (?,?,?,?,?,?,?,?,?,'NEW',?,?,?,?,?,1,datetime('now'),strftime('%Y-%m-%d %H:%M:%f','now'))`)
+       order_content,note,dining_option,table_number,table_id,round_count,created_at,updated_at)
+      VALUES (?,?,?,?,?,?,?,?,?,'NEW',?,?,?,?,?,?,1,datetime('now'),strftime('%Y-%m-%d %H:%M:%f','now'))`)
       .bind(key, orderId, displayKey, businessDate, order.uuid || operation, tenant, order.userId || null,
-        order.customer, order.time, order.total, order.content, order.note || '', dining, order.tableNumber || null));
+        order.customer, order.time, order.total, order.content, order.note || '', dining, order.tableNumber || null, tableId || null));
     statements.push(detailStatement(env, tenant, key, revision, operation, hash, snapshot, kind));
     statements.push(env.DB.prepare(`UPDATE orders SET detail_revision=?,order_content=?,note=?,total_amount=?,status='NEW',
       round_count=?,last_appended_at=CASE WHEN ?='append' THEN strftime('%Y-%m-%d %H:%M:%f','now') ELSE last_appended_at END,

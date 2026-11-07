@@ -1146,6 +1146,31 @@ const I18N = {
     tableConfirmDisable: "確定要停用此桌號嗎？",
     tableSaveSuccess: "桌號儲存成功",
     tableSaveFail: "桌號儲存失敗，請重試",
+    tableQrBtn: "桌號 QR",
+    tableQrTitle: "桌號 QR Code",
+    tableQrInstruction: "請掃描 QR Code 線上點餐",
+    tableQrSubInstruction: "掃描上方 QR Code 開啟菜單並送出訂單",
+    tableQrDineInBadge: "內用桌號",
+    tableQrCopyLink: "複製連結",
+    tableQrCopied: "已複製連結至剪貼簿",
+    tableQrDownloadPng: "下載圖片",
+    tableQrPrintPos: "出單機列印",
+    tableQrPrintA4: "A4 列印",
+    tableQrPrintAllA4: "列印全部 QR (A4)",
+    tableBatchAddBtn: "批次新增桌號",
+    tableBatchAddTitle: "批次新增桌號",
+    tableBatchPrefix: "桌號前綴 (選填)",
+    tableBatchPrefixPlaceholder: "例：A- 或 桌號",
+    tableBatchStart: "起始編號",
+    tableBatchEnd: "結束編號",
+    tableBatchSort: "起始排序",
+    tableBatchCreating: "正在建立桌號...",
+    tableBatchSuccess: "成功新增 {count} 個桌號",
+    tableBatchFail: "批次建立桌號失敗，請重試",
+    tableNoPrinterConfigured: "尚未設定出單機，請至「出單與印表機」設定後再行列印",
+    tablePrinting: "正在傳送列印任務...",
+    tablePrintSuccess: "已送出列印任務",
+    tablePrintFail: "列印失敗，請檢查印表機連線",
   },
   "vi": {
     paymentWorkspace: "Thanh toán", paymentWorkspaceIntro: "Tra cứu thanh toán, theo dõi hoàn tiền và kiểm tra giao dịch cần chú ý.",
@@ -2290,6 +2315,31 @@ const I18N = {
     tableConfirmDisable: "Bạn có chắc chắn muốn ngừng sử dụng bàn này?",
     tableSaveSuccess: "Lưu thông tin bàn thành công",
     tableSaveFail: "Lưu thông tin bàn thất bại, vui lòng thử lại",
+    tableQrBtn: "Mã QR",
+    tableQrTitle: "Mã QR cho bàn",
+    tableQrInstruction: "Quét mã QR để đặt món",
+    tableQrSubInstruction: "Quét mã QR phía trên để mở thực đơn và đặt món tại bàn",
+    tableQrDineInBadge: "Bàn ăn",
+    tableQrCopyLink: "Sao chép link",
+    tableQrCopied: "Đã sao chép liên kết vào bộ nhớ tạm",
+    tableQrDownloadPng: "Tải ảnh PNG",
+    tableQrPrintPos: "In tem POS",
+    tableQrPrintA4: "In trang A4",
+    tableQrPrintAllA4: "In tất cả QR (A4)",
+    tableBatchAddBtn: "Tạo nhanh nhiều bàn",
+    tableBatchAddTitle: "Tạo nhanh nhiều bàn",
+    tableBatchPrefix: "Tiền tố tên bàn (Không bắt buộc)",
+    tableBatchPrefixPlaceholder: "Ví dụ: Bàn  hoặc A-",
+    tableBatchStart: "Từ số",
+    tableBatchEnd: "Đến số",
+    tableBatchSort: "Thứ tự bắt đầu",
+    tableBatchCreating: "Đang tạo bàn...",
+    tableBatchSuccess: "Đã tạo {count} bàn thành công",
+    tableBatchFail: "Tạo dải bàn thất bại, vui lòng thử lại",
+    tableNoPrinterConfigured: "Chưa cấu hình máy in, vui lòng thiết lập trong mục Xuất đơn & Máy in",
+    tablePrinting: "Đang gửi lệnh in tới máy in...",
+    tablePrintSuccess: "Đã gửi lệnh in thành công",
+    tablePrintFail: "Lệnh in thất bại, vui lòng kiểm tra kết nối máy in",
   }
 };
 
@@ -2813,6 +2863,47 @@ function applyLanguageToDOM() {
   if (thTableStatus) thTableStatus.innerText = dict.tableStatus;
   const thTableAction = document.getElementById("i18n-th-table-action");
   if (thTableAction) thTableAction.innerText = dict.tableAction;
+  const btnPrintAllTables = document.getElementById("i18n-table-print-all-btn");
+  if (btnPrintAllTables) {
+    const span = btnPrintAllTables.querySelector("span");
+    if (span) span.innerText = dict.tableQrPrintAllA4;
+  }
+  const btnBatchTable = document.getElementById("i18n-table-batch-btn");
+  if (btnBatchTable) {
+    const span = btnBatchTable.querySelector("span");
+    if (span) span.innerText = dict.tableBatchAddBtn;
+  }
+  const modalQrTitle = document.getElementById("table-qr-modal-title");
+  if (modalQrTitle) modalQrTitle.innerText = dict.tableQrTitle;
+  const qrDineInBadge = document.getElementById("i18n-table-qr-dinein-badge");
+  if (qrDineInBadge) qrDineInBadge.innerText = dict.tableQrDineInBadge;
+  const qrInstruction = document.getElementById("i18n-table-qr-instruction-text");
+  if (qrInstruction) qrInstruction.innerText = dict.tableQrInstruction;
+  const qrSubInstruction = document.getElementById("i18n-table-qr-sub-text");
+  if (qrSubInstruction) qrSubInstruction.innerText = dict.tableQrSubInstruction;
+  const qrCopyBtn = document.getElementById("i18n-table-qr-copy-btn");
+  if (qrCopyBtn) qrCopyBtn.innerText = dict.tableQrCopyLink;
+  const btnQrPos = document.getElementById("i18n-btn-qr-print-pos");
+  if (btnQrPos) btnQrPos.innerText = dict.tableQrPrintPos;
+  const btnQrDown = document.getElementById("i18n-btn-qr-download");
+  if (btnQrDown) btnQrDown.innerText = dict.tableQrDownloadPng;
+  const btnQrA4 = document.getElementById("i18n-btn-qr-print-a4");
+  if (btnQrA4) btnQrA4.innerText = dict.tableQrPrintA4;
+
+  const modalBatchTitle = document.getElementById("batch-table-modal-title");
+  if (modalBatchTitle) modalBatchTitle.innerText = dict.tableBatchAddTitle;
+  const batchPrefixLabel = document.getElementById("i18n-batch-table-prefix-label");
+  if (batchPrefixLabel) batchPrefixLabel.innerText = dict.tableBatchPrefix;
+  const batchStartLabel = document.getElementById("i18n-batch-table-start-label");
+  if (batchStartLabel) batchStartLabel.innerText = dict.tableBatchStart;
+  const batchEndLabel = document.getElementById("i18n-batch-table-end-label");
+  if (batchEndLabel) batchEndLabel.innerText = dict.tableBatchEnd;
+  const batchSortLabel = document.getElementById("i18n-batch-table-sort-label");
+  if (batchSortLabel) batchSortLabel.innerText = dict.tableBatchSort;
+  const batchCancelBtn = document.getElementById("i18n-batch-table-cancel-btn");
+  if (batchCancelBtn) batchCancelBtn.innerText = dict.tableCancel;
+  const batchSubmitBtn = document.getElementById("i18n-batch-table-submit-btn");
+  if (batchSubmitBtn) batchSubmitBtn.innerText = dict.paymentConfirm;
   if (typeof updateSettingsPanelHeaderTitle === "function") {
     updateSettingsPanelHeaderTitle();
   }

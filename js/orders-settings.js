@@ -2082,9 +2082,14 @@ async function checkStaffOrderingCapability() {
     const res = await fetch(`${workerUrl}/api/staff/capabilities?tenant_id=${encodeURIComponent(tenantId)}&_t=${Date.now()}`);
     if (res.ok) {
       const data = await res.json();
-      const enabled = data.capabilities?.tables_read === true;
-      window.staffOrderingCapabilities = data.capabilities || {};
-      window.isStaffOrderingEnabled = enabled;
+      const hasTableQrFeature = (Array.isArray(window.currentTenantFeatures) && window.currentTenantFeatures.includes('table_qr_ordering'))
+        || (Array.isArray(currentTenantFeatures) && currentTenantFeatures.includes('table_qr_ordering'))
+        || data.table_qr_ordering_enabled === true;
+      const canReadTables = data.capabilities?.tables_read === true || hasTableQrFeature;
+      const canWriteTables = data.capabilities?.tables_write === true || hasTableQrFeature;
+      window.staffOrderingCapabilities = { ...data.capabilities, tables_read: canReadTables, tables_write: canWriteTables };
+      window.isStaffOrderingEnabled = canReadTables;
+      window.hasTableQrOrdering = hasTableQrFeature;
       const btnPill = document.getElementById("btn-staff-order-pill");
       if (btnPill) {
         btnPill.style.display = data.capabilities?.pos_entry ? "inline-flex" : "none";
@@ -2097,18 +2102,24 @@ async function checkStaffOrderingCapability() {
       const lockedBody = document.getElementById("setting-tables-locked-body");
       const unlockedBody = document.getElementById("setting-tables-unlocked-body");
       const addBtn = document.getElementById("i18n-table-add-btn");
+      const batchBtn = document.getElementById("i18n-table-batch-btn");
+      const printAllBtn = document.getElementById("i18n-table-print-all-btn");
       if (lockedBody && unlockedBody) {
-        if (enabled) {
+        if (canReadTables) {
           lockedBody.style.display = "none";
           unlockedBody.style.display = "flex";
-          if (addBtn) addBtn.style.display = data.capabilities?.tables_write ? "inline-flex" : "none";
+          if (addBtn) addBtn.style.display = canWriteTables ? "inline-flex" : "none";
+          if (batchBtn) batchBtn.style.display = canWriteTables ? "inline-flex" : "none";
+          if (printAllBtn) printAllBtn.style.display = canReadTables ? "inline-flex" : "none";
         } else {
           lockedBody.style.display = "flex";
           unlockedBody.style.display = "none";
           if (addBtn) addBtn.style.display = "none";
+          if (batchBtn) batchBtn.style.display = "none";
+          if (printAllBtn) printAllBtn.style.display = "none";
         }
       }
-      return enabled;
+      return canReadTables;
     }
   } catch (e) {
     console.warn("[Staff] Failed to check staff capabilities:", e);
@@ -2194,6 +2205,15 @@ function renderRestaurantTablesList() {
           ${statusPill}
         </td>
         <td style="padding: 14px 16px; text-align: right; white-space: nowrap;">
+          <button type="button" class="btn btn-ghost btn-sm" style="margin-right: 6px; padding: 6px 12px; font-weight: 700; border-radius: 6px; min-height: 48px; color: #15803d; border-color: #bbf7d0; background: #f0fdf4;" onclick="openTableQrModal('${table.id}')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -2px;">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            ${t("tableQrBtn") || "QR Code"}
+          </button>
           <button type="button" class="btn btn-ghost btn-sm" style="margin-right: 6px; padding: 6px 12px; font-weight: 700; border-radius: 6px; min-height: 48px;" onclick="openEditTableModal('${table.id}')">
             ${t("tableEdit")}
           </button>
@@ -2340,6 +2360,390 @@ function openStaffOrderWindow() {
   window.location.href = url;
 }
 
+// =======================================================
+// TABLE QR CODE & BATCH MANAGEMENT
+// =======================================================
+var activeQrModalTable = null;
+
+function generateTableQrUrl(tableLabel) {
+  const tenantId = (typeof getTenantIdFromUrl === "function" && getTenantIdFromUrl()) || "";
+  const liffId = (typeof currentTenantLiffId !== "undefined" && currentTenantLiffId)
+    || (window.storeConfig && (window.storeConfig.liff_id || window.storeConfig.liffId))
+    || "";
+  if (liffId) {
+    return `https://liff.line.me/${encodeURIComponent(liffId)}?table=${encodeURIComponent(tableLabel)}`;
+  }
+  return `https://order.blabfood.app/${encodeURIComponent(tenantId)}?table=${encodeURIComponent(tableLabel)}`;
+}
+
+function openTableQrModal(tableId) {
+  const table = currentRestaurantTables.find(t => t.id === tableId);
+  if (!table) return;
+  activeQrModalTable = table;
+  window.activeQrModalTable = table;
+
+  const modal = document.getElementById("tableQrModal");
+  if (!modal) return;
+
+  const storeName = window.currentTenantBrandName || "BLAB Store";
+  const brandEl = document.getElementById("table-qr-brand-display");
+  if (brandEl) brandEl.innerText = storeName;
+
+  const labelEl = document.getElementById("table-qr-label-display");
+  if (labelEl) labelEl.innerText = table.label;
+
+  const qrUrl = generateTableQrUrl(table.label);
+  const inputUrl = document.getElementById("table-qr-url-input");
+  if (inputUrl) inputUrl.value = qrUrl;
+
+  const wrap = document.getElementById("table-qr-canvas-wrap");
+  if (wrap) {
+    wrap.innerHTML = "";
+    if (typeof qrcode === "function") {
+      const qr = qrcode(0, "M");
+      qr.addData(qrUrl);
+      qr.make();
+      const imgTag = qr.createImgTag(7, 2);
+      wrap.innerHTML = imgTag;
+      const img = wrap.querySelector("img");
+      if (img) {
+        img.style.maxWidth = "220px";
+        img.style.height = "auto";
+        img.style.borderRadius = "8px";
+        img.style.border = "1px solid #e2e8f0";
+      }
+    }
+  }
+
+  modal.style.display = "flex";
+}
+
+function closeTableQrModal() {
+  const modal = document.getElementById("tableQrModal");
+  if (modal) modal.style.display = "none";
+}
+
+function copyTableQrUrl() {
+  const input = document.getElementById("table-qr-url-input");
+  if (!input || !input.value) return;
+  navigator.clipboard.writeText(input.value).then(() => {
+    const btn = document.getElementById("i18n-table-qr-copy-btn");
+    const originalText = btn ? btn.innerText : "";
+    if (btn) btn.innerText = t("tableQrCopied") || "已複製！";
+    setTimeout(() => {
+      if (btn) btn.innerText = originalText || t("tableQrCopyLink") || "複製連結";
+    }, 2000);
+  }).catch(() => {
+    input.select();
+    document.execCommand("copy");
+    alert(t("tableQrCopied") || "已複製！");
+  });
+}
+
+async function downloadTableQrPng(tableId) {
+  const table = (tableId && currentRestaurantTables.find(t => t.id === tableId)) || activeQrModalTable;
+  if (!table) return;
+
+  const storeName = window.currentTenantBrandName || "BLAB Store";
+  const qrUrl = generateTableQrUrl(table.label);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 600;
+  canvas.height = 800;
+  const ctx = canvas.getContext("2d");
+
+  // White card background with subtle border
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = "#cbd5e1";
+  ctx.lineWidth = 4;
+  ctx.strokeRect(16, 16, canvas.width - 32, canvas.height - 32);
+
+  // Store Name
+  ctx.fillStyle = "#0f172a";
+  ctx.font = "900 36px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(storeName, canvas.width / 2, 80);
+
+  // Table Badge Container
+  ctx.fillStyle = "#f0fdf4";
+  ctx.strokeStyle = "#86efac";
+  ctx.lineWidth = 3;
+  const badgeW = 300;
+  const badgeH = 100;
+  const badgeX = (canvas.width - badgeW) / 2;
+  const badgeY = 115;
+  if (typeof ctx.roundRect === "function") {
+    ctx.beginPath();
+    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 14);
+    ctx.fill();
+    ctx.stroke();
+  } else {
+    ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
+    ctx.strokeRect(badgeX, badgeY, badgeW, badgeH);
+  }
+
+  ctx.fillStyle = "#166534";
+  ctx.font = "bold 18px sans-serif";
+  ctx.fillText("內用桌號 / Table", canvas.width / 2, badgeY + 32);
+
+  ctx.font = "900 44px sans-serif";
+  ctx.fillStyle = "#15803d";
+  ctx.fillText(table.label, canvas.width / 2, badgeY + 80);
+
+  // QR Code
+  if (typeof qrcode === "function") {
+    const qr = qrcode(0, "M");
+    qr.addData(qrUrl);
+    qr.make();
+    const qrImg = new Image();
+    await new Promise((resolve, reject) => {
+      qrImg.onload = resolve;
+      qrImg.onerror = reject;
+      qrImg.src = qr.createDataURL(12, 2);
+    });
+
+    const qrSize = 360;
+    ctx.drawImage(qrImg, (canvas.width - qrSize) / 2, 245, qrSize, qrSize);
+  }
+
+  // Footer Instructions
+  ctx.fillStyle = "#0f172a";
+  ctx.font = "900 26px sans-serif";
+  ctx.fillText("請掃描 QR Code 線上點餐", canvas.width / 2, 650);
+
+  ctx.font = "600 18px sans-serif";
+  ctx.fillStyle = "#64748b";
+  ctx.fillText("Quét mã QR để đặt món", canvas.width / 2, 688);
+
+  ctx.font = "500 14px sans-serif";
+  ctx.fillStyle = "#94a3b8";
+  ctx.fillText("Powered by BLAB Multi-Tenant Order Platform", canvas.width / 2, 750);
+
+  const link = document.createElement("a");
+  link.download = `QR_Table_${table.label.replace(/\s+/g, '_')}.png`;
+  link.href = canvas.toDataURL("image/png");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+async function printTableQrToPrinter(tableId) {
+  const table = (tableId && currentRestaurantTables.find(t => t.id === tableId)) || activeQrModalTable;
+  if (!table) return;
+
+  if (typeof PrinterService === "undefined" || !PrinterService.isStationConfigured("cashier")) {
+    alert(t("tableNoPrinterConfigured") || "尚未設定出單機，請至「出單與印表機」設定後再行列印");
+    return;
+  }
+
+  const btn = document.getElementById("btn-print-pos-table-qr");
+  if (btn) btn.disabled = true;
+
+  try {
+    const cashierConfig = PrinterService.getSettings()?.cashier;
+    const storeName = window.currentTenantBrandName || "BLAB Store";
+    const qrUrl = generateTableQrUrl(table.label);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 576;
+    canvas.height = 760;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "#000000";
+    ctx.font = "bold 32px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(storeName, canvas.width / 2, 60);
+
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(30, 85);
+    ctx.lineTo(canvas.width - 30, 85);
+    ctx.stroke();
+
+    ctx.font = "bold 26px sans-serif";
+    ctx.fillText("內用桌號 / Table", canvas.width / 2, 130);
+
+    ctx.font = "900 48px sans-serif";
+    ctx.fillText(table.label, canvas.width / 2, 190);
+
+    ctx.beginPath();
+    ctx.moveTo(60, 220);
+    ctx.lineTo(canvas.width - 60, 220);
+    ctx.stroke();
+
+    if (typeof qrcode === "function") {
+      const qr = qrcode(0, "M");
+      qr.addData(qrUrl);
+      qr.make();
+      const qrImg = new Image();
+      await new Promise((resolve, reject) => {
+        qrImg.onload = resolve;
+        qrImg.onerror = reject;
+        qrImg.src = qr.createDataURL(10, 2);
+      });
+
+      const qrSize = 340;
+      ctx.drawImage(qrImg, (canvas.width - qrSize) / 2, 250, qrSize, qrSize);
+    }
+
+    ctx.font = "bold 28px sans-serif";
+    ctx.fillText("請掃描 QR Code 線上點餐", canvas.width / 2, 640);
+
+    ctx.font = "normal 22px sans-serif";
+    ctx.fillText("Quét mã QR để đặt món", canvas.width / 2, 680);
+
+    ctx.beginPath();
+    ctx.moveTo(30, 715);
+    ctx.lineTo(canvas.width - 30, 715);
+    ctx.stroke();
+
+    const base64Png = canvas.toDataURL("image/png");
+    await PrinterService.transmitReceiptBitmap(base64Png, cashierConfig, `Table QR - ${table.label}`);
+    if (typeof showToast === "function") {
+      showToast(t("tablePrintSuccess") || "已送出列印任務");
+    }
+  } catch (err) {
+    console.error("[TableQR] Print error:", err);
+    alert(t("tablePrintFail") || "列印失敗，請檢查印表機連線");
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function renderPrintQrCardHtml(table, storeName, qrDataUrl) {
+  return `
+    <div class="print-table-qr-card">
+      <div class="print-store-name">${escapeHtml(storeName)}</div>
+      <div class="print-table-badge">內用桌號: ${escapeHtml(table.label)}</div>
+      <img src="${qrDataUrl}" alt="QR" class="print-qr-img">
+      <div class="print-instruction-primary">請掃描 QR Code 線上點餐</div>
+      <div class="print-instruction-secondary">Quét mã QR để đặt món</div>
+    </div>
+  `;
+}
+
+function printSingleTableQrA4(tableId) {
+  const table = (tableId && currentRestaurantTables.find(t => t.id === tableId)) || activeQrModalTable;
+  if (!table) return;
+
+  const printSheet = document.getElementById("tables-qr-print-sheet");
+  if (!printSheet) return;
+
+  const storeName = window.currentTenantBrandName || "BLAB Store";
+  const qrUrl = generateTableQrUrl(table.label);
+  let qrDataUrl = "";
+  if (typeof qrcode === "function") {
+    const qr = qrcode(0, "M");
+    qr.addData(qrUrl);
+    qr.make();
+    qrDataUrl = qr.createDataURL(10, 2);
+  }
+
+  printSheet.innerHTML = renderPrintQrCardHtml(table, storeName, qrDataUrl);
+  printSheet.style.display = "grid";
+  window.print();
+  setTimeout(() => {
+    printSheet.style.display = "none";
+  }, 1000);
+}
+
+function printAllTablesQrA4() {
+  const activeTables = currentRestaurantTables.filter(t => t.is_active === 1 || t.is_active === true);
+  if (activeTables.length === 0) {
+    alert(t("staffNoTables") || "目前無任何已啟用的桌號");
+    return;
+  }
+
+  const printSheet = document.getElementById("tables-qr-print-sheet");
+  if (!printSheet) return;
+
+  const storeName = window.currentTenantBrandName || "BLAB Store";
+  const cardsHtml = activeTables.map(table => {
+    const qrUrl = generateTableQrUrl(table.label);
+    let qrDataUrl = "";
+    if (typeof qrcode === "function") {
+      const qr = qrcode(0, "M");
+      qr.addData(qrUrl);
+      qr.make();
+      qrDataUrl = qr.createDataURL(10, 2);
+    }
+    return renderPrintQrCardHtml(table, storeName, qrDataUrl);
+  }).join("");
+
+  printSheet.innerHTML = cardsHtml;
+  printSheet.style.display = "grid";
+  window.print();
+  setTimeout(() => {
+    printSheet.style.display = "none";
+  }, 1000);
+}
+
+function openBatchTableModal() {
+  const modal = document.getElementById("batchTableModal");
+  if (!modal) return;
+  document.getElementById("batch-table-prefix").value = "";
+  document.getElementById("batch-table-start").value = "1";
+  document.getElementById("batch-table-end").value = "10";
+  document.getElementById("batch-table-sort").value = "1";
+  modal.style.display = "flex";
+}
+
+function closeBatchTableModal() {
+  const modal = document.getElementById("batchTableModal");
+  if (modal) modal.style.display = "none";
+}
+
+async function submitBatchTable() {
+  const tenantId = (typeof getTenantIdFromUrl === "function" && getTenantIdFromUrl()) || "";
+  if (!tenantId) return;
+
+  const prefix = document.getElementById("batch-table-prefix").value.trim();
+  const start = parseInt(document.getElementById("batch-table-start").value, 10);
+  const end = parseInt(document.getElementById("batch-table-end").value, 10);
+  const sortStart = parseInt(document.getElementById("batch-table-sort").value, 10) || 1;
+
+  if (isNaN(start) || isNaN(end) || start < 1 || end < start) {
+    alert(t("paymentInvalidRange") || "請輸入有效的起始與結束編號");
+    return;
+  }
+
+  if (end - start > 100) {
+    alert("單次最多批次建立 100 個桌號 / Mỗi lần tối đa 100 bàn");
+    return;
+  }
+
+  const btn = document.getElementById("btn-save-batch-tables");
+  if (btn) btn.disabled = true;
+
+  try {
+    const workerUrl = typeof WORKER_BASE !== "undefined" ? WORKER_BASE : "https://benmi-worker-official.thuanmnc.workers.dev";
+    const res = await fetch(`${workerUrl}/api/staff/tables/batch?tenant_id=${encodeURIComponent(tenantId)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prefix, start, end, sort_start: sortStart })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data && data.ok) {
+      closeBatchTableModal();
+      await loadRestaurantTables();
+      if (typeof showToast === "function") {
+        showToast(t("tableBatchSuccess", { count: data.created_count }) || `成功新增 ${data.created_count} 個桌號`);
+      }
+    } else {
+      alert(t("tableBatchFail") || "批次建立桌號失敗，請重試");
+    }
+  } catch (err) {
+    console.error("[BatchTable] Error:", err);
+    alert(t("staffNetworkError") || "網路連線異常，請稍後再試");
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 window.checkStaffOrderingCapability = checkStaffOrderingCapability;
 window.loadRestaurantTablesSetting = loadRestaurantTablesSetting;
 window.loadRestaurantTables = loadRestaurantTables;
@@ -2350,4 +2754,15 @@ window.closeTableEditorModal = closeTableEditorModal;
 window.submitTableEditor = submitTableEditor;
 window.toggleTableActive = toggleTableActive;
 window.openStaffOrderWindow = openStaffOrderWindow;
+window.openTableQrModal = openTableQrModal;
+window.closeTableQrModal = closeTableQrModal;
+window.generateTableQrUrl = generateTableQrUrl;
+window.copyTableQrUrl = copyTableQrUrl;
+window.downloadTableQrPng = downloadTableQrPng;
+window.printTableQrToPrinter = printTableQrToPrinter;
+window.printSingleTableQrA4 = printSingleTableQrA4;
+window.printAllTablesQrA4 = printAllTablesQrA4;
+window.openBatchTableModal = openBatchTableModal;
+window.closeBatchTableModal = closeBatchTableModal;
+window.submitBatchTable = submitBatchTable;
 
