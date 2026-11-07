@@ -177,3 +177,35 @@ test('workspace discards superseded filter/tenant responses and pauses polling w
  assert.equal(await page.locator('#payment-summary-collected').innerText(),'—');
  assert.deepEqual(errors,[]);
 });
+
+for(const [name,engine]of Object.entries({chromium,webkit}))test(`${name}: unconfigured tenant fixes payment to pay later and disables LINE Pay`,async t=>{
+ const {page,configured,errors}=await setup(t,engine);
+ configured(false);
+ await page.evaluate(async()=>{openPaymentSettingsFromWorkspace();await loadStoreStatus();});
+ await until(page,()=>document.querySelector('#setting-payment-opt-linepay').disabled);
+ const linepay=page.locator('#setting-payment-opt-linepay'),cash=page.locator('#setting-payment-opt-cash');
+ assert.equal(await linepay.isChecked(),false);
+ assert.equal(await cash.isChecked(),true);
+ assert.equal(await cash.isDisabled(),true);
+ assert.equal(await page.locator('#payment-card-linepay').getAttribute('aria-disabled'),'true');
+ assert.equal(await page.locator('#payment-card-linepay').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(243, 244, 246)');
+ assert.match(await page.locator('#i18n-payment-settings-hint').innerText(),/Đặt rồi trả sau/);
+ if(process.env.PAYMENT_SETTINGS_SCREENSHOT_DIR){
+  fs.mkdirSync(process.env.PAYMENT_SETTINGS_SCREENSHOT_DIR,{recursive:true});
+  await page.screenshot({path:path.join(process.env.PAYMENT_SETTINGS_SCREENSHOT_DIR,`${name}-unconfigured.png`),animations:'disabled'});
+ }
+ await page.evaluate(()=>setLanguage('zh-TW'));
+ assert.match(await page.locator('#i18n-payment-settings-hint').innerText(),/固定為/);
+ const writes=[];
+ await page.route('**/api/config?**',async route=>{if(route.request().method()==='POST')writes.push(route.request().postDataJSON());await route.fulfill({json:{}});});
+ await page.evaluate(async()=>{document.querySelector('#setting-payment-opt-linepay').checked=true;document.querySelector('#setting-payment-opt-cash').checked=false;await savePaymentMethodsSetting();});
+ assert.deepEqual(writes,[{paymentMethods:['cash']}]);
+ assert.equal(await linepay.isChecked(),false);assert.equal(await cash.isChecked(),true);
+ configured(true);
+ await page.evaluate(()=>loadStoreStatus());
+ await until(page,()=>!document.querySelector('#setting-payment-opt-linepay').disabled);
+ assert.equal(await linepay.isChecked(),true);assert.equal(await cash.isDisabled(),false);
+ assert.equal(await page.locator('#payment-card-linepay').getAttribute('aria-disabled'),'false');
+ await until(page,()=>getComputedStyle(document.getElementById('payment-card-linepay')).opacity==='1');
+ assert.deepEqual(errors,[]);
+});

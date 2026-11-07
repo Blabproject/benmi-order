@@ -425,17 +425,33 @@ function renderPaymentMethodsSetting(methods, linePayConfigured) {
     isLinePayConfigured = Boolean(linePayConfigured);
   }
 
+  if (!isLinePayConfigured) currentPaymentMethods = ['cash'];
+
   const linepayInput = document.getElementById('setting-payment-opt-linepay');
   const cashInput = document.getElementById('setting-payment-opt-cash');
   if (linepayInput) {
     linepayInput.checked = currentPaymentMethods.includes('line_pay');
+    linepayInput.disabled = !isLinePayConfigured;
   }
   if (cashInput) {
     cashInput.checked = currentPaymentMethods.includes('cash');
+    cashInput.disabled = !isLinePayConfigured;
   }
 
   togglePaymentCardStyle('line_pay');
   togglePaymentCardStyle('cash');
+
+  const linepayCard = document.getElementById('payment-card-linepay');
+  if (linepayCard) {
+    linepayCard.setAttribute('aria-disabled', String(!isLinePayConfigured));
+    linepayCard.style.opacity = isLinePayConfigured ? '1' : '0.55';
+    linepayCard.style.cursor = isLinePayConfigured ? 'pointer' : 'not-allowed';
+    if (!isLinePayConfigured) linepayCard.style.background = '#f3f4f6';
+  }
+  const cashCard = document.getElementById('payment-card-cash');
+  if (cashCard) cashCard.style.cursor = isLinePayConfigured ? 'pointer' : 'default';
+  const hint = document.getElementById('i18n-payment-settings-hint');
+  if (hint) hint.textContent = t(isLinePayConfigured ? 'paymentSettingsHint' : 'paymentSettingsUnavailableHint');
 
   const badge = document.getElementById('setting-payment-linepay-badge');
   if (badge) {
@@ -453,8 +469,8 @@ function renderPaymentMethodsSetting(methods, linePayConfigured) {
 window.renderPaymentMethodsSetting = renderPaymentMethodsSetting;
 
 async function savePaymentMethodsSetting() {
-  const linepay = document.getElementById('setting-payment-opt-linepay')?.checked;
-  const cash = document.getElementById('setting-payment-opt-cash')?.checked;
+  const linepay = isLinePayConfigured && document.getElementById('setting-payment-opt-linepay')?.checked;
+  const cash = !isLinePayConfigured || document.getElementById('setting-payment-opt-cash')?.checked;
 
   if (!linepay && !cash) {
     alert(t('paymentMinOneRequired') || '請至少選擇一種付款方式！');
