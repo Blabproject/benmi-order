@@ -172,6 +172,8 @@ assert.ok(ctx.pickupTimePickerState.tempTime, 'Modal opens with time selected by
 assert.ok(elements['pickup-sheet-confirm-btn'].textContent.includes('確認時間'), 'Confirm button is active');
 assert.ok(elements['pickup-date-tabs'].innerHTML.includes('pickup-date-tab'), 'Date tabs rendered');
 assert.ok(elements['pickup-date-tabs'].innerHTML.includes('pickup-date-tab-more'), 'More dates button rendered');
+// Inspect a future date so both meal periods remain available regardless of the current time.
+ctx.switchPickupDateTab(tomorrowStr);
 assert.ok(elements['pickup-slots-grid'].innerHTML.includes('pickup-period-group'), 'Slots should be grouped into meal periods');
 assert.ok(elements['pickup-slots-grid'].innerHTML.includes('上午 / 午餐'), 'Should have lunch period header');
 assert.ok(elements['pickup-slots-grid'].innerHTML.includes('晚間 / 晚餐'), 'Should have dinner period header');
