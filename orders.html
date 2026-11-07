@@ -795,7 +795,7 @@
                 style="padding: 16px 20px; background: #f3f4f6; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
                 <div>
                   <div style="font-weight: 1100; font-size: var(--pos-text-body);" id="i18n-ordermode-title">點餐模式 / 取餐時間設定</div>
-                  <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600; margin-top: 2px;" id="i18n-ordermode-sub">自訂允許顧客預約時間或現場排隊即時製作 (ASAP)</div>
+                  <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600; margin-top: 2px;" id="i18n-ordermode-sub">自訂允許顧客預約取餐時間或依序即刻製作</div>
                 </div>
                 <button class="btn btn-primary" style="padding: 10px 20px; font-size: var(--pos-text-body); border-radius: 8px;"
                   onclick="saveScheduledPickupSetting()" id="btn-save-pickup-setting">儲存設定</button>
@@ -813,18 +813,18 @@
                 <label class="setting-mode-card" id="mode-card-asap" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 12px; border: 2px solid var(--border); cursor: pointer; transition: all 0.15s ease;">
                   <input type="radio" name="pickup-mode-radio" id="setting-allow-scheduled-false" value="false" onchange="onPickupModeChange(false)" style="width: 20px; height: 20px; margin-top: 3px; accent-color: var(--primary);">
                   <div>
-                    <div style="font-weight: 1100; font-size: var(--pos-text-body); color: #111827;" id="i18n-mode-asap-title">僅限現場排隊 / 盡快製作 (ASAP)</div>
-                    <div style="font-size: var(--pos-text-meta); color: #4b5563; margin-top: 4px; line-height: 1.4;" id="i18n-mode-asap-sub">關閉預約時段選單，所有訂單一律為「盡快製作」。</div>
+                    <div style="font-weight: 1100; font-size: var(--pos-text-body); color: #111827;" id="i18n-mode-asap-title">僅限現場排隊 / 即刻出餐模式</div>
+                    <div style="font-size: var(--pos-text-meta); color: #4b5563; margin-top: 4px; line-height: 1.4;" id="i18n-mode-asap-sub">關閉預約時段選單。顧客送出訂單後，店家將依序即刻製作出餐。</div>
                   </div>
                 </label>
 
-                <!-- Prep Time (ASAP) Setting Box inside Order Mode -->
+                <!-- Prep Time Setting Box inside Order Mode -->
                 <div class="settings-preptime-box" style="margin-top: 8px; padding: 18px 20px; background: #ffffff; border: 2px solid var(--border); border-radius: 12px;">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <div style="font-weight: 800; font-size: var(--pos-text-body); color: #111827;" id="i18n-setting-preptime-title">預估備餐時間 (ASAP 取餐加成)</div>
+                    <div style="font-weight: 800; font-size: var(--pos-text-body); color: #111827;" id="i18n-setting-preptime-title">門市預估備餐時間</div>
                     <span id="setting-preptime-badge" style="font-size: 13px; font-weight: 800; color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 4px 12px; border-radius: 99px;">5 分鐘</span>
                   </div>
-                  <div style="font-size: var(--pos-text-meta); color: #6b7280; margin-bottom: 14px; line-height: 1.4;" id="i18n-setting-preptime-sub">顧客在點餐頁選擇「最快取餐 (ASAP)」時自動加上的備餐時間（預設 5 分鐘）。</div>
+                  <div style="font-size: var(--pos-text-meta); color: #6b7280; margin-bottom: 14px; line-height: 1.5;" id="i18n-setting-preptime-sub">當顧客在點餐頁面選擇「最快取餐」時，系統將自動依據當前下單時間加上此備餐時間（預設 5 分鐘），作為向顧客預告的預估完成時間。店家可配合現場備料及客流狀況隨時調整，確保廚房有充裕時間製作出餐。</div>
                   <div class="preptime-chips-grid" style="display: flex; flex-wrap: wrap; gap: 8px;">
                     <button type="button" class="setting-preptime-btn active" data-minutes="5" onclick="setStorePrepTime(5)">5 分鐘 (預設)</button>
                     <button type="button" class="setting-preptime-btn" data-minutes="10" onclick="setStorePrepTime(10)">10 分鐘</button>
@@ -3070,7 +3070,7 @@
   </section>
 
   <!-- Benmi POS Modular Architecture Scripts -->
-  <script src="js/orders-i18n.js?v=20261107_prep_time_v1"></script>
+  <script src="js/orders-i18n.js?v=20261107_prep_time_v2"></script>
   <script src="js/orders-core.js?v=20261105_tenant_branding_v1"></script>
   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
@@ -3080,7 +3080,7 @@
   <script src="js/orders-modals.js?v=20261101_linepay_v1"></script>
   <script src="js/orders-history.js?v=20261101_linepay_v1"></script>
   <script src="js/orders-reports.js?v=20261007_dev_main_sync_v1"></script>
-  <script src="js/orders-settings.js?v=20261107_prep_time_v1"></script>
+  <script src="js/orders-settings.js?v=20261107_prep_time_v2"></script>
   <script src="js/orders-menu-model.js?v=20261104_menu_model_v1"></script>
   <script src="js/orders-menu.js?v=20261107_stock_restore_v2"></script>
   <script src="js/orders-bundle-wizard.js?v=20261007_dev_main_sync_v1"></script>
