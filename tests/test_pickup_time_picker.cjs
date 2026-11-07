@@ -149,23 +149,25 @@ assert.ok(futureSlots.includes('21:00'), 'Should include shift 2 end');
 assert.ok(!futureSlots.includes('15:00'), 'Should NOT include time outside operating hours (15:00 is between shifts)');
 console.log(`✓ Future date slots generated correctly (${futureSlots.length} slots)`);
 
-// 2. Test initPickupTimePicker
+// 2. Test initPickupTimePicker (Default initial state: unselected, customer has to choose)
 ctx.initPickupTimePicker();
 assert.ok(elements['pickup-date'].value, 'Date input should be initialized');
-assert.ok(elements['pickup-time'].value, 'Time input should be initialized');
-assert.ok(elements['pickup-trigger-display-time'].textContent, 'Display time label should be populated');
-assert.ok(elements['pickup-trigger-display-date'].textContent, 'Display date label should be populated');
-console.log(`✓ initPickupTimePicker populated inputs & trigger display: ${elements['pickup-trigger-display-time'].textContent} | ${elements['pickup-trigger-display-date'].textContent}`);
+assert.equal(elements['pickup-time'].value, '', 'Time input must NOT be pre-selected in default initial state');
+assert.equal(elements['pickup-trigger-display-time'].textContent, '請選擇預計取餐時間', 'Display time label prompts user to select');
+assert.equal(elements['pickup-trigger-display-date'].textContent, '點擊選擇取餐日期與時段', 'Display date label prompts user to click');
+console.log(`✓ initPickupTimePicker unselected initial state verified: ${elements['pickup-trigger-display-time'].textContent}`);
 
-// 3. Test openPickupTimeModal
+// 3. Test openPickupTimeModal with unselected initial state
 ctx.openPickupTimeModal();
 assert.equal(elements['pickup-time-modal'].style.display, 'flex', 'Modal should be shown');
+assert.equal(ctx.pickupTimePickerState.tempTime, '', 'Modal opens with no tentative time selected by default');
+assert.equal(elements['pickup-sheet-confirm-btn'].textContent, '請先選擇時間', 'Confirm button prompts user to select time');
 assert.ok(elements['pickup-date-tabs'].innerHTML.includes('pickup-date-tab'), 'Date tabs rendered');
 assert.ok(elements['pickup-date-tabs'].innerHTML.includes('pickup-date-tab-more'), 'More dates button rendered');
 assert.ok(elements['pickup-slots-grid'].innerHTML.includes('pickup-period-group'), 'Slots should be grouped into meal periods');
 assert.ok(elements['pickup-slots-grid'].innerHTML.includes('上午 / 午餐'), 'Should have lunch period header');
 assert.ok(elements['pickup-slots-grid'].innerHTML.includes('晚間 / 晚餐'), 'Should have dinner period header');
-console.log('✓ openPickupTimeModal opened modal, rendered 7-day tabs + more button + meal period groups');
+console.log('✓ openPickupTimeModal opened modal with unselected initial state, 7-day tabs and meal periods');
 
 // 3b. Test tab switching and tempTime auto-sync
 ctx.pickupTimePickerState.tempTime = '03:15'; // Non-existent time

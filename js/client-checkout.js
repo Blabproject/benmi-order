@@ -572,11 +572,11 @@ async function initEditOrderModeIfPresent() {
 var pickupTimePickerState = {
     selectedDate: '',        // 'YYYY-MM-DD'
     selectedTime: '',        // 'HH:mm'
-    selectedType: 'asap',    // 'asap' | 'slot'
+    selectedType: '',        // '' | 'asap' | 'slot'
     activeTabDate: '',       // Date currently being viewed in modal
     tempDate: '',
     tempTime: '',            // Tentative time selected in modal
-    tempType: 'asap',        // Tentative type selected in modal
+    tempType: '',            // '' | 'asap' | 'slot'
     asapTime: ''             // Calculated ASAP time string
 };
 
@@ -795,24 +795,20 @@ function initPickupTimePicker() {
     const asap = isToday ? calcAsapPickupTime(twNow) : null;
     const slots = generatePickupSlots(curDate);
 
-    if (timeEl && !timeEl.value) {
-        if (isToday && asap) {
-            timeEl.value = asap.timeStr;
-            pickupTimePickerState.selectedType = 'asap';
-            pickupTimePickerState.selectedTime = asap.timeStr;
-            pickupTimePickerState.selectedDate = todayStr;
-        } else if (slots.length > 0) {
-            timeEl.value = slots[0];
+    // DO NOT pre-select any time by default! Keep it empty until chosen by customer.
+    if (timeEl && timeEl.value) {
+        pickupTimePickerState.selectedTime = timeEl.value;
+        if (!pickupTimePickerState.selectedType) {
             pickupTimePickerState.selectedType = 'slot';
-            pickupTimePickerState.selectedTime = slots[0];
-            pickupTimePickerState.selectedDate = curDate;
-        } else {
-            if (dateEl) dateEl.value = avail.dateStr;
-            timeEl.value = avail.defaultTime;
-            pickupTimePickerState.selectedType = avail.defaultType;
-            pickupTimePickerState.selectedTime = avail.defaultTime;
-            pickupTimePickerState.selectedDate = avail.dateStr;
         }
+    } else {
+        if (timeEl) timeEl.value = '';
+        pickupTimePickerState.selectedTime = '';
+        pickupTimePickerState.selectedType = '';
+    }
+
+    if (dateEl && dateEl.value) {
+        pickupTimePickerState.selectedDate = dateEl.value;
     }
 
     if (timeEl && typeof timeEl.addEventListener === 'function' && !timeEl.__pickupListenerAttached) {
@@ -886,14 +882,12 @@ function openPickupTimeModal() {
     if (!curAsap && curSlots.length === 0) {
         const avail = findFirstAvailableDate();
         curDate = avail.dateStr;
-        curTime = avail.defaultTime;
-        pickupTimePickerState.selectedType = avail.defaultType;
     }
 
     pickupTimePickerState.activeTabDate = curDate;
     pickupTimePickerState.tempDate = curDate;
     pickupTimePickerState.tempTime = curTime;
-    pickupTimePickerState.tempType = pickupTimePickerState.selectedType || (isToday && curAsap ? 'asap' : 'slot');
+    pickupTimePickerState.tempType = curTime ? (pickupTimePickerState.selectedType || 'slot') : '';
 
     renderPickupDateTabs();
     renderPickupModalBodyForDate(curDate);
@@ -1037,11 +1031,14 @@ function switchPickupDateTab(dateStr) {
 
     if (isToday && asap && pickupTimePickerState.tempType === 'asap') {
         pickupTimePickerState.tempTime = asap.timeStr;
-    } else {
+    } else if (pickupTimePickerState.tempTime) {
         if (!slots.includes(pickupTimePickerState.tempTime)) {
             pickupTimePickerState.tempType = 'slot';
             pickupTimePickerState.tempTime = slots.length > 0 ? slots[0] : '';
         }
+    } else {
+        pickupTimePickerState.tempType = '';
+        pickupTimePickerState.tempTime = '';
     }
 
     renderPickupDateTabs();
@@ -1146,7 +1143,17 @@ function renderPickupModalBodyForDate(dateStr) {
     }
 
     if (confirmBtn) {
-        confirmBtn.textContent = pickupTimePickerState.tempTime ? `確認時間 (${pickupTimePickerState.tempTime})` : '確認時間';
+        if (pickupTimePickerState.tempTime) {
+            confirmBtn.textContent = `確認時間 (${pickupTimePickerState.tempTime})`;
+            confirmBtn.disabled = false;
+            confirmBtn.style.opacity = '1';
+            confirmBtn.style.cursor = 'pointer';
+        } else {
+            confirmBtn.textContent = '請先選擇時間';
+            confirmBtn.disabled = true;
+            confirmBtn.style.opacity = '0.65';
+            confirmBtn.style.cursor = 'not-allowed';
+        }
     }
 }
 
