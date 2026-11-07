@@ -117,6 +117,7 @@ export function createTenantRepository(
               allowScheduledPickup: row.allow_scheduled_pickup !== undefined && row.allow_scheduled_pickup !== null ? Boolean(row.allow_scheduled_pickup) : true,
               allowDineIn: row.allow_dine_in !== undefined && row.allow_dine_in !== null ? Boolean(row.allow_dine_in) : true,
               storeStatus: (row.store_status as any) || 'open',
+              prepTimeMinutes: (row.prep_time_minutes !== undefined && row.prep_time_minutes !== null) ? Number(row.prep_time_minutes) : 5,
               quickReplies,
               defaultPassword: row.default_password || '12345678',
               locale: row.locale || 'zh-TW',
@@ -225,11 +226,14 @@ export function createTenantRepository(
       const featuresVal = input.features !== undefined
         ? (typeof input.features === 'string' ? input.features : JSON.stringify(input.features))
         : null;
+      const prepTimeVal = input.prepTimeMinutes !== undefined && input.prepTimeMinutes !== null
+        ? Number(input.prepTimeMinutes)
+        : null;
       const brandName = input.brandName || (tenantId === 'benmi' ? 'Benmi 越式法國麵包' : tenantId);
 
       await db.prepare(`
-        INSERT INTO tenant_config (tenant_id, brand_name, operating_hours, allow_scheduled_pickup, allow_dine_in, store_status, liff_id, logo_url, store_address, announcement, features, updated_at)
-        VALUES (?, ?, ?, COALESCE(?, 1), COALESCE(?, 1), COALESCE(?, 'open'), ?, ?, ?, ?, COALESCE(?, '[]'), CURRENT_TIMESTAMP)
+        INSERT INTO tenant_config (tenant_id, brand_name, operating_hours, allow_scheduled_pickup, allow_dine_in, store_status, liff_id, logo_url, store_address, announcement, features, prep_time_minutes, updated_at)
+        VALUES (?, ?, ?, COALESCE(?, 1), COALESCE(?, 1), COALESCE(?, 'open'), ?, ?, ?, ?, COALESCE(?, '[]'), COALESCE(?, 5), CURRENT_TIMESTAMP)
         ON CONFLICT(tenant_id) DO UPDATE SET
           operating_hours = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.operating_hours END,
           allow_scheduled_pickup = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.allow_scheduled_pickup END,
@@ -240,6 +244,7 @@ export function createTenantRepository(
           store_address = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.store_address END,
           announcement = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.announcement END,
           features = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.features END,
+          prep_time_minutes = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.prep_time_minutes END,
           updated_at = CURRENT_TIMESTAMP
       `).bind(
         tenantId,
@@ -253,6 +258,7 @@ export function createTenantRepository(
         storeAddressVal,
         announcementVal,
         featuresVal,
+        prepTimeVal,
         opHoursStr, opHoursStr,
         allowPickupInt, allowPickupInt,
         allowDineInInt, allowDineInInt,
@@ -261,7 +267,8 @@ export function createTenantRepository(
         logoUrlVal, logoUrlVal,
         storeAddressVal, storeAddressVal,
         announcementVal, announcementVal,
-        featuresVal, featuresVal
+        featuresVal, featuresVal,
+        prepTimeVal, prepTimeVal
       ).run();
 
       await invalidateCache(tenantId);

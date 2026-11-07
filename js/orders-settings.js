@@ -39,7 +39,8 @@ function renderStoreStatusUI(status) {
     btn.className = `store-status-pill ${currentStoreStatus}`;
   }
   if (label) {
-    if (currentStoreStatus === 'open') label.innerText = t('statusOpen');
+    const prepSuffix = (typeof currentPrepTimeMinutes === 'number' && currentPrepTimeMinutes) ? ` (${currentPrepTimeMinutes}${t('prepTimeMinShort') || '分'})` : '';
+    if (currentStoreStatus === 'open') label.innerText = t('statusOpen') + prepSuffix;
     else if (currentStoreStatus === 'busy') label.innerText = t('statusBusy');
     else if (currentStoreStatus === 'paused') label.innerText = t('statusPaused');
     else if (currentStoreStatus === 'closed') label.innerText = t('statusClosed');
@@ -62,6 +63,72 @@ function renderStoreStatusUI(status) {
   document.querySelectorAll(".status-select-box").forEach(box => {
     box.classList.toggle("active", box.id === `status-box-${currentStoreStatus}`);
   });
+}
+
+var currentPrepTimeMinutes = 5;
+
+function renderStorePrepTimeUI(mins) {
+  if (typeof mins === 'number') currentPrepTimeMinutes = mins;
+  const label = t('prepTimeMin', { n: currentPrepTimeMinutes }) || `${currentPrepTimeMinutes} 分鐘`;
+  const badge1 = document.getElementById('store-preptime-current-badge');
+  const badge2 = document.getElementById('setting-preptime-badge');
+  if (badge1) badge1.textContent = label;
+  if (badge2) badge2.textContent = label;
+
+  document.querySelectorAll('.preptime-chip, .setting-preptime-btn').forEach(btn => {
+    const val = btn.dataset.minutes;
+    if (val === 'custom') {
+      const isPreset = [5, 10, 15, 20, 30, 45, 60].includes(currentPrepTimeMinutes);
+      btn.classList.toggle('active', !isPreset);
+    } else {
+      btn.classList.toggle('active', Number(val) === currentPrepTimeMinutes);
+    }
+  });
+
+  if (currentStoreStatus === 'open') {
+    const labelEl = document.getElementById('store-status-label');
+    const suffix = currentPrepTimeMinutes ? ` (${currentPrepTimeMinutes}${t('prepTimeMinShort') || '分'})` : '';
+    if (labelEl) labelEl.innerText = t('statusOpen') + suffix;
+  }
+}
+
+async function setStorePrepTime(mins, e) {
+  if (e) e.stopPropagation();
+  mins = parseInt(mins, 10);
+  if (isNaN(mins) || mins < 0) mins = 5;
+  if (mins > 180) mins = 180;
+
+  const prev = currentPrepTimeMinutes;
+  renderStorePrepTimeUI(mins);
+
+  try {
+    const tenantId = typeof getTenantIdFromUrl === 'function' ? getTenantIdFromUrl() : '';
+    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${tenantId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prepTimeMinutes: mins })
+    });
+    if (!res.ok) throw new Error("API returned " + res.status);
+    if (typeof showToast === 'function') {
+      showToast(t('prepTimeSaved', { n: mins }) || `已更新備餐時間為 ${mins} 分鐘`);
+    }
+  } catch (err) {
+    alert((t("saveFail") || "儲存失敗: ") + err.message);
+    renderStorePrepTimeUI(prev);
+  }
+}
+
+function openCustomPrepTimePrompt(e) {
+  if (e) e.stopPropagation();
+  const input = prompt(t('prepTimePrompt') || '請輸入預估出餐時間（分鐘，0-180）:', currentPrepTimeMinutes);
+  if (input !== null) {
+    const parsed = parseInt(input.trim(), 10);
+    if (!isNaN(parsed) && parsed >= 0 && parsed <= 180) {
+      setStorePrepTime(parsed);
+    } else {
+      alert(t('prepTimeInvalid') || '請輸入 0 至 180 之間的有效分鐘數');
+    }
+  }
 }
 
 async function setStoreStatus(newStatus) {
@@ -130,12 +197,16 @@ async function loadStoreStatus() {
         currentTenantFeatures = Array.isArray(data.features) ? data.features : (typeof data.features === 'string' ? JSON.parse(data.features) : []);
         window.currentTenantFeatures = currentTenantFeatures;
       }
+      if (data.prepTimeMinutes !== undefined) {
+        currentPrepTimeMinutes = Number(data.prepTimeMinutes);
+      }
       storeOperatingHours = ensureParsedOperatingHours(data.operatingHours);
     }
   } catch (e) {
     console.error("loadStoreStatus error:", e);
   }
   renderStoreStatusUI(currentStoreStatus);
+  renderStorePrepTimeUI(currentPrepTimeMinutes);
   if (typeof updateDiningFilterStats === "function" && typeof orders !== "undefined") {
     updateDiningFilterStats(orders);
   }
@@ -264,6 +335,7 @@ function renderScheduledPickupSetting() {
     radioFalse.checked = (allowScheduledPickup === false);
   }
   updateModeCardStyles(allowScheduledPickup);
+  renderStorePrepTimeUI(currentPrepTimeMinutes);
 }
 
 function updateModeCardStyles(isScheduled) {
@@ -297,7 +369,10 @@ async function saveScheduledPickupSetting() {
     const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ allowScheduledPickup: allowScheduledPickup })
+      body: JSON.stringify({
+        allowScheduledPickup: allowScheduledPickup,
+        prepTimeMinutes: currentPrepTimeMinutes
+      })
     });
     if (!res.ok) throw new Error("API returned " + res.status);
     alert(t("saveSuccess"));

@@ -5,10 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title id="page-title">線上點餐</title>
-    <link rel="preload" href="/index.css?v=20261107_pickup_time_sheet_v5" as="style">
-    <link rel="preload" href="/js/client-core.js?v=20261107_pickup_time_sheet_v5" as="script">
+    <link rel="preload" href="/index.css?v=20261107_pickup_time_sheet_v6" as="style">
+    <link rel="preload" href="/js/client-core.js?v=20261107_pickup_time_sheet_v6" as="script">
     <link rel="preload" href="/js/client-menu.js?v=20261106_inline_nested_options_v2" as="script">
-    <link rel="stylesheet" href="/index.css?v=20261107_pickup_time_sheet_v5">
+    <link rel="stylesheet" href="/index.css?v=20261107_pickup_time_sheet_v6">
     <style>html.tenant-resolution-failed body > :not(#tenant-resolution-error) { display: none !important; }</style>
     <script>
         // Redirect root visits on blabfood.app to /landing
@@ -623,7 +623,7 @@
                                     </svg>
                                     <span>預計取餐時間</span>
                                 </div>
-                                <span style="font-size: 11px; font-weight: 700; color: var(--primary); background: #f0fdf4; border: 1px solid #bbf7d0; padding: 2px 8px; border-radius: 99px;">點擊選擇</span>
+                                <span style="font-size: 11px; font-weight: 700; color: var(--primary); background: #f0fdf4; border: 1px solid #bbf7d0; padding: 2px 8px; border-radius: 99px;">點擊修改</span>
                             </label>
 
                             <!-- Modern Clickable Trigger Card (Replaces clumsy native input) -->
@@ -636,8 +636,8 @@
                                         </svg>
                                     </div>
                                     <div class="pickup-trigger-text">
-                                        <div class="pickup-trigger-primary" id="pickup-trigger-display-time">請選擇預計取餐時間</div>
-                                        <div class="pickup-trigger-secondary" id="pickup-trigger-display-date">點擊選擇取餐日期與時段</div>
+                                        <div class="pickup-trigger-primary" id="pickup-trigger-display-time">最快取餐 (店家即刻製作)</div>
+                                        <div class="pickup-trigger-secondary" id="pickup-trigger-display-date">今日取餐 · 點擊更改時間</div>
                                     </div>
                                 </div>
                                 <div class="pickup-trigger-chevron">
@@ -939,7 +939,7 @@
     </div>
 
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <script src="/js/client-core.js?v=20261107_pickup_time_sheet_v5"></script>
+    <script src="/js/client-core.js?v=20261107_pickup_time_sheet_v6"></script>
     <script src="/js/client-menu.js?v=20261106_inline_nested_options_v2"></script>
     <script src="/js/client-customizations.js?v=20261106_unified_cart_actions_v1"></script>
     <script src="/js/client-bundle.js?v=20261103_note_placeholder_v1"></script>
@@ -972,7 +972,7 @@
   <script src="/js/order-detail-view.js?v=20261017_order_detail_v1"></script>
   <script src="/js/order-detail-checkout.js?v=20261017_order_detail_v1"></script>
   <script src="/js/line-order-presentation.js?v=20261030_line_portions_v3"></script>
-    <script src="/js/client-checkout.js?v=20261107_pickup_time_sheet_v5"></script>
+    <script src="/js/client-checkout.js?v=20261107_pickup_time_sheet_v6"></script>
     <script>
         if (window.__TENANT_RESOLUTION_FAILED) {
             document.getElementById('page-body-content').style.display = 'none';

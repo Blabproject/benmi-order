@@ -30,6 +30,7 @@ export interface TenantContext {
   allowScheduledPickup?: boolean;
   allowDineIn?: boolean;
   storeStatus?: 'open' | 'busy' | 'paused';
+  prepTimeMinutes?: number | null;
   quickReplies: QuickReply[];
   defaultPassword: string;
   locale: string;

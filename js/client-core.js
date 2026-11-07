@@ -752,6 +752,12 @@ function applyTenantTheme(tenant) {
     if (tenant.features) storeConfig.features = tenant.features;
     if (tenant.allowScheduledPickup !== undefined) storeConfig.allowScheduledPickup = tenant.allowScheduledPickup;
     if (tenant.allowDineIn !== undefined) storeConfig.allowDineIn = tenant.allowDineIn;
+    if (tenant.storeStatus) storeConfig.storeStatus = tenant.storeStatus;
+    if (tenant.prepTimeMinutes !== undefined) {
+        storeConfig.prepTimeMinutes = Number(tenant.prepTimeMinutes);
+    } else if (storeConfig.prepTimeMinutes === undefined) {
+        storeConfig.prepTimeMinutes = 5;
+    }
     window.storeConfig = storeConfig;
     renderStoreOperatingHours();
 
@@ -1530,6 +1536,7 @@ async function initApp() {
                     features: parsed.tenant.features || [],
                     orderPrefix: parsed.tenant.orderPrefix,
                     storeStatus: parsed.tenant.storeStatus,
+                    prepTimeMinutes: parsed.tenant.prepTimeMinutes !== undefined ? Number(parsed.tenant.prepTimeMinutes) : 5,
                     operatingHours: parsed.tenant.parsedHours,
                     liffId: parsed.tenant.liffId
                 };

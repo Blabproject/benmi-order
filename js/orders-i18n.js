@@ -348,6 +348,16 @@ const I18N = {
     statusOptPausedDesc: "暫停接收新訂單，顧客端無法下單",
     statusOptClosedTitle: "打烊休息",
     statusOptClosedDesc: "暫停接受新訂單",
+    prepTimeTitle: "預估出餐時間 (ASAP)",
+    prepTimeSub: "最快取餐時自動加上的預估備餐時間",
+    settingPrepTimeTitle: "預估備餐時間 (ASAP 取餐加成)",
+    settingPrepTimeSub: "顧客在點餐頁選擇「最快取餐 (ASAP)」時自動加上的備餐時間（預設 5 分鐘）。",
+    prepTimeMin: "{n} 分鐘",
+    prepTimeSaved: "已更新備餐時間為 {n} 分鐘",
+    prepTimePrompt: "請輸入預估出餐時間（分鐘，0-180）:",
+    prepTimeInvalid: "請輸入 0 至 180 之間的有效分鐘數",
+    prepTimeCustom: "自訂",
+    prepTimeMinShort: "分",
     orderModeTitle: "點餐模式 / 取餐時間設定",
     orderModeSub: "自訂允許顧客預約時間或現場排隊即時製作 (ASAP)",
     btnSaveSetting: "儲存設定",
@@ -1450,6 +1460,16 @@ const I18N = {
     statusOptPausedDesc: "Tạm dừng nhận đơn mới, khách hàng không thể gửi đơn",
     statusOptClosedTitle: "Đóng cửa nghỉ",
     statusOptClosedDesc: "Tạm ngừng nhận đơn mới",
+    prepTimeTitle: "Thời gian chuẩn bị món (ASAP)",
+    prepTimeSub: "Thời gian làm món tự động cộng thêm khi khách chọn Lấy ngay ASAP",
+    settingPrepTimeTitle: "Thời gian chuẩn bị món (ASAP)",
+    settingPrepTimeSub: "Thời gian làm món tự động cộng thêm khi khách chọn Lấy ngay ASAP (mặc định 5 phút).",
+    prepTimeMin: "{n} phút",
+    prepTimeSaved: "Đã cập nhật thời gian chuẩn bị món thành {n} phút",
+    prepTimePrompt: "Vui lòng nhập thời gian chuẩn bị món (phút, 0-180):",
+    prepTimeInvalid: "Vui lòng nhập số phút hợp lệ từ 0 đến 180",
+    prepTimeCustom: "Tùy chỉnh",
+    prepTimeMinShort: "p",
     orderModeTitle: "Chế độ nhận đơn & Hẹn giờ",
     orderModeSub: "Tùy chỉnh cho phép khách hẹn giờ lấy hoặc nhận đơn làm ngay xếp theo thứ tự (ASAP)",
     btnSaveSetting: "Lưu thiết lập",
@@ -2664,6 +2684,18 @@ function applyLanguageToDOM() {
   if (stOptClosedT) stOptClosedT.innerText = dict.statusOptClosedTitle || dict.statusClosed;
   const stOptClosedD = document.getElementById("i18n-status-desc-closed");
   if (stOptClosedD) stOptClosedD.innerText = dict.statusOptClosedDesc;
+
+  const prepTT = document.getElementById("i18n-status-preptime-title");
+  if (prepTT) prepTT.innerText = dict.prepTimeTitle;
+  const prepTD = document.getElementById("i18n-status-preptime-desc");
+  if (prepTD) prepTD.innerText = dict.prepTimeSub;
+  const setPrepTT = document.getElementById("i18n-setting-preptime-title");
+  if (setPrepTT) setPrepTT.innerText = dict.settingPrepTimeTitle;
+  const setPrepTS = document.getElementById("i18n-setting-preptime-sub");
+  if (setPrepTS) setPrepTS.innerText = dict.settingPrepTimeSub;
+  if (typeof renderStorePrepTimeUI === "function" && typeof currentPrepTimeMinutes !== "undefined") {
+    renderStorePrepTimeUI(currentPrepTimeMinutes);
+  }
 
   if (typeof renderStoreStatusUI === "function" && typeof currentStoreStatus !== "undefined") {
     renderStoreStatusUI(currentStoreStatus);

@@ -68,6 +68,7 @@ export interface BootstrapResponse {
     features: string[];
     orderPrefix?: string;
     storeStatus: string;
+    prepTimeMinutes?: number;
     liffId: string | null;
     liffUrl: string | null;
     locale: string;
@@ -1026,6 +1027,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
         features: tenantCtx?.features || [],
         orderPrefix: tenantCtx?.orderPrefix || (tenantId === 'benmi' ? 'B' : tenantId.charAt(0).toUpperCase()),
         storeStatus: tenantCtx?.storeStatus || 'open',
+        prepTimeMinutes: (typeof tenantCtx?.prepTimeMinutes === 'number') ? tenantCtx.prepTimeMinutes : 5,
         liffId,
         liffUrl,
         locale

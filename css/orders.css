@@ -4458,6 +4458,57 @@ html.is-web-platform .store-activation-modal:not(.force-show) {
   flex-shrink: 0;
 }
 
+.preptime-chip {
+  min-height: 40px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+.preptime-chip:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+.preptime-chip.active {
+  background: #047857 !important;
+  color: #ffffff !important;
+  border-color: #047857 !important;
+  box-shadow: 0 2px 6px rgba(4, 120, 87, 0.25);
+}
+
+.setting-preptime-btn {
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 2px solid var(--border);
+  background: #ffffff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.setting-preptime-btn:hover {
+  border-color: #9ca3af;
+}
+.setting-preptime-btn.active {
+  border-color: var(--primary) !important;
+  background: #f0fdf4 !important;
+  color: var(--primary) !important;
+  box-shadow: 0 2px 8px rgba(4, 120, 87, 0.12);
+}
+
 .status-option.active .status-check {
   opacity: 1;
 }

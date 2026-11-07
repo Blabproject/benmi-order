@@ -572,11 +572,11 @@ async function initEditOrderModeIfPresent() {
 var pickupTimePickerState = {
     selectedDate: '',        // 'YYYY-MM-DD'
     selectedTime: '',        // 'HH:mm'
-    selectedType: '',        // '' | 'asap' | 'slot'
+    selectedType: 'asap',    // 'asap' | 'slot'
     activeTabDate: '',       // Date currently being viewed in modal
     tempDate: '',
     tempTime: '',            // Tentative time selected in modal
-    tempType: '',            // '' | 'asap' | 'slot'
+    tempType: 'asap',        // Tentative type selected in modal
     asapTime: ''             // Calculated ASAP time string
 };
 
@@ -595,16 +595,15 @@ function getStoreOperatingShifts(dateObj) {
 function calcAsapPickupTime(twNow) {
     const cfg = getActiveStoreConfig();
     const isBusy = (cfg && cfg.storeStatus === 'busy');
-    const bufferMin = isBusy ? 60 : 15;
+    const prepMinutes = (cfg && typeof cfg.prepTimeMinutes === 'number')
+        ? cfg.prepTimeMinutes
+        : (cfg && cfg.prepTimeMinutes !== undefined ? Number(cfg.prepTimeMinutes) : 5);
+    const bufferMin = isBusy ? Math.max(prepMinutes, 60) : prepMinutes;
     const nowMin = twNow.getHours() * 60 + twNow.getMinutes();
     const shifts = getStoreOperatingShifts(twNow);
     if (!shifts || shifts.length === 0) return null;
 
     let targetMin = nowMin + bufferMin;
-    const remainder = targetMin % 5;
-    if (remainder !== 0) {
-        targetMin += (5 - remainder);
-    }
 
     for (const shift of shifts) {
         const [sH, sM] = shift.start.split(':').map(Number);
@@ -617,8 +616,9 @@ function calcAsapPickupTime(twNow) {
 
         // Before this shift starts today
         if (nowMin < sMin) {
-            const h = Math.floor(sMin / 60) % 24;
-            const m = sMin % 60;
+            const firstMin = Math.max(sMin, targetMin);
+            const h = Math.floor(firstMin / 60) % 24;
+            const m = firstMin % 60;
             const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
             return {
                 timeStr,
@@ -632,9 +632,12 @@ function calcAsapPickupTime(twNow) {
             const h = Math.floor(targetMin / 60) % 24;
             const m = targetMin % 60;
             const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            const desc = isBusy
+                ? `門市繁忙：最快約 ${bufferMin} 分鐘後可取餐 (${timeStr})`
+                : (bufferMin > 0 ? `預計約 ${bufferMin} 分鐘後可取餐 (${timeStr})` : `即刻取餐 (${timeStr})`);
             return {
                 timeStr,
-                desc: isBusy ? `門市繁忙：最快約 60 分鐘後可取餐 (${timeStr})` : `預計約 15-20 分鐘後可取餐 (${timeStr})`,
+                desc,
                 isBusy
             };
         }
@@ -654,7 +657,10 @@ function generatePickupSlots(dateStr) {
 
     const cfg = getActiveStoreConfig();
     const isBusy = (cfg && cfg.storeStatus === 'busy');
-    const bufferMin = isBusy ? 60 : 15;
+    const prepMinutes = (cfg && typeof cfg.prepTimeMinutes === 'number')
+        ? cfg.prepTimeMinutes
+        : (cfg && cfg.prepTimeMinutes !== undefined ? Number(cfg.prepTimeMinutes) : 5);
+    const bufferMin = isBusy ? Math.max(prepMinutes, 60) : prepMinutes;
     const nowMin = twNow.getHours() * 60 + twNow.getMinutes();
     const minAllowedMin = nowMin + bufferMin;
 
@@ -723,8 +729,12 @@ function syncPickupTimeDisplay() {
     }
 
     if (pickupTimePickerState.selectedType === 'asap' && dateVal === todayStr) {
+        const cfg = getActiveStoreConfig();
+        const prepMin = (cfg && typeof cfg.prepTimeMinutes === 'number')
+            ? cfg.prepTimeMinutes
+            : (cfg && cfg.prepTimeMinutes !== undefined ? Number(cfg.prepTimeMinutes) : 5);
         primaryLabel.textContent = `最快取餐 (約 ${timeVal})`;
-        secondaryLabel.textContent = `${dayLabel} · 店家即刻備餐`;
+        secondaryLabel.textContent = (prepMin > 0) ? `${dayLabel} · 備餐約 ${prepMin} 分鐘` : `${dayLabel} · 店家即刻備餐`;
     } else {
         primaryLabel.textContent = `${timeVal} 取餐`;
         secondaryLabel.textContent = `${dayLabel} · 預約時段`;
@@ -795,16 +805,16 @@ function initPickupTimePicker() {
     const asap = isToday ? calcAsapPickupTime(twNow) : null;
     const slots = generatePickupSlots(curDate);
 
-    // DO NOT pre-select any time by default! Keep it empty until chosen by customer.
-    if (timeEl && timeEl.value) {
+    // Default state: ASAP is usable and pre-selected!
+    if (!timeEl || !timeEl.value || timeEl.value === '') {
+        if (timeEl) timeEl.value = avail.defaultTime;
+        pickupTimePickerState.selectedTime = avail.defaultTime;
+        pickupTimePickerState.selectedType = avail.defaultType;
+    } else {
         pickupTimePickerState.selectedTime = timeEl.value;
         if (!pickupTimePickerState.selectedType) {
-            pickupTimePickerState.selectedType = 'slot';
+            pickupTimePickerState.selectedType = (isToday && asap && timeEl.value === asap.timeStr) ? 'asap' : 'slot';
         }
-    } else {
-        if (timeEl) timeEl.value = '';
-        pickupTimePickerState.selectedTime = '';
-        pickupTimePickerState.selectedType = '';
     }
 
     if (dateEl && dateEl.value) {
@@ -878,16 +888,20 @@ function openPickupTimeModal() {
     const curAsap = isToday ? calcAsapPickupTime(twNow) : null;
     const curSlots = generatePickupSlots(curDate);
 
+    const avail = findFirstAvailableDate();
     // If curDate has no slots, auto-fallback to first available date
     if (!curAsap && curSlots.length === 0) {
-        const avail = findFirstAvailableDate();
         curDate = avail.dateStr;
+    }
+
+    if (!curTime) {
+        curTime = isToday && curAsap ? curAsap.timeStr : (curSlots.length > 0 ? curSlots[0] : avail.defaultTime);
     }
 
     pickupTimePickerState.activeTabDate = curDate;
     pickupTimePickerState.tempDate = curDate;
     pickupTimePickerState.tempTime = curTime;
-    pickupTimePickerState.tempType = curTime ? (pickupTimePickerState.selectedType || 'slot') : '';
+    pickupTimePickerState.tempType = (isToday && curAsap && curTime === curAsap.timeStr) ? 'asap' : (pickupTimePickerState.selectedType || 'slot');
 
     renderPickupDateTabs();
     renderPickupModalBodyForDate(curDate);
@@ -1031,14 +1045,11 @@ function switchPickupDateTab(dateStr) {
 
     if (isToday && asap && pickupTimePickerState.tempType === 'asap') {
         pickupTimePickerState.tempTime = asap.timeStr;
-    } else if (pickupTimePickerState.tempTime) {
-        if (!slots.includes(pickupTimePickerState.tempTime)) {
-            pickupTimePickerState.tempType = 'slot';
-            pickupTimePickerState.tempTime = slots.length > 0 ? slots[0] : '';
-        }
     } else {
-        pickupTimePickerState.tempType = '';
-        pickupTimePickerState.tempTime = '';
+        if (!slots.includes(pickupTimePickerState.tempTime)) {
+            pickupTimePickerState.tempType = (isToday && asap) ? 'asap' : 'slot';
+            pickupTimePickerState.tempTime = (isToday && asap) ? asap.timeStr : (slots.length > 0 ? slots[0] : '');
+        }
     }
 
     renderPickupDateTabs();
@@ -1143,17 +1154,10 @@ function renderPickupModalBodyForDate(dateStr) {
     }
 
     if (confirmBtn) {
-        if (pickupTimePickerState.tempTime) {
-            confirmBtn.textContent = `確認時間 (${pickupTimePickerState.tempTime})`;
-            confirmBtn.disabled = false;
-            confirmBtn.style.opacity = '1';
-            confirmBtn.style.cursor = 'pointer';
-        } else {
-            confirmBtn.textContent = '請先選擇時間';
-            confirmBtn.disabled = true;
-            confirmBtn.style.opacity = '0.65';
-            confirmBtn.style.cursor = 'not-allowed';
-        }
+        confirmBtn.textContent = pickupTimePickerState.tempTime ? `確認時間 (${pickupTimePickerState.tempTime})` : '確認時間';
+        confirmBtn.disabled = !pickupTimePickerState.tempTime;
+        confirmBtn.style.opacity = pickupTimePickerState.tempTime ? '1' : '0.65';
+        confirmBtn.style.cursor = pickupTimePickerState.tempTime ? 'pointer' : 'not-allowed';
     }
 }
 
