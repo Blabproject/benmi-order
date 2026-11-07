@@ -39,8 +39,7 @@ function renderStoreStatusUI(status) {
     btn.className = `store-status-pill ${currentStoreStatus}`;
   }
   if (label) {
-    const prepSuffix = (typeof currentPrepTimeMinutes === 'number' && currentPrepTimeMinutes) ? ` (${currentPrepTimeMinutes}${t('prepTimeMinShort') || '分'})` : '';
-    if (currentStoreStatus === 'open') label.innerText = t('statusOpen') + prepSuffix;
+    if (currentStoreStatus === 'open') label.innerText = t('statusOpen');
     else if (currentStoreStatus === 'busy') label.innerText = t('statusBusy');
     else if (currentStoreStatus === 'paused') label.innerText = t('statusPaused');
     else if (currentStoreStatus === 'closed') label.innerText = t('statusClosed');
@@ -84,12 +83,6 @@ function renderStorePrepTimeUI(mins) {
       btn.classList.toggle('active', Number(val) === currentPrepTimeMinutes);
     }
   });
-
-  if (currentStoreStatus === 'open') {
-    const labelEl = document.getElementById('store-status-label');
-    const suffix = currentPrepTimeMinutes ? ` (${currentPrepTimeMinutes}${t('prepTimeMinShort') || '分'})` : '';
-    if (labelEl) labelEl.innerText = t('statusOpen') + suffix;
-  }
 }
 
 async function setStorePrepTime(mins, e) {
