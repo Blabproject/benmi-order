@@ -180,6 +180,9 @@ test('workspace discards superseded filter/tenant responses and pauses polling w
 
 for(const [name,engine]of Object.entries({chromium,webkit}))test(`${name}: unconfigured tenant fixes payment to pay later and disables LINE Pay`,async t=>{
  const {page,configured,errors}=await setup(t,engine);
+ assert.equal(await page.locator('#store-status-menu .status-option').count(),3);
+ await page.evaluate(()=>renderStoreStatusUI('closed'));
+ assert.equal(await page.locator('#store-status-label').innerText(),'Tạm dừng nhận đơn');
  configured(false);
  await page.evaluate(async()=>{openPaymentSettingsFromWorkspace();await loadStoreStatus();});
  await until(page,()=>document.querySelector('#setting-payment-opt-linepay').disabled);

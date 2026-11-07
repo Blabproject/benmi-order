@@ -213,7 +213,8 @@ if (ctx.pickupTimePickerState.asapTime) {
     console.log(`✓ ASAP selection verified: ${elements['pickup-trigger-display-time'].textContent}`);
 }
 
-// Tenant configuration is authoritative; unavailable hours must not invent slots.
+// With no manual receiving status, the configured schedule remains authoritative.
+ctx.storeConfig.storeStatus = undefined;
 ctx.storeConfig.operatingHours = null;
 assert.equal(ctx.generatePickupSlots(tomorrowStr).length, 0);
 ctx.storeConfig.operatingHours = {};
@@ -228,3 +229,27 @@ assert.ok(midnightSlots.includes('23:30'));
 assert.ok(!midnightSlots.includes('00:00'));
 console.log('✓ Missing/closed tenant hours and midnight cutoff verified');
 console.log('ALL PICKUP TIME PICKER UNIT TESTS PASSED!');
+
+// POS status takes precedence today, including a fixed weekly holiday.
+const manualNow = new Date(2026, 10, 7, 10, 0);
+ctx.getTaiwanDate = () => new Date(manualNow);
+ctx.storeConfig.operatingHours = {};
+ctx.storeConfig.prepTimeMinutes = 5;
+ctx.storeConfig.storeStatus = 'open';
+assert.equal(ctx.isStoreOpen(manualNow), true);
+assert.equal(ctx.calcAsapPickupTime(manualNow).timeStr, '10:05');
+assert.ok(ctx.generatePickupSlots('2026-11-07').includes('10:15'));
+assert.equal(ctx.generatePickupSlots('2026-11-08').length, 0, 'Future holiday reservations still follow the calendar');
+ctx.initPickupTimePicker();
+assert.equal(elements['pickup-date'].value, '2026-11-07');
+assert.equal(elements['pickup-time'].value, '10:05');
+ctx.storeConfig.storeStatus = 'busy';
+assert.equal(ctx.isStoreOpen(manualNow), true);
+assert.equal(ctx.calcAsapPickupTime(manualNow).timeStr, '11:00');
+for (const status of ['paused', 'closed']) {
+    ctx.storeConfig.storeStatus = status;
+    assert.equal(ctx.isStoreOpen(manualNow), false);
+    assert.equal(ctx.calcAsapPickupTime(manualNow), null);
+    assert.equal(ctx.generatePickupSlots('2026-11-07').length, 0);
+}
+console.log('POS receiving status overrides today’s holiday; busy, paused and future holidays verified');

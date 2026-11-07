@@ -85,3 +85,8 @@ export function tenantHasFeature(ctx: TenantContext | null | undefined, featureK
   if (!Array.isArray(ctx.features)) return false;
   return ctx.features.includes(featureKey);
 }
+
+export function normalizeStoreStatus(value: unknown): 'open' | 'busy' | 'paused' {
+  if (value === 'closed' || value === 'paused') return 'paused';
+  return value === 'busy' ? 'busy' : 'open';
+}

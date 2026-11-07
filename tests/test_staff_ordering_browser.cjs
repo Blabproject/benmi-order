@@ -5,6 +5,9 @@ const http=require('node:http');
 const path=require('node:path');
 const {fixture}=require('./helpers/staff-ordering.cjs');
 const {handleStaffRoute}=require('../benmi-worker-official/src/modules/staff.ts');
+const {getConfig,updateConfig}=require('../benmi-worker-official/src/modules/config.ts');
+const {createTenantRepository}=require('../benmi-worker-official/src/repositories/tenant.repository.ts');
+const {invalidateBootstrapCache}=require('../benmi-worker-official/src/modules/bootstrap.ts');
 const {getTenantBootstrap}=require('../benmi-worker-official/src/modules/bootstrap.ts');
 const {getOptionCatalog}=require('../benmi-worker-official/src/modules/option-groups.ts');
 const {chromium,webkit}=require('playwright');
@@ -28,10 +31,11 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  let loseResponse=true;const writes=[];
  await page.route('**/api/**',async route=>{
   try{
-   const r=route.request(),p=new URL(r.url()).pathname;
+   const r=route.request(),url=new URL(r.url()),p=url.pathname;
    const request=new Request(r.url(),{method:r.method(),headers:r.headers(),...(['GET','HEAD'].includes(r.method())?{}:{body:r.postData()})});
    let response;
-   if(p.startsWith('/api/staff'))response=await handleStaffRoute(request,f.env,p,f.context('a'));
+   if(p==='/api/config'){const ctx=await createTenantRepository(f.env.DB,f.env.ORDER_STATE,f.env).getTenantContext(url.searchParams.get('tenant_id'));response=await (r.method()==='POST'?updateConfig:getConfig)(request,f.env,ctx);}
+   else if(p.startsWith('/api/staff'))response=await handleStaffRoute(request,f.env,p,f.context('a'));
    else if(p==='/api/tenant/bootstrap')response=await getTenantBootstrap(request,f.env);
    else if(p==='/api/menu/options')response=await getOptionCatalog(request,f.env);
    else response=new Response('{}');
@@ -90,6 +94,31 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  await page.reload();await page.waitForFunction(()=>window.StaffOrder?.ready());
  assert.match(await page.locator('#staff-order-status').innerText(),/尚未設定桌號/);
  await submit();assert.match(await page.locator('#staff-order-status').innerText(),/請選擇桌號/);
+ // POS status updates must open the real customer checkout on a scheduled holiday.
+ await f.apply("UPDATE tenant_config SET operating_hours='{}',allow_scheduled_pickup=1,store_status='paused' WHERE tenant_id='a';");
+ await invalidateBootstrapCache('a',f.env);
+ await page.goto(`http://127.0.0.1:${server.address().port}/index.html?tenant_id=a&guest=1`);
+ await page.waitForFunction(()=>window.bootstrapData?.tenant?.id==='a');
+ await page.evaluate(()=>{cart={food_Meal:1};window.cart=cart;updateTotal();checkStoreStatus();});
+ assert.equal(await page.locator('#btn-submit').isDisabled(),true);
+ assert.equal(await page.locator('#btn-desktop-submit').isDisabled(),true);
+ async function setPOSStatus(status){
+  assert.equal(await page.evaluate(async status=>{const res=await fetch(WORKER_BASE+'/api/config?tenant_id=a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({storeStatus:status})});await fetchMenu();return res.status;},status),200);
+ }
+ await setPOSStatus('open');
+ assert.equal(await page.evaluate(()=>isStoreOpen(getTaiwanDate())),true);
+ assert.equal(await page.locator('#store-status').innerText(),'營業中');
+ assert.equal(await page.locator('#btn-submit').isDisabled(),false);
+ assert.equal(await page.locator('#btn-desktop-submit').isDisabled(),false);
+ assert.equal(await page.locator('#pickup-date').inputValue(),await page.evaluate(()=>formatTaiwanDateTime(getTaiwanDate()).dateStr));
+ assert(await page.locator('#pickup-time').inputValue());
+ assert.equal(await page.evaluate(()=>generatePickupSlots(formatTaiwanDateTime(new Date(getTaiwanDate().getTime()+86400000)).dateStr).length),0);
+ await setPOSStatus('busy');
+ assert.equal(await page.evaluate(()=>isStoreOpen(getTaiwanDate())),true);
+ assert.equal(await page.locator('#store-status').getAttribute('class'),'store-status busy');
+ await setPOSStatus('paused');
+ assert.equal(await page.locator('#btn-submit').isDisabled(),true);
+ assert.equal(await page.locator('#btn-desktop-submit').isDisabled(),true);
  await page.goto(`http://127.0.0.1:${server.address().port}/staff-order.html?tenant_id=b&env=dev`);
  await page.locator('#staff-access-error').waitFor();
  assert.equal(await page.locator('#dinein-table-number').count(),0);

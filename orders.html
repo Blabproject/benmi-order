@@ -302,7 +302,7 @@
                   <span class="status-dot dot-open"></span>
                   <div>
                     <div class="status-opt-title" id="i18n-status-opt-open">營業中</div>
-                    <div class="status-opt-desc" id="i18n-status-desc-open">正常接單，顧客依一般時間預約</div>
+                    <div class="status-opt-desc" id="i18n-status-desc-open">立即接單，優先於今日營業時間與公休日</div>
                   </div>
                 </div>
                 <svg class="status-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -336,18 +336,7 @@
                 </svg>
               </div>
 
-              <div class="status-option" data-status="closed" onclick="setStoreStatus('closed')">
-                <div class="status-option-left">
-                  <span class="status-dot dot-closed"></span>
-                  <div>
-                    <div class="status-opt-title" id="i18n-status-opt-closed">打烊休息</div>
-                    <div class="status-opt-desc" id="i18n-status-desc-closed">暫停接受新訂單</div>
-                  </div>
-                </div>
-                <svg class="status-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </div>
+
             </div>
           </div>
         </div>
@@ -785,7 +774,7 @@
                     <span class="status-dot dot-open"></span>
                     <span class="status-box-name" id="i18n-box-open-title">正常營業</span>
                   </div>
-                  <div class="status-box-desc" id="i18n-box-open-desc">正常接收新訂單，依照標準預約或排隊時間</div>
+                  <div class="status-box-desc" id="i18n-box-open-desc">立即接單，優先於今日營業時間與公休日</div>
                 </div>
                 <div class="status-select-box" id="status-box-busy" onclick="setStoreStatus('busy')">
                   <div class="status-box-header">
@@ -3239,7 +3228,7 @@
   </section>
 
   <!-- Benmi POS Modular Architecture Scripts -->
-  <script src="js/orders-i18n.js?v=20261107_table_qr_v1"></script>
+  <script src="js/orders-i18n.js?v=20261107_manual_store_status_v1"></script>
   <script src="js/orders-core.js?v=20261107_relative_time_v1"></script>
   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
@@ -3250,7 +3239,7 @@
   <script src="js/orders-history.js?v=20261101_linepay_v1"></script>
   <script src="js/orders-reports.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/qrcode.min.js?v=20261107_table_qr_v1"></script>
-  <script src="js/orders-settings.js?v=20261107_table_qr_v1"></script>
+  <script src="js/orders-settings.js?v=20261107_manual_store_status_v1"></script>
   <script src="js/orders-menu-model.js?v=20261104_menu_model_v1"></script>
   <script src="js/orders-menu.js?v=20261107_stock_restore_v2"></script>
   <script src="js/orders-bundle-wizard.js?v=20261007_dev_main_sync_v1"></script>

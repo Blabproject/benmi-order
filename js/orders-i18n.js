@@ -348,7 +348,7 @@ const I18N = {
     settingStoreStatusTitle: "門市接單狀態",
     settingStoreStatusSub: "隨時切換一般營業、繁忙延後或暫停接單模式",
     boxOpenTitle: "正常營業",
-    boxOpenDesc: "正常接收新訂單，依照標準預約或排隊時間",
+    boxOpenDesc: "立即接單，優先於今日營業時間與公休日",
     boxBusyTitle: "門市繁忙 (+1小時)",
     boxBusyDesc: "新訂單自動延長 1 小時製作時間",
     boxPausedTitle: "暫停接單",
@@ -359,7 +359,7 @@ const I18N = {
     statusClosed: "打烊休息",
     statusMenuHeader: "門市接單狀態",
     statusOptOpenTitle: "營業中",
-    statusOptOpenDesc: "正常接單，顧客依一般時間預約",
+    statusOptOpenDesc: "立即接單，優先於今日營業時間與公休日",
     statusOptBusyTitle: "繁忙中 (+1小時)",
     statusOptBusyDesc: "新訂單製作時間自動延長 1 小時",
     statusOptPausedTitle: "暫停接單",
@@ -1517,7 +1517,7 @@ const I18N = {
     settingStoreStatusTitle: "Trạng thái nhận đơn",
     settingStoreStatusSub: "Chuyển đổi linh hoạt giữa Mở quán, Đang bận (+1h) hoặc Tạm dừng nhận đơn",
     boxOpenTitle: "Mở quán",
-    boxOpenDesc: "Nhận đơn bình thường theo thời gian hẹn hoặc xếp hàng",
+    boxOpenDesc: "Nhận đơn ngay, ưu tiên hơn giờ hoạt động và ngày nghỉ hôm nay",
     boxBusyTitle: "Đang bận (+1 giờ)",
     boxBusyDesc: "Tự động cộng thêm 1 giờ cho mỗi đơn mới",
     boxPausedTitle: "Tạm dừng nhận đơn",
@@ -1528,7 +1528,7 @@ const I18N = {
     statusClosed: "Đóng cửa nghỉ",
     statusMenuHeader: "Trạng thái nhận đơn",
     statusOptOpenTitle: "Mở quán",
-    statusOptOpenDesc: "Nhận đơn mới bình thường theo thời gian chuẩn",
+    statusOptOpenDesc: "Nhận đơn ngay, ưu tiên hơn giờ hoạt động và ngày nghỉ hôm nay",
     statusOptBusyTitle: "Đang bận (+1 giờ)",
     statusOptBusyDesc: "Quán đang bận, tự động kéo dài thời gian làm thêm 1 tiếng cho mỗi đơn mới",
     statusOptPausedTitle: "Tạm dừng nhận đơn",
@@ -2489,7 +2489,7 @@ function applyLanguageToDOM() {
     if (currentStoreStatus === 'open') mobileSub.innerText = dict.statusOpen || "營業中";
     else if (currentStoreStatus === 'busy') mobileSub.innerText = dict.statusBusy || "忙碌中";
     else if (currentStoreStatus === 'paused') mobileSub.innerText = dict.statusPaused || "暫停接單";
-    else if (currentStoreStatus === 'closed') mobileSub.innerText = dict.statusClosed || "打烊休息";
+    else if (currentStoreStatus === 'closed') mobileSub.innerText = dict.statusPaused;
   }
 
   if (typeof updateSidebarToggleIcon === "function") {
@@ -2794,10 +2794,7 @@ function applyLanguageToDOM() {
   if (stOptPausedT) stOptPausedT.innerText = dict.statusOptPausedTitle;
   const stOptPausedD = document.getElementById("i18n-status-desc-paused");
   if (stOptPausedD) stOptPausedD.innerText = dict.statusOptPausedDesc;
-  const stOptClosedT = document.getElementById("i18n-status-opt-closed");
-  if (stOptClosedT) stOptClosedT.innerText = dict.statusOptClosedTitle || dict.statusClosed;
-  const stOptClosedD = document.getElementById("i18n-status-desc-closed");
-  if (stOptClosedD) stOptClosedD.innerText = dict.statusOptClosedDesc;
+
 
   const prepTT = document.getElementById("i18n-status-preptime-title");
   if (prepTT) prepTT.innerText = dict.prepTimeTitle;

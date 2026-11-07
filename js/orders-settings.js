@@ -31,7 +31,7 @@ document.addEventListener("click", (e) => {
 });
 
 function renderStoreStatusUI(status) {
-  currentStoreStatus = status || 'open';
+  currentStoreStatus = status === 'closed' ? 'paused' : (status || 'open');
   const btn = document.getElementById("store-status-btn");
   const label = document.getElementById("store-status-label");
   
@@ -42,7 +42,6 @@ function renderStoreStatusUI(status) {
     if (currentStoreStatus === 'open') label.innerText = t('statusOpen');
     else if (currentStoreStatus === 'busy') label.innerText = t('statusBusy');
     else if (currentStoreStatus === 'paused') label.innerText = t('statusPaused');
-    else if (currentStoreStatus === 'closed') label.innerText = t('statusClosed');
   }
 
   const mobileSub = document.getElementById("sidebar-mobile-sub");
@@ -50,7 +49,6 @@ function renderStoreStatusUI(status) {
     if (currentStoreStatus === 'open') mobileSub.innerText = t('statusOpen');
     else if (currentStoreStatus === 'busy') mobileSub.innerText = t('statusBusy');
     else if (currentStoreStatus === 'paused') mobileSub.innerText = t('statusPaused');
-    else if (currentStoreStatus === 'closed') mobileSub.innerText = t('statusClosed');
   }
 
   // Update options in dropdown menu
@@ -125,7 +123,7 @@ function openCustomPrepTimePrompt(e) {
 }
 
 async function setStoreStatus(newStatus) {
-  if (!['open', 'busy', 'paused', 'closed'].includes(newStatus)) return;
+  if (!['open', 'busy', 'paused'].includes(newStatus)) return;
   const dd = document.getElementById("store-status-dropdown");
   if (dd) dd.classList.remove("open");
   if (newStatus === currentStoreStatus) return;

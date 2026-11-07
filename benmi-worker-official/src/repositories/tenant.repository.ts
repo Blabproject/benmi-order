@@ -1,5 +1,6 @@
 import type { Env } from '../types/env';
 import type { TenantContext } from '../types/tenant';
+import { normalizeStoreStatus } from '../types/tenant';
 import type { CustomerOrderDomain, OrderDomainRow } from '../utils/order-domain';
 import { resolveSecret } from '../utils/secrets';
 import { tenantIsDeleted } from '../utils/tenant-lifecycle';
@@ -53,6 +54,7 @@ export function createTenantRepository(
           if (cached) {
             const parsed = JSON.parse(cached);
             if (parsed) {
+              parsed.storeStatus = normalizeStoreStatus(parsed.storeStatus);
               if (parsed.deliveryPolicy) parsed.deliveryPolicy = normalizeMultiline(parsed.deliveryPolicy);
               if (parsed.operatingHours) parsed.operatingHours = normalizeMultiline(parsed.operatingHours);
               if (parsed.storeAddress) parsed.storeAddress = normalizeMultiline(parsed.storeAddress);
@@ -116,7 +118,7 @@ export function createTenantRepository(
               deliveryPolicy: normalizeMultiline(row.delivery_policy),
               allowScheduledPickup: row.allow_scheduled_pickup !== undefined && row.allow_scheduled_pickup !== null ? Boolean(row.allow_scheduled_pickup) : true,
               allowDineIn: row.allow_dine_in !== undefined && row.allow_dine_in !== null ? Boolean(row.allow_dine_in) : true,
-              storeStatus: (row.store_status as any) || 'open',
+              storeStatus: normalizeStoreStatus(row.store_status),
               prepTimeMinutes: (row.prep_time_minutes !== undefined && row.prep_time_minutes !== null) ? Number(row.prep_time_minutes) : 5,
               paymentMethods: (row.payment_methods ? (typeof row.payment_methods === 'string' ? JSON.parse(row.payment_methods) : row.payment_methods) : ['line_pay']),
               quickReplies,
@@ -219,7 +221,7 @@ export function createTenantRepository(
       const allowDineInInt = input.allowDineIn !== undefined && input.allowDineIn !== null
         ? (input.allowDineIn ? 1 : 0)
         : null;
-      const storeStatusVal = input.storeStatus !== undefined ? input.storeStatus : null;
+      const storeStatusVal = input.storeStatus != null ? normalizeStoreStatus(input.storeStatus) : null;
       const liffIdVal = input.liffId !== undefined ? input.liffId : null;
       const logoUrlVal = input.logoUrl !== undefined ? input.logoUrl : null;
       const storeAddressVal = input.storeAddress !== undefined ? input.storeAddress : null;

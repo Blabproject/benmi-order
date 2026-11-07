@@ -684,6 +684,8 @@ function getActiveStoreConfig() {
 
 function getStoreOperatingShifts(dateObj) {
     const cfg = getActiveStoreConfig();
+    if (['paused', 'closed'].includes(cfg?.storeStatus)) return [];
+    if (typeof isManualStoreOpen === 'function' && isManualStoreOpen(dateObj)) return [{ start: '00:00', end: '24:00' }];
     if (!cfg || !cfg.operatingHours) return [];
     const day = dateObj.getDay();
     const rawShifts = cfg.operatingHours[day] || cfg.operatingHours[String(day)] || [];
@@ -1344,6 +1346,11 @@ function isCheckoutSectionVisible() {
 
 // 2. Cập nhật trạng thái chữ trên nút cố định ở chân trang
 function updateFooterButtonState() {
+    if (!window.isSubmitting && ['paused', 'closed'].includes(getActiveStoreConfig()?.storeStatus) && !window.LinePayCheckout?.blocked()) {
+        const vi = (typeof currentLocale !== 'undefined' ? currentLocale : document.documentElement.lang) === 'vi';
+        setAllSubmitButtonsState(true, vi ? 'Quán tạm dừng nhận đơn' : '店家目前暫停接單');
+        return;
+    }
     const btn = document.getElementById('btn-submit');
     if (!btn || isSubmitting || (btn.disabled && !window.isEditOrderMode && !btn.dataset.emptyCart)) return;
 
@@ -1368,7 +1375,7 @@ function updateFooterButtonState() {
 
     if (window.isEditOrderMode) {
         const hasItems = window.editOrderContextLoaded && hasAvailableCartItems();
-        const isPaused = typeof storeConfig !== 'undefined' && storeConfig?.storeStatus === 'paused';
+        const isPaused = typeof storeConfig !== 'undefined' && ['paused', 'closed'].includes(storeConfig?.storeStatus);
         const deskBtn = document.getElementById('btn-desktop-submit');
         if (!hasItems || isPaused) {
             const label = isPaused ? '店家目前暫停接單' : window.editOrderContextFailed ? '訂單載入失敗，請重新整理' : window.editOrderContextLoaded ? '餐點已售完' : '載入訂單中...';
@@ -2280,72 +2287,6 @@ function buildStructuredCartItems() {
     return items;
 }
 
-function isStoreOpen(twTime) {
-    if (!storeConfig || !storeConfig.operatingHours) {
-        const day = twTime.getDay();
-        const hours = twTime.getHours();
-        const minutes = twTime.getMinutes();
-        const timeValue = hours + minutes / 60;
-        if (day >= 1 && day <= 5) {
-            return (timeValue >= 11 && timeValue < 21);
-        } else {
-            return (timeValue >= 9 && timeValue < 21);
-        }
-    }
-    
-    const day = twTime.getDay();
-    const hours = twTime.getHours();
-    const minutes = twTime.getMinutes();
-    const timeValue = hours + minutes / 60;
-    
-    // 1. Kiểm tra các ca mở cửa trong ngày hôm nay
-    const shifts = storeConfig.operatingHours[day] || storeConfig.operatingHours[String(day)] || [];
-    for (let shift of shifts) {
-        if (!shift || !shift.start || !shift.end) continue;
-        const [sH, sM] = shift.start.split(':').map(Number);
-        const [eH, eM] = shift.end.split(':').map(Number);
-        const startVal = sH + sM / 60;
-        let endVal = eH + eM / 60;
-        
-        // Chuẩn hóa giờ đóng cửa nửa đêm: 00:00, 24:00 hoặc 12:00 đêm khi bắt đầu vào buổi chiều/tối
-        if (shift.end === '00:00' || shift.end === '24:00' || (eH === 0 && eM === 0) || (startVal >= 12 && eH === 12 && eM === 0)) {
-            endVal = 24.0;
-        }
-        
-        if (endVal > startVal) {
-            if (timeValue >= startVal && timeValue < endVal) {
-                return true;
-            }
-        } else {
-            if (timeValue >= startVal) {
-                return true;
-            }
-        }
-    }
-    
-    // 2. Kiểm tra nếu ngày hôm qua có ca qua đêm vẫn đang mở vào rạng sáng hôm nay
-    const yesterday = (day + 6) % 7;
-    const yesterdayShifts = storeConfig.operatingHours[yesterday] || storeConfig.operatingHours[String(yesterday)] || [];
-    for (let shift of yesterdayShifts) {
-        if (!shift || !shift.start || !shift.end) continue;
-        const [sH, sM] = shift.start.split(':').map(Number);
-        const [eH, eM] = shift.end.split(':').map(Number);
-        const startVal = sH + sM / 60;
-        let endVal = eH + eM / 60;
-        if (shift.end === '00:00' || shift.end === '24:00' || (eH === 0 && eM === 0) || (startVal >= 12 && eH === 12 && eM === 0)) {
-            endVal = 24.0;
-        }
-        if (endVal < startVal && timeValue < endVal) {
-            return true;
-        }
-    }
-    
-    return false;
-}
-if (typeof window !== 'undefined') {
-    window.isStoreOpen = isStoreOpen;
-}
-
 function isPickupTimeValid(dateTime) {
     return isStoreOpen(dateTime);
 }
@@ -2359,7 +2300,7 @@ async function submitOrder() {
         return;
     }
 
-    if (storeConfig && storeConfig.storeStatus === 'paused') {
+    if (storeConfig && ['paused', 'closed'].includes(storeConfig.storeStatus)) {
         return customAlert('店家目前暫停接單中，暫時無法下單，敬請見諒！');
     }
 
@@ -2645,6 +2586,7 @@ async function validateCartStockBeforeSubmit() {
         }
         bootstrapData = freshData;
         window.bootstrapData = freshData;
+        if (storeConfig && freshData.tenant) storeConfig.storeStatus = freshData.tenant.storeStatus;
         if (typeof buildModifierPriceMap === 'function') buildModifierPriceMap(freshData);
         if (typeof reconcileCartOptions === 'function') reconcileCartOptions(freshData);
         try {
@@ -2652,7 +2594,7 @@ async function validateCartStockBeforeSubmit() {
         } catch(e) {}
 
         // 1. Kiểm tra trạng thái tạm ngưng nhận đơn của quán
-        if (freshData.tenant && freshData.tenant.storeStatus === 'paused') {
+        if (freshData.tenant && ['paused', 'closed'].includes(freshData.tenant.storeStatus)) {
             try { if (typeof checkStoreStatus === 'function') checkStoreStatus(); } catch(e) {}
             return { valid: false, outOfStockItems: [], paused: true };
         }

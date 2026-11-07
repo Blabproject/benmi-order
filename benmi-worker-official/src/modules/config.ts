@@ -1,7 +1,7 @@
 import { Env } from '../types/env';
 import { json } from '../utils/http';
 import { getTenantId } from './menu';
-import { TenantContext, tenantHasFeature } from '../types/tenant';
+import { TenantContext, tenantHasFeature, normalizeStoreStatus } from '../types/tenant';
 import { invalidateBootstrapCache, parseOperatingHours } from './bootstrap';
 import { invalidateMarketplaceCache } from './marketplace';
 import { customerOrderConfig } from '../utils/order-domain';
@@ -68,7 +68,7 @@ export async function getConfig(
     allowScheduledPickup,
     allowDineIn,
     features: finalFeatures,
-    storeStatus: domainRow.store_status || tenantCtx?.storeStatus || 'open',
+    storeStatus: normalizeStoreStatus(domainRow.store_status || tenantCtx?.storeStatus),
     prepTimeMinutes: (domainRow.prep_time_minutes !== undefined && domainRow.prep_time_minutes !== null) ? Number(domainRow.prep_time_minutes) : (tenantCtx?.prepTimeMinutes ?? 5),
     paymentMethods: domainRow.payment_methods ? (typeof domainRow.payment_methods === 'string' ? JSON.parse(domainRow.payment_methods) : domainRow.payment_methods) : (tenantCtx?.paymentMethods || ['line_pay']),
     logoUrl: domainRow.logo_url || tenantCtx?.logoUrl || null,
@@ -85,6 +85,9 @@ export async function updateConfig(
   try {
     const tenantId = tenantCtx?.tenantId || getTenantId(request);
     const payload: any = await request.json();
+    if (payload.storeStatus !== undefined && !['open', 'busy', 'paused', 'closed'].includes(payload.storeStatus)) {
+      return json({ error: 'INVALID_STORE_STATUS' }, 400);
+    }
     const tenantRepo = createTenantRepository(env.DB, env.ORDER_STATE, env);
 
     const hasDineInFeature = tenantCtx ? tenantHasFeature(tenantCtx, 'dine_in') : true;

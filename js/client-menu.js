@@ -50,6 +50,7 @@ async function fetchMenu() {
                 features: bootstrapData.tenant.features || [],
                 orderPrefix: bootstrapData.tenant.orderPrefix,
                 storeStatus: bootstrapData.tenant.storeStatus,
+                prepTimeMinutes: bootstrapData.tenant.prepTimeMinutes,
                 operatingHours: bootstrapData.tenant.parsedHours,
                 liffId: bootstrapData.tenant.liffId
             } : null;

@@ -1382,7 +1382,14 @@ async function updateDesktopAuthUI() {
 }
 
 // --- STORE STATUS & BUSINESS HOURS ---
+function isManualStoreOpen(dateObj = getTaiwanDate()) {
+    const status = storeConfig?.storeStatus;
+    return (status === 'open' || status === 'busy') && dateObj.toDateString() === getTaiwanDate().toDateString();
+}
+
 function isStoreOpen(twTime) {
+    if (['paused', 'closed'].includes(storeConfig?.storeStatus)) return false;
+    if (isManualStoreOpen(twTime)) return true;
     if (!storeConfig || !storeConfig.operatingHours) {
         const day = twTime.getDay();
         const hours = twTime.getHours();
@@ -1448,17 +1455,18 @@ function checkStoreStatus() {
     const statusEl = document.getElementById('store-status');
     const pausedBanner = document.getElementById('store-paused-banner');
     const busyBanner = document.getElementById('store-busy-banner');
-    const submitBtn = document.getElementById('btn-submit');
+    const submitButtons = ['btn-submit', 'btn-desktop-submit'].map(id => document.getElementById(id)).filter(Boolean);
     const storeStatus = (storeConfig && storeConfig.storeStatus) ? storeConfig.storeStatus : 'open';
 
-    if (storeStatus === 'paused') {
+    if (storeStatus === 'paused' || storeStatus === 'closed') {
         if (statusEl) {
             statusEl.innerText = '暫停接單';
             statusEl.className = 'store-status paused';
         }
         if (pausedBanner) pausedBanner.style.display = 'flex';
         if (busyBanner) busyBanner.style.display = 'none';
-        if (submitBtn && !window.isSubmitting) {
+        for (const submitBtn of submitButtons) {
+            if (window.isSubmitting) continue;
             submitBtn.disabled = true;
             submitBtn.innerText = '店家目前暫停接單';
             submitBtn.style.background = '#9ca3af';
@@ -1471,7 +1479,8 @@ function checkStoreStatus() {
         }
         if (pausedBanner) pausedBanner.style.display = 'none';
         if (busyBanner) busyBanner.style.display = 'flex';
-        if (submitBtn && !window.isSubmitting) {
+        for (const submitBtn of submitButtons) {
+            if (window.isSubmitting) continue;
             submitBtn.disabled = false;
             submitBtn.innerText = '確認下單';
             submitBtn.style.background = '';
@@ -1484,14 +1493,15 @@ function checkStoreStatus() {
         }
         if (pausedBanner) pausedBanner.style.display = 'none';
         if (busyBanner) busyBanner.style.display = 'none';
-        if (submitBtn && !window.isSubmitting) {
+        for (const submitBtn of submitButtons) {
+            if (window.isSubmitting) continue;
             submitBtn.disabled = false;
             submitBtn.innerText = '確認下單';
             submitBtn.style.background = '';
             submitBtn.style.cursor = '';
         }
     }
-    if (window.isEditOrderMode && !window.isSubmitting && typeof updateFooterButtonState === 'function') {
+    if (!['paused', 'closed'].includes(storeStatus) && !window.isSubmitting && typeof updateFooterButtonState === 'function') {
         updateFooterButtonState();
     }
 }
