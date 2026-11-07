@@ -68,3 +68,15 @@ test("other domains, static assets, and reserved paths retain existing Pages beh
   }
 });
 
+
+
+test("POS staff mode serves the shared customer menu instead of the dashboard", async () => {
+  for (const entry of ['/', '/index.html']) {
+    const result = await dispatch(`https://pos.blabfood.app${entry}?mode=staff&tenant_id=demo&embedded=1`);
+    assert.equal(result.response.status, 200);
+    assert.equal(new URL(result.servedAsset).pathname, '/');
+    assert.equal(new URL(result.servedAsset).searchParams.get('mode'), 'staff');
+    assert.equal(new URL(result.servedAsset).searchParams.get('tenant_id'), 'demo');
+    assert.equal(result.response.headers.get('location'), null);
+  }
+});

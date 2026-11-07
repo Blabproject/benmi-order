@@ -75,6 +75,7 @@ async function main() {
   console.log('Starting Cloudflare Pages Direct API deployment for project: ' + project);
 
   const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+  const commitMessage = execFileSync('git', ['log', '-1', '--format=%s'], { cwd: root, encoding: 'utf8' }).trim();
   const projectInfo = await api(projectPath);
   const parentDeployment = projectInfo.canonical_deployment?.id || null;
   console.log(`Commit: ${commit}`);
@@ -84,7 +85,7 @@ async function main() {
     commit,
     environment: 'production',
     dirty: false,
-    release: 'pickup-time-sheet-v2',
+    release: process.env.RELEASE_NAME || commitMessage,
     built_at: new Date().toISOString(),
     parent_deployment: parentDeployment
   };
@@ -169,7 +170,7 @@ async function main() {
   form.set('branch', 'main');
   form.set('commit_hash', commit);
   form.set('commit_dirty', 'false');
-  form.set('commit_message', 'feat(liff): upgrade pickup time sheet v2 with 7-day tabs, meal periods and auto-fallback');
+  form.set('commit_message', commitMessage);
 
   for (const f of ['_headers', '_redirects', '_routes.json']) {
     form.set(f, new Blob([fs.readFileSync(path.join(root, f))]), f);

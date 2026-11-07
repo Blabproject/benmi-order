@@ -112,6 +112,12 @@ async function serveInternalAsset(context, assetPath) {
 export async function onRequest(context) {
   const url = new URL(context.request.url);
 
+  // The embedded staff menu uses the shared customer document on the POS host.
+  if (url.hostname === POS_HOST && url.searchParams.get('mode') === 'staff' &&
+      ['/', '/index.html'].includes(url.pathname) && ['GET', 'HEAD'].includes(context.request.method)) {
+    return serveInternalAsset(context, '/');
+  }
+
   if (url.hostname === ORDER_HOST && ['GET', 'HEAD'].includes(context.request.method)) {
     const match = url.pathname.match(/^\/([a-zA-Z0-9_-]+)\/?$/);
     if (match && !RESERVED_POS_PATHS.has(match[1])) return serveCustomerOrder(context, url, match[1]);
