@@ -550,11 +550,38 @@ function formatEta(timeStr) {
   if (Number.isNaN(target)) return "-";
   const diffMs = target - Date.now();
   const diffMin = Math.round(diffMs / 60000);
-  if (diffMin <= 0) return t("etaArrived", { min: Math.abs(diffMin) });
+  if (diffMin <= 0) {
+    const elapsed = Math.abs(diffMin);
+    if (elapsed < 60) {
+      return t("etaArrived", { min: elapsed });
+    }
+    if (elapsed < 1440) {
+      const h = Math.floor(elapsed / 60);
+      const m = elapsed % 60;
+      return m > 0 ? t("etaArrivedHours", { h, m }) : t("etaArrivedHoursOnly", { h });
+    }
+    if (elapsed < 10080) {
+      const d = Math.floor(elapsed / 1440);
+      const h = Math.floor((elapsed % 1440) / 60);
+      return (d < 2 && h > 0) ? t("etaArrivedDaysHours", { d, h }) : t("etaArrivedDays", { d });
+    }
+    const w = Math.floor(elapsed / 10080);
+    return t("etaArrivedWeeks", { w });
+  }
+
   if (diffMin < 60) return t("etaMinutes", { min: diffMin });
-  const h = Math.floor(diffMin / 60);
-  const m = diffMin % 60;
-  return t("etaHours", { h, m });
+  if (diffMin < 1440) {
+    const h = Math.floor(diffMin / 60);
+    const m = diffMin % 60;
+    return m > 0 ? t("etaHours", { h, m }) : t("etaHoursOnly", { h });
+  }
+  if (diffMin < 10080) {
+    const d = Math.floor(diffMin / 1440);
+    const h = Math.floor((diffMin % 1440) / 60);
+    return (d < 2 && h > 0) ? t("etaDaysHours", { d, h }) : t("etaDays", { d });
+  }
+  const w = Math.floor(diffMin / 10080);
+  return t("etaWeeks", { w });
 }
 
 function isOrderElapsedMode(order) {
@@ -602,9 +629,18 @@ function formatSubmissionElapsedTime(order) {
   if (diffMin < 60) {
     return t("dineInElapsedMinutes", { min: diffMin });
   }
-  const h = Math.floor(diffMin / 60);
-  const m = diffMin % 60;
-  return t("dineInElapsedHours", { h, m });
+  if (diffMin < 1440) {
+    const h = Math.floor(diffMin / 60);
+    const m = diffMin % 60;
+    return m > 0 ? t("dineInElapsedHours", { h, m }) : t("dineInElapsedHoursOnly", { h });
+  }
+  if (diffMin < 10080) {
+    const d = Math.floor(diffMin / 1440);
+    const h = Math.floor((diffMin % 1440) / 60);
+    return (d < 2 && h > 0) ? t("dineInElapsedDaysHours", { d, h }) : t("dineInElapsedDays", { d });
+  }
+  const w = Math.floor(diffMin / 10080);
+  return t("dineInElapsedWeeks", { w });
 }
 
 function formatDineInElapsedTime(order) {
