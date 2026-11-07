@@ -660,7 +660,15 @@
     if (edit) edit.style.display = cart[key] > 0 ? 'flex' : 'none';
     updateTotal();
   };
-  window.bundlePortionExtra = portion => groupExtra(portion?.groups || []);
+  window.bundlePortionExtra = portion => {
+    if (typeof window !== 'undefined' && window.PricingWasm && window.PricingWasm.isReady && typeof window.PricingWasm.calculatePortionExtra === 'function') {
+      const wasmExtra = window.PricingWasm.calculatePortionExtra(null, portion);
+      if (typeof wasmExtra === 'number') {
+        return wasmExtra;
+      }
+    }
+    return groupExtra(portion?.groups || []);
+  };
   window.checkAllBundlesComplete = function() {
     for (const key of Object.keys(cart || {})) {
       if (!cart[key]) continue;

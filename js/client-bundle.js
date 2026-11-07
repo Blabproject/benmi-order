@@ -415,34 +415,60 @@ function updateBundleModalState() {
         // Calculate portion price: base item price + bundle item surcharges + addon surcharges
         const basePrice = Number(currentBundleModalContext.itemInfo?.basePrice ?? currentBundleModalContext.itemInfo?.price) || 0;
         let bundleSurcharges = 0;
-        (group.eligibleItems || []).forEach(it => {
-            const q = selMap[it.id] || 0;
-            if (q > 0 && it.surcharge > 0) {
-                bundleSurcharges += q * it.surcharge;
-            }
-        });
-
         let addonTotal = 0;
-        const addons = currentBundleModalContext.addonSelections;
-        if (addons && currentBundleModalContext.catModifiers) {
-            if (addons.single) {
-                for (let s in addons.single) {
-                    const optVal = addons.single[s];
-                    const p = getModifierPrice(optVal);
-                    if (p > 0) addonTotal += p;
-                }
+        let wasmPortionTotal = null;
+
+        if (typeof window !== 'undefined' && window.PricingWasm && window.PricingWasm.isReady && typeof window.PricingWasm.calculatePortionPrice === 'function') {
+            const tempPortion = {
+                groups: [
+                    {
+                        groupId: group.id,
+                        groupName: group.name || '配菜',
+                        items: Object.entries(selMap).filter(([_, q]) => q > 0).map(([itId, q]) => ({
+                            optionId: itId,
+                            itemId: itId,
+                            quantity: q
+                        }))
+                    }
+                ],
+                single: currentBundleModalContext.addonSelections?.single || null,
+                multiple: currentBundleModalContext.addonSelections?.multiple || null
+            };
+            const pRes = window.PricingWasm.calculatePortionPrice(key, tempPortion);
+            if (pRes && typeof pRes.subtotal === 'number') {
+                wasmPortionTotal = pRes.subtotal;
             }
-            if (addons.multiple) {
-                for (let topName in addons.multiple) {
-                    if (addons.multiple[topName]) {
-                        const p = getModifierPrice(topName);
+        }
+
+        if (wasmPortionTotal == null) {
+            (group.eligibleItems || []).forEach(it => {
+                const q = selMap[it.id] || 0;
+                if (q > 0 && it.surcharge > 0) {
+                    bundleSurcharges += q * it.surcharge;
+                }
+            });
+
+            const addons = currentBundleModalContext.addonSelections;
+            if (addons && currentBundleModalContext.catModifiers) {
+                if (addons.single) {
+                    for (let s in addons.single) {
+                        const optVal = addons.single[s];
+                        const p = getModifierPrice(optVal);
                         if (p > 0) addonTotal += p;
+                    }
+                }
+                if (addons.multiple) {
+                    for (let topName in addons.multiple) {
+                        if (addons.multiple[topName]) {
+                            const p = getModifierPrice(topName);
+                            if (p > 0) addonTotal += p;
+                        }
                     }
                 }
             }
         }
 
-        const portionTotal = basePrice + bundleSurcharges + addonTotal;
+        const portionTotal = wasmPortionTotal != null ? wasmPortionTotal : (basePrice + bundleSurcharges + addonTotal);
         const priceLabel = portionTotal > 0 ? ` · $${portionTotal}` : '';
 
         confirmBtn.disabled = false;

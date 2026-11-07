@@ -845,46 +845,56 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
 
         // Calculate dynamic total
         let extra = 0;
-        if (draft.selectedDetails && Object.keys(draft.selectedDetails).length > 0) {
-            for (const detail of Object.values(draft.selectedDetails)) {
-                if (!detail) continue;
-                extra += Number(detail.price || 0);
-                if (detail.subOption && detail.subOption.price) {
-                    extra += Number(detail.subOption.price || 0);
-                }
+        let wasmPriceRes = null;
+        if (typeof window !== 'undefined' && window.PricingWasm && window.PricingWasm.isReady && typeof window.PricingWasm.calculatePortionPrice === 'function') {
+            wasmPriceRes = window.PricingWasm.calculatePortionPrice(key, draft);
+            if (wasmPriceRes && typeof wasmPriceRes.extra === 'number') {
+                extra = wasmPriceRes.extra;
             }
-        } else {
-            if (typeof calculatePortionExtra === 'function') {
-                extra = calculatePortionExtra(key, draft);
-            } else {
-                if (draft.single) {
-                    Object.values(draft.single).forEach(opt => { 
-                        extra += getPrice(opt); 
-                        if (draft.subOptions && draft.subOptions[opt]) {
-                            extra += Number(draft.subOptions[opt].price || 0);
-                        }
-                    });
+        }
+
+        if (!wasmPriceRes) {
+            if (draft.selectedDetails && Object.keys(draft.selectedDetails).length > 0) {
+                for (const detail of Object.values(draft.selectedDetails)) {
+                    if (!detail) continue;
+                    extra += Number(detail.price || 0);
+                    if (detail.subOption && detail.subOption.price) {
+                        extra += Number(detail.subOption.price || 0);
+                    }
                 }
-                if (draft.multiple) {
-                    Object.keys(draft.multiple).forEach(opt => {
-                        if (Array.isArray(draft.multiple[opt])) {
-                            draft.multiple[opt].forEach(subOpt => { 
-                                extra += getPrice(subOpt); 
-                                if (draft.subOptions && draft.subOptions[subOpt]) {
-                                    extra += Number(draft.subOptions[subOpt].price || 0);
-                                }
-                            });
-                        } else if (draft.multiple[opt]) {
-                            extra += getPrice(opt);
+            } else {
+                if (typeof calculatePortionExtra === 'function') {
+                    extra = calculatePortionExtra(key, draft);
+                } else {
+                    if (draft.single) {
+                        Object.values(draft.single).forEach(opt => { 
+                            extra += getPrice(opt); 
                             if (draft.subOptions && draft.subOptions[opt]) {
                                 extra += Number(draft.subOptions[opt].price || 0);
                             }
-                        }
-                    });
+                        });
+                    }
+                    if (draft.multiple) {
+                        Object.keys(draft.multiple).forEach(opt => {
+                            if (Array.isArray(draft.multiple[opt])) {
+                                draft.multiple[opt].forEach(subOpt => { 
+                                    extra += getPrice(subOpt); 
+                                    if (draft.subOptions && draft.subOptions[subOpt]) {
+                                        extra += Number(draft.subOptions[subOpt].price || 0);
+                                    }
+                                });
+                            } else if (draft.multiple[opt]) {
+                                extra += getPrice(opt);
+                                if (draft.subOptions && draft.subOptions[opt]) {
+                                    extra += Number(draft.subOptions[opt].price || 0);
+                                }
+                            }
+                        });
+                    }
                 }
             }
         }
-        const totalPrice = basePrice + extra;
+        const totalPrice = (wasmPriceRes && typeof wasmPriceRes.subtotal === 'number') ? wasmPriceRes.subtotal : (basePrice + extra);
 
         const actionText = isAddingNew ? '加入購物車' : '確認修改';
         const valRes = validateModifierDraft(modifiers, draft);

@@ -369,6 +369,12 @@ window.reconcileCartOptions = reconcileCartOptions;
 
 function calculatePortionExtra(itemOrKey, portion) {
     if (!portion) return 0;
+    if (typeof window !== 'undefined' && window.PricingWasm && window.PricingWasm.isReady && typeof window.PricingWasm.calculatePortionExtra === 'function') {
+        const wasmExtra = window.PricingWasm.calculatePortionExtra(itemOrKey, portion);
+        if (typeof wasmExtra === 'number') {
+            return wasmExtra;
+        }
+    }
     const bData = window.bootstrapData || bootstrapData;
     if (bData?.unifiedMenu) return 0; // Unified surcharges live in bundleCartData.
     const effectiveGroups = getEffectiveItemModifierGroups(itemOrKey);

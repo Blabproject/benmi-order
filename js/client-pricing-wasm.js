@@ -20,6 +20,9 @@
         validateOptionSelection: null,
         buildOptionCatalog: null,
         buildRoundInput: null,
+        normalizePortionGroups: null,
+        calculatePortionPrice: null,
+        calculatePortionExtra: null,
         calculateCart: null
     });
 
@@ -190,6 +193,105 @@
     }
 
     /**
+     * Normalizes a portion selection (bundle portion, Unified Option Groups details,
+     * or legacy single/multiple modifiers) into structured group selections expected by Rust.
+     */
+    function normalizePortionGroups(portion, itemGroups) {
+        const pGroups = [];
+        const selDetails = portion?.selectedDetails || null;
+        const singleSel = portion?.single || portion?.addonSelections?.single || null;
+        const multiSel = portion?.multiple || portion?.addonSelections?.multiple || null;
+        const subOpts = portion?.subOptions || null;
+
+        for (const g of itemGroups) {
+            let handled = false;
+
+            // 1. Check if group is present in portion.groups (e.g. combo step groups)
+            if (portion?.groups && Array.isArray(portion.groups)) {
+                const foundGroup = portion.groups.find(eg => (eg.groupId || eg.id) === g.id || (eg.groupName && eg.groupName === g.name));
+                if (foundGroup) {
+                    pGroups.push({
+                        groupId: g.id,
+                        items: (foundGroup.items || []).map(it => ({
+                            optionId: it.optionId || it.id || it.itemId,
+                            quantity: Number(it.quantity || 1),
+                            groups: it.groups ? it.groups.map(ng => ({
+                                groupId: ng.groupId || ng.id,
+                                items: (ng.items || []).map(nit => ({
+                                    optionId: nit.optionId || nit.id,
+                                    quantity: Number(nit.quantity || 1)
+                                }))
+                            })) : [],
+                            subOptions: it.subOptions ? it.subOptions.map(s => typeof s === 'string' ? s : (s.id || s.productId || s.name)) : []
+                        }))
+                    });
+                    handled = true;
+                }
+            }
+
+            // 2. Check selectedDetails (Unified Option Groups format)
+            if (!handled && selDetails && Object.keys(selDetails).length > 0) {
+                const selItems = [];
+                for (const detail of Object.values(selDetails)) {
+                    if (detail && (detail.groupId === g.id || detail.groupName === g.name)) {
+                        const subOpt = detail.subOption;
+                        const subList = subOpt ? [subOpt.id || subOpt.name] : [];
+                        selItems.push({
+                            optionId: detail.id || detail.name,
+                            quantity: 1,
+                            subOptions: subList
+                        });
+                    }
+                }
+                if (selItems.length > 0) {
+                    pGroups.push({ groupId: g.id, items: selItems });
+                    handled = true;
+                }
+            }
+
+            // 3. Check legacy single & multiple selections
+            if (!handled && (singleSel || multiSel)) {
+                const selItems = [];
+                if (singleSel) {
+                    const val = singleSel[g.id] || singleSel[g.name] || (g.metadata?.slug && singleSel[g.metadata.slug]);
+                    if (val && val !== '不辣' && val !== '不需要') {
+                        const opt = g.options.find(o => o.name === val || o.id === val);
+                        if (opt) {
+                            const subOpt = subOpts?.[opt.id] || subOpts?.[opt.name] || subOpts?.[val];
+                            const subList = subOpt ? [subOpt.id || subOpt.name] : [];
+                            selItems.push({ optionId: opt.id, quantity: 1, subOptions: subList });
+                        }
+                    }
+                }
+                if (multiSel) {
+                    for (const opt of g.options) {
+                        if (multiSel[opt.name] || multiSel[opt.id]) {
+                            const subOpt = subOpts?.[opt.id] || subOpts?.[opt.name];
+                            const subList = subOpt ? [subOpt.id || subOpt.name] : [];
+                            selItems.push({ optionId: opt.id, quantity: 1, subOptions: subList });
+                        }
+                    }
+                }
+                if (selItems.length > 0) {
+                    pGroups.push({ groupId: g.id, items: selItems });
+                    handled = true;
+                }
+            }
+
+            // 4. If required but unselected, pad with default option so Rust can build the round without throwing OPTION_GROUPS_REQUIRED
+            if (!handled) {
+                const selItems = [];
+                if (g.minSelection > 0) {
+                    const def = g.options.find(o => o.isDefault) || g.options[0];
+                    if (def) selItems.push({ optionId: def.id, quantity: 1 });
+                }
+                pGroups.push({ groupId: g.id, items: selItems });
+            }
+        }
+        return pGroups;
+    }
+
+    /**
      * Prepares BuildRoundInput for Rust build_detail_round from current cart state.
      */
     function buildRoundInput(options, catalog) {
@@ -250,69 +352,14 @@
             for (let i = 0; i < qty; i++) {
                 const ep = existingPortions[i];
                 const lp = legacyPortions[i];
-                const pGroups = [];
-
-                for (const g of itemGroups) {
-                    if (ep?.groups) {
-                        const foundGroup = ep.groups.find(eg => (eg.groupId || eg.id) === g.id);
-                        pGroups.push({
-                            groupId: g.id,
-                            items: foundGroup ? (foundGroup.items || []).map(it => ({
-                                optionId: it.optionId || it.id || it.itemId,
-                                quantity: Number(it.quantity || 1),
-                                groups: it.groups ? it.groups.map(ng => ({
-                                    groupId: ng.groupId || ng.id,
-                                    items: (ng.items || []).map(nit => ({
-                                        optionId: nit.optionId || nit.id,
-                                        quantity: Number(nit.quantity || 1)
-                                    }))
-                                })) : [],
-                                subOptions: it.subOptions ? it.subOptions.map(s => typeof s === 'string' ? s : (s.id || s.productId || s.name)) : []
-                            })) : []
-                        });
-                    } else if (lp) {
-                        const selItems = [];
-                        if (lp.selectedDetails && Object.keys(lp.selectedDetails).length > 0) {
-                            for (const detail of Object.values(lp.selectedDetails)) {
-                                if (detail && (detail.groupId === g.id || detail.groupName === g.name)) {
-                                    selItems.push({
-                                        optionId: detail.id || detail.name,
-                                        quantity: 1
-                                    });
-                                }
-                            }
-                        } else {
-                            if (lp.single) {
-                                const val = lp.single[g.id] || lp.single[g.name] || (g.metadata?.slug && lp.single[g.metadata.slug]);
-                                if (val && val !== '不辣' && val !== '不需要') {
-                                    const opt = g.options.find(o => o.name === val || o.id === val);
-                                    if (opt) {
-                                        selItems.push({ optionId: opt.id, quantity: 1 });
-                                    }
-                                }
-                            }
-                            if (lp.multiple) {
-                                for (const opt of g.options) {
-                                    if (lp.multiple[opt.name] || lp.multiple[opt.id]) {
-                                        selItems.push({ optionId: opt.id, quantity: 1 });
-                                    }
-                                }
-                            }
-                        }
-                        if (selItems.length === 0 && g.minSelection > 0) {
-                            const def = g.options.find(o => o.isDefault) || g.options[0];
-                            if (def) selItems.push({ optionId: def.id, quantity: 1 });
-                        }
-                        pGroups.push({ groupId: g.id, items: selItems });
-                    } else {
-                        const selItems = [];
-                        if (g.minSelection > 0) {
-                            const def = g.options.find(o => o.isDefault) || g.options[0];
-                            if (def) selItems.push({ optionId: def.id, quantity: 1 });
-                        }
-                        pGroups.push({ groupId: g.id, items: selItems });
-                    }
-                }
+                const combinedPortion = {
+                    groups: ep?.groups,
+                    selectedDetails: lp?.selectedDetails,
+                    single: lp?.single,
+                    multiple: lp?.multiple,
+                    subOptions: lp?.subOptions
+                };
+                const pGroups = normalizePortionGroups(combinedPortion, itemGroups);
                 portions.push({ groups: pGroups });
             }
 
@@ -432,8 +479,138 @@
         }
     }
 
+    /**
+     * Calculates the extra surcharge and total price for a single portion or item
+     * using the edge-identical Rust WebAssembly pricing engine.
+     * 
+     * @param {string|object} itemOrKey - Item ID, key, or item object
+     * @param {object} portion - Portion selection (draft or bundle portion)
+     * @param {object} [options] - Options (bootstrapData, catalog)
+     * @returns {{ basePrice: number, extra: number, subtotal: number, isWasm: boolean } | null}
+     */
+    function calculatePortionPrice(itemOrKey, portion, options) {
+        if (!PricingWasm.isReady || typeof PricingWasm.calculateRoundTotal !== 'function') {
+            return null;
+        }
+
+        const bData = options?.bootstrapData || (typeof window !== 'undefined' ? window.bootstrapData : null);
+        if (!bData?.catalog) {
+            return null;
+        }
+
+        try {
+            const catalog = options?.catalog || buildOptionCatalog(bData);
+            let itemId = null;
+            let targetItem = null;
+
+            if (typeof itemOrKey === 'string') {
+                const resolveFn = typeof resolveCatalogItem === 'function' ? resolveCatalogItem : (typeof window !== 'undefined' && window.resolveCatalogItem ? window.resolveCatalogItem : null);
+                if (resolveFn) {
+                    const info = resolveFn(itemOrKey);
+                    itemId = info?.itemId || itemOrKey;
+                    targetItem = info?.targetItem;
+                }
+                if (!targetItem) {
+                    for (const cat of bData.catalog) {
+                        const prefix = `${cat.slug}_`;
+                        const name = itemOrKey.startsWith(prefix) ? itemOrKey.substring(prefix.length) : itemOrKey;
+                        const found = (cat.items || []).find(i => i.id === itemOrKey || i.name === name || i.name === itemOrKey);
+                        if (found) {
+                            targetItem = found;
+                            itemId = found.id;
+                            break;
+                        }
+                    }
+                }
+                if (!itemId) itemId = itemOrKey;
+            } else if (itemOrKey && typeof itemOrKey === 'object') {
+                targetItem = itemOrKey;
+                itemId = itemOrKey.id || itemOrKey.itemId || itemOrKey.key || itemOrKey.name;
+            }
+
+            if (!itemId) {
+                if (portion?.groups && Array.isArray(portion.groups)) {
+                    let sumExtra = 0;
+                    for (const g of portion.groups) {
+                        for (const it of (g.items || [])) {
+                            const q = Number(it.quantity || 1);
+                            let p = Number(it.surcharge ?? it.price ?? 0);
+                            if (it.groups) {
+                                for (const ng of it.groups) {
+                                    for (const nit of (ng.items || [])) {
+                                        p += Number(nit.surcharge ?? nit.price ?? 0) * Number(nit.quantity || 1);
+                                    }
+                                }
+                            }
+                            if (it.subOptions) {
+                                for (const s of it.subOptions) {
+                                    p += Number(typeof s === 'object' ? (s.price || 0) : 0);
+                                }
+                            }
+                            sumExtra += q * p;
+                        }
+                    }
+                    return { basePrice: 0, extra: sumExtra, subtotal: sumExtra, isWasm: true };
+                }
+                return null;
+            }
+
+            // Find linked groups
+            const linkedGroupIds = catalog.links.filter(l => l.itemId === itemId && !l.disabled).map(l => l.groupId);
+            let itemGroups = catalog.groups.filter(g => linkedGroupIds.includes(g.id));
+
+            // If item has no linked groups in catalog, but portion has groups (e.g. combo modal), include those groups
+            if (itemGroups.length === 0 && portion?.groups) {
+                const pGroupIds = portion.groups.map(pg => pg.groupId || pg.id);
+                itemGroups = catalog.groups.filter(g => pGroupIds.includes(g.id));
+            }
+
+            const pGroups = normalizePortionGroups(portion, itemGroups);
+
+            const roundInput = {
+                items: [
+                    {
+                        lineId: 'line_portion_preview',
+                        itemId: itemId,
+                        quantity: 1,
+                        bundleSelections: {
+                            portions: [{ groups: pGroups }]
+                        }
+                    }
+                ],
+                orderSelections: []
+            };
+
+            const round = PricingWasm.calculateRoundTotal(catalog, roundInput);
+            const lineItem = round?.items?.[0];
+            if (!lineItem) return null;
+
+            const unitPrice = lineItem.unitPrice;
+            const subtotal = lineItem.subtotal;
+            const extra = Math.max(0, subtotal - unitPrice);
+
+            return {
+                basePrice: unitPrice,
+                extra: extra,
+                subtotal: subtotal,
+                isWasm: true
+            };
+        } catch (err) {
+            console.warn('[PricingWasm] calculatePortionPrice execution error, fallback to JS:', err);
+            return null;
+        }
+    }
+
+    function calculatePortionExtra(itemOrKey, portion, options) {
+        const res = calculatePortionPrice(itemOrKey, portion, options);
+        return res ? res.extra : null;
+    }
+
     PricingWasm.buildOptionCatalog = buildOptionCatalog;
     PricingWasm.buildRoundInput = buildRoundInput;
+    PricingWasm.normalizePortionGroups = normalizePortionGroups;
+    PricingWasm.calculatePortionPrice = calculatePortionPrice;
+    PricingWasm.calculatePortionExtra = calculatePortionExtra;
     PricingWasm.calculateCart = calculateCart;
 
     if (isNode || !hasWasm) {
