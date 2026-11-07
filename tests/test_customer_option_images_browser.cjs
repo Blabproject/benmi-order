@@ -110,9 +110,17 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 
         assert.equal(await page.evaluate(() => imageChecks.length), 3);
         stable(before, await positions(page));
         await page.locator('[data-note]').fill('Ít sốt');
-        await page.locator('.uoc-item-image').first().dispatchEvent('error');
-        await page.locator('.uoc-image-loading').waitFor({ state: 'visible' });
-        assert.equal(await page.locator('.bundle-item-card').count(), 0, 'late failures hide the list before changing its layout');
+        // Capture the transient loading state in the same browser task as the
+        // error; separate protocol calls can cross the 100 ms recovery timer.
+        const recovering = await page.locator('.uoc-item-image').first().evaluate(image => {
+          image.dispatchEvent(new Event('error'));
+          return {
+            loading: (document.querySelector('.uoc-image-loading')?.getBoundingClientRect().height || 0) > 0,
+            cards: document.querySelectorAll('.bundle-item-card').length
+          };
+        });
+        assert.equal(recovering.loading, true);
+        assert.equal(recovering.cards, 0, 'late failures hide the list before changing its layout');
         await page.locator('.uoc-image-loading').waitFor({ state: 'detached' });
         assert.equal(await page.locator('.uoc-item-image').count(), 0);
         assert.equal(await page.locator('[data-note]').inputValue(), 'Ít sốt');

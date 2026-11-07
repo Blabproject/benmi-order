@@ -98,7 +98,7 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  await f.apply("UPDATE tenant_config SET operating_hours='{}',allow_scheduled_pickup=1,store_status='paused' WHERE tenant_id='a';");
  await invalidateBootstrapCache('a',f.env);
  await page.goto(`http://127.0.0.1:${server.address().port}/index.html?tenant_id=a&guest=1`);
- await page.waitForFunction(()=>window.bootstrapData?.tenant?.id==='a');
+ await page.waitForFunction(()=>window.bootstrapData?.tenant?.id==='a'&&window.bootstrapData?.tenant?.storeStatus==='paused');
  await page.evaluate(()=>{cart={food_Meal:1};window.cart=cart;updateTotal();checkStoreStatus();});
  assert.equal(await page.locator('#btn-submit').isDisabled(),true);
  assert.equal(await page.locator('#btn-desktop-submit').isDisabled(),true);
