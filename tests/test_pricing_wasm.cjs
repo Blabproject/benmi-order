@@ -129,6 +129,199 @@ async function runTests() {
         console.log('  ✓ client-cart.js calculateCategoryBundleSubtotal successfully routed through Rust WASM!\n');
     }
 
+    // 5. Test PricingWasm.calculateCart() high-level helper
+    console.log('5. Testing PricingWasm.calculateCart() high-level helper...');
+    {
+        const vm = require('vm');
+        const wasmClientCode = fs.readFileSync(path.resolve(__dirname, '../js/client-pricing-wasm.js'), 'utf8');
+
+        const sandbox = {
+            window: {},
+            document: {
+                querySelectorAll: () => [],
+                getElementById: () => null
+            },
+            console: { warn: () => {}, info: () => {}, log: () => {} }
+        };
+        sandbox.window.document = sandbox.document;
+        vm.createContext(sandbox);
+        vm.runInContext(wasmClientCode, sandbox);
+
+        const PricingWasm = sandbox.window.PricingWasm;
+        assert.ok(PricingWasm, 'PricingWasm must exist');
+        assert.strictEqual(typeof PricingWasm.calculateCart, 'function');
+        assert.strictEqual(typeof PricingWasm.buildOptionCatalog, 'function');
+
+        // Attach native WASM functions to simulate ready state
+        PricingWasm.isReady = true;
+        PricingWasm.calculateRoundTotal = wasmModule.calculate_round_total;
+        PricingWasm.calculateCategoryBundle = wasmModule.calculate_category_bundle;
+
+        const sampleBootstrap = {
+            catalog: [
+                {
+                    id: 'cat_bread',
+                    slug: 'banh-mi',
+                    name: '招牌越式麵包',
+                    pricingRules: { bundle_qty: 2, bundle_price: 150 },
+                    items: [
+                        {
+                            id: 'item_bm_special',
+                            name: '傳統越式麵包',
+                            price: 80,
+                            isOutOfStock: false,
+                            bundleRule: {
+                                version: 3,
+                                groups: [
+                                    {
+                                        id: 'group_toppings',
+                                        name: '加料選擇',
+                                        minQuantity: 0,
+                                        maxQuantity: 5,
+                                        allowRepeats: false,
+                                        eligibleItems: [
+                                            { id: 'opt_cheese', name: '加起司', price: 15 },
+                                            { id: 'opt_ham', name: '加火腿', price: 20 }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ],
+            customizations: [
+                {
+                    id: 'group_addon',
+                    key: 'addon',
+                    title: '加購項目',
+                    type: 'radio',
+                    options: [
+                        { id: 'opt_none', name: '不需要', price: 0 },
+                        { id: 'opt_soup', name: '越式牛肉湯', price: 50, minOrderSubtotal: 100 }
+                    ]
+                }
+            ]
+        };
+
+        // Case A: Empty cart
+        const emptyRes = PricingWasm.calculateCart({ bootstrapData: sampleBootstrap, cart: {} });
+        assert.strictEqual(emptyRes.total, 0);
+        assert.strictEqual(emptyRes.subtotal, 0);
+        console.log('  ✓ Case A: Empty cart returns 0');
+
+        // Case B: 1x item without options
+        const singleRes = PricingWasm.calculateCart({
+            bootstrapData: sampleBootstrap,
+            cart: { 'banh-mi_傳統越式麵包': 1 }
+        });
+        assert.strictEqual(singleRes.total, 80);
+        assert.strictEqual(singleRes.subtotal, 80);
+        assert.strictEqual(singleRes.lineTotals['banh-mi_傳統越式麵包'], 80);
+        console.log('  ✓ Case B: 1x item without options returns $80');
+
+        // Case C: Combo bundle (2 for 150) + cheese (+15) + order soup (+50)
+        const comboRes = PricingWasm.calculateCart({
+            bootstrapData: sampleBootstrap,
+            cart: { 'banh-mi_傳統越式麵包': 2 },
+            bundleCartData: {
+                'banh-mi_傳統越式麵包': [
+                    {
+                        groups: [
+                            {
+                                groupId: 'group_toppings',
+                                items: [{ optionId: 'opt_cheese', quantity: 1 }]
+                            }
+                        ]
+                    }
+                ]
+            },
+            orderSelections: [
+                {
+                    groupId: 'group_addon',
+                    items: [{ optionId: 'opt_soup', quantity: 1 }]
+                }
+            ]
+        });
+        // 2x 80 = 160 + 15 (cheese) = 175 subtotal
+        // Bundle discount: 10 (2 for 150)
+        // Merchandise subtotal: 165 >= 100 -> soup eligible (+50)
+        // Total = 175 - 10 + 50 = 215
+        assert.strictEqual(comboRes.subtotal, 175);
+        assert.strictEqual(comboRes.discount, 10);
+        assert.strictEqual(comboRes.orderExtra, 50);
+        assert.strictEqual(comboRes.total, 215);
+        assert.strictEqual(comboRes.lineTotals['banh-mi_傳統越式麵包'], 175);
+        console.log('  ✓ Case C: Combo bundle + topping + order addon returns exact $215 (discount $10)\n');
+    }
+
+    // 6. Test client-cart.js calculateCurrentFoodSubtotal and updateTotal with WASM active
+    console.log('6. Testing client-cart.js calculateCurrentFoodSubtotal and updateTotal with WASM active...');
+    {
+        const vm = require('vm');
+        const wasmClientCode = fs.readFileSync(path.resolve(__dirname, '../js/client-pricing-wasm.js'), 'utf8');
+        const cartCode = fs.readFileSync(path.resolve(__dirname, '../js/client-cart.js'), 'utf8');
+
+        const domElements = {};
+        function getEl(id) {
+            if (!domElements[id]) {
+                domElements[id] = { id, innerText: '', innerHTML: '', style: {} };
+            }
+            return domElements[id];
+        }
+
+        const sandbox = {
+            window: {},
+            document: {
+                getElementById: getEl,
+                querySelectorAll: () => [],
+                querySelector: () => null,
+                addEventListener: () => {},
+                removeEventListener: () => {}
+            },
+            console: { warn: () => {}, info: () => {}, log: () => {} }
+        };
+        sandbox.window = sandbox;
+        sandbox.window.document = sandbox.document;
+
+        vm.createContext(sandbox);
+        vm.runInContext(wasmClientCode, sandbox);
+        vm.runInContext(cartCode, sandbox);
+
+        // Inject wasm bindings
+        sandbox.window.PricingWasm.isReady = true;
+        sandbox.window.PricingWasm.calculateRoundTotal = wasmModule.calculate_round_total;
+        sandbox.window.PricingWasm.calculateCategoryBundle = wasmModule.calculate_category_bundle;
+
+        const sampleBootstrap = {
+            catalog: [
+                {
+                    id: 'cat_bread',
+                    slug: 'banh-mi',
+                    name: '招牌越式麵包',
+                    pricingRules: { bundle_qty: 2, bundle_price: 150 },
+                    items: [
+                        { id: 'item_bm_special', name: '傳統越式麵包', price: 80, isOutOfStock: false }
+                    ]
+                }
+            ]
+        };
+
+        sandbox.window.bootstrapData = sampleBootstrap;
+        sandbox.window.cart = { 'banh-mi_傳統越式麵包': 2 };
+
+        // Test calculateCurrentFoodSubtotal via WASM: 2x 80 = 160, discount 10 -> subtotal = 150
+        const subtotal = sandbox.window.calculateCurrentFoodSubtotal();
+        assert.strictEqual(subtotal, 150, `Subtotal must be 150 after bundle discount, got ${subtotal}`);
+        console.log('  ✓ calculateCurrentFoodSubtotal correctly returned $150 via Rust WASM');
+
+        // Test updateTotal via WASM:
+        const total = sandbox.window.updateTotal();
+        assert.strictEqual(total, 150, `updateTotal must be 150, got ${total}`);
+        assert.strictEqual(domElements['total-price'].innerText, 150);
+        console.log('  ✓ updateTotal correctly assigned #total-price = $150 via Rust WASM\n');
+    }
+
     console.log('====================================================');
     console.log('🎉 ALL RUST WASM PRICING TESTS PASSED (100%)');
     console.log('====================================================');

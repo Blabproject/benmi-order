@@ -34,6 +34,13 @@ function parseCartKey(key) {
 }
 
 function calculateCurrentFoodSubtotal() {
+    if (window.PricingWasm?.isReady && typeof window.PricingWasm.calculateCart === 'function') {
+        const wasmCart = window.PricingWasm.calculateCart();
+        if (wasmCart && typeof wasmCart.total === 'number') {
+            return Math.max(0, wasmCart.subtotal - wasmCart.discount);
+        }
+    }
+
     let subtotal = 0;
     const cartObj = window.cart || cart;
     const bData = window.bootstrapData || bootstrapData;
@@ -569,6 +576,9 @@ function updateTotal() {
     if (typeof updateCustomizationThresholdUI === 'function') {
         updateCustomizationThresholdUI();
     }
+    const wasmCart = (window.PricingWasm?.isReady && typeof window.PricingWasm.calculateCart === 'function')
+        ? window.PricingWasm.calculateCart()
+        : null;
     let total = 0;
     let totalQty = 0;
     let summaryHTML = '';
@@ -770,7 +780,9 @@ function updateTotal() {
             }
             if (!isOutOfStock) itemModifiersTotal += bundleExtra;
 
-            let lineTotal = (qty * price) + itemModifiersTotal;
+            let lineTotal = (!isOutOfStock && wasmCart?.lineTotals?.[key] !== undefined)
+                ? wasmCart.lineTotals[key]
+                : ((qty * price) + itemModifiersTotal);
 
             if (isOutOfStock) {
                 summaryHTML += `
@@ -918,6 +930,9 @@ function updateTotal() {
         }
     });
     total += addonsTotal;
+    if (wasmCart && typeof wasmCart.total === 'number') {
+        total = wasmCart.total;
+    }
 
     // Sold out items are automatically crossed out, tagged 已移除, and deducted from total
     window.editOrderHasSoldOutRemaining = false;
