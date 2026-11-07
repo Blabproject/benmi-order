@@ -178,3 +178,82 @@ test('Bowl threshold customization: auto-promotes to $0 at >= $250 and reverts t
   assert.equal(inputPaid.checked, true, 'Paid bowl should be re-selected automatically when subtotal drops below 250');
   assert.equal(inputPaid.disabled, false, 'Paid bowl should be enabled again below the threshold');
 });
+
+test('Multi-tier threshold customization (jiangjiejie onion): both free ($0) and paid ($20) options requiring >= $100 remain enabled when subtotal >= $100', () => {
+  const app = createClientContext();
+
+  const labelNone = app.createElement('label');
+  const inputNone = app.createElement('input');
+  inputNone.type = 'radio';
+  inputNone.name = 'opt-custom_mod_jj_onion';
+  inputNone.value = '不要';
+  inputNone.setAttribute('data-option-id', 'opt_onion_none');
+  inputNone.setAttribute('data-price', '0');
+  inputNone.checked = true;
+  inputNone.disabled = false;
+  inputNone.parentElement = labelNone;
+
+  const labelReq = app.createElement('label');
+  const inputReq = app.createElement('input');
+  inputReq.type = 'radio';
+  inputReq.name = 'opt-custom_mod_jj_onion';
+  inputReq.value = '要';
+  inputReq.setAttribute('data-option-id', 'opt_onion_regular');
+  inputReq.setAttribute('data-price', '0');
+  inputReq.setAttribute('data-min-subtotal', '100');
+  inputReq.checked = false;
+  inputReq.disabled = false;
+  inputReq.parentElement = labelReq;
+
+  const labelExtra = app.createElement('label');
+  const inputExtra = app.createElement('input');
+  inputExtra.type = 'radio';
+  inputExtra.name = 'opt-custom_mod_jj_onion';
+  inputExtra.value = '多';
+  inputExtra.setAttribute('data-option-id', 'opt_onion_extra');
+  inputExtra.setAttribute('data-price', '20');
+  inputExtra.setAttribute('data-min-subtotal', '100');
+  inputExtra.checked = false;
+  inputExtra.disabled = false;
+  inputExtra.parentElement = labelExtra;
+
+  app.domElements.set('input_none', inputNone);
+  app.domElements.set('input_req', inputReq);
+  app.domElements.set('input_extra', inputExtra);
+
+  // 1. Initial subtotal: 80 (< 100)
+  app.calculateCurrentFoodSubtotal = () => 80;
+  app.updateCustomizationThresholdUI();
+
+  assert.equal(inputNone.checked, true, '不要 should be checked when subtotal < 100');
+  assert.equal(inputNone.disabled, false, '不要 should be enabled');
+  assert.equal(inputReq.disabled, true, '要 should be disabled when subtotal < 100');
+  assert.equal(inputExtra.disabled, true, '多 should be disabled when subtotal < 100');
+  assert.equal(labelExtra.classList.contains('threshold-disabled'), true);
+
+  // 2. Subtotal increases to 220 (>= 100)
+  app.calculateCurrentFoodSubtotal = () => 220;
+  app.updateCustomizationThresholdUI();
+
+  assert.equal(inputNone.disabled, false, '不要 should remain enabled');
+  assert.equal(inputReq.disabled, false, '要 should be enabled when subtotal >= 100');
+  assert.equal(inputExtra.disabled, false, '多 (+20) MUST BE ENABLED when subtotal >= 100 (never disabled by free replacement)');
+  assert.equal(labelExtra.classList.contains('threshold-disabled'), false);
+
+  // 3. User selects 多 (+$20)
+  inputNone.checked = false;
+  inputReq.checked = false;
+  inputExtra.checked = true;
+
+  app.updateCustomizationThresholdUI();
+
+  assert.equal(inputExtra.checked, true, '多 should remain checked and not overridden by auto-promote');
+  assert.equal(inputExtra.disabled, false, '多 should remain enabled');
+
+  // 4. Subtotal drops back to 80 (< 100)
+  app.calculateCurrentFoodSubtotal = () => 80;
+  app.updateCustomizationThresholdUI();
+
+  assert.equal(inputExtra.disabled, true, '多 should be disabled when subtotal drops below 100');
+  assert.equal(inputNone.checked, true, 'Should fall back to default 不要 when subtotal drops below 100');
+});

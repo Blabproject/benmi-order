@@ -202,11 +202,12 @@ function updateCustomizationThresholdUI() {
                 labelEl.style.cursor = '';
             }
 
-            // Auto-promote: If this free ($0) option with threshold is now eligible, and user currently has a paid option (>0) checked in this same group
+            // Auto-promote: If this free ($0) option with threshold is now eligible, and user currently has a paid fallback option (no threshold) checked in this same group
             if (input.type === 'radio' && !input.checked && (Number(input.getAttribute('data-price')) || 0) === 0) {
                 const groupRadios = document.querySelectorAll(`input[name="${input.name}"]`);
                 const currentChecked = Array.from(groupRadios).find(r => r.checked);
-                if (currentChecked && (Number(currentChecked.getAttribute('data-price')) || 0) > 0) {
+                const currentMinSub = Number(currentChecked?.getAttribute('data-min-subtotal')) || 0;
+                if (currentChecked && (Number(currentChecked.getAttribute('data-price')) || 0) > 0 && currentMinSub === 0) {
                     input.checked = true;
                     hasStateChanged = true;
                 }
@@ -214,8 +215,8 @@ function updateCustomizationThresholdUI() {
         }
     });
 
-    // An eligible free threshold option replaces the paid choices in its group.
-    // Native disabled semantics also apply the existing muted label CSS.
+    // An eligible free threshold option replaces only paid fallback choices (without threshold) in its group.
+    // Paid upgrade options with their own threshold (e.g. '多 +$20' with min-subtotal $100) must remain enabled.
     radioGroups.forEach(radios => {
         const hasFreeReplacement = radios.some(radio =>
             Number(radio.getAttribute('data-min-subtotal')) > 0 &&
@@ -224,7 +225,8 @@ function updateCustomizationThresholdUI() {
         );
         if (!hasFreeReplacement) return;
         radios.forEach(radio => {
-            if (Number(radio.getAttribute('data-price')) > 0 && !radio.disabled && !isOutOfStock(radio)) {
+            const radioMinSub = Number(radio.getAttribute('data-min-subtotal')) || 0;
+            if (radioMinSub === 0 && Number(radio.getAttribute('data-price')) > 0 && !radio.disabled && !isOutOfStock(radio)) {
                 radio.disabled = true;
                 radio.setAttribute('data-free-replacement', 'true');
             }
