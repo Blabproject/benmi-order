@@ -2075,7 +2075,7 @@ window.addEventListener("pagehide", resetStorePinChangeForm);
 let currentRestaurantTables = [];
 
 async function checkStaffOrderingCapability() {
-  window.staffOrderingCapabilities = {};
+  // Polling must keep the last resolved permissions while the refresh is pending.
   const tenantId = (typeof getTenantIdFromUrl === "function" && getTenantIdFromUrl()) || "";
   if (!tenantId) return false;
   try {
@@ -2088,6 +2088,8 @@ async function checkStaffOrderingCapability() {
         || data.table_qr_ordering_enabled === true;
       const canReadTables = data.capabilities?.tables_read === true || hasTableQrFeature;
       const canWriteTables = data.capabilities?.tables_write === true || hasTableQrFeature;
+      const tablePermissionsChanged = window.staffOrderingCapabilities?.tables_read !== canReadTables
+        || window.staffOrderingCapabilities?.tables_write !== canWriteTables;
       window.staffOrderingCapabilities = { ...data.capabilities, tables_read: canReadTables, tables_write: canWriteTables };
       window.isStaffOrderingEnabled = canReadTables;
       window.hasTableQrOrdering = hasTableQrFeature;
@@ -2120,6 +2122,7 @@ async function checkStaffOrderingCapability() {
           if (printAllBtn) printAllBtn.style.display = "none";
         }
       }
+      if (tablePermissionsChanged) renderRestaurantTablesList();
       return canReadTables;
     }
   } catch (e) {
