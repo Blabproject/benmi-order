@@ -309,3 +309,49 @@ ctx.switchPickupDateTab('2026-11-08');
 assert.equal(elements['pickup-slots-empty'].textContent, '本日為門市公休日 (店休)');
 assert.equal(elements['pickup-sheet-confirm-btn'].disabled, true);
 console.log('✓ Scheduled weekly holiday (store off) correctly blocks Sunday pickup and advances to Monday');
+
+// Overnight shift testing (e.g. yanxiansuji / night market 16:00 - 01:00)
+const overnightSun = new Date(2026, 10, 8, 18, 42); // Sunday 18:42
+ctx.getTaiwanDate = () => new Date(overnightSun);
+ctx.storeConfig.storeStatus = 'open';
+ctx.storeConfig.prepTimeMinutes = 5;
+ctx.storeConfig.operatingHours = {
+    "0": [{ "start": "16:00", "end": "01:00" }],
+    "1": [],
+    "2": [{ "start": "16:00", "end": "01:00" }],
+    "3": [{ "start": "16:00", "end": "01:00" }],
+    "4": [{ "start": "16:00", "end": "01:00" }],
+    "5": [{ "start": "16:00", "end": "01:00" }],
+    "6": [{ "start": "16:00", "end": "01:00" }]
+};
+
+const asapOvernight = ctx.calcAsapPickupTime(overnightSun);
+assert.ok(asapOvernight, 'Overnight shift must support ASAP pickup');
+assert.equal(asapOvernight.timeStr, '18:47', 'ASAP time is 5 minutes from now');
+
+const sunSlots = ctx.generatePickupSlots('2026-11-08');
+assert.ok(sunSlots.length > 0, 'Sunday evening must generate pickup slots');
+assert.ok(sunSlots.includes('19:00'), 'Slots include 19:00');
+assert.ok(sunSlots.includes('23:45'), 'Slots include 23:45');
+assert.ok(!sunSlots.includes('18:30'), 'Slots before now + buffer are excluded');
+
+// Monday morning overnight extension
+const monSlotsFromSun = ctx.generatePickupSlots('2026-11-09');
+assert.ok(monSlotsFromSun.includes('00:00'), 'Monday morning receives Sunday overnight extension (00:00)');
+assert.ok(monSlotsFromSun.includes('00:30'), 'Monday morning receives Sunday overnight extension (00:30)');
+assert.ok(monSlotsFromSun.includes('01:00'), 'Monday morning receives Sunday overnight extension (01:00)');
+assert.ok(!monSlotsFromSun.includes('01:15'), 'Monday morning stops at overnight shift end 01:00');
+
+// Active on Monday early morning 00:30
+const monEarly = new Date(2026, 10, 9, 0, 30);
+ctx.getTaiwanDate = () => new Date(monEarly);
+const asapMonEarly = ctx.calcAsapPickupTime(monEarly);
+assert.ok(asapMonEarly, 'Monday early morning is within active overnight shift');
+assert.equal(asapMonEarly.timeStr, '00:35');
+
+// Modal tab switch to Sunday during overnight shift
+ctx.openPickupTimeModal();
+ctx.switchPickupDateTab('2026-11-08');
+assert.equal(elements['pickup-slots-grid'].style.display, 'block', 'Slots grid displayed for Sunday overnight');
+assert.equal(elements['pickup-sheet-confirm-btn'].disabled, false, 'Confirm button enabled for Sunday overnight');
+console.log('✓ Overnight shifts crossing midnight verified for both evening and next-day early morning');

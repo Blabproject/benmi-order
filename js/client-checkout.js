@@ -690,6 +690,18 @@ function hasPickupOperatingHours(cfg) {
     return Object.values(cfg.operatingHours).some(shifts => Array.isArray(shifts) && shifts.length > 0);
 }
 
+function parseShiftMinutes(shift) {
+    const [sH, sM] = shift.start.split(':').map(Number);
+    const [eH, eM] = shift.end.split(':').map(Number);
+    const sMin = sH * 60 + sM;
+    let eMin = eH * 60 + eM;
+    if (shift.end === '00:00' || shift.end === '24:00' || (eH === 0 && eM === 0) || (sMin >= 720 && eH === 12 && eM === 0)) {
+        eMin = 1440;
+    }
+    const isOvernight = (eMin < sMin);
+    return { sMin, eMin, isOvernight };
+}
+
 function getStoreOperatingShifts(dateObj) {
     const cfg = getActiveStoreConfig();
     if (['paused', 'closed'].includes(cfg?.storeStatus)) return [];
@@ -700,7 +712,23 @@ function getStoreOperatingShifts(dateObj) {
     }
     const day = dateObj.getDay();
     const rawShifts = cfg.operatingHours[day] || cfg.operatingHours[String(day)] || [];
-    return Array.isArray(rawShifts) ? rawShifts.filter(s => s && s.start && s.end) : [];
+    const todayShifts = Array.isArray(rawShifts) ? rawShifts.filter(s => s && s.start && s.end) : [];
+
+    // Check if yesterday had an overnight shift extending into today (e.g. 17:00 - 01:00)
+    const yesterday = (day + 6) % 7;
+    const yRaw = cfg.operatingHours[yesterday] || cfg.operatingHours[String(yesterday)] || [];
+    const overnightExtensions = [];
+    if (Array.isArray(yRaw)) {
+        for (const ys of yRaw) {
+            if (!ys || !ys.start || !ys.end) continue;
+            const { sMin, eMin, isOvernight } = parseShiftMinutes(ys);
+            if (isOvernight && eMin > 0) {
+                overnightExtensions.push({ start: '00:00', end: ys.end, isOvernightExtension: true });
+            }
+        }
+    }
+
+    return [...overnightExtensions, ...todayShifts];
 }
 
 function calcAsapPickupTime(twNow) {
@@ -711,19 +739,11 @@ function calcAsapPickupTime(twNow) {
         : (cfg && cfg.prepTimeMinutes !== undefined ? Number(cfg.prepTimeMinutes) : 5);
     const bufferMin = isBusy ? Math.max(prepMinutes, 60) : prepMinutes;
     const nowMin = twNow.getHours() * 60 + twNow.getMinutes();
+    const targetMin = nowMin + bufferMin;
     const shifts = getStoreOperatingShifts(twNow);
-    if (!shifts || shifts.length === 0) return null;
-
-    let targetMin = nowMin + bufferMin;
 
     for (const shift of shifts) {
-        const [sH, sM] = shift.start.split(':').map(Number);
-        const [eH, eM] = shift.end.split(':').map(Number);
-        const sMin = sH * 60 + sM;
-        let eMin = eH * 60 + eM;
-        if (shift.end === '00:00' || shift.end === '24:00' || (eH === 0 && eM === 0) || (sMin >= 720 && eH === 12 && eM === 0)) {
-            eMin = 1440;
-        }
+        const { sMin, eMin, isOvernight } = parseShiftMinutes(shift);
 
         // Before this shift starts today
         if (nowMin < sMin) {
@@ -738,8 +758,8 @@ function calcAsapPickupTime(twNow) {
             };
         }
 
-        // Inside this shift
-        if (targetMin >= sMin && targetMin <= eMin) {
+        // Inside a normal shift (sMin <= eMin)
+        if (!isOvernight && targetMin >= sMin && targetMin <= eMin) {
             const h = Math.floor(targetMin / 60) % 24;
             const m = targetMin % 60;
             const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
@@ -752,6 +772,36 @@ function calcAsapPickupTime(twNow) {
                 isBusy
             };
         }
+
+        // Inside an overnight shift starting today (nowMin >= sMin, continues past midnight into tomorrow)
+        if (isOvernight && nowMin >= sMin) {
+            const h = Math.floor(targetMin / 60) % 24;
+            const m = targetMin % 60;
+            const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            const desc = isBusy
+                ? `門市繁忙：最快約 ${bufferMin} 分鐘後可取餐 (${timeStr})`
+                : (bufferMin > 0 ? `預計約 ${bufferMin} 分鐘後可取餐 (${timeStr})` : `即刻取餐 (${timeStr})`);
+            return {
+                timeStr,
+                desc,
+                isBusy
+            };
+        }
+    }
+
+    // Fallback: If store has no configured weekly schedule, but is manually open right now (isManualStoreOpen)
+    if (!hasPickupOperatingHours(cfg) && typeof isManualStoreOpen === 'function' && isManualStoreOpen(twNow)) {
+        const h = Math.floor(targetMin / 60) % 24;
+        const m = targetMin % 60;
+        const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        const desc = isBusy
+            ? `門市繁忙：最快約 ${bufferMin} 分鐘後可取餐 (${timeStr})`
+            : (bufferMin > 0 ? `預計約 ${bufferMin} 分鐘後可取餐 (${timeStr})` : `即刻取餐 (${timeStr})`);
+        return {
+            timeStr,
+            desc,
+            isBusy
+        };
     }
 
     return null;
@@ -779,18 +829,29 @@ function generatePickupSlots(dateStr) {
     const seen = new Set();
 
     for (const shift of shifts) {
-        const [sH, sM] = shift.start.split(':').map(Number);
-        const [eH, eM] = shift.end.split(':').map(Number);
-        const sMin = sH * 60 + sM;
-        let eMin = eH * 60 + eM;
-        if (shift.end === '00:00' || shift.end === '24:00' || (eH === 0 && eM === 0) || (sMin >= 720 && eH === 12 && eM === 0)) {
-            eMin = 1440;
-        }
+        const { sMin, eMin, isOvernight } = parseShiftMinutes(shift);
+        // If the shift is overnight (starts today, ends tomorrow), today's slots run until 24:00 (1440)
+        const effectiveEnd = isOvernight ? 1440 : eMin;
 
-        for (let minVal = sMin; minVal <= eMin && minVal < 1440; minVal += 15) {
+        for (let minVal = sMin; minVal <= effectiveEnd && minVal < 1440; minVal += 15) {
             if (isToday && minVal < minAllowedMin) {
                 continue;
             }
+            const h = Math.floor(minVal / 60) % 24;
+            const min = minVal % 60;
+            const slotStr = `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+            if (!seen.has(slotStr)) {
+                seen.add(slotStr);
+                slots.push(slotStr);
+            }
+        }
+    }
+
+    // If today and store has no configured weekly schedule, but is manually open (isManualStoreOpen(twNow))
+    // provide slots for remainder of today
+    if (isToday && slots.length === 0 && !hasPickupOperatingHours(cfg) && typeof isManualStoreOpen === 'function' && isManualStoreOpen(twNow)) {
+        const startSlotMin = Math.ceil(minAllowedMin / 15) * 15;
+        for (let minVal = startSlotMin; minVal < 1440; minVal += 15) {
             const h = Math.floor(minVal / 60) % 24;
             const min = minVal % 60;
             const slotStr = `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
