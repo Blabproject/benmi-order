@@ -12,9 +12,31 @@ window.StaffOrder = (() => {
   const escapeHtmlStr = val => String(val ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
   const escapeJsArg = val => String(val ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
-  function message(value) {
+  let toastTimer = null;
+  function showStaffToast(textMsg, type = 'info') {
+    if (!textMsg) return;
+    let toast = document.getElementById('staff-order-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'staff-order-toast';
+      toast.className = 'staff-toast';
+      document.body.appendChild(toast);
+    }
+    toast.className = `staff-toast staff-toast-${type}`;
+    toast.textContent = textMsg;
+    toast.classList.add('staff-toast-show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toast.classList.remove('staff-toast-show');
+    }, 3200);
+  }
+
+  function message(value, options = {}) {
     const el = status();
     if (el) el.textContent = value;
+    if (options.toast || options.type) {
+      showStaffToast(value, options.type || 'info');
+    }
   }
 
   async function api(path, options) {
@@ -98,6 +120,7 @@ window.StaffOrder = (() => {
       setCustomerDiningOption('takeaway');
       renderTableBar();
       describeSelection();
+      updateTotal();
       saveDraft();
     });
 
@@ -108,6 +131,7 @@ window.StaffOrder = (() => {
         setCustomerDiningOption('dine_in');
         renderTableBar();
         describeSelection();
+        updateTotal();
         saveDraft();
       });
     });
@@ -492,9 +516,17 @@ window.StaffOrder = (() => {
     const deskBtn = document.getElementById('btn-desktop-submit');
     if (deskBtn) {
       const span = deskBtn.querySelector('span') || deskBtn;
-      span.textContent = totalQty > 0
-        ? `${text('送出訂單', 'Gửi bếp')} · $${computedTotal}`
-        : text('選擇餐點', 'Chọn món');
+      if (totalQty <= 0) {
+        span.textContent = text('選擇餐點', 'Chọn món');
+      } else {
+        const dining = dineInAllowed() && window.currentDiningOption === 'dine_in' ? 'dine_in' : 'takeaway';
+        const hasTable = dining === 'takeaway' || Boolean(select()?.value);
+        if (!hasTable) {
+          span.textContent = `${text('選擇桌號', 'Chọn bàn')} · $${computedTotal}`;
+        } else {
+          span.textContent = `${text('送出訂單', 'Gửi bếp')} · $${computedTotal}`;
+        }
+      }
     }
   }
 
@@ -731,13 +763,30 @@ window.StaffOrder = (() => {
 
   async function submit() {
     if (!ready()) return;
-    if (!Object.values(cart).some(q => q > 0)) return message(text('請先選擇餐點。', 'Hãy chọn món.'));
+    if (!Object.values(cart).some(q => q > 0)) {
+      return message(text('請先選擇餐點。', 'Hãy chọn món.'), { toast: true, type: 'warning' });
+    }
     const dining = dineInAllowed() && window.currentDiningOption === 'dine_in' ? 'dine_in' : 'takeaway';
     const chosen = dining === 'dine_in' ? tables.find(row => row.id === select().value) : null;
-    if (dining === 'dine_in' && !chosen) { document.querySelector('[data-staff-table]')?.focus(); return message(text('請選擇桌號。', 'Hãy chọn bàn.')); }
+    if (dining === 'dine_in' && !chosen) {
+      const bar = document.getElementById('staff-table-bar');
+      if (bar) {
+        bar.classList.remove('staff-attention-pulse');
+        void bar.offsetWidth;
+        bar.classList.add('staff-attention-pulse');
+        bar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      document.querySelector('[data-staff-table]')?.focus();
+      return message(text('請選擇桌號。', 'Hãy chọn bàn.'), { toast: true, type: 'warning' });
+    }
     const before = tableContext();
     saveDraft(); busy = true; window.isSubmitting = true;
-    const buttons = getAllSubmitButtons(); buttons.forEach(button => button.disabled = true);
+    const buttons = getAllSubmitButtons();
+    buttons.forEach(button => {
+      button.disabled = true;
+      const span = button.querySelector('span') || button;
+      span.textContent = text('送出中...', 'Đang gửi...');
+    });
     select().disabled = true;
     document.getElementById('page-body-content').inert = true;
     try {
@@ -754,7 +803,7 @@ window.StaffOrder = (() => {
       if (!replay && dining === 'dine_in') await refreshTables();
       if (!replay && dining === 'dine_in' && before !== tableContext()) {
         sessionStorage.removeItem(storageKey('pending'));
-        return message(text('桌位訂單已變更，請確認後再次送出。', 'Đơn tại bàn đã thay đổi. Kiểm tra lại rồi gửi.'));
+        return message(text('桌位訂單已變更，請確認後再次送出。', 'Đơn tại bàn đã thay đổi. Kiểm tra lại rồi gửi.'), { toast: true, type: 'warning' });
       }
       const table = dining === 'dine_in' ? tables.find(row => row.id === chosen?.id) : null;
       const append = dining === 'dine_in' && !!table?.active_order_key;
@@ -768,7 +817,7 @@ window.StaffOrder = (() => {
       if (useScheduled) {
         const date = document.getElementById('pickup-date')?.value;
         const time = document.getElementById('pickup-time')?.value;
-        if (!date || !time) return message(text('請選擇取餐時間。', 'Hãy chọn giờ nhận món.'));
+        if (!date || !time) return message(text('請選擇取餐時間。', 'Hãy chọn giờ nhận món.'), { toast: true, type: 'warning' });
         payload.pickupTime = `${date} ${time}`;
       }
       const endpoint = append ? `/api/staff/orders/${encodeURIComponent(table.active_order_key)}/rounds` : '/api/staff/orders';
@@ -784,7 +833,7 @@ window.StaffOrder = (() => {
       renderDynamicCatalog(); updateTotal();
       await refreshTables().catch(() => {}); select().value = '';
       renderTableBar();
-      message(text(`已送出 #${result.displayKey || result.orderId}。`, `Đã gửi đơn #${result.displayKey || result.orderId}.`));
+      message(text(`已送出 #${result.displayKey || result.orderId}。`, `Đã gửi đơn #${result.displayKey || result.orderId}.`), { toast: true, type: 'success' });
       if (parent !== window) parent.postMessage({
         type: 'STAFF_ORDER_SUBMITTED', orderKey: result.orderKey || result.key,
         displayKey: result.displayKey, diningOption: dining, roundCount: result.roundCount
@@ -794,8 +843,8 @@ window.StaffOrder = (() => {
       if (error.status === 409) {
         await refreshTables().catch(() => {});
         await fetchMenu().catch(() => {});
-        message(text('訂單或價格已變更，請檢查購物車後重試。', 'Đơn hoặc giá đã thay đổi. Kiểm tra giỏ hàng rồi gửi lại.'));
-      } else message(text('未能確認送出結果。購物車已保留，請重試。', 'Chưa xác nhận được kết quả gửi. Giỏ hàng được giữ lại, hãy thử lại.'));
+        message(text('訂單或價格已變更，請檢查購物車後重試。', 'Đơn hoặc giá đã thay đổi. Kiểm tra giỏ hàng rồi gửi lại.'), { toast: true, type: 'error' });
+      } else message(text('未能確認送出結果。購物車已保留，請重試。', 'Chưa xác nhận được kết quả gửi. Giỏ hàng được giữ lại, hãy thử lại.'), { toast: true, type: 'error' });
     } finally {
       busy = false; window.isSubmitting = false; select().disabled = false;
       document.getElementById('page-body-content').inert = false;
