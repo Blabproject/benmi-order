@@ -410,20 +410,23 @@ window.StaffOrder = (() => {
 
         let portionsHTML = '';
         if (hasOpts) {
-          portionsHTML = `<div class="staff-cart-portions"><button type="button" class="staff-cart-opt-link" onclick="editCartPortion('${safeCat}','${safeName}',${qty - 1})">${text('修改選項', 'Sửa tùy chọn')}</button></div>`;
+          portionsHTML = `<div class="staff-cart-portions"><span class="staff-cart-opt-link">${text('修改選項', 'Sửa tùy chọn')}</span></div>`;
         }
 
+        const lineClick = hasOpts ? ` onclick="editCartPortion('${safeCat}','${safeName}',${qty - 1})"` : '';
+        const lineClass = hasOpts ? 'staff-cart-line staff-cart-has-opts' : 'staff-cart-line';
+
         linesHTML.push(`
-          <div class="staff-cart-line">
+          <div class="${lineClass}"${lineClick}>
             <div class="staff-cart-line-top">
               <div class="staff-cart-line-info">
                 <div class="staff-cart-name">${escapeHtmlStr(displayName)}</div>
                 <div class="staff-cart-price">$${lineTotal}</div>
               </div>
-              <div class="staff-cart-stepper">
-                <button type="button" class="staff-step-btn" onclick="updateQty('${safeCat}','${safeName}',-1)">−</button>
+              <div class="staff-cart-stepper" onclick="event.stopPropagation()">
+                <button type="button" class="staff-step-btn" onclick="event.stopPropagation();updateQty('${safeCat}','${safeName}',-1)">−</button>
                 <span class="staff-step-qty">${qty}</span>
-                <button type="button" class="staff-step-btn" onclick="updateQty('${safeCat}','${safeName}',1)">+</button>
+                <button type="button" class="staff-step-btn" onclick="event.stopPropagation();updateQty('${safeCat}','${safeName}',1)">+</button>
               </div>
             </div>
             ${portionsHTML}

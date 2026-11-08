@@ -103,6 +103,10 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  assert.match(await page.locator('.staff-cart-order-options').innerText(),/Cay vừa/);
  assert.match(await page.locator('.staff-cart-order-options').innerText(),/Lấy dụng cụ ăn/);
  assert.equal(await page.locator('.staff-cart-order-extra').innerText(),'+$15');
+ assert.equal(await page.locator('.staff-cart-line.staff-cart-has-opts').count() >= 1, true);
+ await page.locator('.staff-cart-line-info').first().click();
+ assert.equal(await page.locator('#unified-option-modal').isVisible(), true);
+ await page.locator('#unified-option-modal [data-confirm]').click();
  for(const viewport of [{width:1024,height:768},{width:704,height:1024},{width:390,height:844}]){
   await page.setViewportSize(viewport);
   assert.equal(await page.locator('#btn-desktop-submit').isVisible(),true);

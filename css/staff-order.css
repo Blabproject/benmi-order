@@ -569,6 +569,30 @@ html.staff-order-mode .staff-cart-line {
   border-bottom: 1px solid #f1f5f9;
 }
 
+html.staff-order-mode .staff-cart-line.staff-cart-has-opts {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 6px 4px;
+  margin: 0 -4px;
+  transition: background-color 0.12s ease;
+}
+
+html.staff-order-mode .staff-cart-line.staff-cart-has-opts:hover {
+  background-color: #f8fafc;
+}
+
+html.staff-order-mode .staff-cart-line.staff-cart-has-opts:hover .staff-cart-name {
+  color: var(--primary, #059669);
+}
+
+html.staff-order-mode .staff-cart-line.staff-cart-has-opts:hover .staff-cart-opt-link {
+  text-decoration: underline;
+}
+
+html.staff-order-mode .staff-cart-line .staff-cart-stepper {
+  cursor: default;
+}
+
 html.staff-order-mode .staff-cart-line-top {
   display: flex;
   align-items: center;
