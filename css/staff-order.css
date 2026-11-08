@@ -2,6 +2,8 @@
 html.staff-order-mode #store-header-box,
 html.staff-order-mode #dining-option-wrapper,
 html.staff-order-mode #checkout-dining-option-group,
+html.staff-order-mode #dinein-table-input-group,
+html.staff-order-mode #staff-bar-legend,
 html.staff-order-mode .powered-by-blab-wrap,
 html.staff-order-mode #desktop-auth-bar,
 html.staff-order-mode #desktop-center-auth-overlay,
@@ -336,6 +338,35 @@ html.staff-order-mode #catalog-sections .card .card-footer {
   align-items: center !important;
   justify-content: space-between !important;
   gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* Keep merchandising badges outside the clamped name and on one line. */
+html.staff-order-mode .staff-tile-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+html.staff-order-mode .staff-tile-badges .badge {
+  display: block;
+  box-sizing: border-box;
+  max-width: 100%;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+html.staff-order-mode #catalog-sections .card .card-footer > div:not(.card-price):not(.qty-control) {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 11px !important;
+  padding: 3px 6px !important;
+  line-height: 1.4;
 }
 
 html.staff-order-mode #catalog-sections .card .card-price {

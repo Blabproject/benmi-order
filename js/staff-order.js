@@ -79,12 +79,12 @@ window.StaffOrder = (() => {
     const isTakeaway = !allowDine || window.currentDiningOption === 'takeaway';
     const selectedTableId = select()?.value || '';
 
-    let html = `<button type="button" class="staff-chip ${isTakeaway ? 'on' : ''}" data-staff-chip="takeaway">${text('外帶', 'Mang đi')}</button>`;
+    let html = `<button type="button" class="staff-chip ${isTakeaway ? 'on' : ''}" aria-pressed="${isTakeaway}" data-staff-chip="takeaway">${text('外帶', 'Mang đi')}</button>`;
     if (allowDine) {
       for (const row of tables) {
         const isOn = !isTakeaway && selectedTableId === row.id;
         const dot = row.active_order_key ? `<span class="staff-dot-occupied" title="${text('使用中', 'Đang phục vụ')}"></span>` : '';
-        html += `<button type="button" class="staff-chip ${isOn ? 'on' : ''}" data-staff-table="${escapeHtmlStr(row.id)}">${escapeHtmlStr(row.label)}${dot}</button>`;
+        html += `<button type="button" class="staff-chip ${isOn ? 'on' : ''}" aria-pressed="${isOn}" data-staff-table="${escapeHtmlStr(row.id)}">${escapeHtmlStr(row.label)}${dot}</button>`;
       }
     }
     chipsWrap.innerHTML = html;
@@ -203,6 +203,15 @@ window.StaffOrder = (() => {
         const key = `${cat.slug}_${item.name}`;
         const qty = Number(cartObj[key] || 0);
         card.classList.toggle('staff-tile-has', qty > 0);
+
+        const title = card.querySelector('.card-title');
+        const badges = title?.querySelectorAll('.badge');
+        if (badges?.length) {
+          const row = document.createElement('div');
+          row.className = 'staff-tile-badges';
+          for (const badge of badges) { badge.title = badge.textContent.trim(); row.appendChild(badge); }
+          title.parentElement.after(row);
+        }
 
         let qtyBadge = card.querySelector('.staff-tile-qty');
         if (qty > 0) {
@@ -733,7 +742,7 @@ window.StaffOrder = (() => {
     if (!Object.values(cart).some(q => q > 0)) return message(text('請先選擇餐點。', 'Hãy chọn món.'));
     const dining = dineInAllowed() && window.currentDiningOption === 'dine_in' ? 'dine_in' : 'takeaway';
     const chosen = dining === 'dine_in' ? tables.find(row => row.id === select().value) : null;
-    if (dining === 'dine_in' && !chosen) { select().focus(); return message(text('請選擇桌號。', 'Hãy chọn bàn.')); }
+    if (dining === 'dine_in' && !chosen) { document.querySelector('[data-staff-table]')?.focus(); return message(text('請選擇桌號。', 'Hãy chọn bàn.')); }
     const before = tableContext();
     saveDraft(); busy = true; window.isSubmitting = true;
     const buttons = getAllSubmitButtons(); buttons.forEach(button => button.disabled = true);

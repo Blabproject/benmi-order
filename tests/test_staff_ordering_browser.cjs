@@ -14,6 +14,9 @@ const {chromium,webkit}=require('playwright');
 for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: shared LIFF staff creates, retries, appends and takes away`,async t=>{
  const f=await fixture(t);
  await f.apply("UPDATE tenant_config SET features='[\"dine_in\"]',allow_dine_in=1,allow_scheduled_pickup=0 WHERE tenant_id='a';");
+ await f.apply(`UPDATE menu_items SET badge_text='推薦',max_per_order=12 WHERE id='meal-a';
+ INSERT INTO menu_items(id,tenant_id,category_id,name,price,badge_text,out_of_stock_until)
+ VALUES('sold-a','a','food-a','雞腿肉',70,'熱銷','2099-01-01T00:00:00Z');`);
  await f.apply(`INSERT INTO modifier_groups(id,tenant_id,name,selection_type,is_required,min_selection,max_selection,scope)
  VALUES('sauce-a','a','Sauce','single',1,1,1,'item');
  INSERT INTO modifier_options(id,tenant_id,group_id,name,price,is_default) VALUES('sauce-choice','a','sauce-a','Sauce choice',10,0);
@@ -62,6 +65,8 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  assert.equal(await page.locator('.powered-by-blab-wrap').isVisible(),false);
  assert.equal(await page.locator('#view-tables,#view-review').count(),0);
  assert.equal(await page.locator('select#dinein-table-number').count(),1);
+ assert.equal(await page.locator('#dinein-table-input-group').isVisible(),false);
+ assert.equal(await page.locator('#staff-bar-legend').isVisible(),false);
  assert.equal(await page.locator('#dinein-table-number').inputValue(),'');
  assert.equal(await page.locator('#pickup-time-dinein-notice').isVisible(),false);
  assert.equal(await page.locator('#pickup-time-section-title').isVisible(),false);
@@ -74,7 +79,22 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
   await page.locator('#unified-option-modal [data-confirm]').click();
  };
  const submit=()=>page.evaluate(()=>submitOrder());
- await add();await page.selectOption('#dinein-table-number','table-a');
+ await add();await page.locator('[data-staff-table="table-a"]').click();
+ assert.equal(await page.locator('[data-staff-table="table-a"]').getAttribute('aria-pressed'),'true');
+ for(const viewport of [{width:1024,height:768},{width:704,height:1024},{width:390,height:844}]){
+  await page.setViewportSize(viewport);
+  const badges=await page.locator('.staff-tile-badges .badge').evaluateAll(elements=>elements.filter(el=>el.getClientRects().length).map(el=>{
+   const r=el.getBoundingClientRect(),card=el.closest('.card').getBoundingClientRect();
+   return {text:el.textContent,fragments:el.getClientRects().length,left:r.left,right:r.right,cardLeft:card.left,cardRight:card.right};
+  }));
+  assert(badges.length>=3);
+  assert(badges.every(b=>b.fragments===1&&b.left>=b.cardLeft&&b.right<=b.cardRight),JSON.stringify(badges));
+  const sold=page.locator('.card-footer > div').filter({hasText:'今日已售完'});
+  assert.equal(await sold.evaluate(el=>getComputedStyle(el).whiteSpace),'nowrap');
+  fs.mkdirSync('artifacts/staff-order-review-20261108',{recursive:true});
+  await page.screenshot({path:`artifacts/staff-order-review-20261108/${name}-${viewport.width}-badges.png`});
+ }
+ await page.setViewportSize({width:1024,height:768});
  await page.locator('#main-nav [data-staff-sec="sec-order-option"]').click();
  assert.match(await page.locator('.staff-cart-order-options').innerText(),/Không cay/);
  await page.locator('[data-option-id="hot"]').check();
@@ -103,7 +123,7 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  assert.equal(orders.results.length,1);assert.equal(orders.results[0].total_amount,125);
  const detail=await f.call(`/api/staff/orders/${orders.results[0].key}`);
  assert.deepEqual(detail.detailSnapshot.rounds[0].groups.flatMap(group=>group.items.map(choice=>choice.name)).sort(),['Cay vừa','Lấy dụng cụ ăn','Súp thêm'].sort());
- await add();await page.selectOption('#dinein-table-number','table-a');await submit();
+ await add();await page.locator('[data-staff-table="table-a"]').click();await submit();
  let order=await f.DB.prepare('SELECT * FROM orders WHERE key=?').bind(orders.results[0].key).first();
  assert.equal(order.round_count,2);assert.equal(order.total_amount,235);
  await add();await page.evaluate(()=>setCustomerDiningOption('takeaway'));await submit();
@@ -114,7 +134,7 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  fs.mkdirSync('artifacts/staff-liff-local',{recursive:true});
  await page.screenshot({path:`artifacts/staff-liff-local/${name}-mobile.png`,fullPage:true});
  await page.evaluate(()=>{localStorage.setItem('staff_order_lang','zh-TW');setCustomerDiningOption('dine_in');});
- await add();await page.selectOption('#dinein-table-number','table-a');await page.reload();
+ await add();await page.locator('[data-staff-table="table-a"]').click();await page.reload();
  await page.waitForFunction(()=>window.StaffOrder?.ready());
  assert.equal(await page.locator('html').getAttribute('lang'),'zh-TW');
  assert.equal(await page.locator('#dinein-table-number').inputValue(),'table-a');
@@ -191,18 +211,18 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  assert.match(await page.locator('#staff-order-status').innerText(),/Đã gửi .*?-T00/);
  assert.deepEqual(errors,[]);
 
- // The POS header must hide status before the delayed core script initializes.
+ // The store status control remains available; only the staff table dropdown is hidden.
  let releaseCore;
  const delayedCore=new Promise(resolve=>releaseCore=resolve);
  await page.route('**/js/orders-core.js*',async route=>{await delayedCore;await route.continue();});
  await page.setViewportSize({width:1024,height:768});
  await page.goto(`http://127.0.0.1:${server.address().port}/orders.html?tenant=a&env=dev#staff-order`,{waitUntil:'commit'});
  await page.locator('#store-status-dropdown').waitFor({state:'attached'});
- assert.equal(await page.locator('#store-status-dropdown').isVisible(),false,'No status dropdown flash before core initializes');
+ assert.equal(await page.locator('#store-status-dropdown').isVisible(),true);
  const beforeHeader=await page.locator('#main-topbar').boundingBox();
  releaseCore();
  await page.waitForFunction(()=>document.body.classList.contains('is-staff-order-active'));
- assert.equal(await page.locator('#store-status-dropdown').isVisible(),false);
+ assert.equal(await page.locator('#store-status-dropdown').isVisible(),true);
  const afterHeader=await page.locator('#main-topbar').boundingBox();
  assert.equal(afterHeader.height,beforeHeader.height,'Staff header height stays stable');
  if(await page.locator('#i18n-btn-start-shift').isVisible())await page.locator('#i18n-btn-start-shift').click();
@@ -224,7 +244,9 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
    await page.evaluate(()=>toggleSidebar(false));
    await page.waitForFunction(()=>document.getElementById('app-sidebar').getBoundingClientRect().right<=1);
   }
-  assert.equal(await page.locator('#store-status-dropdown').isVisible(),false);
+  assert.equal(await page.locator('#store-status-dropdown').isVisible(),true);
+  assert.equal(await staffFrame.locator('#dinein-table-input-group').isVisible(),false);
+  assert.equal(await staffFrame.locator('#staff-bar-legend').isVisible(),false);
   const submitBox=await staffFrame.locator('#btn-desktop-submit').boundingBox();
   assert(submitBox.y+submitBox.height<=viewport.height+1,`Embedded staff submit outside ${JSON.stringify({viewport,submitBox})}`);
   await page.screenshot({path:`artifacts/staff-order-review-20261108/${name}-pos-${viewport.width}-summary.png`});
