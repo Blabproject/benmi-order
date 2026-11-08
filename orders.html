@@ -7,11 +7,18 @@
   <title id="pos-page-title">Blab POS</title>
   <base href="/" />
   <script src="js/orders-display.js?v=20261007_dev_main_sync_v1"></script>
-  <link rel="stylesheet" href="css/orders.css?v=20261107_tables_header_v2" />
+  <link rel="stylesheet" href="css/orders.css?v=20261108_staff_header_v1" />
   <link rel="stylesheet" href="css/orders-stock.css?v=20261107_stock_drawer_v1" />
   <link rel="stylesheet" href="css/orders-menu.css?v=20261102_menu_mobile_v5" />
     <script>
       (function () {
+        // Resolve the staff header before the first paint, including restored tabs.
+        try {
+          const tabs = ['live', 'history', 'menu', 'reports', 'settings', 'payments', 'staff-order'];
+          const requested = [location.hash.replace(/^#/, ''), new URLSearchParams(location.search).get('tab'), sessionStorage.getItem('pos_active_tab')]
+            .map(value => (value || '').trim().toLowerCase()).find(value => tabs.includes(value));
+          document.documentElement.classList.toggle('is-staff-order-active', requested === 'staff-order');
+        } catch (e) { }
         document.documentElement.style.setProperty('--primary', '#00b900');
         document.documentElement.style.setProperty('--primary-dark', '#009900');
 
@@ -3229,7 +3236,7 @@
 
   <!-- Benmi POS Modular Architecture Scripts -->
   <script src="js/orders-i18n.js?v=20261107_tables_header_v2"></script>
-  <script src="js/orders-core.js?v=20261107_relative_time_v1"></script>
+  <script src="js/orders-core.js?v=20261108_staff_header_v1"></script>
   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
   <script src="js/order-detail-view.js?v=20261017_order_detail_v1"></script>

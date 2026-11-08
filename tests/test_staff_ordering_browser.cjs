@@ -18,6 +18,11 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  VALUES('sauce-a','a','Sauce','single',1,1,1,'item');
  INSERT INTO modifier_options(id,tenant_id,group_id,name,price,is_default) VALUES('sauce-choice','a','sauce-a','Sauce choice',10,0);
  INSERT INTO item_modifier_links(tenant_id,item_id,group_id) VALUES('a','meal-a','sauce-a');`);
+ await f.apply(`INSERT INTO modifier_groups(id,tenant_id,name,selection_type,is_required,min_selection,max_selection,scope)
+ VALUES('order-flavor','a','Khẩu vị','single',0,0,1,'order'),('order-extra','a','Dùng kèm','multiple',0,0,2,'order');
+ INSERT INTO modifier_options(id,tenant_id,group_id,name,price,is_default) VALUES
+ ('mild','a','order-flavor','Không cay',0,1),('hot','a','order-flavor','Cay vừa',0,0),
+ ('cutlery','a','order-extra','Lấy dụng cụ ăn',0,0),('soup','a','order-extra','Súp thêm',15,0);`);
  const server=http.createServer((req,res)=>{
   const file=path.resolve(new URL(req.url,'http://local').pathname.slice(1));
   if(!file.startsWith(process.cwd()+path.sep)||!fs.existsSync(file)){res.writeHead(404);res.end();return;}
@@ -27,7 +32,10 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  const browser=await engine.launch();t.after(()=>browser.close());
  const page=await browser.newPage({viewport:{width:1024,height:768}});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.addInitScript(()=>{if(!localStorage.getItem('staff_order_lang'))localStorage.setItem('staff_order_lang','vi');});
+ await page.addInitScript(()=>{
+  if(!localStorage.getItem('staff_order_lang'))localStorage.setItem('staff_order_lang','vi');
+  if(!localStorage.getItem('benmi_lang'))localStorage.setItem('benmi_lang','vi');
+ });
  let loseResponse=true;const writes=[];
  await page.route('**/api/**',async route=>{
   try{
@@ -67,14 +75,37 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  };
  const submit=()=>page.evaluate(()=>submitOrder());
  await add();await page.selectOption('#dinein-table-number','table-a');
+ await page.locator('#main-nav [data-staff-sec="sec-order-option"]').click();
+ assert.match(await page.locator('.staff-cart-order-options').innerText(),/Không cay/);
+ await page.locator('[data-option-id="hot"]').check();
+ await page.locator('input[data-option-id="cutlery"]').check();
+ await page.locator('input[data-option-id="soup"]').check();
+ assert.match(await page.locator('.staff-cart-order-options').innerText(),/Cay vừa/);
+ assert.match(await page.locator('.staff-cart-order-options').innerText(),/Lấy dụng cụ ăn/);
+ assert.equal(await page.locator('.staff-cart-order-extra').innerText(),'+$15');
+ for(const viewport of [{width:1024,height:768},{width:704,height:1024},{width:390,height:844}]){
+  await page.setViewportSize(viewport);
+  assert.equal(await page.locator('#btn-desktop-submit').isVisible(),true);
+  const button=await page.locator('#btn-desktop-submit').boundingBox();
+  assert(button.y+button.height<=viewport.height+1,`Staff submit outside ${JSON.stringify({viewport,button})}`);
+  assert(button.height>=48,'Staff submit target must be at least 48px');
+  const touchTargets=await page.locator('.staff-chip,.staff-step-btn,.staff-cart-opt-link,.staff-cart-portion-group,#staff-note-toggle,#dinein-table-number').evaluateAll(elements=>elements.filter(el=>el.getClientRects().length).map(el=>({label:el.textContent,width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height})));
+  assert(touchTargets.every(rect=>rect.width>=48&&rect.height>=48),JSON.stringify(touchTargets));
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  fs.mkdirSync('artifacts/staff-order-review-20261108',{recursive:true});
+  await page.screenshot({path:`artifacts/staff-order-review-20261108/${name}-${viewport.width}-summary.png`});
+ }
+ await page.setViewportSize({width:1024,height:768});
  await submit();assert.match(await page.locator('#staff-order-status').innerText(),/Chưa xác nhận/);
  await submit();assert.match(await page.locator('#staff-order-status').innerText(),/Đã gửi/);
  assert.equal(writes.length,2);assert.equal(writes[0].requestId,writes[1].requestId);
  let orders=await f.DB.prepare("SELECT * FROM orders WHERE tenant_id='a'").all();
- assert.equal(orders.results.length,1);assert.equal(orders.results[0].total_amount,110);
+ assert.equal(orders.results.length,1);assert.equal(orders.results[0].total_amount,125);
+ const detail=await f.call(`/api/staff/orders/${orders.results[0].key}`);
+ assert.deepEqual(detail.detailSnapshot.rounds[0].groups.flatMap(group=>group.items.map(choice=>choice.name)).sort(),['Cay vừa','Lấy dụng cụ ăn','Súp thêm'].sort());
  await add();await page.selectOption('#dinein-table-number','table-a');await submit();
  let order=await f.DB.prepare('SELECT * FROM orders WHERE key=?').bind(orders.results[0].key).first();
- assert.equal(order.round_count,2);assert.equal(order.total_amount,220);
+ assert.equal(order.round_count,2);assert.equal(order.total_amount,235);
  await add();await page.evaluate(()=>setCustomerDiningOption('takeaway'));await submit();
  assert.match(await page.locator('#staff-order-status').innerText(),/Đã gửi/);
  orders=await f.DB.prepare("SELECT * FROM orders WHERE tenant_id='a'").all();assert.equal(orders.results.length,2);
@@ -158,5 +189,45 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  await add();
  await submit();
  assert.match(await page.locator('#staff-order-status').innerText(),/Đã gửi .*?-T00/);
+ assert.deepEqual(errors,[]);
+
+ // The POS header must hide status before the delayed core script initializes.
+ let releaseCore;
+ const delayedCore=new Promise(resolve=>releaseCore=resolve);
+ await page.route('**/js/orders-core.js*',async route=>{await delayedCore;await route.continue();});
+ await page.setViewportSize({width:1024,height:768});
+ await page.goto(`http://127.0.0.1:${server.address().port}/orders.html?tenant=a&env=dev#staff-order`,{waitUntil:'commit'});
+ await page.locator('#store-status-dropdown').waitFor({state:'attached'});
+ assert.equal(await page.locator('#store-status-dropdown').isVisible(),false,'No status dropdown flash before core initializes');
+ const beforeHeader=await page.locator('#main-topbar').boundingBox();
+ releaseCore();
+ await page.waitForFunction(()=>document.body.classList.contains('is-staff-order-active'));
+ assert.equal(await page.locator('#store-status-dropdown').isVisible(),false);
+ const afterHeader=await page.locator('#main-topbar').boundingBox();
+ assert.equal(afterHeader.height,beforeHeader.height,'Staff header height stays stable');
+ if(await page.locator('#i18n-btn-start-shift').isVisible())await page.locator('#i18n-btn-start-shift').click();
+ await page.waitForFunction(()=>document.getElementById('staff-order-iframe').contentWindow.StaffOrder?.ready());
+ await page.evaluate(()=>switchTab('live'));
+ assert.equal(await page.locator('#store-status-dropdown').isVisible(),true,'Other POS tabs retain their status control');
+ await page.evaluate(()=>switchTab('staff-order'));
+ const staffFrame=page.frameLocator('#staff-order-iframe');
+ await staffFrame.locator('.card').first().click();
+ await staffFrame.locator('#unified-option-modal [data-choose],#unified-option-modal [data-add]').first().click();
+ await staffFrame.locator('#unified-option-modal [data-confirm]').click();
+ await staffFrame.locator('#main-nav [data-staff-sec="sec-order-option"]').click();
+ await staffFrame.locator('input[data-option-id="hot"]').check();
+ await staffFrame.locator('input[data-option-id="cutlery"]').check();
+ await staffFrame.locator('input[data-option-id="soup"]').check();
+ for(const viewport of [{width:1024,height:768},{width:768,height:1024},{width:390,height:844}]){
+  await page.setViewportSize(viewport);
+  if(viewport.width===390){
+   await page.evaluate(()=>toggleSidebar(false));
+   await page.waitForFunction(()=>document.getElementById('app-sidebar').getBoundingClientRect().right<=1);
+  }
+  assert.equal(await page.locator('#store-status-dropdown').isVisible(),false);
+  const submitBox=await staffFrame.locator('#btn-desktop-submit').boundingBox();
+  assert(submitBox.y+submitBox.height<=viewport.height+1,`Embedded staff submit outside ${JSON.stringify({viewport,submitBox})}`);
+  await page.screenshot({path:`artifacts/staff-order-review-20261108/${name}-pos-${viewport.width}-summary.png`});
+ }
  assert.deepEqual(errors,[]);
 });

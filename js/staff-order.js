@@ -448,17 +448,23 @@ window.StaffOrder = (() => {
       }
     }
 
-    document.querySelectorAll('.custom-panel input[data-price]:checked').forEach(chk => {
-      const p = Number(chk.getAttribute('data-price')) || 0;
-      if (p > 0) {
-        linesHTML.push(`
-          <div class="staff-cart-line" style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:#059669;">
-            <span>+ ${escapeHtmlStr(chk.value)}</span>
-            <span>+$${p}</span>
-          </div>
-        `);
+    // Keep the confirmation summary aligned with DetailCheckout.selections(),
+    // including free choices and children attached to their selected parent.
+    if (totalQty > 0) {
+      const optionRows = [];
+      for (const group of bData?.customizations || []) {
+        const choices = Array.from(document.getElementsByName(`opt-${group.key}`)).filter(input => input.checked);
+        if (!choices.length) continue;
+        const values = choices.map(input => {
+          const subs = Array.from(input.closest('.flavor-option-container')?.querySelectorAll('.sub-opt-chk:checked') || []);
+          const label = input.value + (subs.length ? ` (${subs.map(sub => sub.value).join(language() === 'vi' ? ', ' : '、')})` : '');
+          const extra = [input, ...subs].reduce((sum, control) => sum + (Number(control.dataset.price) || 0), 0);
+          return `<div class="staff-cart-order-choice"><span>${escapeHtmlStr(label)}</span>${extra ? `<span class="staff-cart-order-extra">+$${extra}</span>` : ''}</div>`;
+        });
+        optionRows.push(`<div class="staff-cart-order-group"><div class="staff-cart-order-label">${escapeHtmlStr(group.title)}</div>${values.join('')}</div>`);
       }
-    });
+      if (optionRows.length) linesHTML.push(`<div class="staff-cart-order-options">${optionRows.join('')}</div>`);
+    }
 
     if (summaryContainer) {
       if (linesHTML.length === 0) {
@@ -481,6 +487,10 @@ window.StaffOrder = (() => {
       noteInput.placeholder = text('備註（少冰、切半、先上...）', 'Ghi chú cho bếp...');
     }
 
+    syncSubmitLabel(totalQty, computedTotal);
+  }
+
+  function syncSubmitLabel(totalQty, computedTotal) {
     const deskBtn = document.getElementById('btn-desktop-submit');
     if (deskBtn) {
       const span = deskBtn.querySelector('span') || deskBtn;
@@ -592,7 +602,8 @@ window.StaffOrder = (() => {
     const nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
     for (const node of nodes) {
-      if (node.parentElement.closest('script,style,#catalog-sections .section-title,.item-name,.choice-name,.custom-label,#unified-option-modal,#cart-summary,#staff-table-bar,#staff-cart-header')) continue;
+      if (node.parentElement.closest('script,style,.item-name,.choice-name,.custom-label,#unified-option-modal,#cart-summary,#staff-table-bar,#staff-cart-header')) continue;
+      if (node.parentElement.closest('#catalog-sections .section-title') && !node.parentElement.closest('#sec-order-option')) continue;
       const value = node.textContent.trim();
       if (dictionary[value]) node.textContent = dictionary[value];
     }
@@ -640,6 +651,13 @@ window.StaffOrder = (() => {
           return total;
         };
       }
+
+      const baseFooterState = window.updateFooterButtonState;
+      window.updateFooterButtonState = function () {
+        baseFooterState?.apply(this, arguments);
+        const quantity = Object.values(window.cart || {}).reduce((sum, q) => sum + Number(q || 0), 0);
+        syncSubmitLabel(quantity, Number(document.getElementById('desktop-total-price')?.textContent) || 0);
+      };
 
       window.handleItemCardClick = function (catSlug, itemName, event) {
         if (event && (event.target.closest('.qty-control') || event.target.closest('.btn-qty'))) return;

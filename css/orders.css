@@ -340,6 +340,8 @@ body.is-menu-active .main-topbar,
   overflow: hidden;
 }
 
+html.is-staff-order-active #store-status-dropdown,
+body.is-staff-order-active #store-status-dropdown,
 body.is-staff-order-active #btn-staff-order-pill {
   display: none !important;
 }
