@@ -317,8 +317,17 @@ export function formatOperatingHoursForDisplay(
     if (shifts.length === 0) {
       return { day: d, schedule: closedLabel, isOpen: false };
     }
+    const nextDayPrefix = isVi ? 'Hôm sau ' : '隔日 ';
     const formattedShift = shifts
-      .map((s: any) => `${s.start || ''} - ${s.end || ''}`.trim())
+      .map((s: any) => {
+        const start = s.start || '';
+        const end = s.end || '';
+        if (!start || !end) return '';
+        const [sh, sm] = start.split(':').map(Number);
+        const [eh, em] = end.split(':').map(Number);
+        const isOvernight = (eh * 60 + (em || 0)) <= (sh * 60 + (sm || 0));
+        return `${start} - ${isOvernight ? nextDayPrefix : ''}${end}`.trim();
+      })
       .filter((s: string) => s.length > 2)
       .join(', ');
     return {

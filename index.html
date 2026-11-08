@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title id="page-title">線上點餐</title>
     <link rel="preload" href="/index.css?v=20261108_option_flicker_fix_v1" as="style">
-    <link rel="preload" href="/js/client-core.js?v=20261109_auto_reopen_v2" as="script">
+    <link rel="preload" href="/js/client-core.js?v=20261109_overnight_liff_v1" as="script">
     <link rel="preload" href="/js/client-menu.js?v=20261107_manual_store_status_v1" as="script">
     <link rel="stylesheet" href="/index.css?v=20261108_option_flicker_fix_v1">
     <style>html.tenant-resolution-failed body > :not(#tenant-resolution-error) { display: none !important; }</style>
@@ -344,7 +344,15 @@
                             const todayDay = new Date().getDay();
                             const todayShifts = hrs[todayDay] || [];
                             if (todayShifts.length > 0) {
-                                todayPreviewEl.innerHTML = `今日 <strong style="color: #111827;">${todayShifts.map(s => `${s.start}-${s.end}`).join(", ")}</strong>`;
+                                const formatShift = (s) => {
+                                    if (!s || !s.start || !s.end) return "";
+                                    const [sh, sm] = (s.start || "0:0").split(":").map(Number);
+                                    const [eh, em] = (s.end || "0:0").split(":").map(Number);
+                                    const isOvernight = (eh * 60 + (em || 0)) <= (sh * 60 + (sm || 0));
+                                    const nextTag = isOvernight ? '<span style="font-size: 11px; background: #eff6ff; color: #2563eb; padding: 1px 5px; border-radius: 4px; font-weight: 800; border: 1px solid #bfdbfe; margin-right: 3px; vertical-align: middle;">隔日</span>' : '';
+                                    return `${s.start} - ${nextTag}${s.end}`;
+                                };
+                                todayPreviewEl.innerHTML = `今日 <strong style="color: #111827;">${todayShifts.map(formatShift).filter(Boolean).join(", ")}</strong>`;
                             } else {
                                 todayPreviewEl.innerHTML = `<strong style="color: #dc2626;">今日公休</strong>`;
                                 todayPreviewEl.style.background = '#fef2f2';
@@ -965,7 +973,7 @@
 
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="/js/client-pricing-wasm.js?v=20261108_wasm_portion_pricing_v1"></script>
-    <script src="/js/client-core.js?v=20261109_auto_reopen_v2"></script>
+    <script src="/js/client-core.js?v=20261109_overnight_liff_v1"></script>
     <script src="/js/client-menu.js?v=20261107_manual_store_status_v1"></script>
     <script src="/js/client-customizations.js?v=20261108_wasm_portion_pricing_v1"></script>
     <script src="/js/client-bundle.js?v=20261108_wasm_portion_pricing_v1"></script>

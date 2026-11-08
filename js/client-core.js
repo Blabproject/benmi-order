@@ -631,18 +631,33 @@ function renderStoreOperatingHours() {
         const days = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
         let html = "";
         
+        const isVi = (typeof currentLang !== 'undefined' && currentLang === 'vi') || (document.documentElement.lang === 'vi');
+        const nextDayLabel = isVi ? 'Hôm sau' : '隔日';
+        const formatShift = (s) => {
+            if (!s || !s.start || !s.end) return "";
+            const [sh, sm] = (s.start || "0:0").split(":").map(Number);
+            const [eh, em] = (s.end || "0:0").split(":").map(Number);
+            const startMins = sh * 60 + (sm || 0);
+            const endMins = eh * 60 + (em || 0);
+            const isOvernight = endMins <= startMins;
+            const nextDayTag = isOvernight
+                ? `<span style="font-size: 11px; background: #eff6ff; color: #2563eb; padding: 1px 5px; border-radius: 4px; font-weight: 800; border: 1px solid #bfdbfe; margin-right: 3px; vertical-align: middle;">${nextDayLabel}</span>`
+                : '';
+            return `${s.start} - ${nextDayTag}${s.end}`;
+        };
+
         const getShiftsStr = (dayIdx) => {
             const shifts = hrs[dayIdx] || [];
-            if (shifts.length === 0) return "公休";
-            return shifts.map(s => `${s.start}-${s.end}`).join(", ");
+            if (shifts.length === 0) return isVi ? "Nghỉ" : "公休";
+            return shifts.map(formatShift).filter(Boolean).join(", ");
         };
 
         const todayShifts = hrs[todayIdx] || [];
         if (todayShifts.length > 0) {
-            todayHoursStr = todayShifts.map(s => `${s.start}-${s.end}`).join(", ");
+            todayHoursStr = todayShifts.map(formatShift).filter(Boolean).join(", ");
             isTodayOpen = true;
         } else {
-            todayHoursStr = "今日公休";
+            todayHoursStr = isVi ? "Hôm nay nghỉ" : "今日公休";
             isTodayOpen = false;
         }
         
