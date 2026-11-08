@@ -267,6 +267,7 @@
       })
       .join("")}</div>`;
   }
+  const globalOptionImageCache = new Map();
   function optionImageSource(option) {
     const url = String(option.imageUrl || "").trim();
     if (!url) return "";
@@ -274,6 +275,11 @@
   }
   function prepareOptionImage(src) {
     if (context.images.has(src)) return context.images.get(src);
+    if (globalOptionImageCache.has(src) && globalOptionImageCache.get(src).state === "ready") {
+      const cached = globalOptionImageCache.get(src);
+      context.images.set(src, cached);
+      return cached;
+    }
     const entry = { state: "pending" };
     context.images.set(src, entry);
     entry.promise = new Promise((resolve) => {
@@ -283,13 +289,13 @@
         entry.state = ready ? "ready" : "failed";
         clearTimeout(entry.timer);
         if (image) image.onload = image.onerror = null;
+        if (ready) globalOptionImageCache.set(src, entry);
         resolve();
       };
       entry.timer = setTimeout(() => entry.finish(), IMAGE_WAIT_MS);
       try {
         image = new Image();
-        image.onerror = () => entry.finish();
-        image.onload = () => {
+        const decode = () => {
           if (!image.naturalWidth) return entry.finish();
           try {
             Promise.resolve(image.decode ? image.decode() : undefined).then(
@@ -300,7 +306,12 @@
             entry.finish();
           }
         };
+        image.onerror = () => entry.finish();
+        image.onload = decode;
         image.src = src;
+        if (image.complete) {
+          decode();
+        }
       } catch (_) {
         entry.finish();
       }
@@ -373,6 +384,7 @@
     if (el) return el;
     el = document.createElement("div");
     el.id = "unified-option-modal";
+    el.className = "uoc-overlay";
     el.hidden = true;
     el.innerHTML =
       '<section class="uoc-panel" role="dialog" aria-modal="true" aria-labelledby="uoc-title"><header><button type="button" data-back hidden></button><h2 id="uoc-title" tabindex="-1"></h2><button type="button" data-close>×</button></header><div class="uoc-portion-tabs"></div><nav class="bundle-v2-step-nav" aria-label=""></nav><div class="uoc-image-status" role="status" aria-live="polite" aria-atomic="true"></div><div class="uoc-body"></div><footer><p role="alert"></p><button type="button" data-confirm></button></footer></section>';
@@ -843,7 +855,6 @@
         error: "",
         note: window.customizeData?.[key]?.[index]?.note || "",
       };
-      root().hidden = false;
       root().querySelector("nav").innerHTML = "";
       root().querySelector("nav").scrollLeft = 0;
       for (const el of document.body.children)
@@ -853,7 +864,9 @@
         }
       document.body.style.overflow = "hidden";
       render();
-      root().querySelector("h2").focus();
+      root().hidden = false;
+      root().querySelector("nav").scrollLeft = 0;
+      root().querySelector("h2").focus({ preventScroll: true });
     },
     valid(rule, portion) {
       return !invalid(rule.groups, portion?.groups);

@@ -2187,6 +2187,8 @@ input[type="checkbox"] {
     margin: 0 auto;
     animation: bundleSheetSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
+    will-change: transform;
+    transform: translateZ(0);
 }
 
 @keyframes bundleSheetSlideUp {

@@ -26,6 +26,8 @@
   flex-direction: column;
   overflow: hidden;
   color: #1e293b;
+  will-change: transform;
+  transform: translateZ(0);
 }
 .uoc-wizard .uoc-panel {
   height: 88dvh;
