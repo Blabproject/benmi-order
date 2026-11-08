@@ -1465,21 +1465,6 @@
             }
           }
         }
-        if (d.removedPhoto) {
-          fetch(
-            `${WORKER_BASE}/api/image?tenant_id=${encodeURIComponent(getTenantIdFromUrl())}`,
-            {
-              method: "DELETE",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                name: `product:${d.id}`,
-                itemId: d.id,
-                itemName: d.name,
-                categoryId: d.categoryId,
-              }),
-            },
-          ).catch(() => {});
-        }
       }
       rebase(kind, d.id, remove, state.optionsOnly);
       if (kind === "group" && !remove) {

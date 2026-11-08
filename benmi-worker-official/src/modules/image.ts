@@ -77,7 +77,8 @@ export interface DeleteImageTarget {
 export async function deleteTenantImageFromR2AndD1(
   env: Env,
   tenantId: string,
-  target: string | string[] | DeleteImageTarget
+  target: string | string[] | DeleteImageTarget,
+  skipMenuItemsUpdate = false
 ): Promise<string[]> {
   const candidates = new Set<string>();
   const explicitNames = new Set<string>();
@@ -167,12 +168,14 @@ export async function deleteTenantImageFromR2AndD1(
         `DELETE FROM tenant_images WHERE tenant_id = ? AND (name IN (${placeholders}) OR bare_name IN (${placeholders}))`
       ).bind(tenantId, ...candidateList, ...candidateList).run();
 
-      // Clear image_key in menu_items
-      const allNamesToClear = Array.from(new Set([...candidateList, ...removedNames]));
-      const clearPlaceholders = allNamesToClear.map(() => "?").join(",");
-      await env.DB.prepare(
-        `UPDATE menu_items SET image_key = NULL WHERE tenant_id = ? AND (image_key IN (${clearPlaceholders}) OR id IN (${clearPlaceholders}))`
-      ).bind(tenantId, ...allNamesToClear, ...allNamesToClear).run();
+      // Clear image_key in menu_items if not part of a larger menu/product transactional batch
+      if (!skipMenuItemsUpdate) {
+        const allNamesToClear = Array.from(new Set([...candidateList, ...removedNames]));
+        const clearPlaceholders = allNamesToClear.map(() => "?").join(",");
+        await env.DB.prepare(
+          `UPDATE menu_items SET image_key = NULL WHERE tenant_id = ? AND (image_key IN (${clearPlaceholders}) OR id IN (${clearPlaceholders}))`
+        ).bind(tenantId, ...allNamesToClear, ...allNamesToClear).run();
+      }
     } catch {
       // Ignore if tenant_images table does not exist in isolated test mocks
     }

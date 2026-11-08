@@ -400,7 +400,7 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 						itemId: id,
 						itemName: entity?.name,
 						categoryId: entity?.category_id,
-					});
+					}, true);
 				} catch {}
 			} else {
 				catalog.groups = catalog.groups.filter((g) => g.id !== id);
@@ -509,7 +509,7 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 						itemId: id,
 						itemName: product.name || previous?.name,
 						categoryId: product.category_id || previous?.category_id,
-					});
+					}, true);
 				} catch {}
 				if (env.ORDER_STATE) {
 					const keysToDelete = [
