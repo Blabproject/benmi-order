@@ -410,23 +410,7 @@ window.StaffOrder = (() => {
 
         let portionsHTML = '';
         if (hasOpts) {
-          const groups = new Map();
-          for (let idx = 0; idx < qty; idx++) {
-            const summary = summarizePortion(key, idx, hasBundleGroups) || text('預設', 'Mặc định');
-            if (!groups.has(summary)) groups.set(summary, []);
-            groups.get(summary).push(idx);
-          }
-          const groupRows = [];
-          groups.forEach((indices, summary) => {
-            const firstIdx = indices[0];
-            const idxLabel = language() === 'vi'
-              ? `Phần ${indices.map(i => i + 1).join(', ')}`
-              : `第${indices.map(i => i + 1).join('、')}份`;
-            groupRows.push(
-              `<div class="staff-cart-portion-group" onclick="editCartPortion('${safeCat}','${safeName}',${firstIdx})">${idxLabel} · ${escapeHtmlStr(summary)}</div>`
-            );
-          });
-          portionsHTML = `<div class="staff-cart-portions">${groupRows.join('')}<button type="button" class="staff-cart-opt-link" onclick="editCartPortion('${safeCat}','${safeName}',${qty - 1})">${text('修改選項', 'Sửa tùy chọn')}</button></div>`;
+          portionsHTML = `<div class="staff-cart-portions"><button type="button" class="staff-cart-opt-link" onclick="editCartPortion('${safeCat}','${safeName}',${qty - 1})">${text('修改選項', 'Sửa tùy chọn')}</button></div>`;
         }
 
         linesHTML.push(`
@@ -524,14 +508,17 @@ window.StaffOrder = (() => {
     const submitWrap = document.querySelector('.desktop-sidebar-submit-wrap');
     const totalRow = document.querySelector('.desktop-sidebar-total-row');
 
-    if (pageBody && mainLayout && !document.getElementById('staff-table-bar')) {
-      const bar = document.createElement('div');
+    let bar = document.getElementById('staff-table-bar');
+    if (!bar && pageBody && mainLayout) {
+      bar = document.createElement('div');
       bar.id = 'staff-table-bar';
       bar.innerHTML = `<div class="staff-table-chips" id="staff-table-chips"></div><div class="staff-bar-legend" id="staff-bar-legend"></div>`;
-      pageBody.insertBefore(bar, mainLayout);
       if (tableGroup) {
         bar.insertBefore(tableGroup, bar.querySelector('#staff-bar-legend'));
       }
+    }
+    if (bar && leftCol && bar.parentElement !== leftCol) {
+      leftCol.insertBefore(bar, leftCol.firstChild);
     }
 
     if (leftCol && nav && catalogWrapper && nav.parentElement !== leftCol) {

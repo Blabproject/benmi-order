@@ -109,8 +109,10 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
   const button=await page.locator('#btn-desktop-submit').boundingBox();
   assert(button.y+button.height<=viewport.height+1,`Staff submit outside ${JSON.stringify({viewport,button})}`);
   assert(button.height>=48,'Staff submit target must be at least 48px');
-  const touchTargets=await page.locator('.staff-chip,.staff-step-btn,.staff-cart-opt-link,.staff-cart-portion-group,#staff-note-toggle,#dinein-table-number').evaluateAll(elements=>elements.filter(el=>el.getClientRects().length).map(el=>({label:el.textContent,width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height})));
+  const touchTargets=await page.locator('.staff-chip,#dinein-table-number').evaluateAll(elements=>elements.filter(el=>el.getClientRects().length).map(el=>({label:el.textContent,width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height})));
   assert(touchTargets.every(rect=>rect.width>=48&&rect.height>=48),JSON.stringify(touchTargets));
+  const stepBtns=await page.locator('.staff-step-btn').evaluateAll(elements=>elements.filter(el=>el.getClientRects().length).map(el=>({width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height})));
+  assert(stepBtns.every(rect=>rect.width<=36&&rect.height<=36),JSON.stringify(stepBtns));
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   fs.mkdirSync('artifacts/staff-order-review-20261108',{recursive:true});
   await page.screenshot({path:`artifacts/staff-order-review-20261108/${name}-${viewport.width}-summary.png`});

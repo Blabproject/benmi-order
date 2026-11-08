@@ -26,14 +26,14 @@ html.staff-order-mode body {
 }
 
 html.staff-order-mode #page-body-content {
-  max-width: 1280px;
+  max-width: 100%;
   height: 100%;
   margin: 0 auto;
   padding: 6px 10px 8px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
   overflow: hidden;
 }
 
@@ -50,18 +50,20 @@ html.staff-order-mode #page-body-content {
   }
 }
 
-/* 1. Top Table & Dining Mode Bar */
+/* 1. Top Table & Dining Mode Bar (Inside Left Menu Column) */
 html.staff-order-mode #staff-table-bar {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 6px 10px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+  border-radius: 0;
+  padding: 8px 10px;
+  box-shadow: none;
   flex-shrink: 0;
+  overflow-x: auto;
 }
 
 html.staff-order-mode .staff-table-chips {
@@ -563,13 +565,13 @@ html.staff-order-mode .staff-cart-empty {
 }
 
 html.staff-order-mode .staff-cart-line {
-  padding: 7px 0;
+  padding: 6px 0;
   border-bottom: 1px solid #f1f5f9;
 }
 
 html.staff-order-mode .staff-cart-line-top {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
@@ -594,7 +596,7 @@ html.staff-order-mode .staff-cart-price {
   font-size: 12px;
   font-weight: 700;
   color: #059669;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 html.staff-order-mode .staff-cart-stepper {
@@ -605,21 +607,22 @@ html.staff-order-mode .staff-cart-stepper {
 }
 
 html.staff-order-mode .staff-step-btn {
-  width: 48px !important;
-  height: 48px !important;
-  min-width: 48px !important;
-  min-height: 48px !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
   padding: 0 !important;
-  border-radius: 7px;
+  border-radius: 6px;
   border: 1px solid #cbd5e1;
   background: #f8fafc;
   color: #0f172a;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  user-select: none;
 }
 
 html.staff-order-mode .staff-step-btn:hover {
@@ -629,40 +632,26 @@ html.staff-order-mode .staff-step-btn:hover {
 html.staff-order-mode .staff-step-qty {
   min-width: 18px;
   text-align: center;
-  font-size: 13.5px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 700;
   color: #0f172a;
 }
 
 html.staff-order-mode .staff-cart-portions {
-  margin-top: 5px;
+  margin-top: 2px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
 }
 
 html.staff-order-mode .staff-cart-portion-group {
-  min-height: 48px;
-  min-width: 48px;
-  display: flex;
-  align-items: center;
-  font-size: 11.5px;
-  color: #475569;
-  line-height: 1.35;
-  padding: 2px 0 2px 7px;
-  border-left: 2px solid #10b981;
-  cursor: pointer;
-}
-
-html.staff-order-mode .staff-cart-portion-group:hover {
-  color: #0f172a;
+  display: none !important;
 }
 
 html.staff-order-mode .staff-cart-opt-link {
-  min-width: 48px;
-  margin-top: 3px;
-  padding: 0;
-  min-height: 48px !important;
+  min-width: auto;
+  margin-top: 2px;
+  padding: 1px 0;
+  min-height: 20px !important;
   border: none;
   background: none;
   color: #059669;
@@ -676,20 +665,20 @@ html.staff-order-mode .staff-cart-opt-link {
 
 /* Collapsible Note — Text-only toggle (no box border) */
 html.staff-order-mode #staff-note-wrap {
-  padding-top: 6px;
+  padding-top: 4px;
   border-top: 1px solid #f1f5f9;
   flex-shrink: 0;
 }
 
 html.staff-order-mode #staff-note-toggle {
-  min-height: 48px !important;
-  min-width: 48px !important;
-  padding: 0 !important;
+  min-height: 24px !important;
+  min-width: auto !important;
+  padding: 2px 0 !important;
   border: none !important;
   border-radius: 0 !important;
   background: transparent !important;
   color: #64748b !important;
-  font-size: 13px !important;
+  font-size: 12px !important;
   font-weight: 700 !important;
   cursor: pointer !important;
   display: inline-flex;
