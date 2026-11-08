@@ -854,6 +854,17 @@ function selectOperatingDay(dayIdx) {
   });
   renderWeeklyOverview();
   renderDayDetailEditor();
+
+  const editor = document.getElementById("hours-day-editor-container");
+  if (editor) {
+    setTimeout(() => {
+      try {
+        editor.scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (err) {
+        editor.scrollIntoView();
+      }
+    }, 60);
+  }
 }
 window.selectOperatingDay = selectOperatingDay;
 
@@ -884,7 +895,7 @@ function renderWeeklyTimeline(container) {
     }
 
     rowsHtml += `
-      <div class="timeline-row ${isActive ? 'active' : ''}" data-day="${dayIdx}" onclick="selectOperatingDay(${dayIdx})" role="button" tabindex="0">
+      <div class="timeline-row ${isActive ? 'active' : ''}" data-day="${dayIdx}" onclick="selectOperatingDay(${dayIdx})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectOperatingDay(${dayIdx});}" role="button" tabindex="0">
         <span class="timeline-day-label">${label}</span>
         <div class="timeline-track-wrap">
           <div class="timeline-midnight-guide"></div>
@@ -939,7 +950,7 @@ function renderWeeklyList(container) {
     }
 
     rowsHtml += `
-      <div class="hours-list-row ${isActive ? 'active' : ''}" data-day="${dayIdx}" onclick="selectOperatingDay(${dayIdx})" role="button" tabindex="0">
+      <div class="hours-list-row ${isActive ? 'active' : ''}" data-day="${dayIdx}" onclick="selectOperatingDay(${dayIdx})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectOperatingDay(${dayIdx});}" role="button" tabindex="0">
         <div style="display: flex; align-items: center; gap: 12px;">
           <span style="font-weight: 900; font-size: 15px; color: ${isOpen ? '#0f172a' : '#94a3b8'}; width: 48px;">${shortLabel}</span>
           <span style="font-size: 13px; color: #64748b; font-weight: 600;">${fullLabel}</span>

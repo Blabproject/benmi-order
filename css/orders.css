@@ -4752,6 +4752,11 @@ html.is-web-platform .store-activation-modal:not(.force-show) {
 }
 
 /* Day Detail Editor */
+#hours-day-editor-container,
+.hours-day-editor {
+  scroll-margin-top: 16px;
+}
+
 .hours-day-editor {
   margin-top: 16px;
   background: #ffffff;
