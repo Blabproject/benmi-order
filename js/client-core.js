@@ -1462,7 +1462,8 @@ function isStoreClosedExpired(closedDate, nowTime = new Date(), operatingHours =
 }
 
 function resolveStoreStatus(cfg = storeConfig, nowTime = new Date()) {
-    let status = cfg?.storeStatus || 'open';
+    let status = cfg?.storeStatus;
+    if (!status) return status;
     if (typeof status === 'string' && status.startsWith('closed:')) {
         const closedDate = status.slice(7).trim();
         const autoOpenMins = cfg?.autoOpenBeforeMinutes ?? 60;

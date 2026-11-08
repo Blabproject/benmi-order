@@ -774,79 +774,426 @@ function createDefaultOperatingHours() {
   return hrs;
 }
 
-function renderOperatingHours() {
-  const container = document.getElementById("hours-settings-list") || document.getElementById("settings-hours-container");
-  if (!container) return;
-  container.innerHTML = "";
-  const dayNamesList = DAY_NAMES[currentLang] || DAY_NAMES["zh-TW"];
-  for (let i = 1; i <= 7; i++) {
-    const dayIdx = i === 7 ? 0 : i;
+var currentOperatingHoursView = 'timeline';
+var selectedOperatingDay = (function() {
+  const d = new Date().getDay();
+  return (d >= 0 && d <= 6) ? d : 1;
+})();
+
+const OPERATING_DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+const OPERATING_DAY_SHORT_NAMES = {
+  "zh-TW": ["週日", "週一", "週二", "週三", "週四", "週五", "週六"],
+  "vi": ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"]
+};
+const OPERATING_DAY_FULL_NAMES = {
+  "zh-TW": ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"],
+  "vi": ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"]
+};
+
+function parseTimeToMinutes(str) {
+  if (!str || typeof str !== 'string' || !str.includes(':')) return 0;
+  const parts = str.split(':');
+  const h = parseInt(parts[0], 10) || 0;
+  const m = parseInt(parts[1], 10) || 0;
+  return h * 60 + m;
+}
+
+function formatOperatingShiftDuration(totalMinutes) {
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h > 0 && m > 0) {
+    return (typeof t === 'function' && t('shiftDuration', { h, m })) || `共 ${h} 小時 ${m} 分`;
+  }
+  if (h > 0) {
+    return (typeof t === 'function' && t('shiftDurationHoursOnly', { h })) || `共 ${h} 小時`;
+  }
+  return (typeof t === 'function' && t('shiftDurationMinsOnly', { m })) || `共 ${m} 分鐘`;
+}
+
+function getShiftTimelineMetrics(startStr, endStr) {
+  const startMin = parseTimeToMinutes(startStr);
+  let endMin = parseTimeToMinutes(endStr);
+  const isOvernight = endMin <= startMin;
+  if (isOvernight) {
+    endMin += 1440;
+  }
+  const durationMinutes = Math.max(0, endMin - startMin);
+
+  // 24h timeline window: spans 06:00 (360 min) to 06:00 next day (1800 min)
+  let relStart = startMin - 360;
+  if (relStart < 0) relStart += 1440;
+  let relEnd = endMin - 360;
+  if (relEnd < relStart) relEnd += 1440;
+
+  const leftPercent = Math.max(0, Math.min(100, (relStart / 1440) * 100));
+  const rightPercent = Math.max(0, Math.min(100, (relEnd / 1440) * 100));
+  const widthPercent = Math.max(2.5, Math.min(100 - leftPercent, rightPercent - leftPercent));
+
+  return {
+    isOvernight,
+    durationMinutes,
+    leftPercent,
+    widthPercent
+  };
+}
+
+function switchHoursView(view) {
+  currentOperatingHoursView = view;
+  const btnTimeline = document.getElementById("btn-hours-view-timeline");
+  const btnList = document.getElementById("btn-hours-view-list");
+  if (btnTimeline) btnTimeline.classList.toggle("active", view === "timeline");
+  if (btnList) btnList.classList.toggle("active", view === "list");
+  renderWeeklyOverview();
+}
+window.switchHoursView = switchHoursView;
+
+function selectOperatingDay(dayIdx) {
+  selectedOperatingDay = Number(dayIdx);
+  document.querySelectorAll(".timeline-row, .hours-list-row").forEach(el => {
+    el.classList.toggle("active", Number(el.dataset.day) === selectedOperatingDay);
+  });
+  renderWeeklyOverview();
+  renderDayDetailEditor();
+}
+window.selectOperatingDay = selectOperatingDay;
+
+function renderWeeklyTimeline(container) {
+  const lang = (typeof currentLang !== 'undefined' && currentLang) || "zh-TW";
+  const shortNames = OPERATING_DAY_SHORT_NAMES[lang] || OPERATING_DAY_SHORT_NAMES["zh-TW"];
+
+  const chevronRightSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
+  const chevronDownSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+
+  let rowsHtml = "";
+  OPERATING_DAY_ORDER.forEach(dayIdx => {
     const shifts = (storeOperatingHours && storeOperatingHours[dayIdx]) || [];
     const isOpen = shifts.length > 0;
-    const row = document.createElement("div");
-    row.style.cssText = "background: #fff; border: 1.5px solid var(--border, #e2e8f0); border-radius: 12px; padding: 14px 16px; transition: all 0.15s ease;";
-    let shiftsHtml = "";
-    shifts.forEach((shift, sIdx) => {
-      shiftsHtml += `
-        <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
-          <input type="time" id="sh-start-${dayIdx}-${sIdx}" value="${shift.start}" style="flex:1; padding:8px 12px; font-family:inherit; border:1.5px solid var(--border, #cbd5e1); border-radius:8px; font-size:var(--pos-text-body); font-weight:600; outline:none;">
-          <span style="font-weight:900; color:#64748b;">-</span>
-          <input type="time" id="sh-end-${dayIdx}-${sIdx}" value="${shift.end}" style="flex:1; padding:8px 12px; font-family:inherit; border:1.5px solid var(--border, #cbd5e1); border-radius:8px; font-size:var(--pos-text-body); font-weight:600; outline:none;">
-          <button type="button" onclick="removeShift(${dayIdx}, ${sIdx})" style="background:#fee2e2; border:1px solid #fca5a5; color:#dc2626; cursor:pointer; font-size:var(--pos-text-body); width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">✕</button>
+    const isActive = (dayIdx === selectedOperatingDay);
+    const label = shortNames[dayIdx];
+
+    let barsHtml = "";
+    if (isOpen) {
+      barsHtml = shifts.map((s, idx) => {
+        const m = getShiftTimelineMetrics(s.start, s.end);
+        return `<div class="timeline-bar ${idx > 0 ? 'secondary' : ''}" style="left: ${m.leftPercent}%; width: ${m.widthPercent}%;">
+          <div class="timeline-bar-dot" style="margin-left: 6px;"></div>
         </div>`;
-    });
-    row.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:var(--pos-text-body); font-weight:800; color:#1e293b;">
-          <input type="checkbox" ${isOpen ? 'checked' : ''} onchange="toggleDayStatus(${dayIdx}, this.checked)" style="width:20px; height:20px; accent-color:var(--primary, #00b900);">
-          <span style="color:${isOpen ? '#0f172a' : '#94a3b8'};">${dayNamesList[dayIdx]}</span>
-        </label>
-        ${isOpen ? `<button type="button" onclick="addShift(${dayIdx})" style="font-size:var(--pos-text-meta); background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:800;">${t('btnAddShift')}</button>` : `<span style="font-size:var(--pos-text-meta); color:#ef4444; font-weight:800; background:#fef2f2; padding:4px 8px; border-radius:6px; border:1px solid #fee2e2;">${t('closedDay')}</span>`}
+      }).join("");
+    } else {
+      barsHtml = `<div class="timeline-rest-label">${t('resting') || '休息'}</div>`;
+    }
+
+    rowsHtml += `
+      <div class="timeline-row ${isActive ? 'active' : ''}" data-day="${dayIdx}" onclick="selectOperatingDay(${dayIdx})" role="button" tabindex="0">
+        <span class="timeline-day-label">${label}</span>
+        <div class="timeline-track-wrap">
+          <div class="timeline-midnight-guide"></div>
+          ${barsHtml}
+        </div>
+        <div class="timeline-row-chevron">${isActive ? chevronDownSvg : chevronRightSvg}</div>
       </div>
-      ${isOpen ? `<div id="shifts-box-${dayIdx}">${shiftsHtml}</div>` : ''}`;
-    container.appendChild(row);
+    `;
+  });
+
+  container.innerHTML = `
+    <div class="hours-timeline-card">
+      <div class="timeline-ruler">
+        <span class="timeline-ruler-mark" style="left: 0%;">06:00</span>
+        <span class="timeline-ruler-mark" style="left: 25%;">12:00</span>
+        <span class="timeline-ruler-mark" style="left: 50%;">18:00</span>
+        <span class="timeline-ruler-mark" style="left: 75%; color: #0f172a; font-weight: 900;">00:00</span>
+        <span class="timeline-ruler-mark" style="left: 100%;">06:00</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        ${rowsHtml}
+      </div>
+    </div>
+  `;
+}
+
+function renderWeeklyList(container) {
+  const lang = (typeof currentLang !== 'undefined' && currentLang) || "zh-TW";
+  const shortNames = OPERATING_DAY_SHORT_NAMES[lang] || OPERATING_DAY_SHORT_NAMES["zh-TW"];
+  const fullNames = OPERATING_DAY_FULL_NAMES[lang] || OPERATING_DAY_FULL_NAMES["zh-TW"];
+
+  const chevronRightSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
+  const chevronDownSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+
+  let rowsHtml = "";
+  OPERATING_DAY_ORDER.forEach(dayIdx => {
+    const shifts = (storeOperatingHours && storeOperatingHours[dayIdx]) || [];
+    const isOpen = shifts.length > 0;
+    const isActive = (dayIdx === selectedOperatingDay);
+    const shortLabel = shortNames[dayIdx];
+    const fullLabel = fullNames[dayIdx];
+
+    let shiftText = "";
+    if (isOpen) {
+      shiftText = shifts.map(s => {
+        const m = getShiftTimelineMetrics(s.start, s.end);
+        const nextDayPrefix = m.isOvernight ? (t('nextDay') || '隔日') + ' ' : '';
+        return `${s.start} - ${nextDayPrefix}${s.end}`;
+      }).join(' · ');
+    } else {
+      shiftText = `<span style="color: #94a3b8; font-weight: 700;">${t('resting') || '休息'}</span>`;
+    }
+
+    rowsHtml += `
+      <div class="hours-list-row ${isActive ? 'active' : ''}" data-day="${dayIdx}" onclick="selectOperatingDay(${dayIdx})" role="button" tabindex="0">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-weight: 900; font-size: 15px; color: ${isOpen ? '#0f172a' : '#94a3b8'}; width: 48px;">${shortLabel}</span>
+          <span style="font-size: 13px; color: #64748b; font-weight: 600;">${fullLabel}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-weight: 800; font-size: 14px; color: #0f172a;">${shiftText}</span>
+          <span style="color: #94a3b8;">${isActive ? chevronDownSvg : chevronRightSvg}</span>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = `
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      ${rowsHtml}
+    </div>
+  `;
+}
+
+function renderWeeklyOverview() {
+  const container = document.getElementById("hours-settings-list");
+  if (!container) return;
+  if (currentOperatingHoursView === 'list') {
+    renderWeeklyList(container);
+  } else {
+    renderWeeklyTimeline(container);
   }
 }
 
-function syncOperatingHoursFromDOM() {
-  if (!storeOperatingHours) return;
-  for (let i = 0; i < 7; i++) {
-    const shifts = storeOperatingHours[i];
-    if (shifts && shifts.length > 0) {
-      shifts.forEach((shift, sIdx) => {
-        const elStart = document.getElementById(`sh-start-${i}-${sIdx}`);
-        const elEnd = document.getElementById(`sh-end-${i}-${sIdx}`);
-        if (elStart && elEnd) { shift.start = elStart.value; shift.end = elEnd.value; }
-      });
-    }
+function renderDayDetailEditor() {
+  const container = document.getElementById("hours-day-editor-container");
+  if (!container) return;
+
+  const dayIdx = selectedOperatingDay;
+  const lang = (typeof currentLang !== 'undefined' && currentLang) || "zh-TW";
+  const dayName = (OPERATING_DAY_FULL_NAMES[lang] || OPERATING_DAY_FULL_NAMES["zh-TW"])[dayIdx];
+  const nextDayIdx = (dayIdx + 1) % 7;
+  const nextDayName = (OPERATING_DAY_FULL_NAMES[lang] || OPERATING_DAY_FULL_NAMES["zh-TW"])[nextDayIdx];
+
+  const shifts = (storeOperatingHours && storeOperatingHours[dayIdx]) || [];
+  const isOpen = shifts.length > 0;
+
+  const checkSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+  const slashSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>`;
+  const moonSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: #60a5fa;"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>`;
+  const sunSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: #f59e0b;"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>`;
+  const plusSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+  const copySvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>`;
+
+  const headerHtml = `
+    <div class="hours-editor-header">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: ${isOpen ? '#10b981' : '#94a3b8'};"></span>
+        <h3 style="margin: 0; font-size: 18px; font-weight: 900; color: #0f172a;">${dayName}</h3>
+      </div>
+      <button type="button" class="day-status-pill ${isOpen ? 'open' : 'closed'}" onclick="toggleSelectedDayStatus()">
+        ${isOpen ? checkSvg : slashSvg}
+        <span>${isOpen ? (t('openStatus') || '營業中') : (t('closedStatus') || '設定公休')}</span>
+      </button>
+    </div>
+  `;
+
+  if (!isOpen) {
+    container.innerHTML = `
+      <div class="hours-day-editor">
+        ${headerHtml}
+        <div style="text-align: center; padding: 36px 20px; background: #f8fafc; border-radius: 12px; border: 1.5px dashed #cbd5e1;">
+          <div style="color: #64748b; font-weight: 800; font-size: 15px; margin-bottom: 12px;">${t('dayClosedDesc') || '本日設定為公休，不對外營業接單。'}</div>
+          <button type="button" class="hours-action-btn" style="background: #ecfdf5; color: #047857; border: 1.5px solid #a7f3d0;" onclick="toggleSelectedDayStatus()">
+            ${t('btnReopenDay') || '開啟本日營業'}
+          </button>
+        </div>
+      </div>
+    `;
+    return;
   }
+
+  let shiftsHtml = "";
+  shifts.forEach((shift, sIdx) => {
+    const m = getShiftTimelineMetrics(shift.start, shift.end);
+    const endDayLabel = m.isOvernight ? nextDayName : dayName;
+
+    shiftsHtml += `
+      <div style="margin-bottom: 18px; padding-bottom: 18px; border-bottom: ${sIdx < shifts.length - 1 ? '1px dashed #e2e8f0' : 'none'};">
+        <div class="time-cards-grid">
+          <!-- Start Time Card -->
+          <div class="time-card">
+            <div class="time-card-title">
+              <span>${t('startTime') || '開始時間'}</span>
+              <span>${dayName}</span>
+            </div>
+            <input type="time" class="time-card-input" value="${shift.start}" onchange="onShiftTimeChange(${dayIdx}, ${sIdx}, 'start', this.value)">
+          </div>
+
+          <!-- End Time Card -->
+          <div class="time-card">
+            <div class="time-card-title">
+              <span>${t('endTime') || '結束時間'}</span>
+              ${m.isOvernight ? `<span class="overnight-tag">${t('nextDay') || '隔日'} · ${endDayLabel}</span>` : `<span class="sameday-tag">${dayName}</span>`}
+            </div>
+            <input type="time" class="time-card-input" value="${shift.end}" onchange="onShiftTimeChange(${dayIdx}, ${sIdx}, 'end', this.value)">
+          </div>
+        </div>
+
+        <!-- Shift Summary Bar -->
+        <div class="shift-summary-bar ${m.isOvernight ? 'overnight' : 'regular'}">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            ${m.isOvernight ? moonSvg : sunSvg}
+            <span>${m.isOvernight ? (t('overnightShift') || '跨夜營業') : (t('regularShift') || '正常營業')} · ${formatOperatingShiftDuration(m.durationMinutes)}</span>
+          </div>
+          ${shifts.length > 1 ? `
+            <button type="button" class="btn btn-ghost" style="color: ${m.isOvernight ? '#f87171' : '#dc2626'}; padding: 4px 8px; font-size: 13px; font-weight: 800;" onclick="removeOperatingShift(${dayIdx}, ${sIdx})">
+              ✕ ${t('btnRemoveShift') || '刪除此時段'}
+            </button>
+          ` : ''}
+        </div>
+
+        <!-- Mini Preview Bar -->
+        <div class="mini-preview-wrap">
+          <div class="timeline-midnight-guide"></div>
+          <div class="mini-preview-bar" style="left: ${m.leftPercent}%; width: ${m.widthPercent}%;"></div>
+        </div>
+        <div class="mini-preview-labels">
+          <span>${dayName} ${shift.start}</span>
+          <span style="color: #64748b; font-weight: 800;">00:00</span>
+          <span>${endDayLabel} ${shift.end}</span>
+        </div>
+        ${m.isOvernight ? `<div style="font-size: 12px; color: #64748b; font-weight: 600; margin-top: -6px; margin-bottom: 12px;">${t('overnightHint') || '結束時間晚於午夜，系統自動計入隔日。'}</div>` : ''}
+      </div>
+    `;
+  });
+
+  container.innerHTML = `
+    <div class="hours-day-editor">
+      ${headerHtml}
+      ${shiftsHtml}
+
+      <!-- Add Shift Button -->
+      <button type="button" class="hours-action-btn" style="width: 100%; border: 1.5px dashed #cbd5e1; background: #f8fafc; color: #2563eb; margin: 4px 0 16px;" onclick="addOperatingShift(${dayIdx})">
+        ${plusSvg}
+        <span>${t('btnAddShift') || '+ 新增營業時段'}</span>
+      </button>
+
+      <!-- Batch Apply Actions -->
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button type="button" class="hours-action-btn" style="flex: 1; min-width: 220px; border: 1.5px solid var(--border); background: #ffffff; color: #0f172a;" onclick="applyCurrentDayHoursTo('weekdays')">
+          ${copySvg}
+          <span>${t('btnApplyToWeekdays') || '套用至全部平日 (週一至週五)'}</span>
+        </button>
+        <button type="button" class="hours-action-btn" style="flex: 1; min-width: 220px; border: 1.5px solid var(--border); background: #ffffff; color: #0f172a;" onclick="applyCurrentDayHoursTo('all')">
+          ${copySvg}
+          <span>${t('btnApplyToAllDays') || '套用至整週 (週一至週日)'}</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function onShiftTimeChange(dayIdx, sIdx, field, value) {
+  if (!storeOperatingHours) storeOperatingHours = createDefaultOperatingHours();
+  if (!storeOperatingHours[dayIdx]) storeOperatingHours[dayIdx] = [];
+  if (!storeOperatingHours[dayIdx][sIdx]) return;
+  storeOperatingHours[dayIdx][sIdx][field] = value;
+  renderWeeklyOverview();
+  renderDayDetailEditor();
+}
+window.onShiftTimeChange = onShiftTimeChange;
+
+function toggleSelectedDayStatus() {
+  if (!storeOperatingHours) storeOperatingHours = createDefaultOperatingHours();
+  const dayIdx = selectedOperatingDay;
+  const currentShifts = storeOperatingHours[dayIdx] || [];
+  if (currentShifts.length > 0) {
+    storeOperatingHours[dayIdx] = [];
+  } else {
+    storeOperatingHours[dayIdx] = [{ start: "11:00", end: "21:00" }];
+  }
+  renderWeeklyOverview();
+  renderDayDetailEditor();
+}
+window.toggleSelectedDayStatus = toggleSelectedDayStatus;
+
+function addOperatingShift(dayIdx) {
+  if (!storeOperatingHours) storeOperatingHours = createDefaultOperatingHours();
+  if (!storeOperatingHours[dayIdx]) storeOperatingHours[dayIdx] = [];
+  const shifts = storeOperatingHours[dayIdx];
+  const lastShift = shifts[shifts.length - 1];
+  let newStart = "17:00";
+  let newEnd = "21:00";
+  if (lastShift) {
+    const endM = parseTimeToMinutes(lastShift.end);
+    const nextStartM = (endM + 60) % 1440;
+    const nextEndM = (nextStartM + 240) % 1440;
+    newStart = `${String(Math.floor(nextStartM / 60)).padStart(2, '0')}:${String(nextStartM % 60).padStart(2, '0')}`;
+    newEnd = `${String(Math.floor(nextEndM / 60)).padStart(2, '0')}:${String(nextEndM % 60).padStart(2, '0')}`;
+  }
+  shifts.push({ start: newStart, end: newEnd });
+  renderWeeklyOverview();
+  renderDayDetailEditor();
+}
+window.addOperatingShift = addOperatingShift;
+
+function removeOperatingShift(dayIdx, sIdx) {
+  if (!storeOperatingHours || !storeOperatingHours[dayIdx]) return;
+  storeOperatingHours[dayIdx].splice(sIdx, 1);
+  renderWeeklyOverview();
+  renderDayDetailEditor();
+}
+window.removeOperatingShift = removeOperatingShift;
+
+function applyCurrentDayHoursTo(targetType) {
+  if (!storeOperatingHours) storeOperatingHours = createDefaultOperatingHours();
+  const sourceShifts = JSON.parse(JSON.stringify(storeOperatingHours[selectedOperatingDay] || []));
+  const targets = targetType === 'weekdays' ? [1, 2, 3, 4, 5] : [0, 1, 2, 3, 4, 5, 6];
+  targets.forEach(d => {
+    storeOperatingHours[d] = JSON.parse(JSON.stringify(sourceShifts));
+  });
+  renderWeeklyOverview();
+  renderDayDetailEditor();
+  const msg = targetType === 'weekdays'
+    ? (t('appliedToWeekdays') || '已將營業時間套用至週一至週五')
+    : (t('appliedToAllDays') || '已將營業時間套用至整週');
+  if (typeof showToast === 'function') {
+    showToast(msg);
+  } else {
+    alert(msg);
+  }
+}
+window.applyCurrentDayHoursTo = applyCurrentDayHoursTo;
+
+function renderOperatingHours() {
+  renderWeeklyOverview();
+  renderDayDetailEditor();
+}
+
+function syncOperatingHoursFromDOM() {
+  // Model-driven: storeOperatingHours is updated directly via onShiftTimeChange
 }
 
 function toggleDayStatus(dayIdx, isChecked) {
   if (!storeOperatingHours) storeOperatingHours = createDefaultOperatingHours();
-  storeOperatingHours[dayIdx] = isChecked ? [{ start: "08:00", end: "21:00" }] : [];
+  storeOperatingHours[dayIdx] = isChecked ? [{ start: "11:00", end: "21:00" }] : [];
   renderOperatingHours();
 }
 
 function addShift(dayIdx) {
-  if (!storeOperatingHours) storeOperatingHours = createDefaultOperatingHours();
-  syncOperatingHoursFromDOM();
-  if (!storeOperatingHours[dayIdx]) storeOperatingHours[dayIdx] = [];
-  storeOperatingHours[dayIdx].push({ start: "12:00", end: "13:00" });
-  renderOperatingHours();
+  addOperatingShift(dayIdx);
 }
 
 function removeShift(dayIdx, sIdx) {
-  if (!storeOperatingHours) return;
-  syncOperatingHoursFromDOM();
-  if (storeOperatingHours[dayIdx]) {
-    storeOperatingHours[dayIdx].splice(sIdx, 1);
-  }
-  renderOperatingHours();
+  removeOperatingShift(dayIdx, sIdx);
 }
 
 async function saveOperatingHours() {
-  syncOperatingHoursFromDOM();
   const btn = document.getElementById("btn-save-hours");
   const oldText = btn ? btn.innerText : "";
   if (btn) { btn.innerText = t("saving"); btn.disabled = true; }
@@ -857,7 +1204,12 @@ async function saveOperatingHours() {
       body: JSON.stringify({ operatingHours: storeOperatingHours })
     });
     if (!res.ok) throw new Error("API returned " + res.status);
-    alert(t("saveSuccess"));
+    const successMsg = t("hoursSaveSuccess") || t("saveSuccess") || "營業時間設定已儲存成功！";
+    if (typeof showToast === 'function') {
+      showToast(successMsg);
+    } else {
+      alert(successMsg);
+    }
   } catch (e) {
     alert(t("saveFail") + e.message);
   } finally {
