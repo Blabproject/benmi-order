@@ -5,8 +5,8 @@
  * 
  * Verifies:
  * 1. Syntax correctness across all JavaScript files.
- * 2. Shared Lexical Scope validation: Detects duplicate top-level `const`, `let`, `class`
- *    declarations across `<script>` tags loaded in the same HTML page.
+ * 2. Shared Scope validation: Detects duplicate top-level functions and lexical
+ *    declarations across external and inline classic scripts in the same page.
  * 3. VM Context Simulation: Evaluates all scripts in order within a mock browser context
  *    to catch undefined variables, scope errors, and initialization crashes.
  */
@@ -15,6 +15,8 @@ const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 const { execSync } = require("child_process");
+const { extractClassicScripts, findScopeCollisions, isKnownCollision } = require('./frontend-scope.cjs');
+const knownCollisions = require('./frontend-scope-allowlist.json');
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 const HTML_FILES = ["orders.html", "index.html", "marketplace.html", "staff-order.html", "payment-result.html"];
@@ -52,92 +54,43 @@ if (fs.existsSync(jsDir)) {
   });
 }
 
-// Helper: Extract script tags from HTML file
-function extractScriptSources(htmlFilePath) {
-  const content = fs.readFileSync(htmlFilePath, "utf8");
-  const scriptRegex = /<script\s+[^>]*src=["']([^"']+)["'][^>]*>/gi;
-  const sources = [];
-  let match;
-  while ((match = scriptRegex.exec(content)) !== null) {
-    const src = match[1].split("?")[0]; // Strip cache buster query
-    if (!src.startsWith("http://") && !src.startsWith("https://") && !src.startsWith("//")) {
-      sources.push(src);
-    }
-  }
-  return sources;
-}
-
-// Helper: Extract top-level let, const, class declarations from a JS file
-function findTopLevelDeclarations(filePath) {
-  const content = fs.readFileSync(filePath, "utf8");
-  const lines = content.split("\n");
-  const decls = [];
-
-  let inBlockComment = false;
-  lines.forEach((line, idx) => {
-    const trimmed = line.trim();
-    if (inBlockComment) {
-      if (trimmed.includes("*/")) inBlockComment = false;
-      return;
-    }
-    if (trimmed.startsWith("/*")) {
-      if (!trimmed.includes("*/")) inBlockComment = true;
-      return;
-    }
-    if (trimmed.startsWith("//")) return;
-
-    // Check top-level (0 indentation or minimal export) const, let, class
-    const declMatch = line.match(/^(?:const|let|class)\s+([a-zA-Z0-9_$]+)/);
-    if (declMatch) {
-      decls.push({
-        type: declMatch[0].split(/\s+/)[0],
-        name: declMatch[1],
-        line: idx + 1
-      });
-    }
-  });
-
-  return decls;
-}
-
-// 2. Check each HTML file for cross-script lexical collisions
-console.log(`\n${COLORS.bold}2. Checking Lexical Scope Collisions across HTML script tags...${COLORS.reset}`);
+// 2. Check every classic script, including inline scripts, using JavaScript ASTs.
+console.log(`\n${COLORS.bold}2. Checking Global Scope Collisions across HTML script tags...${COLORS.reset}`);
 
 HTML_FILES.forEach(htmlFile => {
   const htmlPath = path.join(ROOT_DIR, htmlFile);
   if (!fs.existsSync(htmlPath)) return;
 
   console.log(`\n${COLORS.bold}📄 Analyzing ${htmlFile}:${COLORS.reset}`);
-  const scripts = extractScriptSources(htmlPath);
+  const pageScripts = extractClassicScripts(fs.readFileSync(htmlPath, 'utf8'), htmlFile);
+  const scripts = pageScripts.filter(script => script.external).map(script => script.file);
   console.log(`  Found ${scripts.length} local scripts: ${COLORS.gray}${scripts.join(", ")}${COLORS.reset}`);
 
-  const declaredIdentifiers = new Map();
-
-  scripts.forEach(scriptSrc => {
-    const scriptPath = path.join(ROOT_DIR, scriptSrc);
-    if (!fs.existsSync(scriptPath)) {
-      console.log(`  ${COLORS.yellow}⚠ Script not found on disk: ${scriptSrc}${COLORS.reset}`);
-      return;
-    }
-
-    const decls = findTopLevelDeclarations(scriptPath);
-    decls.forEach(d => {
-      if (declaredIdentifiers.has(d.name)) {
-        const prev = declaredIdentifiers.get(d.name);
-        hasErrors = true;
-        console.error(
-          `  ${COLORS.red}✗ FATAL SCOPE ERROR: Identifier '${d.name}' (${d.type}) in '${scriptSrc}:${d.line}' has already been declared in '${prev.file}:${prev.line}'.\n` +
-          `    In browser <script> tags, this throws 'Uncaught SyntaxError: Identifier "${d.name}" has already been declared' and stops script execution!${COLORS.reset}`
-        );
-      } else {
-        declaredIdentifiers.set(d.name, {
-          file: scriptSrc,
-          line: d.line,
-          type: d.type
-        });
+  try {
+    const loadedScripts = pageScripts.map(script => ({
+      ...script,
+      content: script.external ? fs.readFileSync(path.join(ROOT_DIR, script.file), 'utf8') : script.content
+    }));
+    for (const collision of findScopeCollisions(loadedScripts)) {
+      const { name, previous, current } = collision;
+      const exception = knownCollisions.find(entry => entry.page === htmlFile && isKnownCollision(collision, entry));
+      if (exception) {
+        console.log(`  ${COLORS.yellow}⚠ Known function override '${name}': ${previous.file}:${previous.line} -> ${current.file}:${current.line} (exact source fingerprints verified)${COLORS.reset}`);
+        continue;
       }
-    });
-  });
+      hasErrors = true;
+      const explanation = previous.type === 'function' && current.type === 'function'
+        ? 'The later function silently replaces the earlier global function and can cause runtime recursion.'
+        : 'These declarations conflict in the shared browser global scope.';
+      console.error(
+        `  ${COLORS.red}✗ FATAL SCOPE ERROR: Identifier '${name}' (${current.type}) in '${current.file}:${current.line}' has already been declared in '${previous.file}:${previous.line}'.\n` +
+        `    ${explanation}${COLORS.reset}`
+      );
+    }
+  } catch (error) {
+    hasErrors = true;
+    console.error(`  ${COLORS.red}✗ Scope analysis failed in '${htmlFile}': ${error.message}${COLORS.reset}`);
+  }
 
   // 3. Browser Simulation in shared VM context
   console.log(`  ${COLORS.cyan}Simulating script execution sequence in shared VM context...${COLORS.reset}`);

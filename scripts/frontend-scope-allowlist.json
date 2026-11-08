@@ -1,0 +1,41 @@
+[
+  {
+    "page": "index.html",
+    "name": "parseCartKey",
+    "previous": {
+      "file": "/js/client-cart.js",
+      "sha256": "d6a5dd1009c9e38bdfab821a585fbdaa47087db50a75b84a462ad2fea3b10104"
+    },
+    "current": {
+      "file": "/js/client-checkout.js",
+      "sha256": "00feb465ab76070acdba3bbdcad9d7b05c1ea3931ced1a5e11379ba5418b89b7"
+    },
+    "reason": "Legacy checkout parser overrides the cart parser; retained during scope-check rollout without changing production behavior."
+  },
+  {
+    "page": "index.html",
+    "name": "resolveCatalogItem",
+    "previous": {
+      "file": "/js/client-menu.js",
+      "sha256": "000f06067729b4f40e3fe5b9f8ffc0a143e84eb0e6695a1405edae48a5bc9bae"
+    },
+    "current": {
+      "file": "/js/client-checkout.js",
+      "sha256": "b3507ebacbae7615db9f98d5c9c368bb9e015ea24f63ce5ecc41decc8037ce9f"
+    },
+    "reason": "Legacy checkout resolver overrides the menu resolver; retained during scope-check rollout without changing production behavior."
+  },
+  {
+    "page": "orders.html",
+    "name": "isOrderDineIn",
+    "previous": {
+      "file": "js/orders-live.js",
+      "sha256": "d6abcfb22ddf99eb32fc24855de2d9cd86252944daf6e17e7171b6a61c824dd7"
+    },
+    "current": {
+      "file": "js/orders-history.js",
+      "sha256": "6f5a778efaa88fd73fadf148ce271054aa7bcb5694972b33afccd5d827774321"
+    },
+    "reason": "History supplies the existing broader dining-mode detection used by the POS shared scope."
+  }
+]

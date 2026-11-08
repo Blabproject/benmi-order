@@ -4,8 +4,14 @@ import test from 'node:test';
 import config from '../benmi-worker-official/cloudflare.config.ts';
 import { resolveDatabase, parseQueryResults } from '../benmi-worker-official/scripts/cloudflare-d1.cjs';
 
-// The retained pre-migration config is the reference for resource identity.
+// The retained pre-migration config anchors unchanged resource identities.
+// Post-migration resources are asserted explicitly; never copy expectations from config().
 const legacy = JSON.parse(fs.readFileSync(new URL('../benmi-worker-official/wrangler.jsonc', import.meta.url), 'utf8'));
+const imageBuckets = {
+  dev: 'benmi-images-dev',
+  test: 'benmi-images-test',
+  production: 'benmi-images-production'
+};
 
 for (const mode of ['dev', 'test', 'production']) {
   test(`${mode}: preserve Worker, account, database, KV, variables and secret references`, () => {
@@ -34,6 +40,10 @@ for (const mode of ['dev', 'test', 'production']) {
       assert.notEqual(expected.ORDER_STATE.id, config({mode:'test'}).worker.env.ORDER_STATE.id);
     }
     for (const key of ["UNIFIED_MENU_ENABLED", "ORDER_DETAIL_READS", "ORDER_DETAIL_WRITES"]) expected[key] = { type: "text", value: "true" };
+    expected.IMAGES_BUCKET = { type: 'r2', name: imageBuckets[mode] };
+    expected.PRICING_ENGINE = { type: 'worker', worker: 'benmi-pricing-rs' };
+    expected.PRICING_RUST_ENABLED = { type: 'text', value: 'true' };
+    expected.PRICING_RUST_TENANTS = { type: 'text', value: '["blab_demo"]' };
     assert.match(worker.env.BUILD_COMMIT.value, /^[a-f0-9]{40}$/);
     assert.equal(worker.env.BUILD_ENVIRONMENT.value, mode === "test" ? "staging" : mode);
     assert.match(worker.env.BUILD_DIRTY.value, /^(true|false)$/);

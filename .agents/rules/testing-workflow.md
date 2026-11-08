@@ -7,7 +7,9 @@
 ### Cấp 1: Kiểm thử Tức thì (Instant Feedback - Dưới 1 giây)
 Áp dụng ngay sau mỗi lần chỉnh sửa file CSS/JS hoặc cấu trúc HTML:
 - **Lệnh**: `npm run check` (hoặc `node scripts/check-frontend.js`)
-- **Mục đích**: Phát hiện ngay lập tức lỗi cú pháp, va chạm biến toàn cục (`const`/`let`) giữa các thẻ `<script>`, và lỗi biên dịch `applyLanguageToDOM()`.
+- **Mục đích**: Phát hiện lỗi cú pháp, trùng hàm/biến toàn cục giữa các thẻ `<script>` thường (file ngoài và inline), và lỗi khởi tạo `applyLanguageToDOM()`. Bộ quét AST bỏ qua hàm cục bộ và script module có phạm vi riêng.
+- **Ngoại lệ kế thừa**: `scripts/frontend-scope-allowlist.json` ghi nhận 3 cặp override hiện có (`parseCartKey`, `resolveCatalogItem`, `isOrderDineIn`) bằng trang, cặp file và SHA-256 của cả hai hàm. Khi nội dung hàm thay đổi hoặc xuất hiện khai báo thứ ba, `check` sẽ báo lỗi. Ưu tiên gom về một hàm dùng chung khi chỉnh các cặp này; không thêm ngoại lệ chỉ dựa trên tên hàm.
+- **Test bộ quét**: `npm run test:frontend-scope` kiểm tra lỗi LIFF trùng hàm, script inline, phạm vi cục bộ và tính chặt chẽ của ngoại lệ. Test này cũng nằm trong `npm test` và release baseline.
 
 ---
 

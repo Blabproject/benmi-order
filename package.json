@@ -10,7 +10,7 @@
     "check": "node scripts/check-frontend.js",
     "check:pos": "node scripts/check-frontend.js",
     "check:frontend": "node scripts/check-frontend.js",
-    "test": "node scripts/check-frontend.js && node --test scripts/test-explore-routing.mjs && node --test scripts/test-client-modular.mjs && node --test scripts/test-line-tenant-redirect.mjs && node --test scripts/test-line-text-normalization.mjs && node --test scripts/test-order-domain-routing.mjs && node --experimental-sqlite --test scripts/test-order-domain-api.cjs && node --experimental-sqlite --test scripts/test-tenant-lifecycle.cjs && node --experimental-sqlite --test scripts/test-report-repository.cjs && node --test tests/test_menu_sort_button_visibility.cjs && node --test tests/test_menu_dirty_detection.cjs && node --test tests/test_menu_model.cjs && node --test tests/test_modifier_option_name_collision.cjs && node --test tests/test_option_surcharge_cart.cjs && node --test tests/test_menu_workspace.cjs && node --test tests/test_item_modifier_workspace.cjs && node --test tests/test_menu_display_scale.cjs && node --test tests/test_order_item_note_dedup.cjs && npm run test:order-details && node --test tests/test_category_linked_products_picker.cjs && node --test tests/test_pos_tab_persistence.cjs && node --experimental-sqlite --test tests/test_pos_menu_bug_fixes.cjs && node --experimental-sqlite --test tests/test_table_qr_ordering.cjs && npm run test:new-menu",
+    "test": "node scripts/check-frontend.js && npm run test:frontend-scope && node --test scripts/test-explore-routing.mjs && node --test scripts/test-client-modular.mjs && node --test scripts/test-line-tenant-redirect.mjs && node --test scripts/test-line-text-normalization.mjs && node --test scripts/test-order-domain-routing.mjs && node --experimental-sqlite --test scripts/test-order-domain-api.cjs && node --experimental-sqlite --test scripts/test-tenant-lifecycle.cjs && node --experimental-sqlite --test scripts/test-report-repository.cjs && node --test tests/test_menu_sort_button_visibility.cjs && node --test tests/test_menu_dirty_detection.cjs && node --test tests/test_menu_model.cjs && node --test tests/test_modifier_option_name_collision.cjs && node --test tests/test_option_surcharge_cart.cjs && node --test tests/test_menu_workspace.cjs && node --test tests/test_item_modifier_workspace.cjs && node --test tests/test_menu_display_scale.cjs && node --test tests/test_order_item_note_dedup.cjs && npm run test:order-details && node --test tests/test_category_linked_products_picker.cjs && node --test tests/test_pos_tab_persistence.cjs && node --experimental-sqlite --test tests/test_pos_menu_bug_fixes.cjs && node --experimental-sqlite --test tests/test_table_qr_ordering.cjs && npm run test:new-menu",
     "test:table-qr": "node --experimental-sqlite --test tests/test_table_qr_ordering.cjs",
     "test:menu-model": "node --test tests/test_menu_model.cjs",
     "test:new-menu": "node --experimental-sqlite --test tests/test_new_menu_deep_verification.cjs tests/test_new_menu_customer_e2e.cjs tests/test_new_menu_category_inheritance.cjs tests/test_new_menu_pos_lifecycle.cjs tests/test_pos_option_groups_contract.cjs tests/test_real_tenants_parity.cjs tests/test_pos_menu_bug_fixes.cjs tests/test_deleted_option_authority.cjs",
@@ -52,7 +52,8 @@
     "test:payment-workspace": "node --test tests/test_payment_workspace.cjs tests/test_payment_workspace_browser.cjs",
     "test:payments": "node --experimental-sqlite --test tests/test_linepay.cjs tests/test_payment_redirect.cjs && node --test tests/test_linepay_browser.cjs tests/test_payment_result_browser.cjs tests/test_payment_pin_onboarding_browser.cjs",
     "graphify": "graphify .",
-    "graphify:update": "graphify update ."
+    "graphify:update": "graphify update .",
+    "test:frontend-scope": "node --test scripts/test-frontend-scope.cjs"
   },
   "keywords": [
     "pos",
@@ -62,6 +63,7 @@
   "author": "Benmi Team",
   "license": "ISC",
   "devDependencies": {
+    "acorn": "8.19.0",
     "playwright": "1.64.1"
   },
   "dependencies": {
