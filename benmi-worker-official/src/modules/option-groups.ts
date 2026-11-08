@@ -2,6 +2,7 @@ import { Env } from '../types/env';
 import { json } from '../utils/http';
 import { getTenantId } from './menu';
 import { invalidateBootstrapCache } from './bootstrap';
+import { deleteTenantImageFromR2AndD1 } from './image';
 import { pricingRustEnabled, callRustValidateUnifiedItems, callRustValidateCatalogGraph } from './pricing-engine-client';
 
 type Row = Record<string, any>;
@@ -391,8 +392,17 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 			if (kind === 'product' && catalog.groups.some((g) => groupOptions(catalog, g).some((o) => o.productId === id || o.subOptions.some((sub: SubOption | string) => typeof sub !== 'string' && sub.productId === id))))
 				throw new Error('PRODUCT_IS_LINKED');
 			const affectedItemIds = kind === 'group' ? new Set<string>(catalog.links.filter((l) => l.groupId === id).map((l) => l.itemId)) : new Set<string>();
-			if (kind === 'product') catalog.products = catalog.products.filter((p) => p.id !== id);
-			else {
+			if (kind === 'product') {
+				catalog.products = catalog.products.filter((p) => p.id !== id);
+				try {
+					await deleteTenantImageFromR2AndD1(env, tenantId, {
+						name: entity?.image_key || undefined,
+						itemId: id,
+						itemName: entity?.name,
+						categoryId: entity?.category_id,
+					});
+				} catch {}
+			} else {
 				catalog.groups = catalog.groups.filter((g) => g.id !== id);
 				catalog.categoryLinks = catalog.categoryLinks.filter((l) => l.groupId !== id);
 			}
@@ -490,25 +500,41 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 				image_key: typeof raw.imageKey === 'string' ? (raw.imageKey.trim() || null) : (previous?.image_key ?? null),
 				menu_revision: Number(previous?.menu_revision || 0) + 1,
 			};
-			if (previous?.image_key && !product.image_key) {
-				if (env.DB) {
-					try {
-						const oldRows = await env.DB.prepare('SELECT r2_key FROM tenant_images WHERE tenant_id = ? AND (name = ? OR bare_name = ?)').bind(tenantId, previous.image_key, previous.image_key).all<Row>();
-						if (env.IMAGES_BUCKET && oldRows?.results?.length) {
-							await Promise.all(oldRows.results.map((r) => env.IMAGES_BUCKET!.delete(String(r.r2_key))));
-						}
-						await env.DB.prepare('DELETE FROM tenant_images WHERE tenant_id = ? AND (name = ? OR bare_name = ?)').bind(tenantId, previous.image_key, previous.image_key).run();
-					} catch {}
-				}
+			const isImageExplicitlyCleared = raw.imageKey === '' || raw.imageKey === null || raw.removedPhoto === true;
+			const hadPreviousImage = Boolean(previous?.image_key);
+			if (!product.image_key && (isImageExplicitlyCleared || hadPreviousImage)) {
+				try {
+					await deleteTenantImageFromR2AndD1(env, tenantId, {
+						name: previous?.image_key || undefined,
+						itemId: id,
+						itemName: product.name || previous?.name,
+						categoryId: product.category_id || previous?.category_id,
+					});
+				} catch {}
 				if (env.ORDER_STATE) {
-					await env.ORDER_STATE.delete(`tenant:${tenantId}:image:${previous.image_key}`);
+					const keysToDelete = [
+						`tenant:${tenantId}:image:${id}`,
+						`tenant:${tenantId}:image:product:${id}`,
+						`tenant:${tenantId}:image:${product.name}`,
+						`tenant:${tenantId}:image:${product.category_id}_${product.name}`,
+					];
+					if (previous?.image_key) keysToDelete.push(`tenant:${tenantId}:image:${previous.image_key}`);
+					if (previous?.name) {
+						keysToDelete.push(`tenant:${tenantId}:image:${previous.name}`);
+						if (previous?.category_id) keysToDelete.push(`tenant:${tenantId}:image:${previous.category_id}_${previous.name}`);
+					}
+					await Promise.all(keysToDelete.map((k) => env.ORDER_STATE.delete(k)));
 					const listKey = `tenant:${tenantId}:image_list`;
 					if (typeof env.ORDER_STATE.get === 'function') {
 						const rawList = await env.ORDER_STATE.get(listKey);
 						if (rawList) {
 							try {
 								const list = JSON.parse(rawList);
-								const filtered = list.filter((k: string) => k !== previous.image_key && k !== product.name);
+								const filtered = list.filter((k: string) =>
+									k !== id && k !== `product:${id}` && k !== product.name &&
+									k !== previous?.image_key && k !== previous?.name &&
+									!k.endsWith(`_${product.name}`) && (!previous?.name || !k.endsWith(`_${previous.name}`))
+								);
 								await env.ORDER_STATE.put(listKey, JSON.stringify(filtered));
 							} catch {}
 						}

@@ -3538,6 +3538,19 @@ async function deleteItemImage() {
     }
     if (deleteBtn) deleteBtn.style.display = "none";
     if (statusEl) statusEl.innerText = t("imageNoImage");
+
+    if (window._tenantImageList) {
+      if (currentImageItemName) {
+        window._tenantImageList.delete(currentImageItemName);
+        const bare = currentImageItemName.includes("_") ? currentImageItemName.split("_").slice(1).join("_") : currentImageItemName;
+        window._tenantImageList.delete(bare);
+      }
+    }
+    markMenuDirty();
+    renderMenuCategories();
+    if (activeCategoryIndex !== null) {
+      renderMenuCategoryEditor(activeCategoryIndex);
+    }
   } catch (e) {
     alert(t("imageDeleteFail") + e.message);
     if (statusEl) statusEl.innerText = t("imageLoadFail");
@@ -5128,6 +5141,7 @@ async function checkItemDetailImage(categoryId, itemName) {
     const hasImg = list && (list.has(key) || list.has(itemName));
     if (hasImg) {
       const resolvedName = list.has(key) ? key : itemName;
+      currentDetailImageKey = resolvedName;
       previewEl.src = `${WORKER_BASE}/api/image?tenant_id=${tenantId}&name=${encodeURIComponent(resolvedName)}&_t=${Date.now()}`;
       previewEl.style.display = "block";
       placeholderEl.style.display = "none";
@@ -5238,7 +5252,6 @@ function handleItemDetailImageSelect(event) {
 window.handleItemDetailImageSelect = handleItemDetailImageSelect;
 
 async function deleteItemDetailPhoto() {
-  if (!currentDetailImageKey) return;
   if (!confirm(t("confirmDeleteImage"))) return;
 
   const statusEl = document.getElementById("item-detail-img-status");
@@ -5246,13 +5259,24 @@ async function deleteItemDetailPhoto() {
   const placeholderEl = document.getElementById("item-detail-img-placeholder");
   const deleteBtn = document.getElementById("btn-item-detail-delete-img");
 
+  const cat = (activeItemDetailCatIdx !== null) ? currentMenuData?.[activeItemDetailCatIdx] : null;
+  const item = (cat && activeItemDetailItemIdx !== null) ? cat?.items?.[activeItemDetailItemIdx] : null;
+  const targetName = currentDetailImageKey || (cat && item ? `${cat.id}_${item.name}` : (item ? item.name : ""));
+
+  if (!targetName && !item) return;
+
   if (statusEl) statusEl.innerText = t("imageDeleting");
   try {
     const tenantId = getTenantIdFromUrl();
     const res = await fetch(`${WORKER_BASE}/api/image?tenant_id=${tenantId}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: currentDetailImageKey })
+      body: JSON.stringify({
+        name: targetName,
+        itemId: item?.id,
+        itemName: item?.name,
+        categoryId: cat?.id
+      })
     });
     if (!res.ok) throw new Error("Delete failed");
 
@@ -5265,17 +5289,29 @@ async function deleteItemDetailPhoto() {
     if (statusEl) statusEl.innerText = t("imageNoImage");
 
     if (window._tenantImageList) {
-      window._tenantImageList.delete(currentDetailImageKey);
-      const bareName = currentDetailImageKey.includes("_") ? currentDetailImageKey.split("_").slice(1).join("_") : currentDetailImageKey;
-      window._tenantImageList.delete(bareName);
+      if (targetName) window._tenantImageList.delete(targetName);
+      if (currentDetailImageKey) window._tenantImageList.delete(currentDetailImageKey);
+      if (item?.name) window._tenantImageList.delete(item.name);
+      if (cat?.id && item?.name) window._tenantImageList.delete(`${cat.id}_${item.name}`);
+      if (item?.id) {
+        window._tenantImageList.delete(item.id);
+        window._tenantImageList.delete(`product:${item.id}`);
+      }
     }
-    if (activeItemDetailCatIdx !== null && activeItemDetailItemIdx !== null && currentMenuData?.[activeItemDetailCatIdx]?.items?.[activeItemDetailItemIdx]) {
-      const item = currentMenuData[activeItemDetailCatIdx].items[activeItemDetailItemIdx];
+    if (item) {
       item.imageKey = null;
-      if (window._tenantImageList) window._tenantImageList.delete(item.name);
+      item.imageUrl = null;
     }
+    if (itemDetailSnapshotBeforeEdit) {
+      itemDetailSnapshotBeforeEdit.imageKey = null;
+      itemDetailSnapshotBeforeEdit.imageUrl = null;
+    }
+    currentDetailImageKey = null;
     markMenuDirty();
     renderMenuCategories();
+    if (activeItemDetailCatIdx !== null) {
+      renderMenuCategoryEditor(activeItemDetailCatIdx);
+    }
   } catch (err) {
     alert(t("imageDeleteFail") + (err.message || ""));
     if (statusEl) statusEl.innerText = t("imageLoadFail");

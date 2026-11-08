@@ -1139,12 +1139,23 @@
       return render();
     }
     if (name === "remove-photo") {
+      const prevKey = d.imageKey;
       d.imageDraft = null;
       d.imageKey = "";
+      d.removedPhoto = true;
+      d.prevImageKey = prevKey;
       if (window._tenantImageList) {
+        if (prevKey) window._tenantImageList.delete(prevKey);
         window._tenantImageList.delete(d.name);
         window._tenantImageList.delete(`product:${d.id}`);
         if (d.id) window._tenantImageList.delete(d.id);
+        if (d.categoryId) window._tenantImageList.delete(`${d.categoryId}_${d.name}`);
+        if (catalog?.categories) {
+          for (const cat of catalog.categories) {
+            window._tenantImageList.delete(`${cat.id}_${d.name}`);
+            if (cat.slug) window._tenantImageList.delete(`${cat.slug}_${d.name}`);
+          }
+        }
       }
       return render();
     }
@@ -1440,10 +1451,35 @@
           )?.menu_revision;
           throw new Error("IMAGE_SAVE_FAILED");
         }
-      } else if (!d.imageDraft && !d.imageKey && state.kind === "product" && window._tenantImageList) {
-        window._tenantImageList.delete(d.name);
-        window._tenantImageList.delete(`product:${d.id}`);
-        if (d.id) window._tenantImageList.delete(d.id);
+      } else if (!d.imageDraft && !d.imageKey && state.kind === "product") {
+        if (window._tenantImageList) {
+          if (d.prevImageKey) window._tenantImageList.delete(d.prevImageKey);
+          window._tenantImageList.delete(d.name);
+          window._tenantImageList.delete(`product:${d.id}`);
+          if (d.id) window._tenantImageList.delete(d.id);
+          if (d.categoryId) window._tenantImageList.delete(`${d.categoryId}_${d.name}`);
+          if (catalog?.categories) {
+            for (const cat of catalog.categories) {
+              window._tenantImageList.delete(`${cat.id}_${d.name}`);
+              if (cat.slug) window._tenantImageList.delete(`${cat.slug}_${d.name}`);
+            }
+          }
+        }
+        if (d.removedPhoto) {
+          fetch(
+            `${WORKER_BASE}/api/image?tenant_id=${encodeURIComponent(getTenantIdFromUrl())}`,
+            {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: `product:${d.id}`,
+                itemId: d.id,
+                itemName: d.name,
+                categoryId: d.categoryId,
+              }),
+            },
+          ).catch(() => {});
+        }
       }
       rebase(kind, d.id, remove, state.optionsOnly);
       if (kind === "group" && !remove) {
@@ -1511,7 +1547,8 @@
             price: p.price,
             badgeText: p.badge_text || "",
             isRecommended: Boolean(p.is_recommended),
-            imageKey: p.image_key,
+            imageKey: p.image_key || null,
+            imageUrl: p.image_key ? old?.imageUrl : null,
             itemType: "standard",
             bundleRule: null,
             modifierGroups: [],

@@ -1091,6 +1091,8 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
           item.imageUrl = product.image_key && (!imageListLoaded || imageList.includes(product.image_key))
             ? `/api/image?tenant_id=${encodeURIComponent(tenantId)}&name=${encodeURIComponent(product.image_key)}`
             : null;
+        } else if (product && (product.image_key === null || product.image_key === '')) {
+          item.imageUrl = null;
         }
         (item as any).modifierGroups = [];
         (item as any).unifiedOptions = true;

@@ -111,7 +111,7 @@ async function setup({ included = false, source = false, lang = 'vi' } = {}) {
         const index = next.products.findIndex((p) => p.id === payload.id);
         next.products[index] = {...next.products[index],name:payload.name,price:payload.price,
           category_id:payload.categoryId,badge_text:payload.badgeText,is_recommended:payload.isRecommended,
-          image_key:payload.imageKey,menu_revision:payload.revision+1};
+          image_key:payload.imageKey ? payload.imageKey : null,menu_revision:payload.revision+1};
         next.links = next.links.filter((l) => l.itemId !== payload.id)
           .concat(payload.links.map((l) => ({...l,itemId:payload.id})));
       } else {

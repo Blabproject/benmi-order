@@ -279,3 +279,55 @@ test("Dual-Read Lazy Migration & Admin Backfill from KV to R2", async () => {
   );
   assert.deepEqual(await listRes.json(), ["store_logo"]);
 });
+
+test("Delete image by itemId, prefixed category key, or product:id deletes all variants", async () => {
+  const f = createR2ImageFixture();
+
+  // Create an item with image_key NULL (simulating direct card upload or legacy item)
+  f.db
+    .prepare("INSERT INTO menu_items (id, tenant_id, name, image_key) VALUES (?, ?, ?, ?)")
+    .run("item_chicken", "benmi", "雞胸肉", null);
+
+  // Upload image as category-prefixed name (main_雞胸肉)
+  const upRes = await f.api.updateImage(
+    new Request("https://worker.test/api/image?tenant_id=benmi", {
+      method: "POST",
+      body: JSON.stringify({ name: "main_雞胸肉", dataUri: SAMPLE_DATA_URI })
+    }),
+    f.env
+  );
+  assert.equal(upRes.status, 200);
+  assert.equal(f.r2Store.size, 1);
+
+  // Verify stored in D1 tenant_images
+  const rowBefore = f.db
+    .prepare("SELECT * FROM tenant_images WHERE tenant_id = ? AND bare_name = ?")
+    .get("benmi", "雞胸肉");
+  assert.ok(rowBefore);
+  assert.equal(rowBefore.name, "main_雞胸肉");
+
+  // Call deleteImage with itemId and categoryId + itemName
+  const delRes = await f.api.deleteImage(
+    new Request("https://worker.test/api/image?tenant_id=benmi", {
+      method: "DELETE",
+      body: JSON.stringify({
+        itemId: "item_chicken",
+        itemName: "雞胸肉",
+        categoryId: "main"
+      })
+    }),
+    f.env
+  );
+  assert.equal(delRes.status, 200);
+  assert.equal(f.r2Store.size, 0, "R2 bucket must be empty after deleting image");
+
+  const rowAfter = f.db
+    .prepare("SELECT * FROM tenant_images WHERE tenant_id = ? AND bare_name = ?")
+    .get("benmi", "雞胸肉");
+  assert.equal(rowAfter, undefined, "D1 tenant_images must have no row for deleted item");
+
+  const itemAfter = f.db
+    .prepare("SELECT image_key FROM menu_items WHERE id = ?")
+    .get("item_chicken");
+  assert.equal(itemAfter.image_key, null, "menu_items.image_key must be NULL");
+});

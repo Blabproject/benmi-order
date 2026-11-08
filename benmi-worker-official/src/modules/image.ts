@@ -67,20 +67,92 @@ export async function upsertTenantImageInR2AndD1(
   return { r2Key, etag };
 }
 
+export interface DeleteImageTarget {
+  name?: string;
+  itemId?: string;
+  categoryId?: string;
+  itemName?: string;
+}
+
 export async function deleteTenantImageFromR2AndD1(
   env: Env,
   tenantId: string,
-  name: string
+  target: string | string[] | DeleteImageTarget
 ): Promise<string[]> {
-  const bareName = extractBareName(name);
-  const removedNames: string[] = [name];
-  if (bareName && bareName !== name) removedNames.push(bareName);
+  const candidates = new Set<string>();
+  const explicitNames = new Set<string>();
 
+  const addCandidate = (val?: string | null) => {
+    if (!val || typeof val !== "string") return;
+    const trimmed = val.trim();
+    if (!trimmed) return;
+    candidates.add(trimmed);
+    explicitNames.add(trimmed);
+    const bare = extractBareName(trimmed);
+    if (bare) candidates.add(bare);
+  };
+
+  if (typeof target === "string") {
+    addCandidate(target);
+  } else if (Array.isArray(target)) {
+    for (const item of target) addCandidate(item);
+  } else if (target && typeof target === "object") {
+    addCandidate(target.name);
+    addCandidate(target.itemName);
+    if (target.itemId) {
+      addCandidate(`product:${target.itemId}`);
+      addCandidate(target.itemId);
+    }
+    if (target.categoryId && target.itemName) {
+      addCandidate(`${target.categoryId}_${target.itemName}`);
+    }
+  }
+
+  // Correlate with menu_items to discover linked IDs, keys, and category-prefixed names
   if (env.DB) {
     try {
+      let resolvedItem: { id: string; name: string; category_id: string; image_key: string | null } | null = null;
+      const itemId = (typeof target === "object" && !Array.isArray(target) && target?.itemId)
+        ? target.itemId
+        : (typeof target === "string" && target.startsWith("product:") ? target.slice("product:".length) : null);
+
+      if (itemId) {
+        resolvedItem = await env.DB.prepare(
+          `SELECT id, name, category_id, image_key FROM menu_items WHERE tenant_id = ? AND id = ?`
+        ).bind(tenantId, itemId).first<{ id: string; name: string; category_id: string; image_key: string | null }>();
+      }
+
+      if (!resolvedItem && candidates.size > 0) {
+        const candidateArr = Array.from(candidates);
+        const placeholders = candidateArr.map(() => "?").join(",");
+        resolvedItem = await env.DB.prepare(
+          `SELECT id, name, category_id, image_key FROM menu_items WHERE tenant_id = ? AND (image_key IN (${placeholders}) OR name IN (${placeholders})) LIMIT 1`
+        ).bind(tenantId, ...candidateArr, ...candidateArr).first<{ id: string; name: string; category_id: string; image_key: string | null }>();
+      }
+
+      if (resolvedItem) {
+        addCandidate(resolvedItem.id);
+        addCandidate(`product:${resolvedItem.id}`);
+        addCandidate(resolvedItem.name);
+        addCandidate(resolvedItem.image_key);
+        if (resolvedItem.category_id && resolvedItem.name) {
+          addCandidate(`${resolvedItem.category_id}_${resolvedItem.name}`);
+        }
+      }
+    } catch {
+      // Ignore if table does not exist in mock environments
+    }
+  }
+
+  const removedNames = Array.from(explicitNames);
+
+  if (env.DB && candidates.size > 0) {
+    try {
+      const candidateList = Array.from(candidates);
+      const placeholders = candidateList.map(() => "?").join(",");
       const existing = await env.DB.prepare(
-        `SELECT name, r2_key FROM tenant_images WHERE tenant_id = ? AND (name = ? OR bare_name = ? OR name = ?)`
-      ).bind(tenantId, name, bareName, bareName).all<{ name: string; r2_key: string }>();
+        `SELECT name, r2_key, bare_name FROM tenant_images WHERE tenant_id = ? AND (name IN (${placeholders}) OR bare_name IN (${placeholders}))`
+      ).bind(tenantId, ...candidateList, ...candidateList).all<{ name: string; r2_key: string; bare_name: string }>();
 
       const rows = existing.results || [];
       if (env.IMAGES_BUCKET && rows.length > 0) {
@@ -88,11 +160,19 @@ export async function deleteTenantImageFromR2AndD1(
       }
       for (const r of rows) {
         if (!removedNames.includes(r.name)) removedNames.push(r.name);
+        if (r.bare_name && !removedNames.includes(r.bare_name)) removedNames.push(r.bare_name);
       }
 
       await env.DB.prepare(
-        `DELETE FROM tenant_images WHERE tenant_id = ? AND (name = ? OR bare_name = ? OR name = ?)`
-      ).bind(tenantId, name, bareName, bareName).run();
+        `DELETE FROM tenant_images WHERE tenant_id = ? AND (name IN (${placeholders}) OR bare_name IN (${placeholders}))`
+      ).bind(tenantId, ...candidateList, ...candidateList).run();
+
+      // Clear image_key in menu_items
+      const allNamesToClear = Array.from(new Set([...candidateList, ...removedNames]));
+      const clearPlaceholders = allNamesToClear.map(() => "?").join(",");
+      await env.DB.prepare(
+        `UPDATE menu_items SET image_key = NULL WHERE tenant_id = ? AND (image_key IN (${clearPlaceholders}) OR id IN (${clearPlaceholders}))`
+      ).bind(tenantId, ...allNamesToClear, ...allNamesToClear).run();
     } catch {
       // Ignore if tenant_images table does not exist in isolated test mocks
     }
@@ -336,28 +416,45 @@ export async function updateImage(request: Request, env: Env): Promise<Response>
 
 export async function deleteImage(request: Request, env: Env): Promise<Response> {
   try {
-    const { name }: any = await request.json();
-    if (!name) return json({ error: "Missing name" }, 400);
+    const body: any = await request.json();
+    const { name, itemId, categoryId, itemName } = body || {};
+    if (!name && !itemId && !itemName) return json({ error: "Missing name or itemId" }, 400);
 
     const tenantId = getTenantId(request);
-    const bareName = extractBareName(name);
 
-    // 1. Delete from R2 + D1 tenant_images
-    const r2DeletedNames = await deleteTenantImageFromR2AndD1(env, tenantId, name);
+    // 1. Delete from R2 + D1 tenant_images + menu_items
+    const r2DeletedNames = await deleteTenantImageFromR2AndD1(env, tenantId, {
+      name,
+      itemId,
+      categoryId,
+      itemName,
+    });
 
     // 2. Gather all potential legacy KV keys to delete
     const keysToDelete = new Set<string>();
-    keysToDelete.add(`tenant:${tenantId}:image:${name}`);
-    keysToDelete.add(`tenant:${tenantId}:image:${bareName}`);
-    for (const prefix of LEGACY_PREFIXES) {
-      keysToDelete.add(`tenant:${tenantId}:image:${prefix}_${bareName}`);
-      keysToDelete.add(`tenant:${tenantId}:image:${prefix}_${name}`);
+    const allNames = new Set<string>([...r2DeletedNames]);
+    if (name) allNames.add(name);
+    if (itemName) allNames.add(itemName);
+    if (itemId) {
+      allNames.add(itemId);
+      allNames.add(`product:${itemId}`);
     }
-    if (tenantId === "benmi") {
-      keysToDelete.add(`image:${name}`);
-      keysToDelete.add(`image:${bareName}`);
+    if (categoryId && itemName) allNames.add(`${categoryId}_${itemName}`);
+
+    for (const n of allNames) {
+      const bare = extractBareName(n);
+      keysToDelete.add(`tenant:${tenantId}:image:${n}`);
+      if (bare) keysToDelete.add(`tenant:${tenantId}:image:${bare}`);
       for (const prefix of LEGACY_PREFIXES) {
-        keysToDelete.add(`image:${prefix}_${bareName}`);
+        if (bare) keysToDelete.add(`tenant:${tenantId}:image:${prefix}_${bare}`);
+        keysToDelete.add(`tenant:${tenantId}:image:${prefix}_${n}`);
+      }
+      if (tenantId === "benmi") {
+        keysToDelete.add(`image:${n}`);
+        if (bare) keysToDelete.add(`image:${bare}`);
+        for (const prefix of LEGACY_PREFIXES) {
+          if (bare) keysToDelete.add(`image:${prefix}_${bare}`);
+        }
       }
     }
 
@@ -388,10 +485,11 @@ export async function deleteImage(request: Request, env: Env): Promise<Response>
         if (listRaw) {
           try {
             let list: string[] = JSON.parse(listRaw);
+            const targetBares = new Set(Array.from(allNames).map(extractBareName).filter(Boolean));
             list = list.filter(n => {
-              if (n === name || n === bareName) return false;
+              if (allNames.has(n)) return false;
               const nBare = extractBareName(n);
-              if (nBare === bareName || nBare === name) return false;
+              if (targetBares.has(n) || targetBares.has(nBare)) return false;
               return true;
             });
             await env.ORDER_STATE.put(listKey, JSON.stringify(list));
@@ -401,6 +499,7 @@ export async function deleteImage(request: Request, env: Env): Promise<Response>
           } catch {}
         }
       }
+      await env.ORDER_STATE.delete(`tenant:${tenantId}:menu`);
     }
 
     await invalidateBootstrapCache(tenantId, env);

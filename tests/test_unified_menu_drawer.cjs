@@ -408,6 +408,28 @@ test('product settings expose the badge without recommendation controls and pres
   }
 });
 
+test('product photo removal resets imageKey and clears tenant image cache on save', async () => {
+  const app = await setup();
+  app.catalog().products[0].image_key = 'main_sample';
+  await app.context.UnifiedMenu.load();
+  const item = app.context.currentMenuData[0].items[0];
+  item.imageKey = 'main_sample';
+  item.imageUrl = '/api/image?tenant_id=a&name=main_sample';
+  app.context.window._tenantImageList = new Set(['main_sample', item.name, `product:${item.id}`]);
+
+  app.context.UnifiedMenu.product(0, 0);
+  assert.equal(app.drawer().querySelector('[data-action="remove-photo"]').hidden, false);
+  await app.click('remove-photo');
+
+  await app.click('save');
+  assert.equal(app.posts[0].imageKey, '');
+  const updatedItem = app.context.currentMenuData[0].items[0];
+  assert.equal(updatedItem.imageKey, null);
+  assert.equal(updatedItem.imageUrl, null);
+  assert.equal(app.context.window._tenantImageList.has('main_sample'), false);
+  assert.equal(app.context.window._tenantImageList.has(item.name), false);
+});
+
 test('group drawer scope is determined in step 1; detail view does not expose scope selector and serializes correctly', async () => {
   const app = await setup();
   // 1. New group starts at Step 1, select 'item' scope
