@@ -195,7 +195,7 @@ async function create(request:Request,env:Env,tenant:TenantContext) {
  const old=await env.DB.prepare('SELECT * FROM payments WHERE tenant_id=? AND operation_id=?').bind(tenant.tenantId,operation).first<Payment>();
  if(old){await customer(request,old);if(old.request_hash!==hash)throw new PaymentError('PAYMENT_OPERATION_REUSED',409);return reply(projection(old));}
  const c=await paymentConnection(env,tenant.tenantId);
- if(!c||tenant.storeStatus==='paused') throw new PaymentError('PAYMENT_DISABLED',409);
+ if(!c||tenant.storeStatus==='paused'||tenant.storeStatus==='closed') throw new PaymentError('PAYMENT_DISABLED',409);
  await secret(env,c); // Fail before creating an order if credential material is unavailable.
  const round=await buildDetailRound(env,tenant.tenantId,input,1);
  if(!Number.isSafeInteger(round.total)||round.total<=0) throw new PaymentError('PAYMENT_TWD_INTEGER_REQUIRED');
@@ -275,7 +275,7 @@ export async function handlePaymentRoute(request:Request,env:Env,tenant:TenantCo
    const configured=await ready(env) && !!await env.DB.prepare('SELECT 1 FROM tenant_payment_connections WHERE tenant_id=? AND environment=?').bind(tenantId,environment(env)).first();
    const conn=await paymentConnection(env,tenantId);
    const paymentMethods=(tenant.paymentMethods && Array.isArray(tenant.paymentMethods) && tenant.paymentMethods.length>0)?tenant.paymentMethods:['line_pay'];
-   return reply({linePay:{enabled:tenant.storeStatus!=='paused' && !!conn && paymentMethods.includes('line_pay'),configured,currency:'TWD',orderTypes:['takeaway']},paymentMethods});
+   return reply({linePay:{enabled:!['paused','closed'].includes(tenant.storeStatus||'') && !!conn && paymentMethods.includes('line_pay'),configured,currency:'TWD',orderTypes:['takeaway']},paymentMethods});
   }
   if(!await ready(env))throw new PaymentError('PAYMENTS_NOT_READY',503);
   if(path==='/api/payments/attention/count'&&request.method==='GET')return reply(await paymentAttentionCount(env,tenantId));

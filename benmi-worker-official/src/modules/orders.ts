@@ -408,7 +408,7 @@ export async function createOrder(
   const tenantId = tenantCtx?.tenantId || getTenantId(request);
   if (data.detailVersion !== undefined) return writeDetailedOrder(env, tenantId, data, data.parent_order_key ? 'append' : 'create', ctx, tenantCtx);
 
-  if (tenantCtx?.storeStatus === 'paused') {
+  if (tenantCtx?.storeStatus === 'paused' || tenantCtx?.storeStatus === 'closed') {
     return json({ error: "店家目前暫停接單中，暫無法接收新訂單", code: "STORE_PAUSED" }, 400);
   }
 

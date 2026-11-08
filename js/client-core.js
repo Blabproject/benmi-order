@@ -1472,19 +1472,31 @@ function checkStoreStatus() {
     const pausedBanner = document.getElementById('store-paused-banner');
     const busyBanner = document.getElementById('store-busy-banner');
     const submitButtons = ['btn-submit', 'btn-desktop-submit'].map(id => document.getElementById(id)).filter(Boolean);
-    const storeStatus = (storeConfig && storeConfig.storeStatus) ? storeConfig.storeStatus : 'open';
+    let storeStatus = (storeConfig && storeConfig.storeStatus) ? storeConfig.storeStatus : 'open';
+    if (typeof storeStatus === 'string' && storeStatus.startsWith('closed:')) {
+        const closedDate = storeStatus.slice(7).trim();
+        const nowTw = new Date(Date.now() + 8 * 3600000);
+        const todayTw = `${nowTw.getUTCFullYear()}-${String(nowTw.getUTCMonth() + 1).padStart(2, '0')}-${String(nowTw.getUTCDate()).padStart(2, '0')}`;
+        storeStatus = (closedDate && todayTw > closedDate) ? 'open' : 'closed';
+    }
 
     if (storeStatus === 'paused' || storeStatus === 'closed') {
         if (statusEl) {
-            statusEl.innerText = '暫停接單';
+            statusEl.innerText = storeStatus === 'closed' ? '今日打烊' : '暫停接單';
             statusEl.className = 'store-status paused';
         }
-        if (pausedBanner) pausedBanner.style.display = 'flex';
+        if (pausedBanner) {
+            pausedBanner.style.display = 'flex';
+            const pausedText = pausedBanner.querySelector('span');
+            if (pausedText) {
+                pausedText.innerText = storeStatus === 'closed' ? '店家今日已打烊，暫不接受新訂單' : '店家目前暫停接單中，暫無法接收新訂單';
+            }
+        }
         if (busyBanner) busyBanner.style.display = 'none';
         for (const submitBtn of submitButtons) {
             if (window.isSubmitting) continue;
             submitBtn.disabled = true;
-            submitBtn.innerText = '店家目前暫停接單';
+            submitBtn.innerText = storeStatus === 'closed' ? '今日已打烊' : '店家目前暫停接單';
             submitBtn.style.background = '#9ca3af';
             submitBtn.style.cursor = 'not-allowed';
         }

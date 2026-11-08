@@ -29,7 +29,7 @@ export interface TenantContext {
   deliveryPolicy: string | null;
   allowScheduledPickup?: boolean;
   allowDineIn?: boolean;
-  storeStatus?: 'open' | 'busy' | 'paused';
+  storeStatus?: 'open' | 'busy' | 'paused' | 'closed';
   prepTimeMinutes?: number | null;
   paymentMethods?: string[];
   quickReplies: QuickReply[];
@@ -86,7 +86,28 @@ export function tenantHasFeature(ctx: TenantContext | null | undefined, featureK
   return ctx.features.includes(featureKey);
 }
 
-export function normalizeStoreStatus(value: unknown): 'open' | 'busy' | 'paused' {
-  if (value === 'closed' || value === 'paused') return 'paused';
-  return value === 'busy' ? 'busy' : 'open';
+export function getTaiwanDateStr(dateObj: Date = new Date()): string {
+  const nowTaiwan = new Date(dateObj.getTime() + 8 * 3600000);
+  const yyyy = nowTaiwan.getUTCFullYear();
+  const mm = String(nowTaiwan.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(nowTaiwan.getUTCDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+export function normalizeStoreStatus(value: unknown, nowTime: Date = new Date()): 'open' | 'busy' | 'paused' | 'closed' {
+  if (typeof value !== 'string') return 'open';
+  const trimmed = value.trim();
+  if (trimmed === 'busy') return 'busy';
+  if (trimmed === 'paused') return 'paused';
+  if (trimmed === 'closed') return 'closed';
+  if (trimmed.startsWith('closed:')) {
+    const closedDate = trimmed.slice(7).trim();
+    const todayTw = getTaiwanDateStr(nowTime);
+    if (closedDate && todayTw > closedDate) {
+      // The day the store was closed has passed, automatically reopen!
+      return 'open';
+    }
+    return 'closed';
+  }
+  return 'open';
 }

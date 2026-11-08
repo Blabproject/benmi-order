@@ -679,7 +679,14 @@ var pickupTimePickerState = {
 };
 
 function getActiveStoreConfig() {
-    return (typeof storeConfig !== 'undefined' && storeConfig) ? storeConfig : (typeof window !== 'undefined' && window.storeConfig ? window.storeConfig : null);
+    const cfg = (typeof storeConfig !== 'undefined' && storeConfig) ? storeConfig : (typeof window !== 'undefined' && window.storeConfig ? window.storeConfig : null);
+    if (cfg && typeof cfg.storeStatus === 'string' && cfg.storeStatus.startsWith('closed:')) {
+        const closedDate = cfg.storeStatus.slice(7).trim();
+        const twNow = (typeof getTaiwanDate === 'function') ? getTaiwanDate() : new Date();
+        const todayStr = (typeof formatTaiwanDateTime === 'function') ? formatTaiwanDateTime(twNow).dateStr : twNow.toISOString().slice(0, 10);
+        cfg.storeStatus = (closedDate && todayStr > closedDate) ? 'open' : 'closed';
+    }
+    return cfg;
 }
 
 function hasPickupOperatingHours(cfg) {
@@ -704,7 +711,20 @@ function parseShiftMinutes(shift) {
 
 function getStoreOperatingShifts(dateObj) {
     const cfg = getActiveStoreConfig();
-    if (['paused', 'closed'].includes(cfg?.storeStatus)) return [];
+    let status = cfg?.storeStatus;
+    if (typeof status === 'string' && status.startsWith('closed:')) {
+        const closedDate = status.slice(7).trim();
+        const twNow = (typeof getTaiwanDate === 'function') ? getTaiwanDate() : new Date();
+        const todayStr = (typeof formatTaiwanDateTime === 'function') ? formatTaiwanDateTime(twNow).dateStr : twNow.toISOString().slice(0, 10);
+        status = (closedDate && todayStr > closedDate) ? 'open' : 'closed';
+    }
+    if (status === 'paused') return [];
+    if (status === 'closed') {
+        const twNow = (typeof getTaiwanDate === 'function') ? getTaiwanDate() : new Date();
+        const todayStr = (typeof formatTaiwanDateTime === 'function') ? formatTaiwanDateTime(twNow).dateStr : twNow.toISOString().slice(0, 10);
+        const targetStr = (typeof formatTaiwanDateTime === 'function') ? formatTaiwanDateTime(dateObj).dateStr : dateObj.toISOString().slice(0, 10);
+        if (targetStr === todayStr) return [];
+    }
     const hasSchedule = hasPickupOperatingHours(cfg);
     if (!hasSchedule) {
         if (typeof isManualStoreOpen === 'function' && isManualStoreOpen(dateObj)) return [{ start: '00:00', end: '24:00' }];

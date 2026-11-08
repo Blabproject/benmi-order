@@ -409,7 +409,7 @@ async function handleStaffOrderWrite(request: Request, env: Env, path: string, t
       if (!result.meta.changes) throw new DetailError('REVISION_CONFLICT',409);
       return json({ok:true,success:true,key:row.key,status:body.status,revision:expected+1});
     }
-    if (tenantCtx.storeStatus === 'paused') throw new DetailError('STORE_PAUSED');
+    if (tenantCtx.storeStatus === 'paused' || tenantCtx.storeStatus === 'closed') throw new DetailError('STORE_PAUSED');
     if (await tenantIsDeleted(env.DB, tenant)) throw new DetailError('TENANT_DELETED', 403);
     const allowDineIn = isStaffDineInAllowed(tenantCtx);
     const requestedTakeaway = body.diningOption === 'takeaway' || body.dining_option === 'takeaway'

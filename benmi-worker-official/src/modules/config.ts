@@ -85,8 +85,11 @@ export async function updateConfig(
   try {
     const tenantId = tenantCtx?.tenantId || getTenantId(request);
     const payload: any = await request.json();
-    if (payload.storeStatus !== undefined && !['open', 'busy', 'paused', 'closed'].includes(payload.storeStatus)) {
-      return json({ error: 'INVALID_STORE_STATUS' }, 400);
+    if (payload.storeStatus !== undefined) {
+      const rawStatus = typeof payload.storeStatus === 'string' ? payload.storeStatus.split(':')[0].trim() : '';
+      if (!['open', 'busy', 'paused', 'closed'].includes(rawStatus)) {
+        return json({ error: 'INVALID_STORE_STATUS' }, 400);
+      }
     }
     const tenantRepo = createTenantRepository(env.DB, env.ORDER_STATE, env);
 

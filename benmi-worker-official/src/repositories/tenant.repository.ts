@@ -1,6 +1,6 @@
 import type { Env } from '../types/env';
 import type { TenantContext } from '../types/tenant';
-import { normalizeStoreStatus } from '../types/tenant';
+import { normalizeStoreStatus, getTaiwanDateStr } from '../types/tenant';
 import type { CustomerOrderDomain, OrderDomainRow } from '../utils/order-domain';
 import { resolveSecret } from '../utils/secrets';
 import { tenantIsDeleted } from '../utils/tenant-lifecycle';
@@ -221,7 +221,17 @@ export function createTenantRepository(
       const allowDineInInt = input.allowDineIn !== undefined && input.allowDineIn !== null
         ? (input.allowDineIn ? 1 : 0)
         : null;
-      const storeStatusVal = input.storeStatus != null ? normalizeStoreStatus(input.storeStatus) : null;
+      let storeStatusVal: string | null = null;
+      if (input.storeStatus != null) {
+        const rawStr = String(input.storeStatus).trim();
+        if (rawStr === 'closed') {
+          storeStatusVal = `closed:${getTaiwanDateStr()}`;
+        } else if (rawStr.startsWith('closed:')) {
+          storeStatusVal = rawStr;
+        } else {
+          storeStatusVal = normalizeStoreStatus(rawStr);
+        }
+      }
       const liffIdVal = input.liffId !== undefined ? input.liffId : null;
       const logoUrlVal = input.logoUrl !== undefined ? input.logoUrl : null;
       const storeAddressVal = input.storeAddress !== undefined ? input.storeAddress : null;

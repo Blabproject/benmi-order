@@ -25,7 +25,7 @@ export async function writeDetailedOrder(env: Env, tenant: string, input: any, k
   ctx?: ExecutionContext, tenantCtx?: TenantContext | null): Promise<Response> {
   if (!detailWrites(env)) return json({ code: 'ORDER_DETAILS_NOT_READY', error: '請重新整理 / Vui lòng tải lại trang' }, 503);
   try {
-    if (tenantCtx?.storeStatus === 'paused') throw new DetailError('STORE_PAUSED');
+    if (tenantCtx?.storeStatus === 'paused' || tenantCtx?.storeStatus === 'closed') throw new DetailError('STORE_PAUSED');
     if (input.detailVersion !== 1) throw new DetailError('ORDER_CLIENT_UPGRADE_REQUIRED', 409);
     const operation = input.operationId || (kind === 'create' ? input.uuid : undefined);
     if (typeof operation !== 'string' || operation.length < 16 || operation.length > 128) throw new DetailError('INVALID_OPERATION_ID');

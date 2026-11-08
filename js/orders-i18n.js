@@ -353,10 +353,12 @@ const I18N = {
     boxBusyDesc: "新訂單自動延長 1 小時製作時間",
     boxPausedTitle: "暫停接單",
     boxPausedDesc: "暫停接收新訂單，顧客端無法下單",
+    boxClosedTitle: "今日打烊",
+    boxClosedDesc: "今日停止接單，下個營業日自動恢復",
     statusOpen: "營業中",
     statusBusy: "繁忙中 (+1小時)",
     statusPaused: "暫停接單",
-    statusClosed: "打烊休息",
+    statusClosed: "今日打烊",
     statusMenuHeader: "門市接單狀態",
     statusOptOpenTitle: "營業中",
     statusOptOpenDesc: "立即接單，優先於今日營業時間與公休日",
@@ -364,8 +366,8 @@ const I18N = {
     statusOptBusyDesc: "新訂單製作時間自動延長 1 小時",
     statusOptPausedTitle: "暫停接單",
     statusOptPausedDesc: "暫停接收新訂單，顧客端無法下單",
-    statusOptClosedTitle: "打烊休息",
-    statusOptClosedDesc: "暫停接受新訂單",
+    statusOptClosedTitle: "今日打烊",
+    statusOptClosedDesc: "今日停止接單，下個營業日自動恢復",
     prepTimeTitle: "門市預估備餐時間",
     prepTimeSub: "當顧客選擇「盡快取餐」時，系統將依此時間預估完成時間。店家可視現場忙碌狀況隨時調整",
     settingPrepTimeTitle: "門市預估備餐時間",
@@ -1527,10 +1529,12 @@ const I18N = {
     boxBusyDesc: "Tự động cộng thêm 1 giờ cho mỗi đơn mới",
     boxPausedTitle: "Tạm dừng nhận đơn",
     boxPausedDesc: "Tạm dừng nhận đơn mới, khách không thể gửi đơn",
+    boxClosedTitle: "Đóng cửa hôm nay",
+    boxClosedDesc: "Dừng nhận đơn hôm nay, tự động mở lại vào ngày mở quán tiếp theo",
     statusOpen: "Đang mở quán",
     statusBusy: "Đang bận (+1 giờ)",
     statusPaused: "Tạm dừng nhận đơn",
-    statusClosed: "Đóng cửa nghỉ",
+    statusClosed: "Đóng cửa hôm nay",
     statusMenuHeader: "Trạng thái nhận đơn",
     statusOptOpenTitle: "Mở quán",
     statusOptOpenDesc: "Nhận đơn ngay, ưu tiên hơn giờ hoạt động và ngày nghỉ hôm nay",
@@ -1538,8 +1542,8 @@ const I18N = {
     statusOptBusyDesc: "Quán đang bận, tự động kéo dài thời gian làm thêm 1 tiếng cho mỗi đơn mới",
     statusOptPausedTitle: "Tạm dừng nhận đơn",
     statusOptPausedDesc: "Tạm dừng nhận đơn mới, khách hàng không thể gửi đơn",
-    statusOptClosedTitle: "Đóng cửa nghỉ",
-    statusOptClosedDesc: "Tạm ngừng nhận đơn mới",
+    statusOptClosedTitle: "Đóng cửa hôm nay",
+    statusOptClosedDesc: "Dừng nhận đơn hôm nay, tự động mở lại vào ngày mở quán tiếp theo",
     prepTimeTitle: "Thời gian chuẩn bị món",
     prepTimeSub: "Khi khách chọn 'Lấy hàng sớm nhất', hệ thống sẽ dựa vào thời gian này để ước tính thời gian hoàn thành. Quán có thể linh hoạt điều chỉnh theo tình hình thực tế.",
     settingPrepTimeTitle: "Thời gian chuẩn bị món",
@@ -2499,7 +2503,7 @@ function applyLanguageToDOM() {
     if (currentStoreStatus === 'open') mobileSub.innerText = dict.statusOpen || "營業中";
     else if (currentStoreStatus === 'busy') mobileSub.innerText = dict.statusBusy || "忙碌中";
     else if (currentStoreStatus === 'paused') mobileSub.innerText = dict.statusPaused || "暫停接單";
-    else if (currentStoreStatus === 'closed') mobileSub.innerText = dict.statusPaused;
+    else if (currentStoreStatus === 'closed') mobileSub.innerText = dict.statusClosed || "今日打烊";
   }
 
   if (typeof updateSidebarToggleIcon === "function") {
@@ -2788,6 +2792,10 @@ function applyLanguageToDOM() {
   if (boxPausedT) boxPausedT.innerText = dict.boxPausedTitle;
   const boxPausedD = document.getElementById("i18n-box-paused-desc");
   if (boxPausedD) boxPausedD.innerText = dict.boxPausedDesc;
+  const boxClosedT = document.getElementById("i18n-box-closed-title");
+  if (boxClosedT) boxClosedT.innerText = dict.boxClosedTitle;
+  const boxClosedD = document.getElementById("i18n-box-closed-desc");
+  if (boxClosedD) boxClosedD.innerText = dict.boxClosedDesc;
 
   // Store Status Dropdown
   const stMenuH = document.getElementById("i18n-status-menu-header");
@@ -2804,6 +2812,10 @@ function applyLanguageToDOM() {
   if (stOptPausedT) stOptPausedT.innerText = dict.statusOptPausedTitle;
   const stOptPausedD = document.getElementById("i18n-status-desc-paused");
   if (stOptPausedD) stOptPausedD.innerText = dict.statusOptPausedDesc;
+  const stOptClosedT = document.getElementById("i18n-status-opt-closed");
+  if (stOptClosedT) stOptClosedT.innerText = dict.statusOptClosedTitle;
+  const stOptClosedD = document.getElementById("i18n-status-desc-closed");
+  if (stOptClosedD) stOptClosedD.innerText = dict.statusOptClosedDesc;
 
 
   const prepTT = document.getElementById("i18n-status-preptime-title");

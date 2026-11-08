@@ -4311,7 +4311,8 @@ html.is-web-platform .store-activation-modal:not(.force-show) {
 
 .store-status-pill.open,
 .store-status-pill.busy,
-.store-status-pill.paused {
+.store-status-pill.paused,
+.store-status-pill.closed {
   background: #f3f4f6;
   border: none;
   color: #111827;
@@ -4430,6 +4431,11 @@ html.is-web-platform .store-activation-modal:not(.force-show) {
 .status-option[data-status="paused"].active {
   background: #fef2f2;
   border-color: #fca5a5;
+}
+
+.status-option[data-status="closed"].active {
+  background: #f8fafc;
+  border-color: #cbd5e1;
 }
 
 .status-option-left {
@@ -4555,6 +4561,12 @@ html.is-web-platform .store-activation-modal:not(.force-show) {
   border-color: #dc2626 !important;
   background: #fef2f2 !important;
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1) !important;
+}
+
+.status-select-box.active#status-box-closed {
+  border-color: #64748b !important;
+  background: #f8fafc !important;
+  box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.1) !important;
 }
 
 .status-box-header {

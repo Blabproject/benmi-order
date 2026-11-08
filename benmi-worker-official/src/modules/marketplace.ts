@@ -17,7 +17,7 @@ export interface MarketplaceTenantItem {
   parsedHours: Record<string, Array<{ start: string; end: string }>>;
   cuisineType: string;
   isOpen: boolean;
-  storeStatus: 'open' | 'busy' | 'paused';
+  storeStatus: 'open' | 'busy' | 'paused' | 'closed';
   deliveryPolicy: string | null;
   allowDineIn: boolean;
   allowScheduledPickup: boolean;
@@ -35,7 +35,7 @@ export function isStoreCurrentlyOpen(
   parsedHours: Record<string, Array<{ start: string; end: string }>>,
   dateObj: Date = new Date()
 ): boolean {
-  if (storeStatus === 'paused') {
+  if (storeStatus === 'paused' || storeStatus === 'closed') {
     return false;
   }
 
@@ -164,7 +164,7 @@ export async function getMarketplaceTenants(request: Request, env: Env): Promise
     for (const row of rawTenants) {
       const tenantId = row.tenant_id;
       const parsedHours = parseOperatingHours(row.operating_hours, tenantId);
-      const storeStatus = (row.store_status as 'open' | 'busy' | 'paused') || 'open';
+      const storeStatus = (row.store_status as 'open' | 'busy' | 'paused' | 'closed') || 'open';
       const isOpen = isStoreCurrentlyOpen(storeStatus, parsedHours, now);
 
       let logoUrl = row.logo_url || null;

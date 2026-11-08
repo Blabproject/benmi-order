@@ -31,7 +31,14 @@ document.addEventListener("click", (e) => {
 });
 
 function renderStoreStatusUI(status) {
-  currentStoreStatus = status === 'closed' ? 'paused' : (status || 'open');
+  let resolved = status || 'open';
+  if (typeof resolved === 'string' && resolved.startsWith('closed:')) {
+    const closedDate = resolved.slice(7).trim();
+    const nowTw = new Date(Date.now() + 8 * 3600000);
+    const todayTw = `${nowTw.getUTCFullYear()}-${String(nowTw.getUTCMonth() + 1).padStart(2, '0')}-${String(nowTw.getUTCDate()).padStart(2, '0')}`;
+    resolved = (closedDate && todayTw > closedDate) ? 'open' : 'closed';
+  }
+  currentStoreStatus = resolved;
   const btn = document.getElementById("store-status-btn");
   const label = document.getElementById("store-status-label");
   
@@ -42,6 +49,7 @@ function renderStoreStatusUI(status) {
     if (currentStoreStatus === 'open') label.innerText = t('statusOpen');
     else if (currentStoreStatus === 'busy') label.innerText = t('statusBusy');
     else if (currentStoreStatus === 'paused') label.innerText = t('statusPaused');
+    else if (currentStoreStatus === 'closed') label.innerText = t('statusClosed');
   }
 
   const mobileSub = document.getElementById("sidebar-mobile-sub");
@@ -49,6 +57,7 @@ function renderStoreStatusUI(status) {
     if (currentStoreStatus === 'open') mobileSub.innerText = t('statusOpen');
     else if (currentStoreStatus === 'busy') mobileSub.innerText = t('statusBusy');
     else if (currentStoreStatus === 'paused') mobileSub.innerText = t('statusPaused');
+    else if (currentStoreStatus === 'closed') mobileSub.innerText = t('statusClosed');
   }
 
   // Update options in dropdown menu
@@ -123,7 +132,7 @@ function openCustomPrepTimePrompt(e) {
 }
 
 async function setStoreStatus(newStatus) {
-  if (!['open', 'busy', 'paused'].includes(newStatus)) return;
+  if (!['open', 'busy', 'paused', 'closed'].includes(newStatus)) return;
   const dd = document.getElementById("store-status-dropdown");
   if (dd) dd.classList.remove("open");
   if (newStatus === currentStoreStatus) return;
@@ -132,10 +141,16 @@ async function setStoreStatus(newStatus) {
   renderStoreStatusUI(newStatus);
 
   try {
+    const payloadStatus = newStatus === 'closed'
+      ? (() => {
+          const nowTw = new Date(Date.now() + 8 * 3600000);
+          return `closed:${nowTw.getUTCFullYear()}-${String(nowTw.getUTCMonth() + 1).padStart(2, '0')}-${String(nowTw.getUTCDate()).padStart(2, '0')}`;
+        })()
+      : newStatus;
     const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ storeStatus: newStatus })
+      body: JSON.stringify({ storeStatus: payloadStatus })
     });
     if (!res.ok) throw new Error("API returned " + res.status);
   } catch (e) {
