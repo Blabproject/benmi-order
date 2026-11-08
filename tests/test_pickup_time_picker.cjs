@@ -129,6 +129,27 @@ vm.runInContext(clientCoreSrc, ctx);
 // Run client-checkout (defines pickup time picker functions)
 vm.runInContext(clientCheckoutSrc, ctx);
 
+// Browser classic scripts share window and the global scope (unlike mockWindow above).
+const browserSandbox = { ...mockWindow, ...sandbox };
+browserSandbox.window = browserSandbox;
+const browserCtx = vm.createContext(browserSandbox);
+vm.runInContext(clientCoreSrc, browserCtx);
+vm.runInContext(clientCheckoutSrc, browserCtx);
+vm.runInContext(`
+    storeConfig = {
+        storeStatus: 'open',
+        prepTimeMinutes: 5,
+        operatingHours: { 1: [{ start: '11:00', end: '21:00' }] }
+    };
+    getTaiwanDate = () => new Date(2026, 10, 9, 12, 0);
+`, browserCtx);
+assert.equal(vm.runInContext('window === globalThis', browserCtx), true);
+assert.equal(browserCtx.isStoreOpen(new Date(2026, 10, 9, 12, 0)), true,
+    'Shared browser globals must allow checkout hours validation without recursion');
+assert.equal(browserCtx.calcAsapPickupTime(new Date(2026, 10, 9, 12, 0)).timeStr, '12:05');
+assert.equal(browserCtx.getStoreOperatingShifts(new Date(2026, 10, 8, 12, 0)).length, 0,
+    'The shared scope must still respect weekly holidays');
+
 console.log('Testing Pickup Time Picker functions...');
 
 // 1. Test generatePickupSlots for a future date (all slots should be present)

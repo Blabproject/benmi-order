@@ -682,7 +682,7 @@ function getActiveStoreConfig() {
     return (typeof storeConfig !== 'undefined' && storeConfig) ? storeConfig : (typeof window !== 'undefined' && window.storeConfig ? window.storeConfig : null);
 }
 
-function hasConfiguredOperatingHours(cfg) {
+function hasPickupOperatingHours(cfg) {
     if (typeof window !== 'undefined' && typeof window.hasConfiguredOperatingHours === 'function') {
         return window.hasConfiguredOperatingHours(cfg);
     }
@@ -693,7 +693,7 @@ function hasConfiguredOperatingHours(cfg) {
 function getStoreOperatingShifts(dateObj) {
     const cfg = getActiveStoreConfig();
     if (['paused', 'closed'].includes(cfg?.storeStatus)) return [];
-    const hasSchedule = hasConfiguredOperatingHours(cfg);
+    const hasSchedule = hasPickupOperatingHours(cfg);
     if (!hasSchedule) {
         if (typeof isManualStoreOpen === 'function' && isManualStoreOpen(dateObj)) return [{ start: '00:00', end: '24:00' }];
         return [];
