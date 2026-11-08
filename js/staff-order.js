@@ -422,6 +422,7 @@ window.StaffOrder = (() => {
               <div class="staff-cart-line-info">
                 <div class="staff-cart-name">${escapeHtmlStr(displayName)}</div>
                 <div class="staff-cart-price">$${lineTotal}</div>
+                ${portionsHTML}
               </div>
               <div class="staff-cart-stepper" onclick="event.stopPropagation()">
                 <button type="button" class="staff-step-btn" onclick="event.stopPropagation();updateQty('${safeCat}','${safeName}',-1)">−</button>
@@ -429,7 +430,6 @@ window.StaffOrder = (() => {
                 <button type="button" class="staff-step-btn" onclick="event.stopPropagation();updateQty('${safeCat}','${safeName}',1)">+</button>
               </div>
             </div>
-            ${portionsHTML}
           </div>
         `);
       });
