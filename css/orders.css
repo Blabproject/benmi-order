@@ -4545,6 +4545,32 @@ html.is-web-platform .store-activation-modal:not(.force-show) {
 /* ========================================================
    Weekly Operating Hours Timeline & Overnight Editor
    ======================================================== */
+.hours-card-header {
+  padding: 16px 20px;
+  background: #f3f4f6;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .hours-card-header {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 12px;
+  }
+  .hours-card-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+  }
+}
+
 .hours-view-switch {
   display: inline-flex;
   padding: 4px;
@@ -12840,6 +12866,11 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
   }
 
   .settings-content-panel .panel-header {
+    display: none !important;
+  }
+
+  .settings-content-panel .panel-header:has(#settings-table-tools:not([hidden])) {
+    display: flex !important;
     flex-shrink: 0;
   }
 

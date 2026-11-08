@@ -3110,8 +3110,6 @@ function applyLanguageToDOM() {
   if (hrsT) hrsT.innerText = dict.hoursTitle;
   const hrsS = document.getElementById("i18n-hours-sub");
   if (hrsS) hrsS.innerText = dict.hoursSub;
-  const hrsWeeklyT = document.getElementById("i18n-hours-weekly-title");
-  if (hrsWeeklyT) hrsWeeklyT.innerText = dict.hoursTitle;
   const hrsSelectHint = document.getElementById("i18n-hours-select-hint");
   if (hrsSelectHint) hrsSelectHint.innerText = dict.selectDayToEdit;
   const tabTimeline = document.getElementById("i18n-hours-tab-timeline");
