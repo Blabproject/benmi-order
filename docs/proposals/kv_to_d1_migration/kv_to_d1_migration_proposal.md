@@ -114,20 +114,21 @@ CREATE INDEX idx_orders_tenant_created ON orders(tenant_id, created_at DESC);
 CREATE INDEX idx_orders_tenant_status ON orders(tenant_id, status);
 CREATE INDEX idx_orders_user ON orders(user_id);
 
--- 3. Bảng Metadata hình ảnh (Tenant Images)
-CREATE TABLE tenant_images (
-    id TEXT PRIMARY KEY, -- Hash hoặc UUID
+-- 3. Bảng Metadata hình ảnh (Tenant Images - Migration 0084)
+CREATE TABLE IF NOT EXISTS tenant_images (
     tenant_id TEXT NOT NULL,
     name TEXT NOT NULL,
-    file_size INTEGER DEFAULT 0,
-    content_type TEXT DEFAULT 'image/jpeg',
-    r2_key TEXT NOT NULL,              -- Đường dẫn file lưu trong R2
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
-    UNIQUE(tenant_id, name)
+    bare_name TEXT NOT NULL,
+    r2_key TEXT NOT NULL,              -- Đường dẫn file lưu trong R2: tenants/{tenant_id}/images/...
+    content_type TEXT NOT NULL DEFAULT 'image/webp',
+    byte_size INTEGER NOT NULL DEFAULT 0,
+    etag TEXT DEFAULT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (tenant_id, name)
 );
 
-CREATE INDEX idx_images_tenant ON tenant_images(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_tenant_images_bare ON tenant_images(tenant_id, bare_name);
 ```
 
 ---
@@ -137,8 +138,8 @@ CREATE INDEX idx_images_tenant ON tenant_images(tenant_id);
 Để đảm bảo các cửa hàng đang hoạt động không bị gián đoạn dịch vụ, việc di chuyển dữ liệu và mã nguồn cần tuân theo quy trình kiểm soát chặt chẽ.
 
 ### Giai đoạn 1: Chuẩn bị hạ tầng & Triển khai Schema
-1. **Tạo Bucket R2**: Khởi tạo R2 bucket mới tên `benmi-images-production` (và bản test/dev tương ứng). Cấu hình liên kết R2 vào `wrangler.jsonc`.
-2. **Chạy Migrations**: Áp dụng các thay đổi Schema D1 lên môi trường dev, test và production.
+1. **Tạo Bucket R2**: Khởi tạo R2 bucket mới tên `benmi-images-production` (và bản `benmi-images-test`, `benmi-images-dev` tương ứng). Cấu hình liên kết `IMAGES_BUCKET` vào `benmi-worker-official/cloudflare.config.ts`.
+2. **Chạy Migrations**: Áp dụng các thay đổi Schema D1 lên môi trường dev, staging và production qua Cloudflare `cf` CLI (`npm run db:migrations:apply:dev|staging|production`).
 
 ### Giai đoạn 2: Mã nguồn Chế độ kép (Dual-Read/Write) cho Đơn hàng
 Nhằm đảm bảo không mất mát bất cứ đơn hàng nào đang trong luồng xử lý:

@@ -3,6 +3,7 @@ import { json } from '../utils/http';
 import { resolveSecret } from '../utils/secrets';
 import { updateOrderDomain } from './order-domain';
 import { createTenantRepository } from '../repositories/tenant.repository';
+import { backfillImagesFromKvToR2 } from './image';
 
 async function verifyAdminAuth(request: Request, env: Env): Promise<boolean> {
   const adminKeyHeader = request.headers.get("X-Admin-Key");
@@ -22,6 +23,11 @@ export async function handleAdminRoute(request: Request, env: Env, path: string)
   }
   if (!(await verifyAdminAuth(request, env))) {
     return json({ error: "Unauthorized: Invalid or missing X-Admin-Key header" }, 401);
+  }
+
+  // POST /api/admin/images/backfill-r2
+  if (request.method === "POST" && path === "/api/admin/images/backfill-r2") {
+    return backfillImagesFromKvToR2(request, env);
   }
 
   const tenantRepo = createTenantRepository(env.DB, env.ORDER_STATE, env);

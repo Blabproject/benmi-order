@@ -60,6 +60,9 @@ export default (ctx: ConfigContext) => {
 						ORDER_STATE: bindings.kv({
 							id: "ad5b1e14aad4486fb2ffcd9961cadf3a",
 						}),
+						IMAGES_BUCKET: bindings.r2({
+							name: "benmi-images-test",
+						}),
 						LINE_CHANNEL_TOKEN: bindings.secretsStoreSecret({
 							storeId: "7e2896f1c5cf4e1eb80ef6c89f3024d4",
 							secretName: "LINE_MESSAGE_API_CHANNEL_BLAB",
@@ -124,6 +127,9 @@ export default (ctx: ConfigContext) => {
 						ORDER_STATE: bindings.kv({
 							id: "f85c539e10df45049780abe25631f082",
 						}),
+						IMAGES_BUCKET: bindings.r2({
+							name: "benmi-images-dev",
+						}),
 						LINE_CHANNEL_TOKEN: bindings.secretsStoreSecret({
 							storeId: "7e2896f1c5cf4e1eb80ef6c89f3024d4",
 							secretName: "LINE_MESSAGE_API_CHANNEL_BLAB",
@@ -186,6 +192,9 @@ export default (ctx: ConfigContext) => {
 						}),
 						ORDER_STATE: bindings.kv({
 							id: "4800c4ce106043de89baa2aa7a7676b0",
+						}),
+						IMAGES_BUCKET: bindings.r2({
+							name: "benmi-images-production",
 						}),
 						LINE_CHANNEL_TOKEN: bindings.secretsStoreSecret({
 							storeId: "7e2896f1c5cf4e1eb80ef6c89f3024d4",

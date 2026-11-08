@@ -14,6 +14,7 @@ export interface Env extends Partial<Pick<RuntimeBindings,
   // Bindings
   ORDER_STATE: KVNamespace;
   DB: D1Database;
+  IMAGES_BUCKET?: R2Bucket;
 
   // Global Admin Secret
   ADMIN_API_KEY?: any;

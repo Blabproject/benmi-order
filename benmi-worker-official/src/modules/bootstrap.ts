@@ -870,9 +870,24 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
       }
     }
 
-    // Load image_list to accurately attach imageUrl only to items with uploaded image
+    // Load image_list from D1 tenant_images (primary) + KV fallback to accurately attach imageUrl only to items with uploaded image
     let imageList: string[] = [];
-    let imageListLoaded = false;
+    let imageListLoaded = Boolean(env.IMAGES_BUCKET);
+    const imageNamesSet = new Set<string>();
+    if (env.DB) {
+      try {
+        const imgRes = await env.DB.prepare(
+          `SELECT name, bare_name FROM tenant_images WHERE tenant_id = ?`
+        ).bind(tenantId).all<{ name: string; bare_name: string }>();
+        if (imgRes && Array.isArray(imgRes.results)) {
+          if (imgRes.results.length > 0) imageListLoaded = true;
+          for (const row of imgRes.results) {
+            if (row.name) imageNamesSet.add(row.name);
+            if (row.bare_name) imageNamesSet.add(row.bare_name);
+          }
+        }
+      } catch {}
+    }
     if (env.ORDER_STATE) {
       const listKey = `tenant:${tenantId}:image_list`;
       let listRaw = await env.ORDER_STATE.get(listKey);
@@ -883,11 +898,16 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
         try {
           const parsed = JSON.parse(listRaw);
           if (Array.isArray(parsed)) {
-            imageList = parsed;
             imageListLoaded = true;
+            for (const k of parsed) {
+              if (typeof k === "string" && k.trim()) imageNamesSet.add(k);
+            }
           }
         } catch (e) { }
       }
+    }
+    if (imageListLoaded) {
+      imageList = Array.from(imageNamesSet);
     }
 
     // 4. Organize Items by Category

@@ -122,14 +122,34 @@ export async function loadOptionCatalog(env: Env, tenantId: string): Promise<Opt
 		};
 	});
 	let imageList: string[] | undefined = undefined;
-	if (env.ORDER_STATE) {
+	const imageNamesSet = new Set<string>();
+	let hasAuthoritativeImageSource = Boolean(env.IMAGES_BUCKET);
+	if (env.DB) {
+		try {
+			const imgRes = await env.DB.prepare('SELECT name, bare_name FROM tenant_images WHERE tenant_id = ?').bind(tenantId).all<Row>();
+			if (imgRes && Array.isArray(imgRes.results)) {
+				if (imgRes.results.length > 0) hasAuthoritativeImageSource = true;
+				for (const r of imgRes.results) {
+					if (r.name) imageNamesSet.add(String(r.name));
+					if (r.bare_name) imageNamesSet.add(String(r.bare_name));
+				}
+			}
+		} catch {}
+	}
+	if (env.ORDER_STATE && typeof env.ORDER_STATE.get === 'function') {
 		try {
 			const listRaw = await env.ORDER_STATE.get(`tenant:${tenantId}:image_list`);
 			if (listRaw) {
 				const parsed = JSON.parse(listRaw);
-				if (Array.isArray(parsed)) imageList = parsed;
+				if (Array.isArray(parsed)) {
+					hasAuthoritativeImageSource = true;
+					for (const k of parsed) if (k) imageNamesSet.add(String(k));
+				}
 			}
 		} catch {}
+	}
+	if (hasAuthoritativeImageSource) {
+		imageList = Array.from(imageNamesSet);
 	}
 	const catalog = {
 		revision: Number((results[6].results[0] as Row)?.revision || 0),
@@ -470,17 +490,28 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 				image_key: typeof raw.imageKey === 'string' ? (raw.imageKey.trim() || null) : (previous?.image_key ?? null),
 				menu_revision: Number(previous?.menu_revision || 0) + 1,
 			};
-			if (previous?.image_key && !product.image_key && env.ORDER_STATE) {
-				await env.ORDER_STATE.delete(`tenant:${tenantId}:image:${previous.image_key}`);
-				const listKey = `tenant:${tenantId}:image_list`;
-				if (typeof env.ORDER_STATE.get === 'function') {
-					const rawList = await env.ORDER_STATE.get(listKey);
-					if (rawList) {
-						try {
-							const list = JSON.parse(rawList);
-							const filtered = list.filter((k: string) => k !== previous.image_key && k !== product.name);
-							await env.ORDER_STATE.put(listKey, JSON.stringify(filtered));
-						} catch {}
+			if (previous?.image_key && !product.image_key) {
+				if (env.DB) {
+					try {
+						const oldRows = await env.DB.prepare('SELECT r2_key FROM tenant_images WHERE tenant_id = ? AND (name = ? OR bare_name = ?)').bind(tenantId, previous.image_key, previous.image_key).all<Row>();
+						if (env.IMAGES_BUCKET && oldRows?.results?.length) {
+							await Promise.all(oldRows.results.map((r) => env.IMAGES_BUCKET!.delete(String(r.r2_key))));
+						}
+						await env.DB.prepare('DELETE FROM tenant_images WHERE tenant_id = ? AND (name = ? OR bare_name = ?)').bind(tenantId, previous.image_key, previous.image_key).run();
+					} catch {}
+				}
+				if (env.ORDER_STATE) {
+					await env.ORDER_STATE.delete(`tenant:${tenantId}:image:${previous.image_key}`);
+					const listKey = `tenant:${tenantId}:image_list`;
+					if (typeof env.ORDER_STATE.get === 'function') {
+						const rawList = await env.ORDER_STATE.get(listKey);
+						if (rawList) {
+							try {
+								const list = JSON.parse(rawList);
+								const filtered = list.filter((k: string) => k !== previous.image_key && k !== product.name);
+								await env.ORDER_STATE.put(listKey, JSON.stringify(filtered));
+							} catch {}
+						}
 					}
 				}
 			}

@@ -107,7 +107,7 @@ export default {
       if (request.method === "POST" && path === "/api/menu/bundle-rules") return updateBundleRule(request, env);
       if (request.method === "POST" && path === "/api/menu/bundles") return saveBundleProduct(request, env);
       if ((request.method === "GET" || request.method === "HEAD") && path === "/api/image_list") return getImageList(request, env);
-      if ((request.method === "GET" || request.method === "HEAD") && path === "/api/image") return getImage(request, env);
+      if ((request.method === "GET" || request.method === "HEAD") && path === "/api/image") return getImage(request, env, ctx);
       if (request.method === "POST" && path === "/api/image") return updateImage(request, env);
       if (request.method === "DELETE" && path === "/api/image") return deleteImage(request, env);
       if ((request.method === "POST" || request.method === "GET") && path === "/api/auth") return handleAuth(request, env, url, tenantCtx);
