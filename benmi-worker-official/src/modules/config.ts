@@ -60,6 +60,10 @@ export async function getConfig(
     return json({ error: 'Invalid tenant endpoint configuration' }, 503, { 'Cache-Control': 'no-store' });
   }
 
+  const autoOpenBeforeMinutes = (domainRow.auto_open_before_minutes !== undefined && domainRow.auto_open_before_minutes !== null)
+    ? Number(domainRow.auto_open_before_minutes)
+    : (tenantCtx?.autoOpenBeforeMinutes ?? 60);
+
   return json({
     tenantId,
     liffId: domainRow.liff_id || null,
@@ -68,7 +72,8 @@ export async function getConfig(
     allowScheduledPickup,
     allowDineIn,
     features: finalFeatures,
-    storeStatus: normalizeStoreStatus(domainRow.store_status || tenantCtx?.storeStatus),
+    storeStatus: normalizeStoreStatus(domainRow.store_status || tenantCtx?.storeStatus, new Date(), domainRow.operating_hours || tenantCtx?.operatingHours, autoOpenBeforeMinutes),
+    autoOpenBeforeMinutes,
     prepTimeMinutes: (domainRow.prep_time_minutes !== undefined && domainRow.prep_time_minutes !== null) ? Number(domainRow.prep_time_minutes) : (tenantCtx?.prepTimeMinutes ?? 5),
     paymentMethods: domainRow.payment_methods ? (typeof domainRow.payment_methods === 'string' ? JSON.parse(domainRow.payment_methods) : domainRow.payment_methods) : (tenantCtx?.paymentMethods || ['line_pay']),
     logoUrl: domainRow.logo_url || tenantCtx?.logoUrl || null,
@@ -107,6 +112,7 @@ export async function updateConfig(
       allowScheduledPickup: payload.allowScheduledPickup,
       allowDineIn: allowDineInVal,
       storeStatus: payload.storeStatus,
+      autoOpenBeforeMinutes: payload.autoOpenBeforeMinutes !== undefined ? Number(payload.autoOpenBeforeMinutes) : undefined,
       prepTimeMinutes: payload.prepTimeMinutes !== undefined ? Number(payload.prepTimeMinutes) : undefined,
       paymentMethods: payload.paymentMethods !== undefined ? payload.paymentMethods : undefined,
       liffId: payload.liffId,

@@ -7,7 +7,7 @@
   <title id="pos-page-title">Blab POS</title>
   <base href="/" />
   <script src="js/orders-display.js?v=20261007_dev_main_sync_v1"></script>
-  <link rel="stylesheet" href="css/orders.css?v=20261108_auto_reopen_status_v1" />
+  <link rel="stylesheet" href="css/orders.css?v=20261109_auto_reopen_v1" />
   <link rel="stylesheet" href="css/orders-stock.css?v=20261107_stock_drawer_v1" />
   <link rel="stylesheet" href="css/orders-menu.css?v=20261102_menu_mobile_v5" />
     <script>
@@ -837,6 +837,27 @@
                     <span class="status-box-name" id="i18n-box-closed-title">今日打烊</span>
                   </div>
                   <div class="status-box-desc" id="i18n-box-closed-desc">今日停止接單，下個營業日自動恢復</div>
+                </div>
+              </div>
+
+              <!-- Auto Reopen Before Operating Hours Setting -->
+              <div style="margin: 0 20px 20px; padding: 18px 20px; border-radius: 12px; border: 1.5px solid var(--border); background: #fafafa;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px;">
+                  <div>
+                    <div style="font-weight: 1100; font-size: var(--pos-text-body); color: #111827;" id="i18n-auto-reopen-title">今日打烊自動恢復時間</div>
+                    <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600; margin-top: 3px;" id="i18n-auto-reopen-desc">設定在下個營業日開始前多久自動恢復接單（預設 1 小時）</div>
+                  </div>
+                  <span class="setting-badge" id="setting-auto-reopen-badge" style="padding: 6px 12px; border-radius: 8px; font-weight: 900; font-size: var(--pos-text-meta); background: #ecfdf5; color: var(--primary); border: 1px solid #a7f3d0; white-space: nowrap;">
+                    1 小時
+                  </span>
+                </div>
+                
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;" id="auto-reopen-presets">
+                  <button type="button" class="auto-reopen-chip" data-minutes="0" onclick="setAutoOpenBeforeMinutes(0, event)" id="i18n-chip-reopen-0">0 分鐘 (開門即接)</button>
+                  <button type="button" class="auto-reopen-chip" data-minutes="30" onclick="setAutoOpenBeforeMinutes(30, event)" id="i18n-chip-reopen-30">30 分鐘</button>
+                  <button type="button" class="auto-reopen-chip active" data-minutes="60" onclick="setAutoOpenBeforeMinutes(60, event)" id="i18n-chip-reopen-60">1 小時 (預設)</button>
+                  <button type="button" class="auto-reopen-chip" data-minutes="120" onclick="setAutoOpenBeforeMinutes(120, event)" id="i18n-chip-reopen-120">2 小時</button>
+                  <button type="button" class="auto-reopen-chip" data-minutes="custom" onclick="openCustomAutoReopenPrompt(event)" id="i18n-chip-reopen-custom">自訂</button>
                 </div>
               </div>
             </div>
@@ -3248,7 +3269,7 @@
   </section>
 
   <!-- Benmi POS Modular Architecture Scripts -->
-  <script src="js/orders-i18n.js?v=20261108_auto_reopen_status_v1"></script>
+  <script src="js/orders-i18n.js?v=20261109_auto_reopen_v1"></script>
   <script src="js/orders-core.js?v=20261108_staff_header_v2"></script>
   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
@@ -3259,7 +3280,7 @@
   <script src="js/orders-history.js?v=20261101_linepay_v1"></script>
   <script src="js/orders-reports.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/qrcode.min.js?v=20261107_table_qr_v1"></script>
-  <script src="js/orders-settings.js?v=20261108_auto_reopen_status_v1"></script>
+  <script src="js/orders-settings.js?v=20261109_auto_reopen_v1"></script>
   <script src="js/orders-menu-model.js?v=20261104_menu_model_v1"></script>
   <script src="js/orders-menu.js?v=20261109_menu_image_delete_v2"></script>
   <script src="js/orders-bundle-wizard.js?v=20261007_dev_main_sync_v1"></script>

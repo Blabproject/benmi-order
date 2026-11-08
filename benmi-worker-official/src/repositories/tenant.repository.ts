@@ -54,7 +54,7 @@ export function createTenantRepository(
           if (cached) {
             const parsed = JSON.parse(cached);
             if (parsed) {
-              parsed.storeStatus = normalizeStoreStatus(parsed.storeStatus);
+              parsed.storeStatus = normalizeStoreStatus(parsed.storeStatus, new Date(), parsed.operatingHours, parsed.autoOpenBeforeMinutes ?? 60);
               if (parsed.deliveryPolicy) parsed.deliveryPolicy = normalizeMultiline(parsed.deliveryPolicy);
               if (parsed.operatingHours) parsed.operatingHours = normalizeMultiline(parsed.operatingHours);
               if (parsed.storeAddress) parsed.storeAddress = normalizeMultiline(parsed.storeAddress);
@@ -118,7 +118,8 @@ export function createTenantRepository(
               deliveryPolicy: normalizeMultiline(row.delivery_policy),
               allowScheduledPickup: row.allow_scheduled_pickup !== undefined && row.allow_scheduled_pickup !== null ? Boolean(row.allow_scheduled_pickup) : true,
               allowDineIn: row.allow_dine_in !== undefined && row.allow_dine_in !== null ? Boolean(row.allow_dine_in) : true,
-              storeStatus: normalizeStoreStatus(row.store_status),
+              autoOpenBeforeMinutes: (row.auto_open_before_minutes !== undefined && row.auto_open_before_minutes !== null) ? Number(row.auto_open_before_minutes) : 60,
+              storeStatus: normalizeStoreStatus(row.store_status, new Date(), row.operating_hours, (row.auto_open_before_minutes !== undefined && row.auto_open_before_minutes !== null) ? Number(row.auto_open_before_minutes) : 60),
               prepTimeMinutes: (row.prep_time_minutes !== undefined && row.prep_time_minutes !== null) ? Number(row.prep_time_minutes) : 5,
               paymentMethods: (row.payment_methods ? (typeof row.payment_methods === 'string' ? JSON.parse(row.payment_methods) : row.payment_methods) : ['line_pay']),
               quickReplies,
@@ -205,7 +206,7 @@ export function createTenantRepository(
     async getTenantConfigRow(tenantId: string): Promise<TenantConfigRow | null> {
       if (!db) return null;
       return db.prepare(
-        "SELECT operating_hours, allow_scheduled_pickup, allow_dine_in, store_status, liff_id, logo_url, store_address, announcement, features, payment_methods, customer_order_domain, legacy_liff_endpoint_url FROM tenant_config WHERE tenant_id = ? AND is_active = 1"
+        "SELECT operating_hours, allow_scheduled_pickup, allow_dine_in, store_status, liff_id, logo_url, store_address, announcement, features, payment_methods, customer_order_domain, legacy_liff_endpoint_url, prep_time_minutes, auto_open_before_minutes FROM tenant_config WHERE tenant_id = ? AND is_active = 1"
       ).bind(tenantId).first<TenantConfigRow>();
     },
 
@@ -242,14 +243,17 @@ export function createTenantRepository(
       const prepTimeVal = input.prepTimeMinutes !== undefined && input.prepTimeMinutes !== null
         ? Number(input.prepTimeMinutes)
         : null;
+      const autoOpenBeforeMinutesVal = input.autoOpenBeforeMinutes !== undefined && input.autoOpenBeforeMinutes !== null
+        ? Number(input.autoOpenBeforeMinutes)
+        : null;
       const paymentMethodsVal = input.paymentMethods !== undefined && input.paymentMethods !== null
         ? (typeof input.paymentMethods === 'string' ? input.paymentMethods : JSON.stringify(input.paymentMethods))
         : null;
       const brandName = input.brandName || (tenantId === 'benmi' ? 'Benmi 越式法國麵包' : tenantId);
 
       await db.prepare(`
-        INSERT INTO tenant_config (tenant_id, brand_name, operating_hours, allow_scheduled_pickup, allow_dine_in, store_status, liff_id, logo_url, store_address, announcement, features, prep_time_minutes, payment_methods, updated_at)
-        VALUES (?, ?, ?, COALESCE(?, 1), COALESCE(?, 1), COALESCE(?, 'open'), ?, ?, ?, ?, COALESCE(?, '[]'), COALESCE(?, 5), COALESCE(?, '["line_pay"]'), CURRENT_TIMESTAMP)
+        INSERT INTO tenant_config (tenant_id, brand_name, operating_hours, allow_scheduled_pickup, allow_dine_in, store_status, liff_id, logo_url, store_address, announcement, features, prep_time_minutes, payment_methods, auto_open_before_minutes, updated_at)
+        VALUES (?, ?, ?, COALESCE(?, 1), COALESCE(?, 1), COALESCE(?, 'open'), ?, ?, ?, ?, COALESCE(?, '[]'), COALESCE(?, 5), COALESCE(?, '["line_pay"]'), COALESCE(?, 60), CURRENT_TIMESTAMP)
         ON CONFLICT(tenant_id) DO UPDATE SET
           operating_hours = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.operating_hours END,
           allow_scheduled_pickup = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.allow_scheduled_pickup END,
@@ -262,6 +266,7 @@ export function createTenantRepository(
           features = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.features END,
           prep_time_minutes = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.prep_time_minutes END,
           payment_methods = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.payment_methods END,
+          auto_open_before_minutes = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.auto_open_before_minutes END,
           updated_at = CURRENT_TIMESTAMP
       `).bind(
         tenantId,
@@ -277,6 +282,7 @@ export function createTenantRepository(
         featuresVal,
         prepTimeVal,
         paymentMethodsVal,
+        autoOpenBeforeMinutesVal,
         opHoursStr, opHoursStr,
         allowPickupInt, allowPickupInt,
         allowDineInInt, allowDineInInt,
@@ -287,7 +293,8 @@ export function createTenantRepository(
         announcementVal, announcementVal,
         featuresVal, featuresVal,
         prepTimeVal, prepTimeVal,
-        paymentMethodsVal, paymentMethodsVal
+        paymentMethodsVal, paymentMethodsVal,
+        autoOpenBeforeMinutesVal, autoOpenBeforeMinutesVal
       ).run();
 
       await invalidateCache(tenantId);

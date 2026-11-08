@@ -19,6 +19,41 @@ test('normalizeStoreStatus handles 4 canonical statuses and auto-reopens expired
   // Next day: auto-reopened to open
   assert.equal(normalizeStoreStatus('closed:2026-11-08', tomorrow), 'open');
 
+  // Next day early morning before default reopen time (e.g. 05:00 Taiwan): remains closed
+  const tomorrowMidnight = new Date('2026-11-08T16:05:00Z'); // 2026-11-09 00:05 in Taiwan
+  assert.equal(normalizeStoreStatus('closed:2026-11-08', tomorrowMidnight), 'closed');
+
+  // Operating hours specific testing:
+  // Operating shift starts at 11:30 on Monday (day 1)
+  const opHours = { 1: [{ start: '11:30', end: '20:30' }] };
+
+  // With default 60 min lead: reopen at 10:30
+  const at1000 = new Date('2026-11-09T02:00:00Z'); // 10:00 Taiwan
+  const at1030 = new Date('2026-11-09T02:30:00Z'); // 10:30 Taiwan
+  assert.equal(normalizeStoreStatus('closed:2026-11-08', at1000, opHours, 60), 'closed');
+  assert.equal(normalizeStoreStatus('closed:2026-11-08', at1030, opHours, 60), 'open');
+
+  // With 120 min lead: reopen at 09:30
+  assert.equal(normalizeStoreStatus('closed:2026-11-08', at1000, opHours, 120), 'open');
+
+  // With 0 min lead (on-time): reopen at 11:30
+  const at1100 = new Date('2026-11-09T03:00:00Z'); // 11:00 Taiwan
+  const at1130 = new Date('2026-11-09T03:30:00Z'); // 11:30 Taiwan
+  assert.equal(normalizeStoreStatus('closed:2026-11-08', at1100, opHours, 0), 'closed');
+  assert.equal(normalizeStoreStatus('closed:2026-11-08', at1130, opHours, 0), 'open');
+
+  // Days off testing: Monday (day 1) is closed, Tuesday (day 2) opens at 11:00
+  const opHoursWithDayOff = {
+    1: [], // Monday closed
+    2: [{ start: '11:00', end: '20:00' }] // Tuesday open
+  };
+  // Monday all day should be closed
+  const mondayNoon = new Date('2026-11-09T04:00:00Z'); // Monday 12:00 Taiwan
+  assert.equal(normalizeStoreStatus('closed:2026-11-08', mondayNoon, opHoursWithDayOff, 60), 'closed');
+  // Tuesday at 10:00 Taiwan (1 hour before 11:00) should be open
+  const tuesday1000 = new Date('2026-11-10T02:00:00Z'); // Tuesday 10:00 Taiwan
+  assert.equal(normalizeStoreStatus('closed:2026-11-08', tuesday1000, opHoursWithDayOff, 60), 'open');
+
   // Paused remains paused across days
   assert.equal(normalizeStoreStatus('paused', tomorrow), 'paused');
 });
@@ -60,7 +95,18 @@ test('store_status updates support closed with auto-date stamp and auto-reopenin
   assert.equal(rPaused.status, 200);
   assert.equal((await repo.getTenantContext('a')).storeStatus, 'paused');
 
-  // 4. Invalid status returns 400
+  // 4. Update autoOpenBeforeMinutes
+  const rAutoOpen = await updateConfig(new Request(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ autoOpenBeforeMinutes: 30 })
+  }), f.env, tenant);
+  assert.equal(rAutoOpen.status, 200);
+
+  const cfg = await (await getConfig(new Request(url), f.env, tenant)).json();
+  assert.equal(cfg.autoOpenBeforeMinutes, 30);
+
+  // 5. Invalid status returns 400
   const rInvalid = await updateConfig(new Request(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

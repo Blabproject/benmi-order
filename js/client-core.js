@@ -1397,13 +1397,88 @@ function hasConfiguredOperatingHours(cfg = storeConfig) {
     return Object.values(cfg.operatingHours).some(shifts => Array.isArray(shifts) && shifts.length > 0);
 }
 
+function isStoreClosedExpired(closedDate, nowTime = new Date(), operatingHours = null, autoOpenBeforeMinutes = 60) {
+    if (!closedDate) return true;
+    const match = closedDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return true;
+    const cYear = parseInt(match[1], 10);
+    const cMonth = parseInt(match[2], 10);
+    const cDay = parseInt(match[3], 10);
+
+    const parsedHours = (() => {
+        if (!operatingHours) return {};
+        if (typeof operatingHours === 'string') {
+            try { return JSON.parse(operatingHours); } catch { return {}; }
+        }
+        if (typeof operatingHours === 'object') return operatingHours;
+        return {};
+    })();
+
+    const leadMinutes = typeof autoOpenBeforeMinutes === 'number' && !isNaN(autoOpenBeforeMinutes) && autoOpenBeforeMinutes >= 0
+        ? autoOpenBeforeMinutes
+        : 60;
+
+    let foundShift = null;
+    for (let offset = 1; offset <= 7; offset++) {
+        const candDateUtc = new Date(Date.UTC(cYear, cMonth - 1, cDay + offset));
+        const dayOfWeek = candDateUtc.getUTCDay();
+        const shifts = parsedHours[dayOfWeek] || parsedHours[String(dayOfWeek)];
+        if (Array.isArray(shifts) && shifts.length > 0 && shifts[0]?.start) {
+            foundShift = {
+                candYear: candDateUtc.getUTCFullYear(),
+                candMonth: candDateUtc.getUTCMonth() + 1,
+                candDay: candDateUtc.getUTCDate(),
+                start: shifts[0].start
+            };
+            break;
+        }
+    }
+
+    const nowMs = nowTime.getTime();
+
+    if (foundShift) {
+        const [sH, sM] = foundShift.start.split(':').map(Number);
+        const validH = isNaN(sH) ? 11 : sH;
+        const validM = isNaN(sM) ? 0 : sM;
+        const shiftStartUtcMs = Date.UTC(foundShift.candYear, foundShift.candMonth - 1, foundShift.candDay, validH - 8, validM, 0);
+        const reopenUtcMs = shiftStartUtcMs - (leadMinutes * 60 * 1000);
+        return nowMs >= reopenUtcMs;
+    }
+
+    const nextDayUtc = new Date(Date.UTC(cYear, cMonth - 1, cDay + 1));
+    const nextDayOfWeek = nextDayUtc.getUTCDay();
+    const defaultHour = (nextDayOfWeek === 0 || nextDayOfWeek === 6) ? 9 : 11;
+    const defaultShiftUtcMs = Date.UTC(nextDayUtc.getUTCFullYear(), nextDayUtc.getUTCMonth(), nextDayUtc.getUTCDate(), defaultHour - 8, 0, 0);
+    const defaultReopenUtcMs = defaultShiftUtcMs - (leadMinutes * 60 * 1000);
+
+    if (nowMs >= defaultReopenUtcMs) {
+        return true;
+    }
+
+    const nowTw = new Date(nowTime.getTime() + 8 * 3600000);
+    const daysDiff = (Date.UTC(nowTw.getUTCFullYear(), nowTw.getUTCMonth(), nowTw.getUTCDate()) -
+        Date.UTC(cYear, cMonth - 1, cDay)) / 86400000;
+    return daysDiff > 7;
+}
+
+function resolveStoreStatus(cfg = storeConfig, nowTime = new Date()) {
+    let status = cfg?.storeStatus || 'open';
+    if (typeof status === 'string' && status.startsWith('closed:')) {
+        const closedDate = status.slice(7).trim();
+        const autoOpenMins = cfg?.autoOpenBeforeMinutes ?? 60;
+        status = isStoreClosedExpired(closedDate, nowTime, cfg?.operatingHours, autoOpenMins) ? 'open' : 'closed';
+    }
+    return status;
+}
+
 function isManualStoreOpen(dateObj = getTaiwanDate()) {
-    const status = storeConfig?.storeStatus;
+    const status = resolveStoreStatus(storeConfig);
     return (status === 'open' || status === 'busy') && dateObj.toDateString() === getTaiwanDate().toDateString();
 }
 
 function isStoreOpen(twTime) {
-    if (['paused', 'closed'].includes(storeConfig?.storeStatus)) return false;
+    const currentStatus = resolveStoreStatus(storeConfig);
+    if (['paused', 'closed'].includes(currentStatus)) return false;
     const hasSchedule = hasConfiguredOperatingHours(storeConfig);
     if (!hasSchedule) {
         if (isManualStoreOpen(twTime)) return true;
@@ -1472,13 +1547,7 @@ function checkStoreStatus() {
     const pausedBanner = document.getElementById('store-paused-banner');
     const busyBanner = document.getElementById('store-busy-banner');
     const submitButtons = ['btn-submit', 'btn-desktop-submit'].map(id => document.getElementById(id)).filter(Boolean);
-    let storeStatus = (storeConfig && storeConfig.storeStatus) ? storeConfig.storeStatus : 'open';
-    if (typeof storeStatus === 'string' && storeStatus.startsWith('closed:')) {
-        const closedDate = storeStatus.slice(7).trim();
-        const nowTw = new Date(Date.now() + 8 * 3600000);
-        const todayTw = `${nowTw.getUTCFullYear()}-${String(nowTw.getUTCMonth() + 1).padStart(2, '0')}-${String(nowTw.getUTCDate()).padStart(2, '0')}`;
-        storeStatus = (closedDate && todayTw > closedDate) ? 'open' : 'closed';
-    }
+    const storeStatus = resolveStoreStatus(storeConfig);
 
     if (storeStatus === 'paused' || storeStatus === 'closed') {
         if (statusEl) {

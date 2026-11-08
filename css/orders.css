@@ -4515,6 +4515,33 @@ html.is-web-platform .store-activation-modal:not(.force-show) {
   box-shadow: 0 2px 8px rgba(4, 120, 87, 0.12);
 }
 
+.auto-reopen-chip {
+  min-height: 48px;
+  min-width: 80px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 2px solid var(--border);
+  background: #ffffff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.auto-reopen-chip:hover {
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
+.auto-reopen-chip.active {
+  border-color: var(--primary) !important;
+  background: #f0fdf4 !important;
+  color: var(--primary) !important;
+  box-shadow: 0 2px 8px rgba(4, 120, 87, 0.12);
+}
+
 .status-option.active .status-check {
   opacity: 1;
 }

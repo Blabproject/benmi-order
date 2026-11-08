@@ -29,6 +29,7 @@ export interface TenantConfigRow extends OrderDomainRow {
   locale?: string | null;
   google_sheets_url?: string | null;
   features?: string | null;
+  auto_open_before_minutes?: number | null;
   prep_time_minutes?: number | null;
   payment_methods?: string | null;
   order_prefix?: string | null;
@@ -65,6 +66,7 @@ export interface UpdateTenantConfigInput {
   storeAddress?: string | null;
   announcement?: string | null;
   features?: string | string[] | null;
+  autoOpenBeforeMinutes?: number | null;
   prepTimeMinutes?: number | null;
   paymentMethods?: string[] | string | null;
   brandName?: string | null;

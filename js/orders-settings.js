@@ -30,13 +30,77 @@ document.addEventListener("click", (e) => {
   }
 });
 
+var currentAutoOpenBeforeMinutes = 60;
+
+function isStoreClosedExpired(closedDate, nowTime = new Date(), operatingHours = null, autoOpenBeforeMinutes = 60) {
+  if (!closedDate) return true;
+  const match = closedDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return true;
+  const cYear = parseInt(match[1], 10);
+  const cMonth = parseInt(match[2], 10);
+  const cDay = parseInt(match[3], 10);
+
+  const parsedHours = (() => {
+    if (!operatingHours) return {};
+    if (typeof operatingHours === 'string') {
+      try { return JSON.parse(operatingHours); } catch { return {}; }
+    }
+    if (typeof operatingHours === 'object') return operatingHours;
+    return {};
+  })();
+
+  const leadMinutes = typeof autoOpenBeforeMinutes === 'number' && !isNaN(autoOpenBeforeMinutes) && autoOpenBeforeMinutes >= 0
+    ? autoOpenBeforeMinutes
+    : 60;
+
+  let foundShift = null;
+  for (let offset = 1; offset <= 7; offset++) {
+    const candDateUtc = new Date(Date.UTC(cYear, cMonth - 1, cDay + offset));
+    const dayOfWeek = candDateUtc.getUTCDay();
+    const shifts = parsedHours[dayOfWeek] || parsedHours[String(dayOfWeek)];
+    if (Array.isArray(shifts) && shifts.length > 0 && shifts[0]?.start) {
+      foundShift = {
+        candYear: candDateUtc.getUTCFullYear(),
+        candMonth: candDateUtc.getUTCMonth() + 1,
+        candDay: candDateUtc.getUTCDate(),
+        start: shifts[0].start
+      };
+      break;
+    }
+  }
+
+  const nowMs = nowTime.getTime();
+
+  if (foundShift) {
+    const [sH, sM] = foundShift.start.split(':').map(Number);
+    const validH = isNaN(sH) ? 11 : sH;
+    const validM = isNaN(sM) ? 0 : sM;
+    const shiftStartUtcMs = Date.UTC(foundShift.candYear, foundShift.candMonth - 1, foundShift.candDay, validH - 8, validM, 0);
+    const reopenUtcMs = shiftStartUtcMs - (leadMinutes * 60 * 1000);
+    return nowMs >= reopenUtcMs;
+  }
+
+  const nextDayUtc = new Date(Date.UTC(cYear, cMonth - 1, cDay + 1));
+  const nextDayOfWeek = nextDayUtc.getUTCDay();
+  const defaultHour = (nextDayOfWeek === 0 || nextDayOfWeek === 6) ? 9 : 11;
+  const defaultShiftUtcMs = Date.UTC(nextDayUtc.getUTCFullYear(), nextDayUtc.getUTCMonth(), nextDayUtc.getUTCDate(), defaultHour - 8, 0, 0);
+  const defaultReopenUtcMs = defaultShiftUtcMs - (leadMinutes * 60 * 1000);
+
+  if (nowMs >= defaultReopenUtcMs) {
+    return true;
+  }
+
+  const nowTw = new Date(nowTime.getTime() + 8 * 3600000);
+  const daysDiff = (Date.UTC(nowTw.getUTCFullYear(), nowTw.getUTCMonth(), nowTw.getUTCDate()) -
+    Date.UTC(cYear, cMonth - 1, cDay)) / 86400000;
+  return daysDiff > 7;
+}
+
 function renderStoreStatusUI(status) {
   let resolved = status || 'open';
   if (typeof resolved === 'string' && resolved.startsWith('closed:')) {
     const closedDate = resolved.slice(7).trim();
-    const nowTw = new Date(Date.now() + 8 * 3600000);
-    const todayTw = `${nowTw.getUTCFullYear()}-${String(nowTw.getUTCMonth() + 1).padStart(2, '0')}-${String(nowTw.getUTCDate()).padStart(2, '0')}`;
-    resolved = (closedDate && todayTw > closedDate) ? 'open' : 'closed';
+    resolved = isStoreClosedExpired(closedDate, new Date(), storeOperatingHours, currentAutoOpenBeforeMinutes) ? 'open' : 'closed';
   }
   currentStoreStatus = resolved;
   const btn = document.getElementById("store-status-btn");
@@ -131,6 +195,73 @@ function openCustomPrepTimePrompt(e) {
   }
 }
 
+function renderAutoOpenBeforeMinutesUI(mins) {
+  if (typeof mins === 'number') currentAutoOpenBeforeMinutes = mins;
+  const badge = document.getElementById('setting-auto-reopen-badge');
+  if (badge) {
+    if (currentAutoOpenBeforeMinutes === 0) {
+      badge.textContent = t('autoReopenOnTimeBadge') || '準時開門';
+    } else if (currentAutoOpenBeforeMinutes % 60 === 0) {
+      const hours = currentAutoOpenBeforeMinutes / 60;
+      badge.textContent = t('autoReopenHourBadge', { n: hours }) || `${hours} 小時`;
+    } else {
+      badge.textContent = t('autoReopenMinBadge', { n: currentAutoOpenBeforeMinutes }) || `${currentAutoOpenBeforeMinutes} 分鐘`;
+    }
+  }
+
+  document.querySelectorAll('.auto-reopen-chip').forEach(btn => {
+    const val = btn.dataset.minutes;
+    if (val === 'custom') {
+      const isPreset = [0, 30, 60, 120].includes(currentAutoOpenBeforeMinutes);
+      btn.classList.toggle('active', !isPreset);
+    } else {
+      btn.classList.toggle('active', Number(val) === currentAutoOpenBeforeMinutes);
+    }
+  });
+}
+
+async function setAutoOpenBeforeMinutes(mins, e) {
+  if (e) e.stopPropagation();
+  mins = parseInt(mins, 10);
+  if (isNaN(mins) || mins < 0) mins = 60;
+  if (mins > 360) mins = 360;
+
+  const prev = currentAutoOpenBeforeMinutes;
+  renderAutoOpenBeforeMinutesUI(mins);
+
+  try {
+    const tenantId = typeof getTenantIdFromUrl === 'function' ? getTenantIdFromUrl() : '';
+    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${tenantId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ autoOpenBeforeMinutes: mins })
+    });
+    if (!res.ok) throw new Error("API returned " + res.status);
+    if (typeof showToast === 'function') {
+      const timeLabel = mins === 0
+        ? (t('autoReopenOnTimeBadge') || '準時開門')
+        : (mins % 60 === 0 ? (t('autoReopenHourBadge', { n: mins / 60 }) || `${mins / 60} 小時`) : (t('autoReopenMinBadge', { n: mins }) || `${mins} 分鐘`));
+      showToast(t('autoReopenSaved', { t: timeLabel }) || `已更新自動恢復時間為營業前 ${timeLabel}`);
+    }
+  } catch (err) {
+    alert((t("saveFail") || "儲存失敗: ") + err.message);
+    renderAutoOpenBeforeMinutesUI(prev);
+  }
+}
+
+function openCustomAutoReopenPrompt(e) {
+  if (e) e.stopPropagation();
+  const input = prompt(t('autoReopenPrompt') || '請輸入營業前多久自動開放接單（分鐘，0-360）:', currentAutoOpenBeforeMinutes);
+  if (input !== null) {
+    const parsed = parseInt(input.trim(), 10);
+    if (!isNaN(parsed) && parsed >= 0 && parsed <= 360) {
+      setAutoOpenBeforeMinutes(parsed);
+    } else {
+      alert(t('autoReopenInvalid') || '請輸入 0 至 360 之間的有效分鐘數');
+    }
+  }
+}
+
 async function setStoreStatus(newStatus) {
   if (!['open', 'busy', 'paused', 'closed'].includes(newStatus)) return;
   const dd = document.getElementById("store-status-dropdown");
@@ -206,6 +337,9 @@ async function loadStoreStatus() {
       if (data.prepTimeMinutes !== undefined) {
         currentPrepTimeMinutes = Number(data.prepTimeMinutes);
       }
+      if (data.autoOpenBeforeMinutes !== undefined) {
+        currentAutoOpenBeforeMinutes = Number(data.autoOpenBeforeMinutes);
+      }
       if (data.paymentMethods && Array.isArray(data.paymentMethods)) {
         currentPaymentMethods = data.paymentMethods;
       }
@@ -216,6 +350,7 @@ async function loadStoreStatus() {
   }
   renderStoreStatusUI(currentStoreStatus);
   renderStorePrepTimeUI(currentPrepTimeMinutes);
+  renderAutoOpenBeforeMinutesUI(currentAutoOpenBeforeMinutes);
   renderPaymentMethodsSetting(currentPaymentMethods, isLinePayConfigured);
   try {
     const tenantId = typeof getTenantIdFromUrl === 'function' ? getTenantIdFromUrl() : '';

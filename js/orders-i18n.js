@@ -378,6 +378,19 @@ const I18N = {
     prepTimeInvalid: "請輸入 0 至 180 之間的有效分鐘數",
     prepTimeCustom: "自訂",
     prepTimeMinShort: "分",
+    autoReopenTitle: "今日打烊自動恢復時間",
+    autoReopenSub: "設定在下個營業日開始前多久自動恢復營業接單（預設 1 小時）",
+    autoReopen0Min: "0 分鐘 (開門即接)",
+    autoReopen30Min: "30 分鐘",
+    autoReopen60Min: "1 小時 (預設)",
+    autoReopen120Min: "2 小時",
+    autoReopenCustom: "自訂",
+    autoReopenHourBadge: "{n} 小時",
+    autoReopenMinBadge: "{n} 分鐘",
+    autoReopenOnTimeBadge: "準時開門",
+    autoReopenSaved: "已更新自動恢復時間為營業前 {t}",
+    autoReopenPrompt: "請輸入營業前多久自動開放接單（分鐘，0-360）:",
+    autoReopenInvalid: "請輸入 0 至 360 之間的有效分鐘數",
     orderModeTitle: "點餐模式 / 取餐時間設定",
     orderModeSub: "自訂允許顧客預約取餐時間或依序即刻製作",
     btnSaveSetting: "儲存設定",
@@ -1554,6 +1567,19 @@ const I18N = {
     prepTimeInvalid: "Vui lòng nhập số phút hợp lệ từ 0 đến 180",
     prepTimeCustom: "Tùy chỉnh",
     prepTimeMinShort: "p",
+    autoReopenTitle: "Thời gian tự động mở lại nhận đơn",
+    autoReopenSub: "Cài đặt tự động mở lại nhận đơn trước giờ hoạt động của ngày tiếp theo (mặc định 1 tiếng)",
+    autoReopen0Min: "Đúng giờ mở cửa (0 phút)",
+    autoReopen30Min: "30 phút",
+    autoReopen60Min: "1 tiếng (Mặc định)",
+    autoReopen120Min: "2 tiếng",
+    autoReopenCustom: "Tùy chỉnh",
+    autoReopenHourBadge: "{n} tiếng",
+    autoReopenMinBadge: "{n} phút",
+    autoReopenOnTimeBadge: "Đúng giờ mở",
+    autoReopenSaved: "Đã cập nhật tự động mở lại nhận đơn trước giờ mở cửa {t}",
+    autoReopenPrompt: "Vui lòng nhập thời gian mở nhận đơn trước giờ hoạt động (phút, 0-360):",
+    autoReopenInvalid: "Vui lòng nhập số phút hợp lệ từ 0 đến 360",
     orderModeTitle: "Chế độ nhận đơn & Hẹn giờ",
     orderModeSub: "Tùy chỉnh cho phép khách hẹn giờ lấy hoặc nhận đơn làm ngay theo thứ tự",
     btnSaveSetting: "Lưu thiết lập",
@@ -2832,6 +2858,24 @@ function applyLanguageToDOM() {
 
   if (typeof renderStoreStatusUI === "function" && typeof currentStoreStatus !== "undefined") {
     renderStoreStatusUI(currentStoreStatus);
+  }
+
+  const autoReopenT = document.getElementById("i18n-auto-reopen-title");
+  if (autoReopenT) autoReopenT.innerText = dict.autoReopenTitle;
+  const autoReopenS = document.getElementById("i18n-auto-reopen-desc");
+  if (autoReopenS) autoReopenS.innerText = dict.autoReopenSub;
+  const chipReopen0 = document.getElementById("i18n-chip-reopen-0");
+  if (chipReopen0) chipReopen0.innerText = dict.autoReopen0Min;
+  const chipReopen30 = document.getElementById("i18n-chip-reopen-30");
+  if (chipReopen30) chipReopen30.innerText = dict.autoReopen30Min;
+  const chipReopen60 = document.getElementById("i18n-chip-reopen-60");
+  if (chipReopen60) chipReopen60.innerText = dict.autoReopen60Min;
+  const chipReopen120 = document.getElementById("i18n-chip-reopen-120");
+  if (chipReopen120) chipReopen120.innerText = dict.autoReopen120Min;
+  const chipReopenCustom = document.getElementById("i18n-chip-reopen-custom");
+  if (chipReopenCustom) chipReopenCustom.innerText = dict.autoReopenCustom;
+  if (typeof renderAutoOpenBeforeMinutesUI === "function" && typeof currentAutoOpenBeforeMinutes !== "undefined") {
+    renderAutoOpenBeforeMinutesUI(currentAutoOpenBeforeMinutes);
   }
 
   const tocTitle = document.getElementById("i18n-toc-settings-title");
