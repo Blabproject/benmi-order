@@ -1392,6 +1392,11 @@ async function updateDesktopAuthUI() {
 }
 
 // --- STORE STATUS & BUSINESS HOURS ---
+function hasConfiguredOperatingHours(cfg = storeConfig) {
+    if (!cfg || !cfg.operatingHours || typeof cfg.operatingHours !== 'object') return false;
+    return Object.values(cfg.operatingHours).some(shifts => Array.isArray(shifts) && shifts.length > 0);
+}
+
 function isManualStoreOpen(dateObj = getTaiwanDate()) {
     const status = storeConfig?.storeStatus;
     return (status === 'open' || status === 'busy') && dateObj.toDateString() === getTaiwanDate().toDateString();
@@ -1399,8 +1404,9 @@ function isManualStoreOpen(dateObj = getTaiwanDate()) {
 
 function isStoreOpen(twTime) {
     if (['paused', 'closed'].includes(storeConfig?.storeStatus)) return false;
-    if (isManualStoreOpen(twTime)) return true;
-    if (!storeConfig || !storeConfig.operatingHours) {
+    const hasSchedule = hasConfiguredOperatingHours(storeConfig);
+    if (!hasSchedule) {
+        if (isManualStoreOpen(twTime)) return true;
         const day = twTime.getDay();
         const hours = twTime.getHours();
         const minutes = twTime.getMinutes();
@@ -1417,7 +1423,7 @@ function isStoreOpen(twTime) {
     const minutes = twTime.getMinutes();
     const timeValue = hours + minutes / 60;
     
-    const shifts = storeConfig.operatingHours[day] || [];
+    const shifts = storeConfig.operatingHours[day] || storeConfig.operatingHours[String(day)] || [];
     for (let shift of shifts) {
         if (!shift || !shift.start || !shift.end) continue;
         const [sH, sM] = shift.start.split(':').map(Number);
@@ -1441,7 +1447,7 @@ function isStoreOpen(twTime) {
     }
     
     const yesterday = (day + 6) % 7;
-    const yesterdayShifts = storeConfig.operatingHours[yesterday] || [];
+    const yesterdayShifts = storeConfig.operatingHours[yesterday] || storeConfig.operatingHours[String(yesterday)] || [];
     for (let shift of yesterdayShifts) {
         if (!shift || !shift.start || !shift.end) continue;
         const [sH, sM] = shift.start.split(':').map(Number);

@@ -682,11 +682,22 @@ function getActiveStoreConfig() {
     return (typeof storeConfig !== 'undefined' && storeConfig) ? storeConfig : (typeof window !== 'undefined' && window.storeConfig ? window.storeConfig : null);
 }
 
+function hasConfiguredOperatingHours(cfg) {
+    if (typeof window !== 'undefined' && typeof window.hasConfiguredOperatingHours === 'function') {
+        return window.hasConfiguredOperatingHours(cfg);
+    }
+    if (!cfg || !cfg.operatingHours || typeof cfg.operatingHours !== 'object') return false;
+    return Object.values(cfg.operatingHours).some(shifts => Array.isArray(shifts) && shifts.length > 0);
+}
+
 function getStoreOperatingShifts(dateObj) {
     const cfg = getActiveStoreConfig();
     if (['paused', 'closed'].includes(cfg?.storeStatus)) return [];
-    if (typeof isManualStoreOpen === 'function' && isManualStoreOpen(dateObj)) return [{ start: '00:00', end: '24:00' }];
-    if (!cfg || !cfg.operatingHours) return [];
+    const hasSchedule = hasConfiguredOperatingHours(cfg);
+    if (!hasSchedule) {
+        if (typeof isManualStoreOpen === 'function' && isManualStoreOpen(dateObj)) return [{ start: '00:00', end: '24:00' }];
+        return [];
+    }
     const day = dateObj.getDay();
     const rawShifts = cfg.operatingHours[day] || cfg.operatingHours[String(day)] || [];
     return Array.isArray(rawShifts) ? rawShifts.filter(s => s && s.start && s.end) : [];
@@ -895,7 +906,9 @@ function initPickupTimePicker() {
 
     if (dateEl) {
         dateEl.min = todayStr;
-        if (!dateEl.value || dateEl.value < todayStr) {
+        const curAsap = (dateEl.value === todayStr) ? calcAsapPickupTime(twNow) : null;
+        const curSlots = dateEl.value ? generatePickupSlots(dateEl.value) : [];
+        if (!dateEl.value || dateEl.value < todayStr || (!curAsap && curSlots.length === 0)) {
             dateEl.value = avail.dateStr;
         }
     }
@@ -906,7 +919,7 @@ function initPickupTimePicker() {
     const slots = generatePickupSlots(curDate);
 
     // Default state: ASAP is usable and pre-selected!
-    if (!timeEl || !timeEl.value || timeEl.value === '') {
+    if (!timeEl || !timeEl.value || timeEl.value === '' || (!isToday && !slots.includes(timeEl.value))) {
         if (timeEl) timeEl.value = avail.defaultTime;
         pickupTimePickerState.selectedTime = avail.defaultTime;
         pickupTimePickerState.selectedType = avail.defaultType;
@@ -989,19 +1002,23 @@ function openPickupTimeModal() {
     const curSlots = generatePickupSlots(curDate);
 
     const avail = findFirstAvailableDate();
-    // If curDate has no slots, auto-fallback to first available date
-    if (!curAsap && curSlots.length === 0) {
+    const isCurDateFallback = (!curAsap && curSlots.length === 0);
+    if (isCurDateFallback) {
         curDate = avail.dateStr;
     }
 
-    if (!curTime) {
-        curTime = isToday && curAsap ? curAsap.timeStr : (curSlots.length > 0 ? curSlots[0] : avail.defaultTime);
+    const isNowToday = (curDate === todayStr);
+    const activeSlots = isCurDateFallback ? generatePickupSlots(curDate) : curSlots;
+    const activeAsap = isNowToday ? calcAsapPickupTime(twNow) : null;
+
+    if (!curTime || isCurDateFallback || (!isNowToday && !activeSlots.includes(curTime))) {
+        curTime = isNowToday && activeAsap ? activeAsap.timeStr : (activeSlots.length > 0 ? activeSlots[0] : avail.defaultTime);
     }
 
     pickupTimePickerState.activeTabDate = curDate;
     pickupTimePickerState.tempDate = curDate;
     pickupTimePickerState.tempTime = curTime;
-    pickupTimePickerState.tempType = (isToday && curAsap && curTime === curAsap.timeStr) ? 'asap' : (pickupTimePickerState.selectedType || 'slot');
+    pickupTimePickerState.tempType = (isNowToday && activeAsap && curTime === activeAsap.timeStr) ? 'asap' : (pickupTimePickerState.selectedType || 'slot');
 
     renderPickupDateTabs();
     renderPickupModalBodyForDate(curDate);
@@ -1067,8 +1084,8 @@ function renderPickupDateTabs() {
             const todayAsap = calcAsapPickupTime(twNow);
             const todaySlots = generatePickupSlots(dStr);
             if (!todayAsap && todaySlots.length === 0) {
-                badge = '已打烊';
-                badgeType = 'badge-closed';
+                badge = isStoreOff ? '店休' : '已打烊';
+                badgeType = isStoreOff ? 'badge-off' : 'badge-closed';
             }
         } else if (isStoreOff) {
             badge = '店休';
@@ -1198,7 +1215,7 @@ function renderPickupModalBodyForDate(dateStr) {
             slotsGrid.style.display = 'none';
             slotsEmpty.style.display = 'block';
             if (isToday) {
-                slotsEmpty.textContent = '本日營業時間已結束，請選擇明日或其他日期';
+                slotsEmpty.textContent = (shifts.length === 0) ? '本日為門市公休日 (店休)' : '本日營業時間已結束，請選擇明日或其他日期';
             } else if (shifts.length === 0) {
                 slotsEmpty.textContent = '本日為門市公休日 (店休)';
             } else {

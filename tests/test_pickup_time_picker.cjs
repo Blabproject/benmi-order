@@ -218,6 +218,7 @@ ctx.storeConfig.storeStatus = undefined;
 ctx.storeConfig.operatingHours = null;
 assert.equal(ctx.generatePickupSlots(tomorrowStr).length, 0);
 ctx.storeConfig.operatingHours = {};
+elements['pickup-date'].value = '';
 elements['pickup-time'].value = '';
 ctx.initPickupTimePicker();
 assert.equal(elements['pickup-time'].value, '', 'A closed day must not default to 11:00');
@@ -253,3 +254,37 @@ for (const status of ['paused', 'closed']) {
     assert.equal(ctx.generatePickupSlots('2026-11-07').length, 0);
 }
 console.log('POS receiving status overrides today’s holiday; busy, paused and future holidays verified');
+
+// Scheduled weekly holiday with configured operating hours (e.g. Sunday day off)
+const sundayHoliday = new Date(2026, 10, 8, 12, 0); // 2026-11-08 is Sunday
+ctx.getTaiwanDate = () => new Date(sundayHoliday);
+ctx.storeConfig.storeStatus = 'open';
+ctx.storeConfig.operatingHours = {
+    "0": [],
+    "1": [{ "start": "14:30", "end": "21:00" }],
+    "2": [{ "start": "14:30", "end": "21:00" }],
+    "3": [{ "start": "14:30", "end": "21:00" }],
+    "4": [{ "start": "14:30", "end": "21:00" }],
+    "5": [{ "start": "14:30", "end": "21:00" }],
+    "6": [{ "start": "14:30", "end": "21:00" }]
+};
+
+assert.equal(ctx.isStoreOpen(sundayHoliday), false, 'Store must be closed on scheduled weekly holiday');
+assert.equal(ctx.calcAsapPickupTime(sundayHoliday), null, 'No ASAP pickup on scheduled weekly holiday');
+assert.equal(ctx.generatePickupSlots('2026-11-08').length, 0, 'No slots generated on scheduled holiday');
+const firstAvail = ctx.findFirstAvailableDate();
+assert.equal(firstAvail.dateStr, '2026-11-09', 'First available date should advance to Monday');
+assert.equal(firstAvail.defaultTime, '14:30', 'First available slot should be Monday opening time');
+
+elements['pickup-date'].value = '';
+elements['pickup-time'].value = '';
+ctx.initPickupTimePicker();
+assert.equal(elements['pickup-date'].value, '2026-11-09', 'Pickup date input must default to Monday');
+assert.equal(elements['pickup-time'].value, '14:30', 'Pickup time input must default to 14:30');
+
+// Modal tab switch to Sunday shows holiday empty message and disabled confirm button
+ctx.openPickupTimeModal();
+ctx.switchPickupDateTab('2026-11-08');
+assert.equal(elements['pickup-slots-empty'].textContent, '本日為門市公休日 (店休)');
+assert.equal(elements['pickup-sheet-confirm-btn'].disabled, true);
+console.log('✓ Scheduled weekly holiday (store off) correctly blocks Sunday pickup and advances to Monday');
