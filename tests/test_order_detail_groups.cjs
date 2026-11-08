@@ -129,3 +129,33 @@ test('legacy portion 3 note is inside its bundle portion, with the correct stick
     assert.equal(JSON.stringify(item), before);
   }
 });
+
+test('multi-portion items with no customizations or notes do not render empty portion rows (Phan 1 -)', () => {
+  const app = setup();
+  // Case 1: Snapshot detailLine with 4 portions, all empty
+  const detailLine = line({
+    quantity: 4,
+    note: '',
+    portions: [
+      { portionIndex: 0, groups: [], note: '' },
+      { portionIndex: 1, groups: [], note: '' },
+      { portionIndex: 2, groups: [], note: '' },
+      { portionIndex: 3, groups: [], note: '' },
+    ]
+  });
+  const rootSnapshot = app.parse(app.context.renderItemRowHtml({ detailLine, name: '雞胸肉', quantity: 4, price: '$244' }, 0, 'order'));
+  assert.equal(rootSnapshot.querySelectorAll('.detail-portion-block').length, 0);
+  assert.equal(rootSnapshot.textContent.includes('Phần 1'), false);
+  assert.equal(rootSnapshot.textContent.includes('—'), false);
+
+  // Case 2: Legacy options with portions all having default/empty chips
+  const legacyItem = {
+    name: '雞胸肉',
+    quantity: 4,
+    price: '$244',
+    options: 'Phần 1: —\nPhần 2: —\nPhần 3: —\nPhần 4: —'
+  };
+  const rootLegacy = app.parse(app.context.renderItemRowHtml(legacyItem, 0, 'order'));
+  assert.equal(rootLegacy.querySelectorAll('.detail-portion-block').length, 0);
+  assert.equal(rootLegacy.textContent.includes('Phần 1'), false);
+});

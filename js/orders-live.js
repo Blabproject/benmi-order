@@ -1326,13 +1326,20 @@ function renderItemRowHtml(it, idx, orderKey) {
   const bundleHtml = renderBundleComponentsHtml(bundleInfo, portionExtras);
 
   if (it.detailLine) {
-    optionsHtml = it.detailLine.portions.map(p => {
-      const groups = p.groups.map(renderReviewGroupHtml).join('');
-      const note = renderReviewNoteHtml(p.note, 'detailPortionNote');
-      const label = itemQty > 1 ? `<span class="portion-badge">${escapeHtml(t('detailPortion', { n: p.portionIndex + 1 }))}</span>` : '';
-      if (!label && !groups && !note) return '';
-      return `<section class="review-item-portion-row detail-portion-block">${label ? `<div class="detail-portion-heading">${label}</div>` : ''}<div class="detail-portion-content">${groups}${note}${!groups && !note ? '<span class="portion-default-chip">—</span>' : ''}</div></section>`;
-    }).join('');
+    const hasAnyPortionDetails = (it.detailLine.portions || []).some(p => {
+      const hasGroups = (p.groups || []).some(g => (g.items || []).length > 0);
+      const hasNote = Boolean(p.note && String(p.note).trim());
+      return hasGroups || hasNote;
+    });
+    if (hasAnyPortionDetails) {
+      optionsHtml = it.detailLine.portions.map(p => {
+        const groups = (p.groups || []).map(renderReviewGroupHtml).join('');
+        const note = renderReviewNoteHtml(p.note, 'detailPortionNote');
+        const label = itemQty > 1 ? `<span class="portion-badge">${escapeHtml(t('detailPortion', { n: p.portionIndex + 1 }))}</span>` : '';
+        if (!label && !groups && !note) return '';
+        return `<section class="review-item-portion-row detail-portion-block">${label ? `<div class="detail-portion-heading">${label}</div>` : ''}<div class="detail-portion-content">${groups}${note}${!groups && !note ? '<span class="portion-default-chip">—</span>' : ''}</div></section>`;
+      }).join('');
+    }
   } else if (optsToRender) {
     const rawOpts = String(optsToRender).trim();
     if (parsed && parsed.portions && parsed.portions.length > 0) {
@@ -1340,7 +1347,11 @@ function renderItemRowHtml(it, idx, orderKey) {
       if (parsed.commonChips && parsed.commonChips.length > 0) {
         commonHtml = `<div class="review-item-options">${parsed.commonChips.map(c => `<span class="mod-chip">${escapeHtml(c)}</span>`).join("")}</div>`;
       }
-      const portionsHtml = `
+      const isChipEmpty = c => !c || ['—', '-', '預設', 'mặc định'].includes(String(c).trim().toLowerCase());
+      const hasAnyLegacyDetails = parsed.portions.some(p => (p.chips || []).some(c => !isChipEmpty(c)));
+      let portionsHtml = "";
+      if (hasAnyLegacyDetails) {
+        portionsHtml = `
         <div class="review-item-portions-container">
           ${parsed.portions.map((p, pIdx) => {
             if (attachedPortions.has(p)) return '';
@@ -1356,6 +1367,7 @@ function renderItemRowHtml(it, idx, orderKey) {
           }).join("")}
         </div>
       `;
+      }
       optionsHtml = commonHtml + portionsHtml;
     } else if (rawOpts) {
       const splitOpts = rawOpts.split(/\n+/).map(s => s.trim()).filter(Boolean);
