@@ -56,9 +56,13 @@ window.StaffOrder = (() => {
       return;
     }
     const table = tables.find(row => row.id === select()?.value);
-    targetEl.textContent = table
-      ? `${text('桌號', 'Bàn')} ${table.label}`
-      : text('店內用餐（請選桌）', 'Tại bàn (Chọn bàn)');
+    if (!table) {
+      targetEl.textContent = text('店內用餐（請選桌）', 'Tại bàn (Chọn bàn)');
+    } else {
+      const label = table.label || '';
+      const hasPrefix = /^(table|bàn|桌|桌號)\b/i.test(label);
+      targetEl.textContent = hasPrefix ? label : `${text('桌號', 'Bàn')} ${label}`;
+    }
     if (table?.active_order_key) {
       roundEl.hidden = false;
       roundEl.textContent = `#${table.active_display_key || table.active_order_id} · ${text('加點', 'Gọi thêm')}`;
@@ -457,8 +461,6 @@ window.StaffOrder = (() => {
       }
     }
 
-    // Keep the confirmation summary aligned with DetailCheckout.selections(),
-    // including free choices and children attached to their selected parent.
     if (totalQty > 0) {
       const optionRows = [];
       for (const group of bData?.customizations || []) {
