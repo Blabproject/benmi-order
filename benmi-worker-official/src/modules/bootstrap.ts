@@ -41,8 +41,8 @@ export interface BootstrapBundleRule {
   groups: BootstrapBundleGroup[];
 }
 
-// v3 retires legacy category modifiers from the unified customer read model.
-export const BOOTSTRAP_VERSION = 3;
+// v5 restores item imageUrl resolution from tenant_images when product.image_key is unset.
+export const BOOTSTRAP_VERSION = 5;
 
 export interface BootstrapResponse {
   bootstrapVersion: number;
@@ -931,8 +931,14 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
       const badge = (item.badge_text && item.badge_text.trim()) ? item.badge_text.trim() : null;
 
       const hasImage = imageList.includes(item.name) ||
+                       imageList.includes(item.id) ||
+                       imageList.includes(`product:${item.id}`) ||
+                       (item.image_key && imageList.includes(item.image_key)) ||
                        imageList.some(k => k.endsWith(`_${item.name}`) || (k.includes('_') && k.split('_').slice(1).join('_') === item.name));
-      const imageUrl = hasImage ? `/api/image?tenant_id=${tenantId}&name=${encodeURIComponent(item.name)}` : null;
+      const imageLookupKey = (item.image_key && imageList.includes(item.image_key))
+        ? item.image_key
+        : (imageList.includes(`product:${item.id}`) ? `product:${item.id}` : (imageList.includes(item.id) ? item.id : item.name));
+      const imageUrl = hasImage ? `/api/image?tenant_id=${tenantId}&name=${encodeURIComponent(imageLookupKey)}` : null;
       const bundleRule = bundleRulesByItemId.get(item.id) || null;
       const modGroups = itemModifierGroupsMap.get(item.id) || [];
 
@@ -1097,13 +1103,11 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
       }
       for (const category of catalog) for (const item of category.items) {
         const product = options.products.find(p=>p.id===item.id);
-        (item as any).imageKey = product?.image_key;
-        if (product?.image_key !== null && product?.image_key !== undefined) {
-          item.imageUrl = product.image_key && (!imageListLoaded || imageList.includes(product.image_key))
+        (item as any).imageKey = product?.image_key || null;
+        if (product?.image_key) {
+          item.imageUrl = (!imageListLoaded || imageList.includes(product.image_key))
             ? `/api/image?tenant_id=${encodeURIComponent(tenantId)}&name=${encodeURIComponent(product.image_key)}`
             : null;
-        } else if (product && (product.image_key === null || product.image_key === '')) {
-          item.imageUrl = null;
         }
         (item as any).modifierGroups = [];
         (item as any).unifiedOptions = true;

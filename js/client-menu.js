@@ -413,8 +413,16 @@ function createDynamicItemCard(catSlug, item) {
     const limitBadgeHTML = (item.maxPerOrder && item.maxPerOrder > 0) ? `<span class="badge badge-limit" style="background:#fffbeb; color:#b45309; border:1px solid #fde68a;">限購${item.maxPerOrder}份</span>` : '';
 
     const workerBase = window.WORKER_BASE || "";
-    const imgHTML = item.imageUrl
-        ? `<img class="item-img" src="${workerBase}${item.imageUrl}&v=2" alt="${item.name}" loading="lazy" onclick="openImageLightbox(this.src)" style="cursor: zoom-in;" onerror="this.style.display='none'">`
+    let imgSrc = "";
+    if (item.imageUrl) {
+        const base = (item.imageUrl.startsWith("http://") || item.imageUrl.startsWith("https://"))
+            ? item.imageUrl
+            : `${workerBase}${item.imageUrl}`;
+        const glue = base.includes("?") ? "&" : "?";
+        imgSrc = `${base}${glue}v=2`;
+    }
+    const imgHTML = imgSrc
+        ? `<img class="item-img" src="${imgSrc}" alt="${escapeHtml(item.name)}" loading="lazy" onclick="openImageLightbox(this.src)" style="cursor: zoom-in;" onerror="this.style.display='none'">`
         : '';
 
     const bData = window.bootstrapData || bootstrapData;
