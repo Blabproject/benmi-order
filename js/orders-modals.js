@@ -167,7 +167,7 @@ function openReview(orderKey) {
 
   const elKeyBadge = document.getElementById("review-order-key-badge");
   if (elKeyBadge) {
-    elKeyBadge.innerText = (order.displayKey || order.key || "-").replace(/^#/, "");
+    elKeyBadge.innerText = OrderCode.format(order.displayKey || order.key || "-");
   }
 
   const elCustAvatar = document.getElementById("review-customer-avatar");
@@ -176,7 +176,7 @@ function openReview(orderKey) {
   }
 
   const elKey = document.getElementById("review-order-key");
-  if (elKey) elKey.innerText = order.displayKey || order.key || "-";
+  if (elKey) elKey.innerText = OrderCode.format(order.displayKey || order.key || "-");
   const elCust = document.getElementById("review-customer");
   if (elCust) {
     elCust.innerText = order.customer ? order.customer.trim() : "-";

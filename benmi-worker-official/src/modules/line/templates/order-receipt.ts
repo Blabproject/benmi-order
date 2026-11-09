@@ -1,3 +1,4 @@
+import OrderCode from '../../../../../js/order-code.js';
 import LegacyOrderAdapter from '../../../../../js/order-legacy-adapter.js';
 import { DetailView } from '../../order-detail';
 import { Order, OrderItemInput } from '../../../types/index';
@@ -123,7 +124,7 @@ export function buildOrderFlexMessage(
           layout: "horizontal",
           contents: [
             { type: "text", text: "訂單明細", size: "xs", weight: "bold", color: "#64748B", flex: 0 },
-            { type: "text", text: `#${order.displayKey || order.key}`, size: "sm", weight: "bold", color: "#059669", align: "end", flex: 1 }
+            { type: "text", text: `${OrderCode.format(order.displayKey || order.key)}`, size: "sm", weight: "bold", color: "#059669", align: "end", flex: 1 }
           ]
         },
         {
@@ -314,7 +315,7 @@ export function buildProgressFlexMessage(order: Order, queueAheadCount: number, 
           layout: "horizontal",
           contents: [
             { type: "text", text: "訂單進度狀態", size: "xs", weight: "bold", color: "#64748B", flex: 0 },
-            { type: "text", text: `#${order.displayKey || order.key}`, size: "sm", weight: "bold", color: "#0F172A", align: "end", flex: 1 }
+            { type: "text", text: `${OrderCode.format(order.displayKey || order.key)}`, size: "sm", weight: "bold", color: "#0F172A", align: "end", flex: 1 }
           ]
         },
         {
@@ -462,7 +463,7 @@ export function buildAppendConfirmationFlexMessage(
           layout: "horizontal",
           contents: [
             { type: "text", text: `現場加點 (第 ${roundNumber} 輪)`, size: "xs", weight: "bold", color: "#7C3AED", flex: 0 },
-            { type: "text", text: `#${order.displayKey || order.key}`, size: "sm", weight: "bold", color: "#0F172A", align: "end", flex: 1 }
+            { type: "text", text: `${OrderCode.format(order.displayKey || order.key)}`, size: "sm", weight: "bold", color: "#0F172A", align: "end", flex: 1 }
           ]
         },
         {

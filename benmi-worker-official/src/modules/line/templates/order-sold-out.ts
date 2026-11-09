@@ -1,3 +1,4 @@
+import OrderCode from '../../../../../js/order-code.js';
 import LineOrderPresentation from '../../../../../js/line-order-presentation.js';
 import type { OrderItemInput } from '../../../types/index';
 import { renderReceiptItem } from './order-receipt';
@@ -43,7 +44,7 @@ export function createSoldOutItemFlexBubble(
             },
             {
               type: "text",
-              text: `#${displayKey}`,
+              text: `${OrderCode.format(displayKey)}`,
               size: "sm",
               weight: "bold",
               color: "#0F172A",
@@ -151,7 +152,7 @@ export function createOrderModifiedConfirmationFlexBubble(
             },
             {
               type: "text",
-              text: `#${displayKey}`,
+              text: `${OrderCode.format(displayKey)}`,
               size: "sm",
               weight: "bold",
               color: "#0F172A",
@@ -162,7 +163,7 @@ export function createOrderModifiedConfirmationFlexBubble(
         },
         {
           type: "text",
-          text: `訂單 #${displayKey} 已成功更換品項！`,
+          text: `訂單 ${OrderCode.format(displayKey)} 已成功更換品項！`,
           weight: "bold",
           size: "lg",
           color: "#0F172A",

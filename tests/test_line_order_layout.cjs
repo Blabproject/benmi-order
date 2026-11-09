@@ -235,6 +235,7 @@ test('actual checkout groups display text while canonical stored text stays comp
     resolveCatalogItem: () => ({ catSlug: 'any', origName: 'Meal', displayName: 'Meal', basePrice: 50, categoryName: 'Any', itemId: 'meal' }) };
   sandbox.window = sandbox; sandbox.bundleCartData = { any_Meal: F.portions() };
   vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync('js/order-code.js', 'utf8'), sandbox);
   vm.runInContext(fs.readFileSync('js/line-order-presentation.js', 'utf8'), sandbox);
   vm.runInContext(fs.readFileSync('js/client-checkout.js', 'utf8'), sandbox);
   const displayed = sandbox.formatOrderTextMessage('key', 'date', 'time', 140, 'Order note');
@@ -244,6 +245,8 @@ test('actual checkout groups display text while canonical stored text stays comp
   assert.ok(canonical.includes('第1份 先選米'));
   assert.ok(!canonical.includes('第 1 份:'));
   assert.match(displayed, /訂單編號：key/);
+  assert.match(sandbox.formatOrderTextMessage('ZBCF1109-T001', 'date', 'time', 140, ''), /^取餐號碼：1109-T001\n訂單編號：ZBCF1109-T001\n/);
+  assert.match(sandbox.formatOrderTextMessage('ZBCF1109-T001', 'date', 'time', 140, '', true), /^訂單編號：ZBCF1109-T001\n/);
   assert.match(displayed, /📦 訂單內容：/);
   assert.match(displayed, /總金額：\$140/);
   assert.ok(sandbox.formatAppendItemsOnlyText().includes('第 2 份:'));

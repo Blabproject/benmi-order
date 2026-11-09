@@ -15,17 +15,18 @@ const document = { createElement() {
 }};
 const window={currentTenantBrandName:'Test',location:{search:'?tenant=identity-test'}};
 vm.runInNewContext(('(function(){var module;\n' + fs.readFileSync(require.resolve('../js/order-legacy-adapter.js'),'utf8') + '\n})();\n' + fs.readFileSync(require.resolve('../js/printer-service.js'),'utf8')),{
-  window,document,console,URLSearchParams,localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>{storage[k]=v}}
+  OrderCode:require('../js/order-code.js'),window,document,console,URLSearchParams,localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>{storage[k]=v}}
 });
 const service=window.PrinterService;
 const order={key:'48cc482f-01ca-4939-ae70-f2c07c9cb4ce',legacyKey:'B0914-T007',displayKey:'B0914-T007',status:'ACCEPTED',total:100,content:'Item',customer:'Test'};
 for(const kitchen of [false,true]) {
  printedText.length=0; service.drawReceiptToCanvas(order,kitchen,80);
- assert(printedText.join('').includes('#B0914-T007'));
+ assert(printedText.includes('0914-T007'));
+ assert(!printedText.join('').includes('#B0914-T007'));
  assert(!printedText.join('').includes(order.key));
 }
 printedText.length=0;service.drawItemStickerToCanvas({name:'Item',quantity:1},order,1,1);
-assert(printedText.join('').includes('#B0914-T007'));assert(!printedText.join('').includes(order.key));
+assert(printedText.join('').includes('0914-T007'));assert(!printedText.join('').includes('#B0914-T007'));assert(!printedText.join('').includes(order.key));
 (async()=>{
  service.saveSettings({autoPrintNewOrders:true});
  service.markOrderAsPrinted(order.legacyKey);

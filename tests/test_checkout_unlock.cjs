@@ -110,6 +110,7 @@ function createCheckoutEnvironment(overrides = {}) {
   sandbox.alerts = alerts;
 
   vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/order-code.js'), 'utf8'), sandbox);
   const coreCode = fs.readFileSync(path.join(__dirname, '../js/client-core.js'), 'utf8');
   vm.runInContext(coreCode, sandbox);
   const checkoutCode = fs.readFileSync(path.join(__dirname, '../js/client-checkout.js'), 'utf8');
@@ -253,6 +254,23 @@ test('doSubmitOrderExecution on successful create: clears cart immediately and d
   // Verify success alert is shown immediately
   assert.equal(env.alerts.length, 1);
   assert.match(env.alerts[0].msg, /訂單已送出成功/);
+});
+
+test('successful checkout separates the short receipt label from the original LINE lookup and request keys', async () => {
+  for (const key of ['MY1024-T001', '48cc482f-01ca-4939-ae70-f2c07c9cb4ce']) {
+    const env = createCheckoutEnvironment();
+    let delivered;
+    env.fetch = async url => ({ ok: true, json: async () => url.includes('/api/tenant/bootstrap')
+      ? env.bootstrapData : { key, displayKey: 'MY1024-T001' } });
+    env.sendOrderConfirmation = async (messages, context) => { delivered = { messages, context }; };
+    await env.doSubmitOrderExecution('2026-10-24', '12:00');
+    assert.ok(delivered, 'Checkout must deliver a confirmation');
+    assert.equal(delivered.context.orderKey, key);
+    const message = delivered.messages[0].text;
+    assert.match(message, /^取餐號碼：1024-T001\n/);
+    assert.equal(message.split('\n').find(line => line.startsWith('訂單編號：')), '訂單編號：' + key);
+    assert.equal(message.split('\n').find(line => line.startsWith('訂單參考：')), '訂單參考：' + key);
+  }
 });
 
 test('index.html extractTenantId cleanly extracts tenant even when LINE appends query params with ? or &', () => {

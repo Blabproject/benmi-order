@@ -1,3 +1,4 @@
+import OrderCode from '../../../js/order-code.js';
 import type { Env } from '../types/env';
 import type { Order, DiningOption } from '../types';
 import type { OrderDetailSnapshot } from '../types/order-detail';
@@ -97,7 +98,7 @@ export async function writeDetailedOrder(env: Env, tenant: string, input: any, k
     const receiptOrder = kind === 'append' ? { ...order, total: round.total,
       detailSnapshot: { schemaVersion: 1 as const, rounds: [round], total: round.total } } : order;
     const receipt = await prepareOrderReceipt(env, tenant, key, order.userId, kind,
-      `[${tenantCtx?.brandName || tenant}] #${displayKey}`, buildOrderFlexMessage(receiptOrder, tenantCtx));
+      `[${tenantCtx?.brandName || tenant}] ${OrderCode.format(displayKey)}`, buildOrderFlexMessage(receiptOrder, tenantCtx));
     const statements: D1PreparedStatement[] = [];
     let tableId: string | null = null;
     if (order.tableNumber && env.DB) {

@@ -31,6 +31,7 @@ function client() {
   context.window = context;
   vm.createContext(context);
   for (const file of [
+    'js/order-code.js',
     'js/client-core.js', 'js/client-menu.js', 'js/client-customizations.js',
     'js/client-cart.js', 'js/bundle-builder-v2.js', 'js/client-checkout.js',
   ]) {

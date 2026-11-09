@@ -21,7 +21,7 @@ test('removed last option group can be reviewed and submitted again in create, a
           <div id="custom-alert-message"></div><button onclick="closeCustomAlert()">OK</button>
         </div></div></body></html>`);
       await page.addStyleTag({ content: fs.readFileSync(path.join(root, 'index.css'), 'utf8') });
-      for (const file of ['client-core', 'client-menu', 'client-customizations', 'client-cart', 'bundle-builder-v2',
+      for (const file of ['order-code', 'client-core', 'client-menu', 'client-customizations', 'client-cart', 'bundle-builder-v2',
         'client-option-groups', 'order-detail-checkout', 'client-checkout'])
         await page.addScriptTag({ content: fs.readFileSync(path.join(root, `js/${file}.js`), 'utf8') });
       await page.evaluate(({ flow, lang }) => {
@@ -99,7 +99,7 @@ test('mobile combo checkout can recover from parent and child price changes and 
         </div></div></body></html>`);
       for (const file of ['index.css', 'css/client-option-groups.css'])
         await page.addStyleTag({ content: fs.readFileSync(path.join(root, file), 'utf8') });
-      for (const file of ['js/client-core.js', 'js/client-menu.js', 'js/client-customizations.js',
+      for (const file of ['js/order-code.js', 'js/client-core.js', 'js/client-menu.js', 'js/client-customizations.js',
         'js/client-cart.js', 'js/bundle-builder-v2.js', 'js/client-option-groups.js', 'js/client-checkout.js'])
         await page.addScriptTag({ content: fs.readFileSync(path.join(root, file), 'utf8') });
       await page.evaluate(({ locale, flow }) => {

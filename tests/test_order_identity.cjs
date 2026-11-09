@@ -3,6 +3,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const workerRoot = path.join(root, 'benmi-worker-official');
@@ -141,9 +142,10 @@ async function check(name, fn) { await fn(); passed++; console.log(`PASS ${name}
  await check('LINE card displays receipt while buttons retain stable references', async()=>{
    const order={key:created.key,displayKey:created.displayKey,customer:'Test',status:'NEW',content:'Item',total:50,time:'12:00',createdAt:Date.now(),diningOption:'dine_in',tableNumber:'1'};
    const card=line.buildProgressFlexMessage(order,0,{...tenant('a'),liffUrl:'https://liff.line.me/test'});
-   const text=JSON.stringify(card);assert(text.includes('#'+created.displayKey));assert(text.includes('order_key='+created.key));
+   const visible=require('../js/order-code.js').format(created.displayKey);
+   const text=JSON.stringify(card);assert(text.includes(visible));assert(!text.includes('#'+created.displayKey));assert(text.includes('order_key='+created.key));
    const reject=JSON.stringify(line.createRejectFlexBubble(created.key,'reason','Store',undefined,created.displayKey));
-   assert(reject.includes('#'+created.displayKey));assert(reject.includes('orderKey='+created.key));
+   assert(reject.includes(visible));assert(!reject.includes('#'+created.displayKey));assert(reject.includes('orderKey='+created.key));
  });
  await check('LINE receipt links by immutable reference without creating a duplicate', async()=>{
    const before=(await DB.prepare('SELECT count(*) n FROM orders').first()).n;
@@ -212,6 +214,32 @@ async function check(name, fn) { await fn(); passed++; console.log(`PASS ${name}
    await legacy.exports.handleLineWebhook(request('/webhook/a',{events:[{type:'message',source:{userId:'legacy-line-user'},message:{type:'text',text}}]}),env,{waitUntil:()=>{}},tenant('a'));
    assert.equal((await DB.prepare('SELECT count(*) n FROM orders').first()).n,before);
    assert.equal((await DB.prepare('SELECT user_id FROM orders WHERE key=?').bind(id).first()).user_id,'legacy-line-user');
+ });
+ await check('actual checkout messages replay on the legacy LINE reader without duplicating prefixed or UUID orders',async()=>{
+   const browser={console,URLSearchParams,location:{search:'',hostname:'localhost'},
+     document:{readyState:'loading',addEventListener(){},getElementById:()=>null},
+     cart:{},customizeData:{},comboDrinkData:{},bootstrapData:{unifiedMenu:true},storeConfig:{}};
+   browser.window=browser;vm.createContext(browser);
+   for(const file of ['js/order-code.js','js/client-checkout.js'])vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),browser);
+   const Module=require('node:module'),legacy=new Module(path.join(workerRoot,'src/modules/legacy-line.ts'),module);
+   legacy.filename=path.join(workerRoot,'src/modules/legacy-line.ts');legacy.paths=Module._nodeModulePaths(path.dirname(legacy.filename));
+   const source=execFileSync('git',['show',(process.env.ORDER_IDENTITY_LEGACY_REF||'2e3600b')+':benmi-worker-official/src/modules/line.ts'],{cwd:root,encoding:'utf8'});
+   legacy._compile(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,legacy.filename);
+   for(const useUuid of [false,true]){
+     const id=crypto.randomUUID(),display='B1201-T401',key=useUuid?id:display;
+     await orders.saveOrder(env,{key,orderId:id,displayKey:display,businessDate:'2027-12-01',customer:'Review',total:11,content:'Item',time:'12:00',status:'NEW',createdAt:Date.now()},'a',true);
+     const messages=[browser.formatOrderTextMessage(key,'2027-12-01','12:00',11,'',false,display)+`\n訂單參考：${key}`,
+       `取餐號碼：1201-T401\n`+browser.formatOrderTextMessage(key,'2027-12-01','12:00',11,'',true)+`\n訂單參考：${key}`];
+     for(const text of messages){
+       assert(text.startsWith('取餐號碼：1201-T401\n'));
+       assert.equal(text.split('\n').find(l=>l.startsWith('訂單編號：')),`訂單編號：${key}`);
+       const before=(await DB.prepare('SELECT count(*) n FROM orders').first()).n;
+       await legacy.exports.handleLineWebhook(request('/webhook/a',{events:[{type:'message',source:{userId:'legacy-review-user'},message:{type:'text',text}}]}),env,{waitUntil:()=>{}},tenant('a'));
+       assert.equal((await DB.prepare('SELECT count(*) n FROM orders').first()).n,before,'Receipt replay must not insert another order');
+       const row=await DB.prepare('SELECT key,order_id,total_amount,user_id FROM orders WHERE key=?').bind(key).first();
+       assert.equal(row.key,key);assert.equal(row.order_id,id);assert.equal(row.total_amount,11);assert.equal(row.user_id,'legacy-review-user');
+     }
+   }
  });
  console.log(`${passed} order identity checks passed`);
 })().catch(error=>{console.error(error);process.exitCode=1}).finally(async()=>{global.fetch=originalFetch;await mf.dispose()});

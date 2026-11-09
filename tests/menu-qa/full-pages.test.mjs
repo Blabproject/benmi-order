@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import OrderCode from '../../js/order-code.js';
 import { startRuntime, startPages, tenant } from './runtime.mjs';
 import { browserSession, drawer, field, action, saveDrawer, newGroup, editGroup, newProduct } from './browser.mjs';
 
@@ -121,7 +122,7 @@ test('Full POS page: create group, persist in D1, independent GET, reload, edit 
     assert.ok(stored.order_content.includes(product.name));
     assert.ok(stored.order_content.includes('QA portion note'));
     await page.locator('#tab-live').click();
-    const orderCard = page.locator('.tile', { hasText: order.displayKey }).first();
+    const orderCard = page.locator('.tile', { hasText: OrderCode.format(order.displayKey) }).first();
     await orderCard.waitFor();
     await page.evaluate(() => { if (typeof dismissNewAlert === 'function') dismissNewAlert(); });
     await orderCard.click({ force: true });

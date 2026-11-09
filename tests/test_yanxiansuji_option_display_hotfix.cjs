@@ -101,6 +101,7 @@ function setupCustomerSandbox(bootstrapData) {
     sandbox.addEventListener = () => {};
     sandbox.removeEventListener = () => {};
 
+    sandbox.OrderCode = require('../js/order-code.js');
     vm.createContext(sandbox);
     vm.runInContext(clientCoreCode, sandbox);
     vm.runInContext(clientCustomizationsCode, sandbox);
@@ -144,6 +145,7 @@ function setupPosSandbox(bootstrapData) {
     sandbox.addEventListener = () => {};
     sandbox.removeEventListener = () => {};
 
+    sandbox.OrderCode = require('../js/order-code.js');
     vm.createContext(sandbox);
     vm.runInContext(ordersCoreCode, sandbox);
     vm.runInContext(printerServiceCode, sandbox);

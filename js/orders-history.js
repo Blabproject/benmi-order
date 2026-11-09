@@ -28,6 +28,8 @@ function matchesHistorySearch(order, query) {
   const qNoHash = q.replace(/^#/, "");
 
   // 1. Order Key / Number (e.g. B0906-T005, T005, #005, 005)
+  const displayCode = OrderCode.format(order.displayKey || order.key).toLowerCase();
+  if (displayCode.includes(qNoHash)) return true;
   const key = String(order.key || "").toLowerCase();
   const keyClean = key.replace(/^#/, "");
   if (key.includes(q) || keyClean.includes(qNoHash) || key.includes(qNoHash)) return true;
@@ -388,7 +390,7 @@ function renderHistory(orders) {
         <div class="history-tile-info">
           <div class="history-tile-top">
             <span class="history-tile-customer" title="${escapeHtml(order.customer || t('defaultCustomer'))}">${escapeHtml(order.customer || t('defaultCustomer'))}</span>
-            <span class="history-tile-key">#${escapeHtml(order.displayKey || order.key)}</span>
+            <span class="history-tile-key">${escapeHtml(OrderCode.format(order.displayKey || order.key))}</span>
             ${diningBadge}
             ${appendBadge}
             ${window.PaymentPOS ? PaymentPOS.badge(order) : ''}

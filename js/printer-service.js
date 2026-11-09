@@ -409,7 +409,7 @@
     async printManual(orderKey, stationTarget = 'all') {
       const order = this.resolveOrder(orderKey);
       if (!order) {
-        if (typeof showToast === 'function') showToast(`❌ 找不到訂單 #${orderKey}`);
+        if (typeof showToast === 'function') showToast(`❌ 找不到訂單 ${OrderCode.format(orderKey)}`);
         return;
       }
 
@@ -437,7 +437,7 @@
 
       const results = [];
       try {
-        this.notifyToast(`🖨️ 正在列印訂單 #${orderKey}...`, 'info');
+        this.notifyToast(`🖨️ 正在列印訂單 ${OrderCode.format(order.displayKey || orderKey)}...`, 'info');
         // Keep manual full-order reprints in the same bill -> stickers order as autoprint,
         // while isolating per-station errors so an unconfigured/offline station does not block the other.
         for (const task of tasks) {
@@ -455,7 +455,7 @@
           this.markOrderAsPrinted(orderKey);
         }
         if (failed.length === 0) {
-          this.notifyToast(`✅ 訂單 #${orderKey} 列印完成！`, 'success');
+          this.notifyToast(`✅ 訂單 ${OrderCode.format(order.displayKey || orderKey)} 列印完成！`, 'success');
         } else if (succeeded.length > 0) {
           const firstErr = failed[0].error;
           this.notifyToast(`⚠️ 部分列印完成 (另一台印表機連線失敗: ${firstErr?.message || firstErr})`, 'warning');
@@ -484,7 +484,7 @@
     async printSingleItemSticker(orderKey, itemIndex) {
       const order = this.resolveOrder(orderKey);
       if (!order) {
-        if (typeof showToast === 'function') showToast(`❌ 找不到訂單 #${orderKey}`);
+        if (typeof showToast === 'function') showToast(`❌ 找不到訂單 ${OrderCode.format(orderKey)}`);
         return;
       }
       const items = this.parseOrderItems(order, true);
@@ -506,7 +506,7 @@
         const itemLabelName = targetItem.name + (targetItem.originalQty > 1 ? ` (${targetItem.unitIndex}/${targetItem.originalQty})` : '');
         if (typeof showToast === 'function') showToast(`🏷️ 正在列印「${itemLabelName}」貼紙...`);
         const png = this.drawItemStickerToCanvas(targetItem, order, idx + 1, items.length, dim.widthMm, dim.heightMm, dim.dpi);
-        await this.transmitReceiptBitmap(png, config, `Single Sticker #${order.key} (${idx + 1}/${items.length})`);
+        await this.transmitReceiptBitmap(png, config, `Single Sticker ${OrderCode.format(order.displayKey || order.key)} (${idx + 1}/${items.length})`);
         if (typeof showToast === 'function') {
           const successMsg = (typeof t === 'function' && t('printSingleItemSuccess', { name: itemLabelName })) || `✅ 已列印「${itemLabelName}」貼紙！`;
           showToast(successMsg);
@@ -520,7 +520,7 @@
     async printItemRangeStickers(orderKey, startIndex, count, itemName = '') {
       const order = this.resolveOrder(orderKey);
       if (!order) {
-        if (typeof showToast === 'function') showToast(`❌ 找不到訂單 #${orderKey}`);
+        if (typeof showToast === 'function') showToast(`❌ 找不到訂單 ${OrderCode.format(orderKey)}`);
         return;
       }
       const items = this.parseOrderItems(order, true);
@@ -550,7 +550,7 @@
         for (let i = start; i < end; i++) {
           const it = items[i];
           const png = this.drawItemStickerToCanvas(it, order, i + 1, items.length, dim.widthMm, dim.heightMm, dim.dpi);
-          await this.transmitReceiptBitmap(png, config, `Sticker #${order.key} (${i + 1}/${items.length})`);
+          await this.transmitReceiptBitmap(png, config, `Sticker ${OrderCode.format(order.displayKey || order.key)} (${i + 1}/${items.length})`);
         }
         if (typeof showToast === 'function') {
           const successMsg = (typeof t === 'function' && t('printPortionsSuccess', { count: totalToPrint, name: displayName }))
@@ -805,16 +805,16 @@
           for (let idx = 0; idx < items.length; idx++) {
             const it = items[idx];
             const png = this.drawItemStickerToCanvas(it, order, idx + 1, items.length, dim.widthMm, dim.heightMm, dim.dpi);
-            results.push(await this.transmitReceiptBitmap(png, config, `Sticker #${order.key} (${idx + 1}/${items.length})`));
+            results.push(await this.transmitReceiptBitmap(png, config, `Sticker ${OrderCode.format(order.displayKey || order.key)} (${idx + 1}/${items.length})`));
           }
           return results;
         } else {
           const base64Png = this.drawOrderLabelToCanvas(order, false, dim.widthMm, dim.heightMm, dim.dpi);
-          return this.transmitReceiptBitmap(base64Png, config, `TSPL Label #${order.key}`);
+          return this.transmitReceiptBitmap(base64Png, config, `TSPL Label ${OrderCode.format(order.displayKey || order.key)}`);
         }
       }
       const base64Png = this.drawReceiptToCanvas(order, false, config.paperWidth || 80);
-      return this.transmitReceiptBitmap(base64Png, config, `Cashier #${order.key}`);
+      return this.transmitReceiptBitmap(base64Png, config, `Cashier ${OrderCode.format(order.displayKey || order.key)}`);
     }
 
     async printKitchenTicket(order, config) {
@@ -826,16 +826,16 @@
           for (let idx = 0; idx < items.length; idx++) {
             const it = items[idx];
             const png = this.drawItemStickerToCanvas(it, order, idx + 1, items.length, dim.widthMm, dim.heightMm, dim.dpi);
-            results.push(await this.transmitReceiptBitmap(png, config, `Kitchen Sticker #${order.key} (${idx + 1}/${items.length})`));
+            results.push(await this.transmitReceiptBitmap(png, config, `Kitchen Sticker ${OrderCode.format(order.displayKey || order.key)} (${idx + 1}/${items.length})`));
           }
           return results;
         } else {
           const base64Png = this.drawOrderLabelToCanvas(order, true, dim.widthMm, dim.heightMm, dim.dpi);
-          return this.transmitReceiptBitmap(base64Png, config, `Kitchen TSPL Label #${order.key}`);
+          return this.transmitReceiptBitmap(base64Png, config, `Kitchen TSPL Label ${OrderCode.format(order.displayKey || order.key)}`);
         }
       }
       const base64Png = this.drawReceiptToCanvas(order, true, config.paperWidth || 80);
-      return this.transmitReceiptBitmap(base64Png, config, `Kitchen #${order.key}`);
+      return this.transmitReceiptBitmap(base64Png, config, `Kitchen ${OrderCode.format(order.displayKey || order.key)}`);
     }
 
     async testPrint(stationType, targetConfig = null) {
@@ -987,7 +987,7 @@
       const diningText = order.diningOption === 'dine_in'
         ? '內用 ' + (order.tableNumber ? '桌號：' + order.tableNumber : '')
         : '外帶自取';
-      row('#' + (order.displayKey || order.key), 36, diningText, 'bold', false, 32, 'bold');
+      row(OrderCode.format(order.displayKey || order.key), 36, diningText, 'bold', false, 32, 'bold');
       row('顧客：' + (order.customer || '顧客'), 29, '', 'normal');
       row('時間：' + (order.time || ''), 29, '', 'normal');
       divider();
@@ -1199,7 +1199,7 @@
       const body = this.parseOrderItems(order, false).map(item =>
         [item.quantity + ' x ' + item.name, item.options, item.note].filter(Boolean).join('\n')).join('\n');
       return this.drawStickerLayout(
-        [window.currentTenantBrandName, '#' + (order.displayKey || order.key), dining].filter(Boolean).join(' '),
+        [window.currentTenantBrandName, OrderCode.format(order.displayKey || order.key), dining].filter(Boolean).join(' '),
         [body, order.note].filter(Boolean).join('\n'),
         isKitchen ? (order.customer || '') : '應收總計：$' + (order.total ?? 0),
         widthMm, heightMm, dpi, [60, 36, 52]);
@@ -1245,7 +1245,7 @@
     drawItemStickerToCanvas(item, orderContext, itemIdx, totalItems, widthMm = 40, heightMm = 30, dpi = 203) {
       const compact = widthMm <= 42;
       const dining = orderContext.diningOption === 'dine_in' ? '桌:' + (orderContext.tableNumber || '-') : '外帶';
-      const header = '#' + (orderContext.displayKey || orderContext.key) + ' ' + dining + ' [' + itemIdx + '/' + totalItems + ']';
+      const header = OrderCode.format(orderContext.displayKey || orderContext.key) + ' ' + dining + ' [' + itemIdx + '/' + totalItems + ']';
       const body = [item.name + ' x' + item.quantity, item.options, item.note].filter(Boolean).join('\n');
       const dateTime = this.formatShortDateTime(orderContext.time, orderContext.createdAt);
       return this.drawStickerLayout(header, body, (orderContext.customer || '顧客') + ' ' + dateTime,
@@ -1256,7 +1256,7 @@
       const compact = widthMm <= 42;
       const context = orderContext || {};
       const dateTime = this.formatShortDateTime(context.time, context.createdAt);
-      return this.drawStickerLayout(context.key ? '#' + (context.displayKey || context.key) : '備註',
+      return this.drawStickerLayout(context.key ? OrderCode.format(context.displayKey || context.key) : '備註',
         String(text || '').trim(), (window.currentTenantBrandName || '') + ' ' + dateTime,
         widthMm, heightMm, dpi, compact ? [26, 72, 22] : [32, 90, 26]);
     }

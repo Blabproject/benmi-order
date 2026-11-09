@@ -13,7 +13,7 @@ window.PaymentActions=(function(){
   return new Promise(resolve=>{
    const dialog=V.element('dialog','payment-cancel-dialog');dialog.id='payment-cancel-dialog';dialog.setAttribute('aria-labelledby','payment-cancel-title');
    const title=V.element('h2','',text('取消舊付款流程','Hủy phiên thanh toán cũ'));title.id='payment-cancel-title';
-   const identity=data?.displayKey?' #'+data.displayKey:'';
+   const identity=data?.displayKey?' '+OrderCode.format(data.displayKey):'';
    dialog.append(title,V.element('p','',text('取消訂單'+identity+'的付款流程？目前選擇的餐點將保留。','Hủy phiên thanh toán của đơn'+identity+'? Các món đang chọn sẽ được giữ lại.')));
    const error=V.element('p','payment-action-message');error.setAttribute('role','status');dialog.append(error);
    let busy=false,answer=null;

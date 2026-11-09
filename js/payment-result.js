@@ -44,7 +44,7 @@
     const copy=V.element('div','payment-result-titles');copy.append(V.element('h1','payment-result-title',title),V.element('p','payment-result-description',description));heading.append(mark,copy);el.append(heading);
     if(data?.displayKey){
       const meta=V.element('div','payment-receipt-meta'),identity=V.element('div','payment-receipt-identity'),amount=V.element('div','payment-receipt-amount');
-      identity.append(V.element('span','payment-receipt-label',text('訂單編號','Mã đơn')),V.element('strong','payment-receipt-key','#'+data.displayKey));
+      identity.append(V.element('span','payment-receipt-label',text('訂單編號','Mã đơn')),V.element('strong','payment-receipt-key',OrderCode.format(data.displayKey)));
       amount.append(V.element('span','payment-receipt-label',paid?text('已付金額','Đã thanh toán'):text('訂單金額','Giá trị đơn')),V.element('strong','payment-receipt-total','TWD '+data.amount));meta.append(identity,amount);
       if(data.pickupTime){const pickup=V.element('div','payment-pickup');pickup.append(V.element('span','',text('取餐時間','Giờ lấy món')),V.element('span','',data.pickupTime));meta.append(pickup);}el.append(meta);
     }

@@ -1,3 +1,4 @@
+import OrderCode from '../../../../../js/order-code.js';
 export function createRejectFlexBubble(
   orderKey: string,
   reason: string,
@@ -20,7 +21,7 @@ export function createRejectFlexBubble(
           contents: [
             {
               type: "text",
-              text: `訂單 #${displayKey}`,
+              text: `訂單 ${OrderCode.format(displayKey)}`,
               size: "sm",
               weight: "bold",
               color: "#DC2626"
@@ -108,7 +109,7 @@ export function createTimeChangeFlexBubble(
           contents: [
             {
               type: "text",
-              text: `訂單 #${displayKey}`,
+              text: `訂單 ${OrderCode.format(displayKey)}`,
               size: "sm",
               weight: "bold",
               color: "#64748B"
@@ -205,7 +206,7 @@ export function createTimeChangeConfirmedFlexBubble(
             },
             {
               type: "text",
-              text: `#${displayKey}`,
+              text: `${OrderCode.format(displayKey)}`,
               size: "sm",
               weight: "bold",
               color: "#0F172A",
@@ -215,7 +216,7 @@ export function createTimeChangeConfirmedFlexBubble(
         },
         {
           type: "text",
-          text: `訂單 #${displayKey} 已確認修改！`,
+          text: `訂單 ${OrderCode.format(displayKey)} 已確認修改！`,
           weight: "bold",
           size: "lg",
           color: "#0F172A",

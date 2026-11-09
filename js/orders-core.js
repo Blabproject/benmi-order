@@ -1069,9 +1069,9 @@ if (typeof window !== "undefined" && !window.__staffOrderMessageListenerBound) {
         const isTakeaway = data.diningOption === "takeaway";
         const toastKey = isTakeaway ? "staffTakeawayOrderSubmittedToast" : "staffOrderSubmittedToast";
         const fallback = isTakeaway
-          ? `Đơn mang đi đã gửi thành công! #${data.displayKey || ""}`
-          : `Bàn đã gửi đơn thành công! #${data.displayKey || ""}`;
-        const msg = (typeof t === "function" && t(toastKey, { key: data.displayKey || "" })) || fallback;
+          ? `Đơn mang đi đã gửi thành công! ${OrderCode.format(data.displayKey || "")}`
+          : `Bàn đã gửi đơn thành công! ${OrderCode.format(data.displayKey || "")}`;
+        const msg = (typeof t === "function" && t(toastKey, { key: OrderCode.format(data.displayKey || "") })) || fallback;
         showToast(msg, "success");
       }
     }

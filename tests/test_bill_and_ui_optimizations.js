@@ -52,6 +52,7 @@ const window = {
 // 2. Load PrinterService
 const printerCode = ('(function(){var module;\n' + fs.readFileSync(require.resolve('../js/order-legacy-adapter.js'),'utf8') + '\n})();\n' + fs.readFileSync(require.resolve('../js/printer-service.js'), 'utf8'));
 vm.runInNewContext(printerCode, {
+  OrderCode: require('../js/order-code.js'),
   window,
   document,
   console,
@@ -101,7 +102,7 @@ console.log("✅ Test 1 Passed: Multi-quantity price calculates total line price
 console.log("Test 2: Order key and 外帶自取 on same row");
 drawnOperations.length = 0;
 const testOrder2 = {
-  key: "B0912-001",
+  key: "B0912-T001",
   diningOption: "takeaway",
   customer: "張三",
   time: "18:30",
@@ -112,9 +113,11 @@ const testOrder2 = {
 };
 service.drawReceiptToCanvas(testOrder2, false, 80);
 
-const keyOp = drawnOperations.find(op => op.text === "#B0912-001");
+const keyOp = drawnOperations.find(op => op.text === "0912-T001");
 const diningOp = drawnOperations.find(op => op.text === "外帶自取");
-assert(keyOp, "Receipt should contain #B0912-001");
+assert(keyOp, "Receipt should contain the short code 0912-T001");
+assert(!drawnOperations.some(op => String(op.text).includes('#B0912-T001')), "Receipt must not show the tenant prefix or hash");
+assert.strictEqual(testOrder2.key, "B0912-T001", "Rendering must preserve the original key");
 assert(diningOp, "Receipt should contain 外帶自取");
 assert.strictEqual(keyOp.y, diningOp.y, "Order key and 外帶自取 MUST be on the exact same row (same y-coordinate)");
 assert.strictEqual(diningOp.align, "right", "外帶自取 MUST be right-aligned");
@@ -188,6 +191,7 @@ const settingsDom = {
 
 const settingsContext = {
   window: {
+    addEventListener() {},
     getComputedStyle: () => ({ display: 'block' })
   },
   document: {

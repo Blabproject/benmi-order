@@ -16,7 +16,7 @@ const saved=JSON.parse(localStorage.getItem('cart_save_a')||'null');
 window.cart=saved?.cart||{};window.customizeData=saved?.customizeData||{};window.comboDrinkData=saved?.comboDrinkData||{};window.bundleCartData=saved?.bundleCartData||{};
 window.isSubmitting=false;window.updateTotal=()=>{};window.DetailCheckout={completed:()=>sessionStorage.removeItem('order_detail_pending:a')};
 document.getElementById('add').onclick=()=>{cart.meal=(cart.meal||0)+1;LinePayCheckout.onCartChange();};
-</script><script src="/js/client-checkout.js"></script><script src="/js/payment-session.js"></script><script src="/js/payment-view.js"></script><script src="/js/payment-actions.js"></script><script src="/js/client-payments.js"></script></body></html>`;
+</script><script src="/js/order-code.js"></script><script src="/js/client-checkout.js"></script><script src="/js/payment-session.js"></script><script src="/js/payment-view.js"></script><script src="/js/payment-actions.js"></script><script src="/js/client-payments.js"></script></body></html>`;
 async function fixture(browser,options={}){
  const context=await browser.newContext({viewport:{width:390,height:844},...options.device}),calls=[],errors=[];
  const model={data:paid,...options};

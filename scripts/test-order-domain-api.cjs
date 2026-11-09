@@ -10,7 +10,7 @@ const {handleAdminRoute}=require('../benmi-worker-official/src/modules/admin.ts'
 function fixture() {
   const db=new DatabaseSync(':memory:');
   db.exec(`CREATE TABLE tenant_config(tenant_id TEXT PRIMARY KEY,liff_id TEXT,is_active INTEGER DEFAULT 1,updated_at TEXT,
-    operating_hours TEXT,allow_scheduled_pickup INTEGER,allow_dine_in INTEGER,store_status TEXT,logo_url TEXT,store_address TEXT,announcement TEXT,features TEXT,payment_methods TEXT DEFAULT '["line_pay"]');
+    operating_hours TEXT,allow_scheduled_pickup INTEGER,allow_dine_in INTEGER,store_status TEXT,logo_url TEXT,store_address TEXT,announcement TEXT,features TEXT,payment_methods TEXT DEFAULT '["line_pay"]',prep_time_minutes INTEGER,auto_open_before_minutes INTEGER);
     INSERT INTO tenant_config(tenant_id,liff_id) VALUES('tenant-a','12345678-abcde');`);
   db.exec(fs.readFileSync('benmi-worker-official/migrations/0064_customer_order_domain.sql','utf8'));
   const deletes=[];

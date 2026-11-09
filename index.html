@@ -395,7 +395,7 @@
                 </div>
                 <div id="append-mode-desc"
                     style="font-size: 13px; color: #ede9fe; margin-top: 2px; font-weight: 600; line-height: 1.4;">正在為
-                    <strong id="append-mode-table">-</strong> (<span id="append-mode-key">#-</span>) 加點</div>
+                    <strong id="append-mode-table">-</strong> (<span id="append-mode-key">-</span>) 加點</div>
             </div>
             <button type="button" onclick="cancelAppendMode()"
                 style="background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.45); color: #fff; padding: 5px 10px; border-radius: 8px; font-size: 12.5px; font-weight: 800; cursor: pointer; white-space: nowrap; transition: all 0.15s ease;">
@@ -437,7 +437,7 @@
                     已移除售完餐點</div>
                 <div id="edit-order-mode-desc"
                     style="font-size: 13px; color: #fef3c7; margin-top: 2px; font-weight: 600; line-height: 1.4;">
-                    訂單 <strong id="edit-order-mode-key">#-</strong> 部分品項售完，請直接調整購物車更換餐點
+                    訂單 <strong id="edit-order-mode-key">-</strong> 部分品項售完，請直接調整購物車更換餐點
                 </div>
             </div>
         </div>
@@ -972,6 +972,8 @@
     </div>
 
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <script src="/js/order-code.js?v=20261109_order_code_v1"></script>
     <script src="/js/client-pricing-wasm.js?v=20261108_wasm_portion_pricing_v1"></script>
     <script src="/js/client-core.js?v=20261109_overnight_liff_v1"></script>
     <script src="/js/client-menu.js?v=20261109_item_images_v1"></script>
@@ -1006,8 +1008,8 @@
   <script src="/js/order-detail-view.js?v=20261017_order_detail_v1"></script>
   <script src="/js/order-detail-checkout.js?v=20261017_order_detail_v1"></script>
   <script src="/js/line-order-presentation.js?v=20261030_line_portions_v3"></script>
-    <script src="/js/client-checkout.js?v=20261108_auto_reopen_status_v1"></script>
-    <script src="/js/staff-order.js?v=20261108_staff_counter_v8"></script>
+    <script src="/js/client-checkout.js?v=20261109_order_code_v2"></script>
+    <script src="/js/staff-order.js?v=20261109_order_code_v1"></script>
     <script>
         if (window.__TENANT_RESOLUTION_FAILED) {
             document.getElementById('page-body-content').style.display = 'none';
@@ -1019,8 +1021,8 @@
     </script>
   <script src="/js/payment-session.js?v=20261103_linepay_mobile_redirect_v1"></script>
   <script src="/js/payment-view.js?v=20261101_payment_result_v1"></script>
-  <script src="/js/payment-actions.js?v=20261101_payment_cancel_v1"></script>
-  <script src="/js/client-payments.js?v=20261107_table_qr_v1"></script>
+  <script src="/js/payment-actions.js?v=20261109_order_code_v1"></script>
+  <script src="/js/client-payments.js?v=20261109_order_code_v1"></script>
 </body>
 
 </html>

@@ -542,7 +542,7 @@ function renderListLeft(orders) {
       <div class="tile-info">
         <div class="tile-top">
           <span class="tile-customer" title="${escapeHtml(order.customer || t('defaultCustomer'))}">${escapeHtml(order.customer || t('defaultCustomer'))}</span>
-          <span class="tile-order-key">#${escapeHtml(order.displayKey || order.key)}</span>
+          <span class="tile-order-key">${escapeHtml(OrderCode.format(order.displayKey || order.key))}</span>
           ${newBadge}
           ${window.PaymentPOS ? PaymentPOS.badge(order) : ''}
           ${modifiedBadge}
@@ -626,7 +626,7 @@ function renderListRight(orders) {
       <div class="tile-info">
         <div class="tile-top">
           <span class="tile-customer" title="${escapeHtml(order.customer || t('defaultCustomer'))}">${escapeHtml(order.customer || t('defaultCustomer'))}</span>
-          <span class="tile-order-key">#${escapeHtml(order.displayKey || order.key)}</span>
+          <span class="tile-order-key">${escapeHtml(OrderCode.format(order.displayKey || order.key))}</span>
           ${window.PaymentPOS ? PaymentPOS.badge(order) : ''}
           ${modifiedBadge}
           ${diningBadge}

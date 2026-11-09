@@ -87,7 +87,7 @@ window.StaffOrder = (() => {
     }
     if (table?.active_order_key) {
       roundEl.hidden = false;
-      roundEl.textContent = `#${table.active_display_key || table.active_order_id} · ${text('加點', 'Gọi thêm')}`;
+      roundEl.textContent = `${OrderCode.format(table.active_display_key || table.active_order_id)} · ${text('加點', 'Gọi thêm')}`;
     } else {
       roundEl.hidden = true;
       roundEl.textContent = '';
@@ -157,7 +157,7 @@ window.StaffOrder = (() => {
     if (!tables.length) return message(text('尚未設定桌號，請先在設定中新增桌號。', 'Chưa cấu hình bàn. Hãy thêm bàn trong Cài đặt.'));
     const table = tables.find(row => row.id === select()?.value);
     message(table?.active_order_key
-      ? text(`將加點至 #${table.active_display_key || table.active_order_id}`, `Gọi thêm vào đơn #${table.active_display_key || table.active_order_id}`)
+      ? text(`將加點至 ${OrderCode.format(table.active_display_key || table.active_order_id)}`, `Gọi thêm vào đơn ${OrderCode.format(table.active_display_key || table.active_order_id)}`)
       : text('空桌將建立新訂單。', 'Bàn trống sẽ tạo đơn mới.'));
   }
 
@@ -833,7 +833,7 @@ window.StaffOrder = (() => {
       renderDynamicCatalog(); updateTotal();
       await refreshTables().catch(() => {}); select().value = '';
       renderTableBar();
-      message(text(`已送出 #${result.displayKey || result.orderId}。`, `Đã gửi đơn #${result.displayKey || result.orderId}.`), { toast: true, type: 'success' });
+      message(text(`已送出 ${OrderCode.format(result.displayKey || result.orderId)}。`, `Đã gửi đơn ${OrderCode.format(result.displayKey || result.orderId)}.`), { toast: true, type: 'success' });
       if (parent !== window) parent.postMessage({
         type: 'STAFF_ORDER_SUBMITTED', orderKey: result.orderKey || result.key,
         displayKey: result.displayKey, diningOption: dining, roundCount: result.roundCount

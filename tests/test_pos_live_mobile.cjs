@@ -33,7 +33,7 @@ async function loadFixture(page) {
       };
     };
   });
-  for (const file of ['js/orders-display.js', 'js/orders-i18n.js', 'js/order-legacy-adapter.js', 'js/orders-core.js', 'js/orders-live.js', 'js/orders-modals.js']) {
+  for (const file of ['js/order-code.js', 'js/orders-display.js', 'js/orders-i18n.js', 'js/order-legacy-adapter.js', 'js/orders-core.js', 'js/orders-live.js', 'js/orders-modals.js']) {
     await page.addScriptTag({ content: readSource(file) });
   }
   await page.evaluate(() => {

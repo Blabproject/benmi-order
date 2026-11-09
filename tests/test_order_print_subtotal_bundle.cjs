@@ -29,6 +29,7 @@ const window = {
   location: { hostname: 'localhost', search: '', href: 'http://localhost/' }
 };
 const sandbox = {
+  OrderCode: require('../js/order-code.js'),
   window,
   document,
   console,

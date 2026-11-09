@@ -116,7 +116,8 @@ const compiledReceipt = ts.transpileModule(orderReceiptTsContent, {
 const receiptModule = { exports: {} };
 const receiptContext = vm.createContext({
   console,
-  require: name => name.includes('line-order-presentation') ? require('../js/line-order-presentation.js')
+  require: name => name.includes('order-code') ? require('../js/order-code.js')
+    : name.includes('line-order-presentation') ? require('../js/line-order-presentation.js')
     : name.includes('order-item-notes') ? noteModule.exports
     : name === '../../order-detail' ? { DetailView: require('../js/order-detail-view.js') }
     : name.includes('order-legacy-adapter') ? require('../js/order-legacy-adapter.js') : ({}),
@@ -179,6 +180,7 @@ const mockDocument = {
 };
 
 const domSandbox = {
+  OrderCode: require('../js/order-code.js'),
   window: mockWindow,
   document: mockDocument,
   console,

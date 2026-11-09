@@ -28,7 +28,7 @@ async function run() {
     await page.setContent(htmlRaw);
     await page.addStyleTag({ content: css });
 
-    for (const file of ['js/orders-i18n.js', 'js/order-legacy-adapter.js', 'js/orders-core.js', 'js/orders-live.js', 'js/orders-modals.js']) {
+    for (const file of ['js/order-code.js', 'js/orders-i18n.js', 'js/order-legacy-adapter.js', 'js/orders-core.js', 'js/orders-live.js', 'js/orders-modals.js']) {
       await page.addScriptTag({ content: fs.readFileSync(path.join(root, file), 'utf8') });
     }
 

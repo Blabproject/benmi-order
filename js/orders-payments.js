@@ -140,12 +140,12 @@ window.PaymentPOS = (function () {
   async function refundPayment(order,after) {
     if(!await token())return;
     const scope=contextKey(),operationId=crypto.randomUUID();
-    const orderKey=order.displayKey||order.key;
+    const orderKey=OrderCode.format(order.displayKey||order.key);
     const summary={
-      key:'#'+orderKey+' · LINE Pay',
+      key:orderKey+' · LINE Pay',
       amount:'TWD '+order.payment.amount
     };
-    await dialog(t('paymentRefund')+' #'+orderKey+' · TWD '+order.payment.amount,
+    await dialog(t('paymentRefund')+' '+orderKey+' · TWD '+order.payment.amount,
       [{key:'reason',label:t('paymentReason'),type:'textarea'}],async values=>{
         if(scope!==contextKey())throw cancelledAuth();
         const payment=await authorized('/api/payments/'+order.payment.id+'/refunds',{...values,operationId});
@@ -279,7 +279,7 @@ window.PaymentPOS = (function () {
     body.replaceChildren();
     const labels=['paymentOrder','paymentCreated','paymentAmount','paymentStatus','paymentAttentionReason','paymentActions'];
     for(const payment of state.items){
-      const row=node('tr');const values=[payment.displayKey||payment.orderKey,stamp(payment.createdAt),money(payment.amount),label(payment),payment.attentionReason?t('paymentReason'+payment.attentionReason):'—'];
+      const row=node('tr');const values=[OrderCode.format(payment.displayKey||payment.orderKey),stamp(payment.createdAt),money(payment.amount),label(payment),payment.attentionReason?t('paymentReason'+payment.attentionReason):'—'];
       values.forEach((value,index)=>{const cell=node('td','',value);cell.dataset.label=t(labels[index]);row.append(cell);});
       const action=node('td');action.dataset.label=t('paymentActions');
       const actionKey=state.view==='attention'?(payment.status==='REFUND_FAILED'?'paymentViewRefundFailure':payment.canRefund?'paymentViewRefund':payment.canReconcile?'paymentViewCheck':'paymentViewDetail'):'paymentViewDetail';
@@ -403,7 +403,7 @@ window.PaymentPOS = (function () {
     if(state.detailBusy){body.append(node('p','',t('paymentLoading')));return;}
     const p=state.detail;if(!p)return;
     const data=node('dl','payment-detail-data');
-    const fields=[['paymentOrder',p.displayKey||p.orderKey],['paymentStatus',label(p)],['paymentAmount',money(p.amount)],['paymentTransactionId',p.transactionId||'—'],['paymentProviderOrderId',p.providerOrderId],['paymentCreated',stamp(p.createdAt)],['paymentPaidAt',stamp(p.paidAt)],['paymentRefundedAt',stamp(p.refundedAt)]];
+    const fields=[['paymentOrder',OrderCode.format(p.displayKey||p.orderKey)],['paymentStatus',label(p)],['paymentAmount',money(p.amount)],['paymentTransactionId',p.transactionId||'—'],['paymentProviderOrderId',p.providerOrderId],['paymentCreated',stamp(p.createdAt)],['paymentPaidAt',stamp(p.paidAt)],['paymentRefundedAt',stamp(p.refundedAt)]];
     if(p.attentionReason)fields.push(['paymentAttentionReason',t('paymentReason'+p.attentionReason)]);
     if(p.refund){fields.push(['paymentReason',p.refund.reason||'—'],['paymentRefundRequestedAt',stamp(p.refund.requestedAt)],['paymentRefundStatus',t('paymentRefundState'+p.refund.status)],['paymentRefundTransactionId',p.refund.transactionId||'—']);}
     if(p.resultCode||p.refund?.resultCode)fields.push(['paymentResultCode',p.refund?.resultCode||p.resultCode]);

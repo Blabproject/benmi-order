@@ -179,6 +179,7 @@ console.log(`✓ initPickupTimePicker default initial state verified: ${elements
 
 // 2b. Test customizable prepTimeMinutes parameter
 const testNow = ctx.getTaiwanDate();
+testNow.setHours(12, 0, 0, 0); // Keep prep-time assertions inside operating hours, independent of the test run time.
 ctx.storeConfig.prepTimeMinutes = 10;
 const asap10 = ctx.calcAsapPickupTime(testNow);
 ctx.storeConfig.prepTimeMinutes = 5;

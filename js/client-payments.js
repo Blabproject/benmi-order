@@ -61,7 +61,7 @@ window.LinePayCheckout = (function () {
     const session=S.active();if(!session)return;
     removeBanner();const panel=PaymentView.element('section','payment-panel');panel.id='payment-result';panel.setAttribute('aria-live','polite');
     panel.append(PaymentView.element('p','',PaymentActions.message(latest)));
-    if(latest?.displayKey)panel.append(PaymentView.element('p','payment-pending-meta','#'+latest.displayKey+' · TWD '+latest.amount));
+    if(latest?.displayKey)panel.append(PaymentView.element('p','payment-pending-meta',OrderCode.format(latest.displayKey)+' · TWD '+latest.amount));
     panel.append(PaymentActions.button(text('繼續舊訂單','Tiếp tục đơn cũ'),()=>resume()));
     if(!latest?.cancelRequestedAt)panel.append(PaymentActions.button(text('取消舊付款流程','Hủy phiên cũ'),()=>cancelCurrent()));
     else panel.append(PaymentActions.button(text('重新查詢','Kiểm tra lại'),()=>inspect()));

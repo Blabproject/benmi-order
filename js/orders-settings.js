@@ -2708,11 +2708,11 @@ function renderRestaurantTablesList() {
     let statusPill = "";
     if (isActive) {
       if (hasActiveOrder) {
-        const orderCode = escapeHtml(table.active_display_key || table.active_order_id || '');
-        statusPill = `<span class="restaurant-table-status-pill status-occupied" title="${t("tableOccupied")} #${orderCode}">
+        const orderCode = escapeHtml(OrderCode.format(table.active_display_key || table.active_order_id || ''));
+        statusPill = `<span class="restaurant-table-status-pill status-occupied" title="${t("tableOccupied")} ${orderCode}">
           <span class="restaurant-table-status-dot"></span>
           <span>${t("tableOccupied")}</span>
-        </span><span class="restaurant-table-order-code">#${orderCode}</span>`;
+        </span><span class="restaurant-table-order-code">${orderCode}</span>`;
       } else {
         statusPill = `<span class="restaurant-table-status-pill status-empty">
           <span class="restaurant-table-status-dot"></span>

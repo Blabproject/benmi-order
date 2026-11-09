@@ -238,7 +238,7 @@ function initAppendModeIfPresent() {
             const tableEl = document.getElementById('append-mode-table');
             if (tableEl) tableEl.innerText = paramTableNumber ? `桌號 ${paramTableNumber}` : '現場內用';
             const keyEl = document.getElementById('append-mode-key');
-            if (keyEl) keyEl.innerText = `#${window.parentOrderDisplayKey}`;
+            if (keyEl) keyEl.innerText = OrderCode.format(window.parentOrderDisplayKey);
         }
 
         // Lock Dining Option to Dine-In
@@ -330,7 +330,7 @@ async function initTableQrModeIfPresent() {
                     const tableEl = document.getElementById('append-mode-table');
                     if (tableEl) tableEl.innerText = `桌號 ${paramTable}`;
                     const keyEl = document.getElementById('append-mode-key');
-                    if (keyEl) keyEl.innerText = `#${window.parentOrderDisplayKey}`;
+                    if (keyEl) keyEl.innerText = OrderCode.format(window.parentOrderDisplayKey);
                 }
                 const tableBanner = document.getElementById('table-order-banner');
                 if (tableBanner) tableBanner.style.display = 'none';
@@ -545,7 +545,7 @@ async function initEditOrderModeIfPresent() {
             if (bannerEl) {
                 bannerEl.style.display = 'flex';
                 const keyEl = document.getElementById('edit-order-mode-key');
-                if (keyEl) keyEl.innerText = `#${window.editOrderDisplayKey}`;
+                if (keyEl) keyEl.innerText = OrderCode.format(window.editOrderDisplayKey);
             }
 
             // 2. Hide dining option switchers & table input (order details are fixed)
@@ -1938,9 +1938,15 @@ function resolveOptionDisplayName(val) {
 }
 
 // 8.1 Định dạng nội dung tin nhắn đơn hàng
-function formatOrderTextMessage(orderNum, dateInput, timeInput, currentTotal, mainNote, canonical = false) {
+function formatOrderTextMessage(orderNum, dateInput, timeInput, currentTotal, mainNote, canonical = false, displayKey = orderNum) {
     const zhNumbers = ['第一份', '第二份', '第三份', '第四份', '第五份', '第六份', '第七份', '第八份', '第九份', '第十份'];
+    // Legacy LINE readers use 訂單編號 as the lookup key. Keep it exact;
+    // the separate receipt label is presentation-only, including UUID-key orders.
     let msg = `訂單編號：${orderNum}\n\n`;
+    if (!canonical) {
+        const displayCode = OrderCode.format(displayKey);
+        if (displayCode && displayCode !== orderNum) msg = `取餐號碼：${displayCode}\n` + msg;
+    }
 
     const globalFlavor = formatGlobalCustomizationsText();
     if (globalFlavor) {
@@ -3084,7 +3090,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
 
             const tablePart = currentTable ? `\n桌號：${currentTable}` : '';
             const notePart = mainNote ? `\n📝 備註：${mainNote}` : '';
-            const appendChatMsg = `[加點 #${window.parentOrderDisplayKey || ""}]\n訂單參考：${window.parentOrderKey}${tablePart}\n現場加點品項：\n${displayItemsText}${notePart}\n\n💰 加點金額：+$${currentTotal}`;
+            const appendChatMsg = `[加點 ${OrderCode.format(window.parentOrderDisplayKey || "")}]\n訂單參考：${window.parentOrderKey}${tablePart}\n現場加點品項：\n${displayItemsText}${notePart}\n\n💰 加點金額：+$${currentTotal}`;
 
             cart = {};
             window.cart = cart;
@@ -3213,7 +3219,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
 
             const rawItemsText = typeof formatAppendItemsOnlyText === 'function' ? formatAppendItemsOnlyText() : '';
             const notePart = mainNote ? `\n📝 備註：${mainNote}` : '';
-            const editChatMsg = `[更換品項 #${window.editOrderDisplayKey || window.editOrderKey || ""}]\n訂單參考：${window.editOrderKey || ""}\n\n📦 更新後餐點內容：\n${rawItemsText}${notePart}\n\n💰 更新後金額：$${currentTotal}`;
+            const editChatMsg = `[更換品項 ${OrderCode.format(window.editOrderDisplayKey || window.editOrderKey || "")}]\n訂單參考：${window.editOrderKey || ""}\n\n📦 更新後餐點內容：\n${rawItemsText}${notePart}\n\n💰 更新後金額：$${currentTotal}`;
 
             cart = {};
             window.cart = cart;
@@ -3357,10 +3363,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
         const resData = await res.json().catch(() => ({}));
         if (resData && resData.key) {
             orderNum = resData.displayKey || resData.key;
-            // Older LINE Workers read 訂單編號 as a lookup key. Keep that reference
-            // stable during rolling deployment; show the receipt separately on collision.
-            msg = formatOrderTextMessage(resData.key, dateInput, timeInput, currentTotal, mainNote);
-            if (orderNum !== resData.key) msg = `取餐號碼：${orderNum}\n` + msg;
+            msg = formatOrderTextMessage(resData.key, dateInput, timeInput, currentTotal, mainNote, false, orderNum);
             msg += `\n訂單參考：${resData.key}`;
         }
 
@@ -3491,7 +3494,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
                 if (window.isEditOrderMode && window.editOrderKey) {
                     const rawItemsText = typeof formatAppendItemsOnlyText === 'function' ? formatAppendItemsOnlyText(true) : '';
                     const notePart = mainNote ? `\n📝 備註：${mainNote}` : '';
-                    const editChatMsg = `[更換品項 #${window.editOrderDisplayKey || window.editOrderKey || ""}]\n訂單參考：${window.editOrderKey || ""}\n\n📦 更新後餐點內容：\n${rawItemsText}${notePart}\n\n💰 更新後金額：$${currentTotal}`;
+                    const editChatMsg = `[更換品項 ${OrderCode.format(window.editOrderDisplayKey || window.editOrderKey || "")}]\n訂單參考：${window.editOrderKey || ""}\n\n📦 更新後餐點內容：\n${rawItemsText}${notePart}\n\n💰 更新後金額：$${currentTotal}`;
                     await sendLiffMessagesWithRetry([{ type: 'text', text: editChatMsg }], {
                         tenantId, orderKey: window.editOrderKey, flow: 'modify_fallback'
                     });
@@ -3501,7 +3504,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
                     const currentTable = (tableInput && tableInput.value.trim()) || window.appendTableNumber || window.currentTableNumber || '';
                     const tablePart = currentTable ? `\n桌號：${currentTable}` : '';
                     const notePart = mainNote ? `\n📝 備註：${mainNote}` : '';
-                    const appendChatMsg = `[加點 #${window.parentOrderDisplayKey || ""}]\n訂單參考：${window.parentOrderKey}${tablePart}\n現場加點品項：\n${rawItemsText}${notePart}\n\n💰 加點金額：+$${currentTotal}`;
+                    const appendChatMsg = `[加點 ${OrderCode.format(window.parentOrderDisplayKey || "")}]\n訂單參考：${window.parentOrderKey}${tablePart}\n現場加點品項：\n${rawItemsText}${notePart}\n\n💰 加點金額：+$${currentTotal}`;
                     await sendLiffMessagesWithRetry([{ type: 'text', text: appendChatMsg }], {
                         tenantId, orderKey: window.parentOrderKey, flow: 'append_fallback'
                     });
@@ -3509,7 +3512,8 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
                     const isDineIn = (window.currentDiningOption === 'dine_in');
                     const diningOption = isDineIn ? 'dine_in' : 'takeaway';
                     const orderNum = generateOrderNumber(diningOption);
-                    const msg = formatOrderTextMessage(orderNum, dateInput, timeInput, currentTotal, mainNote, true);
+                    const msg = `取餐號碼：${OrderCode.format(orderNum)}\n` +
+                        formatOrderTextMessage(orderNum, dateInput, timeInput, currentTotal, mainNote, true) + `\n訂單參考：${orderNum}`;
                     await sendLiffMessagesWithRetry([{ type: 'text', text: msg }], {
                         tenantId, orderKey: orderNum, flow: 'create_fallback'
                     });

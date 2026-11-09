@@ -81,6 +81,7 @@ const checkoutSandbox = {
   console
 };
 checkoutSandbox.window = checkoutSandbox;
+checkoutSandbox.OrderCode = require('../js/order-code.js');
 vm.createContext(checkoutSandbox);
 
 const checkoutJsPath = path.join(__dirname, '../js/client-checkout.js');
@@ -164,6 +165,7 @@ const posSandbox = {
   console
 };
 posSandbox.window = posSandbox;
+posSandbox.OrderCode = require('../js/order-code.js');
 vm.createContext(posSandbox);
 
 // Load orders-core.js for parsePortionCustomizations

@@ -58,14 +58,14 @@ test('I18N dictionaries contain store closed status in zh-TW and vi', () => {
   const i18nJs = read('js/orders-i18n.js');
 
   // zh-TW dictionary
-  assert.match(i18nJs, /statusClosed:\s*"打烊休息"/);
-  assert.match(i18nJs, /statusOptClosedTitle:\s*"打烊休息"/);
-  assert.match(i18nJs, /statusOptClosedDesc:\s*"暫停接受新訂單"/);
+  assert.match(i18nJs, /statusClosed:\s*"今日打烊"/);
+  assert.match(i18nJs, /statusOptClosedTitle:\s*"今日打烊"/);
+  assert.match(i18nJs, /statusOptClosedDesc:\s*"今日停止接單，下個營業日自動恢復"/);
 
   // vi dictionary
-  assert.match(i18nJs, /statusClosed:\s*"Đóng cửa nghỉ"/);
-  assert.match(i18nJs, /statusOptClosedTitle:\s*"Đóng cửa nghỉ"/);
-  assert.match(i18nJs, /statusOptClosedDesc:\s*"Tạm ngừng nhận đơn mới"/);
+  assert.match(i18nJs, /statusClosed:\s*"Đóng cửa hôm nay"/);
+  assert.match(i18nJs, /statusOptClosedTitle:\s*"Đóng cửa hôm nay"/);
+  assert.match(i18nJs, /statusOptClosedDesc:\s*"Dừng nhận đơn hôm nay, tự động mở lại vào ngày mở quán tiếp theo"/);
 });
 
 test('orders.html has updated cache-busters for menu and display scaling', () => {

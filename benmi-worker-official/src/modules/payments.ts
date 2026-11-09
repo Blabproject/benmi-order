@@ -1,3 +1,4 @@
+import OrderCode from '../../../js/order-code.js';
 import type { Env } from '../types/env';
 import type { Order } from '../types';
 import type { TenantContext } from '../types/tenant';
@@ -77,7 +78,7 @@ async function publish(env:Env,p:Payment,transaction:string) {
  const order:Order={key:row.key,orderId:row.order_id,displayKey:row.display_key,customer:row.customer_name,time:row.pickup_time,
  status:'NEW',createdAt:Date.now(),userId:row.user_id,payment:{id:p.id,method:'line_pay',status:'PAID',amount:p.amount,currency:p.currency,paidAt:Date.now(),refundedAmount:0},total:p.amount,content:row.order_content,diningOption:'takeaway',detailSnapshot:detail.snapshot};
  const receipt=await prepareOrderReceipt(env,p.tenant_id,p.order_key,order.userId,'create',
-  `[${ctx?.brandName||p.tenant_id}] #${row.display_key} LINE Pay`,buildOrderFlexMessage(order,ctx));
+  `[${ctx?.brandName||p.tenant_id}] ${OrderCode.format(row.display_key)} LINE Pay`,buildOrderFlexMessage(order,ctx));
  // Only the current lease owner can commit a publication. Guard aborts entire batch.
  const statements=[env.DB.prepare("INSERT INTO payment_events(payment_id,event,result_code,created_at) VALUES(?,'publish',?,?)").bind(p.id,p.lease_token,Date.now()),env.DB.prepare(`UPDATE payments SET status='PAID',transaction_id=?,paid_at=COALESCE(paid_at,?),updated_at=?,result_code='0000'
   WHERE id=? AND lease_token=? AND paid_at IS NULL`).bind(transaction,Date.now(),Date.now(),p.id,p.lease_token),

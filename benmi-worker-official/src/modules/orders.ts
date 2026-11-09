@@ -1,3 +1,4 @@
+import OrderCode from '../../../js/order-code.js';
 import { attachPayments } from './payments';
 import { verifyStaffSession } from './staff';
 import { writeDetailedOrder } from './order-detail-write';
@@ -615,7 +616,7 @@ export async function createOrder(
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       receipt = await prepareOrderReceipt(env, tenantId, order.key, order.userId, 'create',
-        `[${tenantCtx?.brandName || "Benmi"}] 訂單明細 #${order.displayKey || order.key}`,
+        `[${tenantCtx?.brandName || "Benmi"}] 訂單明細 ${OrderCode.format(order.displayKey || order.key)}`,
         buildOrderFlexMessage(order, tenantCtx, rawItems, data.customizations));
       if (rawItems.length > 0 && env.DB) {
         let tableId: string | null = null;
@@ -1167,7 +1168,7 @@ export async function updateOrder(
         notifyText = `不好意思 ${joinedItems}我們現在賣完了，請問可以幫您換別的嗎？`;
       } else {
         notifyText =
-          `${brandName} 已收到您的訂單 #${order.displayKey || order.key}，需要做小幅調整。\n` +
+          `${brandName} 已收到您的訂單 ${OrderCode.format(order.displayKey || order.key)}，需要做小幅調整。\n` +
           `原因：${reason}\n` +
           (note ? `備註：${note}\n` : "") +
           `\n請回覆您想更換的品項，或回覆「取消 / 不要了」以取消訂單。`;
@@ -1186,7 +1187,7 @@ export async function updateOrder(
 
       if (reason === "時間需調整") {
         const timeFlex = createTimeChangeFlexBubble(order.key, note, brandName, order.displayKey);
-        const flexSent = await pushLineFlexMessage(order.userId, `[${brandName}] 調整取餐時間確認 #${order.displayKey || order.key}`, timeFlex, env, tenantCtx);
+        const flexSent = await pushLineFlexMessage(order.userId, `[${brandName}] 調整取餐時間確認 ${OrderCode.format(order.displayKey || order.key)}`, timeFlex, env, tenantCtx);
         if (!flexSent) {
           await pushLineMessage(order.userId, notifyText, env, tenantCtx);
         }
@@ -1196,7 +1197,7 @@ export async function updateOrder(
         const fallbackSoldItems = (order.reason || "").replace("賣完了：", "").split(/[,、]/).map((s: string) => s.trim()).filter(Boolean);
         const soldOutList = rawSoldItems.length > 0 ? rawSoldItems : fallbackSoldItems;
         const soldOutFlex = createSoldOutItemFlexBubble(order.key, soldOutList.length > 0 ? soldOutList : (note || "部分品項"), brandName, order.displayKey, liffUrl, tenantId);
-        const flexSent = await pushLineFlexMessage(order.userId, `[${brandName}] 品項售完通知 #${order.displayKey || order.key}`, soldOutFlex, env, tenantCtx);
+        const flexSent = await pushLineFlexMessage(order.userId, `[${brandName}] 品項售完通知 ${OrderCode.format(order.displayKey || order.key)}`, soldOutFlex, env, tenantCtx);
         if (!flexSent) {
           await pushLineMessage(order.userId, notifyText, env, tenantCtx);
         }
@@ -1223,7 +1224,7 @@ export async function updateOrder(
     if (order.userId) {
       const reason = order.reason || "商品已售完 / 目前無法接單";
       const notifyText =
-        `非常抱歉！${brandName} 目前無法接下您的訂單 #${order.displayKey || order.key}。\n` +
+        `非常抱歉！${brandName} 目前無法接下您的訂單 ${OrderCode.format(order.displayKey || order.key)}。\n` +
         `原因：${reason}\n` +
         `\n請回覆「同意」以取消訂單，或回覆「不同意」以重新確認。`;
 
@@ -1239,7 +1240,7 @@ export async function updateOrder(
       ).bind(tenantId, order.userId, order.key, "REJECT", notifyText, reason, order.note || "").run();
 
       const rejectFlex = createRejectFlexBubble(order.key, reason, brandName, undefined, order.displayKey);
-      const flexSent = await pushLineFlexMessage(order.userId, `[${brandName}] 無法接單通知 #${order.displayKey || order.key}`, rejectFlex, env, tenantCtx);
+      const flexSent = await pushLineFlexMessage(order.userId, `[${brandName}] 無法接單通知 ${OrderCode.format(order.displayKey || order.key)}`, rejectFlex, env, tenantCtx);
       if (!flexSent) {
         await pushLineMessage(order.userId, notifyText, env, tenantCtx);
       }
@@ -1259,7 +1260,7 @@ export async function updateOrder(
           "DELETE FROM pending_actions WHERE tenant_id = ? AND user_id = ? AND order_key = ?"
         ).bind(tenantId, order.userId, order.key).run();
       } catch { }
-      await pushLineMessage(order.userId, `${brandName}：由於未收到您的回覆，訂單 #${order.displayKey || order.key} 已自動取消。期待下次為您服務！`, env, tenantCtx);
+      await pushLineMessage(order.userId, `${brandName}：由於未收到您的回覆，訂單 ${OrderCode.format(order.displayKey || order.key)} 已自動取消。期待下次為您服務！`, env, tenantCtx);
     }
 
     if (ctx && ctx.waitUntil) ctx.waitUntil(syncToGoogleSheets(order, env, tenantCtx));
@@ -1933,7 +1934,7 @@ export async function modifyOrder(
     const customerNote = payload.note ? String(payload.note).trim() : (orderRow.note || "");
 
     const receipt = await prepareOrderReceipt(env, tenantId, resolvedKey, orderRow.user_id, 'modify',
-      `[${tenantCtx?.brandName || "Benmi"}] 訂單品項已成功更換 #${orderRow.display_key || resolvedKey}`,
+      `[${tenantCtx?.brandName || "Benmi"}] 訂單品項已成功更換 ${OrderCode.format(orderRow.display_key || resolvedKey)}`,
       createOrderModifiedConfirmationFlexBubble(resolvedKey, newTotal, deltaAmount, tenantCtx?.brandName || "Benmi", orderRow.display_key, rawItems));
 
     // 4. Atomic D1 Batch: Update orders, delete old order_items & insert new ones, delete pending_actions

@@ -22,7 +22,7 @@ const document = {
 };
 const window = { currentTenantBrandName: 'Test Restaurant' };
 vm.runInNewContext(('(function(){var module;\n' + fs.readFileSync(require.resolve('../js/order-legacy-adapter.js'),'utf8') + '\n})();\n' + fs.readFileSync(require.resolve('../js/printer-service.js'), 'utf8')), {
-  window, document, console, URLSearchParams,
+  OrderCode: require('../js/order-code.js'), window, document, console, URLSearchParams,
   localStorage: { getItem: () => null }
 });
 for (const width of [58, 80]) for (const kitchen of [false, true]) {

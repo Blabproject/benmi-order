@@ -76,6 +76,7 @@ const context = vm.createContext(sandbox);
 
 // Load files in order as in index.html
 const files = [
+  'js/order-code.js',
   'js/client-core.js',
   'js/client-menu.js',
   'js/client-customizations.js',

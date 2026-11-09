@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {chromium,webkit}=require('playwright');
 const fs=require('node:fs');
-const pos=fs.readFileSync('js/orders-payments.js','utf8');
+const pos=fs.readFileSync('js/order-code.js','utf8')+'\n'+fs.readFileSync('js/orders-payments.js','utf8');
 for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('LINE Pay '+name+': keyboard refund confirmation',async()=>{
  const browser=await engine.launch({headless:true});
  try{
