@@ -1,0 +1,34 @@
+{
+  "time": "2026-11-06T13:25:37.588Z",
+  "project": "benmi-order",
+  "productionBranch": "main",
+  "frontend": {
+    "id": "9d781645-296d-499b-b0e4-96a3bc3ac083",
+    "trigger": {
+      "type": "ad_hoc",
+      "metadata": {
+        "branch": "main",
+        "commit_hash": "289a04c3b8f21cb6482582d6e70b3604da893b02",
+        "commit_message": "fix(cart): unify edit and remove actions for every portion",
+        "commit_dirty": false
+      }
+    }
+  },
+  "build": {
+    "commit": "289a04c3b8f21cb6482582d6e70b3604da893b02",
+    "environment": "production",
+    "dirty": false,
+    "release": "unified-cart-actions-20261106",
+    "built_at": "2026-11-06T12:43:29.529Z",
+    "payload_sha256": "58b74a9c9e65179c3027995124d51c6837d3f7b80f126a7ce832b77263ecf9b3"
+  },
+  "workerHealth": {
+    "status": "ok",
+    "service": "benmi-worker",
+    "commit": "1c334b78f9632e4edd76931352454e2afe067e5d",
+    "environment": "production",
+    "dirty": false,
+    "tenantId": "benmi",
+    "timestamp": "2026-11-06T13:25:37.295Z"
+  }
+}

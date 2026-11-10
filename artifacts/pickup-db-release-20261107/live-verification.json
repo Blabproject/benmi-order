@@ -1,0 +1,79 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "url": "https://benmi-order.pages.dev/index.html?release_verify=9e13302a3be1d9803025d4b8eb1c3abf841d8b0b",
+      "file": "index.html",
+      "matched": true
+    },
+    {
+      "url": "https://benmi-order.pages.dev/index.css?release_verify=9e13302a3be1d9803025d4b8eb1c3abf841d8b0b",
+      "file": "index.css",
+      "matched": true
+    },
+    {
+      "url": "https://benmi-order.pages.dev/js/client-core.js?release_verify=9e13302a3be1d9803025d4b8eb1c3abf841d8b0b",
+      "file": "js/client-core.js",
+      "matched": true
+    },
+    {
+      "url": "https://benmi-order.pages.dev/js/client-checkout.js?release_verify=9e13302a3be1d9803025d4b8eb1c3abf841d8b0b",
+      "file": "js/client-checkout.js",
+      "matched": true
+    },
+    {
+      "url": "https://benmi-order.pages.dev/_build.json?release_verify=9e13302a3be1d9803025d4b8eb1c3abf841d8b0b",
+      "file": "_build.json",
+      "matched": true
+    },
+    {
+      "url": "https://order.blabfood.app/blab_demo?release_verify=9e13302a3be1d9803025d4b8eb1c3abf841d8b0b",
+      "file": "index.html",
+      "matched": true
+    },
+    {
+      "url": "https://order.blabfood.app/index.css?release_verify=9e13302a3be1d9803025d4b8eb1c3abf841d8b0b",
+      "file": "index.css",
+      "matched": true
+    },
+    {
+      "url": "https://order.blabfood.app/js/client-core.js?release_verify=9e13302a3be1d9803025d4b8eb1c3abf841d8b0b",
+      "file": "js/client-core.js",
+      "matched": true
+    },
+    {
+      "url": "https://order.blabfood.app/js/client-checkout.js?release_verify=9e13302a3be1d9803025d4b8eb1c3abf841d8b0b",
+      "file": "js/client-checkout.js",
+      "matched": true
+    },
+    {
+      "url": "https://order.blabfood.app/_build.json?release_verify=9e13302a3be1d9803025d4b8eb1c3abf841d8b0b",
+      "file": "_build.json",
+      "matched": true
+    },
+    {
+      "file": "js/client-cart.js",
+      "unchangedFromPreviousProduction": true
+    },
+    {
+      "file": "js/client-option-groups.js",
+      "unchangedFromPreviousProduction": true
+    },
+    {
+      "file": "css/client-option-groups.css",
+      "unchangedFromPreviousProduction": true
+    },
+    {
+      "file": "js/orders-menu.js",
+      "unchangedFromPreviousProduction": true
+    },
+    {
+      "file": "orders.html",
+      "unchangedFromPreviousProduction": true
+    }
+  ],
+  "pickupUI": true,
+  "historyNotPublished": true,
+  "backendUnchanged": "b6b4e96c607f90f6eb27c17b182c0ab3e81b9210",
+  "verifiedAt": "2026-11-06T18:12:46.257Z"
+}

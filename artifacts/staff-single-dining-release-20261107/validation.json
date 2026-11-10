@@ -1,0 +1,12 @@
+{
+  "releaseCommit": "e0a099c76f1a290810431bcd3874bdcaf7a0a9eb",
+  "baselinePassed": 33,
+  "baselineTotal": 35,
+  "rerunPassed": [
+    "line-receipts",
+    "menu-static-contracts"
+  ],
+  "resolution": "Test schemas now include table_id and restaurant_tables used by the QR ordering feature",
+  "applicationUnchangedSinceBaseline": true,
+  "effectiveStatus": "passed"
+}

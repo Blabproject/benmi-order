@@ -1,0 +1,56 @@
+{
+  "verifiedAt": "2026-11-03T16:36:48.891Z",
+  "commit": "7a3e75abeb374be32a5d7829372de7f37d8b526a",
+  "assets": [
+    {
+      "path": "orders.html",
+      "status": 200,
+      "sha256": "a09fb7be688c8472824b85fa8f2898bb238a1f99ae24e0717e0170d5b31880b3"
+    },
+    {
+      "path": "staff-order.html",
+      "status": 200,
+      "sha256": "a137a13591e737bdbbaa431cbe321772ff56f21c59db432af40599c866fb0e6b"
+    },
+    {
+      "path": "css/orders.css",
+      "status": 200,
+      "sha256": "4a71d5d439d3eb85a19e2bb845a950088ebd3a868bb9e44a38f48651821f5523"
+    },
+    {
+      "path": "css/staff-order.css",
+      "status": 200,
+      "sha256": "105f81cd85d5cc1ad034fa45f1e48e0a8c65c12066e5e2ba455b4b5ff448d3a5"
+    },
+    {
+      "path": "js/orders-core.js",
+      "status": 200,
+      "sha256": "7323272a22e9962401bb4c4be57317b417cb8c29090ea1b1395898d716ad50ed"
+    },
+    {
+      "path": "js/staff-order.js",
+      "status": 200,
+      "sha256": "887d6455c763e61d5aa6848d25814d62fef8d505effc5ac4edd8689a3dbb2771"
+    }
+  ],
+  "capabilities": {
+    "ok": true,
+    "tenantId": "blab_demo",
+    "brandName": "BLAB Demo - 干城鹹水雞",
+    "staff_ordering_enabled": true,
+    "capabilities": {
+      "session": true,
+      "tables_read": true,
+      "tables_write": true,
+      "orders_read": true,
+      "create": true,
+      "append": true,
+      "status": true,
+      "pos_entry": true,
+      "auto_print_new": false,
+      "auto_print_round": false
+    },
+    "allowDineIn": true,
+    "storeStatus": "open"
+  }
+}

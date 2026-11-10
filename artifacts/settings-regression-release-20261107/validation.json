@@ -1,0 +1,32 @@
+{
+  "build": {
+    "commit": "a581603df8e61b831cd8a6b2d8de3efb71a452df",
+    "environment": "production",
+    "dirty": false,
+    "release": "settings-layout-permissions",
+    "built_at": "2026-11-07T12:27:55.538Z",
+    "parent_deployment": "95e8a162-ff47-4d57-a3ed-65926de7ad90"
+  },
+  "assets": [
+    {
+      "file": "orders.html",
+      "sha256": "55b27dc021255e4495d235cd6a2e9622a327eec0643b14247e760b8bf7a68565",
+      "match": true
+    },
+    {
+      "file": "css/orders.css",
+      "sha256": "39e79fe69f2a7f06fb819ad6fc3e817b894f96e2810603241e9b7d17bb2c9cf0",
+      "match": true
+    },
+    {
+      "file": "js/orders-settings.js",
+      "sha256": "247665fb6d4123193fb90bd507b59ed4c7ffaf565e8781b089409d4f745feabb",
+      "match": true
+    },
+    {
+      "file": "js/orders-i18n.js",
+      "sha256": "b2701d62d9173283f144be2a867c56044be18e7d7dc5535fc2e92a1a615a8d66",
+      "match": true
+    }
+  ]
+}

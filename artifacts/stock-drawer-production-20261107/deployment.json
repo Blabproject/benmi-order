@@ -1,0 +1,13 @@
+{
+  "id": "a7a427b3-d0f1-4a9a-bd75-f4fd615a61c0",
+  "url": "https://a7a427b3.benmi-order.pages.dev",
+  "environment": "production",
+  "stage": {
+    "name": "queued",
+    "started_on": null,
+    "ended_on": null,
+    "status": "idle"
+  },
+  "commit": "3fd153728816f05e3f9a830ea826eea4a36ed8ce",
+  "parentDeployment": "53496c31-54fd-4d51-89dc-12034bbaaa52"
+}

@@ -1,0 +1,765 @@
+{
+  "startedAt": "2026-11-06T13:25:35.765Z",
+  "node": "v24.22.0",
+  "platform": "darwin-arm64",
+  "commit": "3631fc5e573ad37022eebf1442cefb071815a36b",
+  "branch": "codex/inline-nested-options",
+  "workingTree": "?? node_modules",
+  "mode": "local synthetic fixtures; no Cloudflare CLI or deployment commands",
+  "suites": [
+    {
+      "name": "frontend-static",
+      "command": [
+        "node",
+        "scripts/check-frontend.js"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 1239,
+      "log": "frontend-static.log",
+      "inputHashes": {
+        "scripts/check-frontend.js": "085a6d40d43d76b66e2e88f3841ad0c8f2e0709325ba5d7a9e885b41ebb5560c"
+      }
+    },
+    {
+      "name": "routing-lifecycle",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "scripts/test-explore-routing.mjs",
+        "scripts/test-client-modular.mjs",
+        "scripts/test-line-tenant-redirect.mjs",
+        "scripts/test-line-text-normalization.mjs",
+        "scripts/test-order-domain-routing.mjs",
+        "scripts/test-order-domain-api.cjs",
+        "scripts/test-tenant-lifecycle.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 742,
+      "log": "routing-lifecycle.log",
+      "inputHashes": {
+        "scripts/test-explore-routing.mjs": "93189ca013f11ba078e1acc244e77cae0f04cd0537f0b79a75a1b0d70705f514",
+        "scripts/test-client-modular.mjs": "00527ff35a48a4c5b97cd057ce092d7414f1bafb81a942ed579e12a944a8b2c5",
+        "scripts/test-line-tenant-redirect.mjs": "5582cad9e61312071c8f01973ab10d509cab9d579415f4cf70b8612fb0013eab",
+        "scripts/test-line-text-normalization.mjs": "68406d571fa248a9bd44c847d4e250606df5105f8dc7c3debfb47db629422a35",
+        "scripts/test-order-domain-routing.mjs": "8a3ef64ea27fcf942a5d0a477e58172ceb7ed699f0556be662db157f487ff315",
+        "scripts/test-order-domain-api.cjs": "e788bb5fb6dd924a6f4f07d657a65b54e47135460e6f04ffaa962118a3eee418",
+        "scripts/test-tenant-lifecycle.cjs": "611bfe02de6cb73e2bcda155420ba186d830f4daa5118fee6d6d77442bbf430d"
+      }
+    },
+    {
+      "name": "worker-types",
+      "command": [
+        "node",
+        "benmi-worker-official/node_modules/typescript/bin/tsc",
+        "--noEmit",
+        "-p",
+        "benmi-worker-official/tsconfig.json"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 930,
+      "log": "worker-types.log",
+      "inputHashes": {
+        "benmi-worker-official/node_modules/typescript/bin/tsc": "8d5fa5bd883fec0979fc2004f1fe1d99aef40570155d550eadc0b03b55513bf0",
+        "benmi-worker-official/tsconfig.json": "c894aad3ca361b24beb88c56885cb503c22367504411c1fa6e12bd933aea6552"
+      }
+    },
+    {
+      "name": "cloudflare-config",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "scripts/test-cloudflare-cli.mjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 1023,
+      "log": "cloudflare-config.log",
+      "inputHashes": {
+        "scripts/test-cloudflare-cli.mjs": "78f8fb1b17d55e217d89c6a8468b85a3d15651e4b74fe02c212ac953149d3162"
+      }
+    },
+    {
+      "name": "staff-runtime",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "tests/test_staff_ordering.cjs",
+        "tests/test_staff_migration.cjs",
+        "tests/test_store_pin_api.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 9030,
+      "log": "staff-runtime.log",
+      "inputHashes": {
+        "tests/test_staff_ordering.cjs": "ee0508cc1cd0b8a6bdd0d561d146e40c309f7875d821dc95ec7fb277c68e3519",
+        "tests/test_staff_migration.cjs": "84c2d6dccb8f247f6cf39219b5c4a6f65a2c42e471c492101857cb4820d40edc",
+        "tests/test_store_pin_api.cjs": "1c0db5f7fa759772e7c88c172146c6ff5265b104152beaa164adcff988466468"
+      }
+    },
+    {
+      "name": "staff-browser",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "tests/test_staff_ordering_browser.cjs",
+        "tests/test_store_pin_browser.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 30597,
+      "log": "staff-browser.log",
+      "inputHashes": {
+        "tests/test_staff_ordering_browser.cjs": "0ab7b29cae9a456d0e19cd07a971d7486a9a4295b4f529a518bb81bba10f1f98",
+        "tests/test_store_pin_browser.cjs": "bd8e101cc0275badf2ec8c89d2fa2cc21d4ebfa3ee96b97a11c949ba0865fb9c"
+      }
+    },
+    {
+      "name": "staff-print",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "tests/test_staff_print.cjs",
+        "tests/test_staff_pos.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 425,
+      "log": "staff-print.log",
+      "inputHashes": {
+        "tests/test_staff_print.cjs": "b114d9f9cf8a44983f5c02482a9d88e1caf567d3569df80e47a1a6ec13ff2f48",
+        "tests/test_staff_pos.cjs": "caac83291d1b300638a0281397802d6f1f3358abe5ca8b14875bb55eac6b4e56"
+      }
+    },
+    {
+      "name": "staff-capability-schema",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "tests/test_staff_capability_schema.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 1559,
+      "log": "staff-capability-schema.log",
+      "inputHashes": {
+        "tests/test_staff_capability_schema.cjs": "b100f1e3507e1ee46260c2715261cb4fe3fac99ac58bee4db721c16a0e560ed1"
+      }
+    },
+    {
+      "name": "order-identity",
+      "command": [
+        "node",
+        "tests/test_order_identity.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 2075,
+      "log": "order-identity.log",
+      "inputHashes": {
+        "tests/test_order_identity.cjs": "c2a19b08c1a9a999460a28b65b088640bddd7d2629deac57ab3aeb7e0f5b9b0e"
+      }
+    },
+    {
+      "name": "linepay-runtime",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "tests/test_linepay.cjs",
+        "tests/test_payment_redirect.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 1181,
+      "log": "linepay-runtime.log",
+      "inputHashes": {
+        "tests/test_linepay.cjs": "22f5ed01f4a9c35f691210933b9b0b6592bff9237631854af0c7076a11424caf",
+        "tests/test_payment_redirect.cjs": "dc6e2865e82710612ca3f4d9309b22913fe96ea445c961e468814165adb077b5"
+      }
+    },
+    {
+      "name": "payment-workspace-runtime",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "tests/test_payment_workspace.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 988,
+      "log": "payment-workspace-runtime.log",
+      "inputHashes": {
+        "tests/test_payment_workspace.cjs": "a2527a43cfd1afd847914c70a3f34d49d6d8a4c81c3a8d4b6638b4e7f3113ada"
+      }
+    },
+    {
+      "name": "payment-workspace-browser",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "tests/test_payment_workspace_browser.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 6768,
+      "log": "payment-workspace-browser.log",
+      "inputHashes": {
+        "tests/test_payment_workspace_browser.cjs": "a38e4cd95a1afdf14d1e7672532f2a45c576e26489223ee6ed06e13f2e0d738a"
+      }
+    },
+    {
+      "name": "linepay-browser",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "tests/test_linepay_browser.cjs",
+        "tests/test_payment_result_browser.cjs",
+        "tests/test_payment_pin_onboarding_browser.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 21714,
+      "log": "linepay-browser.log",
+      "inputHashes": {
+        "tests/test_linepay_browser.cjs": "869624ff1560d9f8d2e57458b8eec5d7fd7f1cab6c4d5ec7626779b7062f31a6",
+        "tests/test_payment_result_browser.cjs": "a1aa660f4af3e1e22b13eb043ddc09e58455f9ed4bb3a5c171f3619f2beec951",
+        "tests/test_payment_pin_onboarding_browser.cjs": "d8da6ff6ad6648e34b90af765344e78817b5cb79fd7c26f940fc8467db55a04f"
+      }
+    },
+    {
+      "name": "line-receipts",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "scripts/test-line-order-receipts.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 789,
+      "log": "line-receipts.log",
+      "inputHashes": {
+        "scripts/test-line-order-receipts.cjs": "6f68c7358161d482631d12e0f60f641bcfa337ac3acdde45589f6a429fe3781d"
+      }
+    },
+    {
+      "name": "line-portion-layout",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "tests/test_line_order_layout.cjs",
+        "tests/test_order_item_note_dedup.cjs",
+        "tests/test_bundle_display_all_touchpoints.cjs",
+        "tests/test_item_customization_note.cjs",
+        "tests/test_customization_price_e2e.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 1466,
+      "log": "line-portion-layout.log",
+      "inputHashes": {
+        "tests/test_line_order_layout.cjs": "db4f29805dafe49fc4388c1d12a7064e58419daa7df647754dbec65d1fad0d09",
+        "tests/test_order_item_note_dedup.cjs": "2123cb973b489fd0f8fd71ab2a2aca8c0ea0aa18af4d85678e54b9a2a32f7edd",
+        "tests/test_bundle_display_all_touchpoints.cjs": "4b8a32b3ec9d99e1c4b3963227d6e2b77bdcc14acf6cb373e0c41197d604fa38",
+        "tests/test_item_customization_note.cjs": "5dcecaa2167e3d3ebf8a3b23360ea7396a4905fb69bef49e50a397a878797280",
+        "tests/test_customization_price_e2e.cjs": "435c135518ec3e0a42130b3f5fff618eca5f032b1d572b3e0358bd5f1b84a8fe"
+      }
+    },
+    {
+      "name": "liff-retry",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "scripts/test-liff-message-retry.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 255,
+      "log": "liff-retry.log",
+      "inputHashes": {
+        "scripts/test-liff-message-retry.cjs": "ed21c9057ea178708c2d5c4cf1d983ac2cf388efe5cf1b3fbc82c3abab3ebdcf"
+      }
+    },
+    {
+      "name": "menu-safety",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "scripts/test-menu-safety.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 315,
+      "log": "menu-safety.log",
+      "inputHashes": {
+        "scripts/test-menu-safety.cjs": "7d0cef93377efde1d3dcb33a39fb48cbf8b9998c3fec01f44a5c0caaabbfa8ee"
+      }
+    },
+    {
+      "name": "print-identity",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "tests/test_order_identity_print.cjs",
+        "tests/test_pos_confirmed_print.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 94,
+      "log": "print-identity.log",
+      "inputHashes": {
+        "tests/test_order_identity_print.cjs": "48bfc989f7a07756b07c8b35492e16fd11413b5352d8bbca267b6cb9a18116ee",
+        "tests/test_pos_confirmed_print.cjs": "f4060521a987984ea276db709a7b820aeb33af1c17c8c7efcca9867341c1650c"
+      }
+    },
+    {
+      "name": "print-items",
+      "command": [
+        "node",
+        "tests/test_order_print_items.js"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 162,
+      "log": "print-items.log",
+      "inputHashes": {
+        "tests/test_order_print_items.js": "8edcb5cf23dd02603b9ad800797a0cc2ca78e09cb5014746b0b459b3c6fea65a"
+      }
+    },
+    {
+      "name": "print-sequence",
+      "command": [
+        "node",
+        "tests/test_printer_sequence.js"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 37,
+      "log": "print-sequence.log",
+      "inputHashes": {
+        "tests/test_printer_sequence.js": "2002c01939c96990478a4413a4c4bd3f56e72771569b4b653a218d6395819f52"
+      }
+    },
+    {
+      "name": "print-subtotals",
+      "command": [
+        "node",
+        "tests/test_order_print_subtotal_bundle.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 39,
+      "log": "print-subtotals.log",
+      "inputHashes": {
+        "tests/test_order_print_subtotal_bundle.cjs": "65359410f298ae133ef8b8e7137d4cd35a6501b292c5710b0f287eff1fbc6380"
+      }
+    },
+    {
+      "name": "print-canvas",
+      "command": [
+        "node",
+        "tests/test_receipt_canvas_height.js"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 43,
+      "log": "print-canvas.log",
+      "inputHashes": {
+        "tests/test_receipt_canvas_height.js": "d5cd27ea8595737d29f64f7b330446adf35ae8b8606a13a67366302f81bf8363"
+      }
+    },
+    {
+      "name": "pos-display-chromium",
+      "command": [
+        "node",
+        "tests/test_pos_display.cjs"
+      ],
+      "environment": {
+        "POS_DISPLAY_BROWSER": "chromium"
+      },
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 11267,
+      "log": "pos-display-chromium.log",
+      "inputHashes": {
+        "tests/test_pos_display.cjs": "560bddece555099cac39e47042389f817c7bf99f90369a3a38d79376b4533be6"
+      }
+    },
+    {
+      "name": "pos-display-webkit",
+      "command": [
+        "node",
+        "tests/test_pos_display.cjs"
+      ],
+      "environment": {
+        "POS_DISPLAY_BROWSER": "webkit"
+      },
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 14556,
+      "log": "pos-display-webkit.log",
+      "inputHashes": {
+        "tests/test_pos_display.cjs": "560bddece555099cac39e47042389f817c7bf99f90369a3a38d79376b4533be6"
+      }
+    },
+    {
+      "name": "pos-tablet-layout-chromium",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "tests/test_pos_tablet_layout.cjs"
+      ],
+      "environment": {
+        "POS_DISPLAY_BROWSER": "chromium"
+      },
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 20653,
+      "log": "pos-tablet-layout-chromium.log",
+      "inputHashes": {
+        "tests/test_pos_tablet_layout.cjs": "4ffe9d8bb277e55c849be36b0333ccea75fecc63288c6d72c466bb23584d0799"
+      }
+    },
+    {
+      "name": "pos-tablet-layout-webkit",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "tests/test_pos_tablet_layout.cjs"
+      ],
+      "environment": {
+        "POS_DISPLAY_BROWSER": "webkit"
+      },
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 22441,
+      "log": "pos-tablet-layout-webkit.log",
+      "inputHashes": {
+        "tests/test_pos_tablet_layout.cjs": "4ffe9d8bb277e55c849be36b0333ccea75fecc63288c6d72c466bb23584d0799"
+      }
+    },
+    {
+      "name": "pos-live-mobile",
+      "command": [
+        "node",
+        "tests/test_pos_live_mobile.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 9439,
+      "log": "pos-live-mobile.log",
+      "inputHashes": {
+        "tests/test_pos_live_mobile.cjs": "31cafcd84a96be2f71f3d090c088ee901150bf46572cdb56538732f0e56b7881"
+      }
+    },
+    {
+      "name": "pos-detail-scroll",
+      "command": [
+        "node",
+        "tests/test_order_detail_mobile_scroll.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 1320,
+      "log": "pos-detail-scroll.log",
+      "inputHashes": {
+        "tests/test_order_detail_mobile_scroll.cjs": "da0cc97271ad3c0f2f6024bc7635724940d025c705f15db12445c53e4db3f50c"
+      }
+    },
+    {
+      "name": "menu-static-contracts",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "tests/test_menu_sort_button_visibility.cjs",
+        "tests/test_menu_dirty_detection.cjs",
+        "tests/test_menu_model.cjs",
+        "tests/test_modifier_option_name_collision.cjs",
+        "tests/test_menu_workspace.cjs",
+        "tests/test_item_modifier_workspace.cjs",
+        "tests/test_menu_display_scale.cjs",
+        "tests/test_category_linked_products_picker.cjs",
+        "tests/test_pos_tab_persistence.cjs",
+        "tests/test_unified_option_groups.cjs",
+        "tests/test_unified_option_cutover.cjs",
+        "tests/test_unified_menu_drawer.cjs",
+        "tests/test_unified_menu_sections.cjs",
+        "tests/test_menu_global_group_order.cjs",
+        "tests/test_customer_option_presentations.cjs",
+        "tests/test_option_surcharge_cart.cjs",
+        "tests/test_real_tenants_parity.cjs",
+        "tests/test_pos_option_groups_contract.cjs",
+        "tests/test_new_menu_deep_verification.cjs",
+        "tests/test_new_menu_customer_e2e.cjs",
+        "tests/test_new_menu_category_inheritance.cjs",
+        "tests/test_new_menu_pos_lifecycle.cjs",
+        "tests/test_order_detail_snapshots.cjs",
+        "tests/test_order_detail_groups.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 2840,
+      "log": "menu-static-contracts.log",
+      "inputHashes": {
+        "tests/test_menu_sort_button_visibility.cjs": "d37c37be31653030d2d89cc4806bb7fc140b314c862a655e595d6d13e24aa0a2",
+        "tests/test_menu_dirty_detection.cjs": "e7d7bf685bf297d9cf0d5c1eb9768709f42ff9a372362588cc3c287185d9d75d",
+        "tests/test_menu_model.cjs": "fcd1c2cb8ac27849a898fd53dc4a14fbbe8cb467881343d8935bf490c730ad35",
+        "tests/test_modifier_option_name_collision.cjs": "29e36352371917c992d18e9b6ffe520eed1b330ab1aa4f25303a0ee1507165e9",
+        "tests/test_menu_workspace.cjs": "2f05aa62e1dc34fbecb2a8791155ba4a08cf7296a767c5353bad80c73640ce3f",
+        "tests/test_item_modifier_workspace.cjs": "a261be546c208c9be044583db0fb35c88e3e5a0382312e14b565fe5f11a2b8a1",
+        "tests/test_menu_display_scale.cjs": "d76bb41d34ef504932174227554d81febde15a655c8dd3642bd7fb9b88157f98",
+        "tests/test_category_linked_products_picker.cjs": "53f7c3b4e3ebab3a8dfda3554d7c1e5a48880da7294831ef30eb367ad215718c",
+        "tests/test_pos_tab_persistence.cjs": "30e7f60bccfe26cc15dc8b9b226d692632cabcc0924fe4ec2b9d708a3a2f5f56",
+        "tests/test_unified_option_groups.cjs": "b59e47040d7c9b9a6c9f56e6bbaedc2797490da3f57266c6a7a260d4cf6b48d0",
+        "tests/test_unified_option_cutover.cjs": "69674b8766acc596eafc8dd94da87f32e3430afb7a73c0eeaabb03aa753ce466",
+        "tests/test_unified_menu_drawer.cjs": "ea87c55b342f1882c347180e4b85131cab581507460565e18fbe10817f872dd1",
+        "tests/test_unified_menu_sections.cjs": "167ef7f4f84da89fef5bf06897117c443ad81f98d517e5bf31eb9e33f9132c50",
+        "tests/test_menu_global_group_order.cjs": "59d4bbb22b43335588259a0c3b3b1e627c6534fe2c3768cf1c54159e7b15c5bb",
+        "tests/test_customer_option_presentations.cjs": "942f10c5c7c6a9f07d8b9d3cb9d554e986cfd4c5d8daaf3b53cc8dbf7347e389",
+        "tests/test_option_surcharge_cart.cjs": "88eb77680f23698c265be858463cb55f995fb89cbe28a0377d72c0f7e7ad25c9",
+        "tests/test_real_tenants_parity.cjs": "da87ded5b6acff16d783bc6e99f25ea7efe54de85966d7f439bf6294c25b8d9e",
+        "tests/test_pos_option_groups_contract.cjs": "2bdc1529322a46274eadfcca505da94b961181db1c5dd4096f5e092f710990de",
+        "tests/test_new_menu_deep_verification.cjs": "c93183d22b7b0c0da359f9ab3be531611c41bda25a4c4a7a86c2a61d3b673b98",
+        "tests/test_new_menu_customer_e2e.cjs": "acb4383534b2862cf2cc3686babadf503a8b3627a5fe3e824ffce2dec8c887a8",
+        "tests/test_new_menu_category_inheritance.cjs": "c520cb0f0191303cf0e0898c5a12ad9f1fbae79b9c96f8b194cef5f71d954225",
+        "tests/test_new_menu_pos_lifecycle.cjs": "288c9cfc6ed5aad65bdc3113803de222b47e013b3fc3823a231753783d798b88",
+        "tests/test_order_detail_snapshots.cjs": "17f050f956351c94ff2a243b2febcce14b392972e11e5ab49f3652ac77f2da8e",
+        "tests/test_order_detail_groups.cjs": "28b393afefcd2a7522bca4c7bbfceae2c57eb13394fe98e84da1bcdbb1aadf90"
+      }
+    },
+    {
+      "name": "menu-compatibility",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "scripts/test-menu-safety.cjs",
+        "scripts/test-modifier-library.cjs",
+        "tests/test_menu_compatibility_regression.cjs",
+        "tests/test_cluster1_category_item_modifiers.cjs",
+        "tests/test_cluster2_combo_bundle_rules.cjs",
+        "tests/test_cluster3_4_5_full_schema_cutover.cjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 461,
+      "log": "menu-compatibility.log",
+      "inputHashes": {
+        "scripts/test-menu-safety.cjs": "7d0cef93377efde1d3dcb33a39fb48cbf8b9998c3fec01f44a5c0caaabbfa8ee",
+        "scripts/test-modifier-library.cjs": "5fe0d91ffd2715dcae8791b57afa70d4d60d9c5d53e59e81e7ca96f5565aa3e9",
+        "tests/test_menu_compatibility_regression.cjs": "c75b8c7128ed179c6e414ab189586eaa13d6381cbdd094f8f86d12ea662b84c4",
+        "tests/test_cluster1_category_item_modifiers.cjs": "5619b3bf8c847f2ba2a1b1b56211502a48d7c2c389eb35d0b74ac06d6d42d077",
+        "tests/test_cluster2_combo_bundle_rules.cjs": "df276b1a75959ec274fa48923d6bf796ad8223a791a480dc0b605ac9e0a8574e",
+        "tests/test_cluster3_4_5_full_schema_cutover.cjs": "bc661e7d5f15533843a9bf7f3ab93796426b9e424066cebaaed80c2b5bb4acec"
+      }
+    },
+    {
+      "name": "menu-components-chromium",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "tests/test_customer_option_steps_browser.cjs",
+        "tests/test_customer_option_images_browser.cjs",
+        "tests/test_customer_option_children_browser.cjs",
+        "tests/test_required_option_popup_browser.cjs",
+        "tests/test_combo_price_recovery_browser.cjs",
+        "tests/test_order_detail_groups_browser.cjs"
+      ],
+      "environment": {
+        "MENU_QA_BROWSER": "chromium"
+      },
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 15110,
+      "log": "menu-components-chromium.log",
+      "inputHashes": {
+        "tests/test_customer_option_steps_browser.cjs": "53dbe36a968c6f0ad7aa8815b9047eeb750d24d0195a9b376a3377878bc75a9c",
+        "tests/test_customer_option_images_browser.cjs": "978b4f4f97999ce5ddd159f01d8542f32e0109638c662ee198d599866d8bb5cd",
+        "tests/test_customer_option_children_browser.cjs": "01ec5fdcf38a2a91616b7aa688396edb8de4c9d23f8f3a30df172b6e030d01f6",
+        "tests/test_required_option_popup_browser.cjs": "f11e62264a8458cad6ff03437dba960ae096f1a0ca0e46e1cd4a7925550998b6",
+        "tests/test_combo_price_recovery_browser.cjs": "9561393179ca1c0b10fe2608182f9b913618b62169a6884cae00fdff4b369a7e",
+        "tests/test_order_detail_groups_browser.cjs": "1a6ca0f522c10c0a620acea32ed5c120579eb4080e0ad47514dde18381da2399"
+      }
+    },
+    {
+      "name": "menu-components-webkit",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "tests/test_customer_option_steps_browser.cjs",
+        "tests/test_customer_option_images_browser.cjs",
+        "tests/test_customer_option_children_browser.cjs",
+        "tests/test_required_option_popup_browser.cjs",
+        "tests/test_combo_price_recovery_browser.cjs",
+        "tests/test_order_detail_groups_browser.cjs"
+      ],
+      "environment": {
+        "MENU_QA_BROWSER": "webkit"
+      },
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 19308,
+      "log": "menu-components-webkit.log",
+      "inputHashes": {
+        "tests/test_customer_option_steps_browser.cjs": "53dbe36a968c6f0ad7aa8815b9047eeb750d24d0195a9b376a3377878bc75a9c",
+        "tests/test_customer_option_images_browser.cjs": "978b4f4f97999ce5ddd159f01d8542f32e0109638c662ee198d599866d8bb5cd",
+        "tests/test_customer_option_children_browser.cjs": "01ec5fdcf38a2a91616b7aa688396edb8de4c9d23f8f3a30df172b6e030d01f6",
+        "tests/test_required_option_popup_browser.cjs": "f11e62264a8458cad6ff03437dba960ae096f1a0ca0e46e1cd4a7925550998b6",
+        "tests/test_combo_price_recovery_browser.cjs": "9561393179ca1c0b10fe2608182f9b913618b62169a6884cae00fdff4b369a7e",
+        "tests/test_order_detail_groups_browser.cjs": "1a6ca0f522c10c0a620acea32ed5c120579eb4080e0ad47514dde18381da2399"
+      }
+    },
+    {
+      "name": "menu-runtime",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "tests/menu-qa/runtime.test.mjs"
+      ],
+      "environment": {},
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 7349,
+      "log": "menu-runtime.log",
+      "inputHashes": {
+        "tests/menu-qa/runtime.test.mjs": "a510279ddd7776247ae34b9b6b3294c18540533f23d78ce11371900982113a7e"
+      }
+    },
+    {
+      "name": "menu-full-pages-chromium",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "tests/menu-qa/full-pages.test.mjs"
+      ],
+      "environment": {
+        "MENU_QA_BROWSER": "chromium"
+      },
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 19511,
+      "log": "menu-full-pages-chromium.log",
+      "inputHashes": {
+        "tests/menu-qa/full-pages.test.mjs": "8a01f786915a62b1cf76f77563147f72d8c9216899b567028025dc6c237396dc"
+      }
+    },
+    {
+      "name": "menu-full-pages-webkit",
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "--test",
+        "tests/menu-qa/full-pages.test.mjs"
+      ],
+      "environment": {
+        "MENU_QA_BROWSER": "webkit"
+      },
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 20608,
+      "log": "menu-full-pages-webkit.log",
+      "inputHashes": {
+        "tests/menu-qa/full-pages.test.mjs": "8a01f786915a62b1cf76f77563147f72d8c9216899b567028025dc6c237396dc"
+      }
+    }
+  ],
+  "dependencies": {
+    "playwright": "1.64.1",
+    "lockfiles": {
+      "package-lock.json": "f70797f0a0aafdbff52e93dae62248c7a0a24a6a4259fdd1fe6d817a7c2f7389",
+      "benmi-worker-official/package-lock.json": "ec39c0af3270fd7e6aef01699e17bf0aff547df38ec5480229ae7e226f549f8d"
+    }
+  },
+  "application": {
+    "sha256": "2bcd691fd7d8eff10c702b2d5d9105bbc304fd0b021c48efeed363a750eeca23",
+    "fileCount": 191,
+    "changedFromHead": ""
+  },
+  "finishedAt": "2026-11-06T13:29:42.299Z",
+  "status": "passed"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "f3516d7d-86fa-4449-b1cf-ecf2d89cc1e1",
+  "url": "https://f3516d7d.benmi-order.pages.dev",
+  "environment": "production",
+  "stage": {
+    "name": "deploy",
+    "started_on": null,
+    "ended_on": "2026-11-06T16:42:28.078413Z",
+    "status": "success"
+  },
+  "usesFunctions": true,
+  "metadata": {
+    "branch": "main",
+    "commit_hash": "a28f4fde2291a6b5300bad897402102cddee5c93",
+    "commit_message": "fix(pos): restore saved stock drawer selections",
+    "commit_dirty": false
+  }
+}

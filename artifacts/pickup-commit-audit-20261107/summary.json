@@ -1,0 +1,262 @@
+{
+  "commit": "65a94af0b2de04bf47c5894a20218905d564f74b",
+  "parent": "b6b4e96c607f90f6eb27c17b182c0ab3e81b9210",
+  "originalFiles": 32,
+  "pickupFiles": [
+    "index.html",
+    "index.css",
+    "js/client-core.js",
+    "js/client-checkout.js",
+    "tests/test_pickup_time_picker.cjs"
+  ],
+  "unrelatedFileCount": 27,
+  "originalAdditions": 6574,
+  "originalDeletions": 825,
+  "cleanPatch": [
+    {
+      "file": "index.html",
+      "additions": 101,
+      "deletions": 18
+    },
+    {
+      "file": "index.css",
+      "additions": 442,
+      "deletions": 0
+    },
+    {
+      "file": "js/client-core.js",
+      "additions": 6,
+      "deletions": 0
+    },
+    {
+      "file": "js/client-checkout.js",
+      "additions": 418,
+      "deletions": 1
+    },
+    {
+      "file": "tests/test_pickup_time_picker.cjs",
+      "additions": 184,
+      "deletions": 0
+    }
+  ],
+  "patchAppliesToParent": true,
+  "originalFilesDetail": [
+    {
+      "additions": "2",
+      "deletions": "1",
+      "file": ".agents/rules/codebase-map.md"
+    },
+    {
+      "additions": "3",
+      "deletions": "0",
+      "file": "benmi-worker-official/migrations/0079_customer_order_history_index.sql"
+    },
+    {
+      "additions": "45",
+      "deletions": "0",
+      "file": "benmi-worker-official/seeds/tenants/dafobenwan-options-hotfix-20261106.sql"
+    },
+    {
+      "additions": "2",
+      "deletions": "0",
+      "file": "benmi-worker-official/src/index.ts"
+    },
+    {
+      "additions": "3",
+      "deletions": "0",
+      "file": "benmi-worker-official/src/modules/bootstrap.ts"
+    },
+    {
+      "additions": "699",
+      "deletions": "0",
+      "file": "benmi-worker-official/src/modules/customer-orders.ts"
+    },
+    {
+      "additions": "2",
+      "deletions": "238",
+      "file": "benmi-worker-official/src/modules/line.ts"
+    },
+    {
+      "additions": "30",
+      "deletions": "21",
+      "file": "benmi-worker-official/src/modules/order-detail.ts"
+    },
+    {
+      "additions": "907",
+      "deletions": "0",
+      "file": "css/client-order-history.css"
+    },
+    {
+      "additions": "84",
+      "deletions": "0",
+      "file": "css/orders-stock.css"
+    },
+    {
+      "additions": "72",
+      "deletions": "0",
+      "file": "docs/features/customer-order-history.md"
+    },
+    {
+      "additions": "586",
+      "deletions": "405",
+      "file": "graphify-out/GRAPH_REPORT.md"
+    },
+    {
+      "additions": "4",
+      "deletions": "4",
+      "file": "graphify-out/graph.html"
+    },
+    {
+      "additions": "1",
+      "deletions": "1",
+      "file": "graphify-out/graph.json"
+    },
+    {
+      "additions": "494",
+      "deletions": "0",
+      "file": "index.css"
+    },
+    {
+      "additions": "114",
+      "deletions": "22",
+      "file": "index.html"
+    },
+    {
+      "additions": "6",
+      "deletions": "6",
+      "file": "js/client-cart.js"
+    },
+    {
+      "additions": "418",
+      "deletions": "1",
+      "file": "js/client-checkout.js"
+    },
+    {
+      "additions": "6",
+      "deletions": "0",
+      "file": "js/client-core.js"
+    },
+    {
+      "additions": "127",
+      "deletions": "12",
+      "file": "js/client-menu.js"
+    },
+    {
+      "additions": "1856",
+      "deletions": "0",
+      "file": "js/client-order-history.js"
+    },
+    {
+      "additions": "7",
+      "deletions": "1",
+      "file": "js/order-detail-checkout.js"
+    },
+    {
+      "additions": "55",
+      "deletions": "19",
+      "file": "js/orders-i18n.js"
+    },
+    {
+      "additions": "141",
+      "deletions": "47",
+      "file": "js/orders-menu.js"
+    },
+    {
+      "additions": "52",
+      "deletions": "38",
+      "file": "orders.html"
+    },
+    {
+      "additions": "2",
+      "deletions": "1",
+      "file": "scripts/menu-qa/suites.mjs"
+    },
+    {
+      "additions": "20",
+      "deletions": "0",
+      "file": "scripts/test-line-order-receipts.cjs"
+    },
+    {
+      "additions": "4",
+      "deletions": "6",
+      "file": "tests/menu-qa/full-pages.test.mjs"
+    },
+    {
+      "additions": "80",
+      "deletions": "2",
+      "file": "tests/test_menu_dirty_detection.cjs"
+    },
+    {
+      "additions": "428",
+      "deletions": "0",
+      "file": "tests/test_order_customizations_preservation_browser.cjs"
+    },
+    {
+      "additions": "184",
+      "deletions": "0",
+      "file": "tests/test_pickup_time_picker.cjs"
+    },
+    {
+      "additions": "140",
+      "deletions": "0",
+      "file": "tests/test_stock_drawer_browser.cjs"
+    }
+  ],
+  "groups": {
+    "pickup_only": [
+      "js/client-core.js",
+      "js/client-checkout.js",
+      "tests/test_pickup_time_picker.cjs"
+    ],
+    "mixed_pickup_and_other": [
+      "index.html",
+      "index.css"
+    ],
+    "customer_order_history": [
+      "benmi-worker-official/migrations/0079_customer_order_history_index.sql",
+      "benmi-worker-official/src/index.ts",
+      "benmi-worker-official/src/modules/bootstrap.ts",
+      "benmi-worker-official/src/modules/customer-orders.ts",
+      "benmi-worker-official/src/modules/order-detail.ts",
+      "css/client-order-history.css",
+      "docs/features/customer-order-history.md",
+      "js/client-order-history.js",
+      "js/order-detail-checkout.js"
+    ],
+    "pos_stock_drawer": [
+      "css/orders-stock.css",
+      "js/orders-i18n.js",
+      "js/orders-menu.js",
+      "orders.html",
+      "scripts/menu-qa/suites.mjs",
+      "tests/menu-qa/full-pages.test.mjs",
+      "tests/test_menu_dirty_detection.cjs",
+      "tests/test_stock_drawer_browser.cjs"
+    ],
+    "line_and_tenant_hotfix": [
+      "benmi-worker-official/seeds/tenants/dafobenwan-options-hotfix-20261106.sql",
+      "benmi-worker-official/src/modules/line.ts",
+      "scripts/test-line-order-receipts.cjs"
+    ],
+    "cart_portion_ui": [
+      "js/client-cart.js"
+    ],
+    "preserve_order_options": [
+      ".agents/rules/codebase-map.md",
+      "js/client-menu.js",
+      "tests/test_order_customizations_preservation_browser.cjs"
+    ],
+    "generated_graph": [
+      "graphify-out/GRAPH_REPORT.md",
+      "graphify-out/graph.html",
+      "graphify-out/graph.json"
+    ]
+  },
+  "validation": {
+    "patchApplyCheck": true,
+    "patchWhitespaceCheck": true,
+    "pickupUnitTestOnIsolatedFiveFiles": "passed",
+    "syntaxCoreAndCheckout": "passed",
+    "productionOrMainChanged": false
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "deploymentBuild": {
+    "commit": "c7bd8ba0f300076c9c7be2a7bfa0e90d3266b967",
+    "environment": "production",
+    "dirty": false,
+    "release": "pos-payment-availability",
+    "built_at": "2026-11-07T07:20:51.183Z",
+    "parent_deployment": "855f11e6-2b21-457b-b6da-80aa3298a238"
+  },
+  "assets": [
+    {
+      "path": "/js/orders-settings.js?v=20261107_payment_availability_v1",
+      "sha256": "cae12a35eb36960842bd57dfd1893497ed54072e8ba0febab0704f591c919cf6",
+      "verified": true
+    },
+    {
+      "path": "/js/orders-i18n.js?v=20261107_payment_availability_v1",
+      "sha256": "2a86100285cfccafa2d0baace9a9f7a95dbc6ad9d2772fe4dcc2710be534e66f",
+      "verified": true
+    }
+  ]
+}

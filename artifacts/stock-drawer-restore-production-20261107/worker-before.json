@@ -1,0 +1,9 @@
+{
+  "status": "ok",
+  "service": "benmi-worker",
+  "commit": "1c334b78f9632e4edd76931352454e2afe067e5d",
+  "environment": "production",
+  "dirty": false,
+  "tenantId": "benmi",
+  "timestamp": "2026-11-06T16:39:23.925Z"
+}

@@ -1,0 +1,83 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "base": "https://pos.blabfood.app",
+      "file": "js/orders-menu.js",
+      "status": 200,
+      "matched": true
+    },
+    {
+      "base": "https://pos.blabfood.app",
+      "file": "css/orders-stock.css",
+      "status": 200,
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "_build.json",
+      "status": 200,
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "css/orders-stock.css",
+      "status": 200,
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "js/orders-i18n.js",
+      "status": 200,
+      "matched": true
+    },
+    {
+      "base": "https://pos.blabfood.app",
+      "file": "js/orders-i18n.js",
+      "status": 200,
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "js/orders-menu.js",
+      "status": 200,
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "orders.html",
+      "status": 200,
+      "matched": true
+    },
+    {
+      "base": "https://pos.blabfood.app",
+      "file": "_build.json",
+      "status": 200,
+      "matched": true
+    },
+    {
+      "base": "https://pos.blabfood.app",
+      "file": "orders.html",
+      "status": 200,
+      "matched": true
+    },
+    {
+      "url": "https://pos.blabfood.app/blab_demo",
+      "file": "orders.html",
+      "matched": true
+    },
+    {
+      "url": "https://order.blabfood.app/blab_demo",
+      "file": "index.html",
+      "matched": true
+    },
+    {
+      "url": "https://explore.blabfood.app/",
+      "file": "marketplace.html",
+      "matched": true
+    }
+  ],
+  "backendUnchanged": "1c334b78f9632e4edd76931352454e2afe067e5d",
+  "apkDownloadHashMatched": true,
+  "verifiedAt": "2026-11-06T16:00:42.382Z"
+}

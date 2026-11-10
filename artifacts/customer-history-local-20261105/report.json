@@ -1,0 +1,476 @@
+{
+  "environment": "local Worker/D1; simulated LINE identity; all external browser traffic blocked",
+  "checks": [
+    "Customer-owned history is paginated and excludes another user",
+    "Another customer order detail returns 404",
+    "Invalid LINE token returns 401",
+    "Actual local backend reprices to 560, flags one sold-out item and one changed option",
+    "Browser loads all 12 customer orders through actual local API",
+    "Reorder restores 6 portions, accumulates repeated products, keeps current total 560, excludes unsafe items",
+    "Merge respects product limits, preserves previous portion notes and surcharge 15, totals 790 for 9 portions",
+    "Closing history while fresh bootstrap is delayed cancels apply and preserves the cart",
+    "All browser actions leave order count unchanged; no order submission"
+  ],
+  "screenshots": [
+    "01-history-mobile.png",
+    "02-order-detail-mobile.png",
+    "03-reorder-preview-mobile.png",
+    "04-reorder-items-mobile.png",
+    "05-reordered-cart-mobile.png",
+    "06-history-desktop.png",
+    "07-merge-preview-desktop.png"
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/tenant/bootstrap",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/config",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/payments/config",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/orders/waiting-count",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/customer/orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/customer/orders",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/customer/orders/detail",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/customer/orders/reorder-preview",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/customer/orders/reorder-preview",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/tenant/bootstrap",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/tenant/bootstrap",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/customer/orders",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/customer/orders/reorder-preview",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/customer/orders/reorder-preview",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/tenant/bootstrap",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/customer/orders",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/customer/orders/reorder-preview",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/customer/orders/reorder-preview",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/tenant/bootstrap",
+      "status": 200
+    }
+  ],
+  "errors": [],
+  "draft": {
+    "cart": {
+      "meals_Cơm gà nướng": 3,
+      "drinks_Trà ô long": 1,
+      "meals_Gỏi cuốn tôm": 2
+    },
+    "items": [
+      {
+        "itemId": "history-chicken",
+        "quantity": 3,
+        "note": "",
+        "portionNotes": [
+          "Ít cơm",
+          "Không hành",
+          "Để riêng nước sốt"
+        ],
+        "bundleSelections": {
+          "version": 3,
+          "portions": [
+            {
+              "portionIndex": 0,
+              "groups": [
+                {
+                  "groupId": "history-portion",
+                  "groupName": "Phần cơm",
+                  "items": [
+                    {
+                      "itemId": "history-portion-standard",
+                      "optionId": "history-portion-standard",
+                      "name": "Phần thường",
+                      "quantity": 1,
+                      "price": 0,
+                      "surcharge": 0,
+                      "modifiers": [],
+                      "groups": [],
+                      "subOptions": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "portionIndex": 1,
+              "groups": [
+                {
+                  "groupId": "history-portion",
+                  "groupName": "Phần cơm",
+                  "items": [
+                    {
+                      "itemId": "history-portion-extra",
+                      "optionId": "history-portion-extra",
+                      "name": "Thêm cơm",
+                      "quantity": 1,
+                      "price": 0,
+                      "surcharge": 15,
+                      "modifiers": [],
+                      "groups": [],
+                      "subOptions": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "portionIndex": 2,
+              "groups": [
+                {
+                  "groupId": "history-portion",
+                  "groupName": "Phần cơm",
+                  "items": [
+                    {
+                      "itemId": "history-portion-standard",
+                      "optionId": "history-portion-standard",
+                      "name": "Phần thường",
+                      "quantity": 1,
+                      "price": 0,
+                      "surcharge": 0,
+                      "modifiers": [],
+                      "groups": [],
+                      "subOptions": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "options": []
+      },
+      {
+        "itemId": "history-tea",
+        "quantity": 1,
+        "note": "",
+        "portionNotes": [
+          ""
+        ],
+        "bundleSelections": {
+          "version": 3,
+          "portions": [
+            {
+              "portionIndex": 0,
+              "groups": [
+                {
+                  "groupId": "history-sugar",
+                  "groupName": "Độ ngọt",
+                  "items": [
+                    {
+                      "itemId": "history-sugar-less",
+                      "optionId": "history-sugar-less",
+                      "name": "Ít đường",
+                      "quantity": 1,
+                      "price": 0,
+                      "surcharge": 0,
+                      "modifiers": [],
+                      "groups": [],
+                      "subOptions": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "options": []
+      },
+      {
+        "itemId": "history-rolls",
+        "quantity": 2,
+        "note": "",
+        "portionNotes": [
+          "",
+          ""
+        ],
+        "bundleSelections": {
+          "version": 3,
+          "portions": [
+            {
+              "portionIndex": 0,
+              "groups": []
+            },
+            {
+              "portionIndex": 1,
+              "groups": []
+            }
+          ]
+        },
+        "options": []
+      }
+    ],
+    "total": 560
+  },
+  "mergedDraft": {
+    "items": [
+      {
+        "itemId": "history-chicken",
+        "quantity": 4,
+        "note": "",
+        "portionNotes": [
+          "Ít cơm",
+          "Không hành",
+          "Để riêng nước sốt",
+          "Ít cơm"
+        ],
+        "bundleSelections": {
+          "version": 3,
+          "portions": [
+            {
+              "portionIndex": 0,
+              "groups": [
+                {
+                  "groupId": "history-portion",
+                  "groupName": "Phần cơm",
+                  "items": [
+                    {
+                      "itemId": "history-portion-standard",
+                      "optionId": "history-portion-standard",
+                      "name": "Phần thường",
+                      "quantity": 1,
+                      "price": 0,
+                      "surcharge": 0,
+                      "modifiers": [],
+                      "groups": [],
+                      "subOptions": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "portionIndex": 1,
+              "groups": [
+                {
+                  "groupId": "history-portion",
+                  "groupName": "Phần cơm",
+                  "items": [
+                    {
+                      "itemId": "history-portion-extra",
+                      "optionId": "history-portion-extra",
+                      "name": "Thêm cơm",
+                      "quantity": 1,
+                      "price": 0,
+                      "surcharge": 15,
+                      "modifiers": [],
+                      "groups": [],
+                      "subOptions": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "portionIndex": 2,
+              "groups": [
+                {
+                  "groupId": "history-portion",
+                  "groupName": "Phần cơm",
+                  "items": [
+                    {
+                      "itemId": "history-portion-standard",
+                      "optionId": "history-portion-standard",
+                      "name": "Phần thường",
+                      "quantity": 1,
+                      "price": 0,
+                      "surcharge": 0,
+                      "modifiers": [],
+                      "groups": [],
+                      "subOptions": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "portionIndex": 3,
+              "groups": [
+                {
+                  "groupId": "history-portion",
+                  "groupName": "Phần cơm",
+                  "items": [
+                    {
+                      "itemId": "history-portion-standard",
+                      "optionId": "history-portion-standard",
+                      "name": "Phần thường",
+                      "quantity": 1,
+                      "price": 0,
+                      "surcharge": 0,
+                      "modifiers": [],
+                      "groups": [],
+                      "subOptions": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "options": []
+      },
+      {
+        "itemId": "history-tea",
+        "quantity": 2,
+        "note": "",
+        "portionNotes": [
+          "",
+          ""
+        ],
+        "bundleSelections": {
+          "version": 3,
+          "portions": [
+            {
+              "portionIndex": 0,
+              "groups": [
+                {
+                  "groupId": "history-sugar",
+                  "groupName": "Độ ngọt",
+                  "items": [
+                    {
+                      "itemId": "history-sugar-less",
+                      "optionId": "history-sugar-less",
+                      "name": "Ít đường",
+                      "quantity": 1,
+                      "price": 0,
+                      "surcharge": 0,
+                      "modifiers": [],
+                      "groups": [],
+                      "subOptions": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "portionIndex": 1,
+              "groups": [
+                {
+                  "groupId": "history-sugar",
+                  "groupName": "Độ ngọt",
+                  "items": [
+                    {
+                      "itemId": "history-sugar-less",
+                      "optionId": "history-sugar-less",
+                      "name": "Ít đường",
+                      "quantity": 1,
+                      "price": 0,
+                      "surcharge": 0,
+                      "modifiers": [],
+                      "groups": [],
+                      "subOptions": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "options": []
+      },
+      {
+        "itemId": "history-rolls",
+        "quantity": 3,
+        "note": "",
+        "portionNotes": [
+          "",
+          "",
+          ""
+        ],
+        "bundleSelections": {
+          "version": 3,
+          "portions": [
+            {
+              "portionIndex": 0,
+              "groups": []
+            },
+            {
+              "portionIndex": 1,
+              "groups": []
+            },
+            {
+              "portionIndex": 2,
+              "groups": []
+            }
+          ]
+        },
+        "options": []
+      }
+    ],
+    "total": 790,
+    "notes": [
+      "Ít cơm",
+      "Không hành",
+      "Để riêng nước sốt",
+      "Ít cơm"
+    ],
+    "extraPrice": 15
+  }
+}

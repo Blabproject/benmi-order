@@ -1,0 +1,36 @@
+{
+  "deployment": "561ee3e5-2b71-4c77-8fe7-0818250000cf",
+  "url": "https://561ee3e5.benmi-order.pages.dev",
+  "status": "success",
+  "canonical": true,
+  "exactSamePayload": true,
+  "checks": [
+    {
+      "url": "https://pos.blabfood.app/blab_demo",
+      "file": "orders.html",
+      "matched": true
+    },
+    {
+      "url": "https://benmi-order.pages.dev/orders.html",
+      "file": "orders.html",
+      "matched": true
+    },
+    {
+      "url": "https://pos.blabfood.app/js/orders-menu.js?v=20261107_stock_restore_v2",
+      "file": "js/orders-menu.js",
+      "matched": true
+    },
+    {
+      "url": "https://pos.blabfood.app/css/orders-stock.css?v=20261107_stock_drawer_v1",
+      "file": "css/orders-stock.css",
+      "matched": true
+    },
+    {
+      "url": "https://benmi-order.pages.dev/_build.json?redeploy=561ee3e5-2b71-4c77-8fe7-0818250000cf",
+      "file": "_build.json",
+      "matched": true
+    }
+  ],
+  "backendCommit": "b6b4e96c607f90f6eb27c17b182c0ab3e81b9210",
+  "verifiedAt": "2026-11-06T17:41:17.974Z"
+}

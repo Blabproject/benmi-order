@@ -1,0 +1,140 @@
+{
+  "ready": true,
+  "basis": "Latest corrected reference image supplied by the user; supersedes the first image.",
+  "groups": [
+    {
+      "id": "mg_wqj_flavor",
+      "name": "口味選擇",
+      "viName": "Chọn 1 vị",
+      "minSelection": 1,
+      "maxSelection": 1,
+      "sortOrder": 1,
+      "itemIds": [
+        "wqj_cc_01",
+        "wqj_cc_02",
+        "wqj_fs_05",
+        "wqj_fs_06",
+        "wqj_fs_07"
+      ],
+      "options": [
+        {
+          "id": "opt_wqj_fl_pepper",
+          "name": "原味",
+          "price": 0,
+          "sortOrder": 1
+        },
+        {
+          "id": "opt_wqj_fl_plum",
+          "name": "甘梅",
+          "price": 0,
+          "sortOrder": 2
+        },
+        {
+          "id": "opt_wqj_fl_lemon",
+          "name": "檸檬",
+          "price": 0,
+          "sortOrder": 3
+        },
+        {
+          "id": "opt_wqj_fl_cheese",
+          "name": "起司",
+          "price": 0,
+          "sortOrder": 4
+        },
+        {
+          "id": "opt_wqj_fl_spicy",
+          "name": "辣味",
+          "price": 0,
+          "sortOrder": 5
+        }
+      ],
+      "itemOptionIds": {
+        "wqj_fs_05": [
+          "opt_wqj_fl_pepper",
+          "opt_wqj_fl_plum",
+          "opt_wqj_fl_cheese",
+          "opt_wqj_fl_spicy"
+        ],
+        "wqj_fs_06": [
+          "opt_wqj_fl_pepper",
+          "opt_wqj_fl_plum",
+          "opt_wqj_fl_cheese",
+          "opt_wqj_fl_spicy"
+        ],
+        "wqj_fs_07": [
+          "opt_wqj_fl_pepper",
+          "opt_wqj_fl_plum",
+          "opt_wqj_fl_cheese",
+          "opt_wqj_fl_spicy"
+        ]
+      }
+    },
+    {
+      "id": "mg_wqj_combo_drink",
+      "name": "冷泡茶選擇",
+      "viName": "Chọn 1 trà ủ lạnh",
+      "minSelection": 1,
+      "maxSelection": 1,
+      "sortOrder": 2,
+      "itemIds": [
+        "wqj_cb_01",
+        "wqj_cb_02",
+        "wqj_cb_03",
+        "wqj_cb_04"
+      ],
+      "options": [
+        {
+          "id": "opt_wqj_tea_01",
+          "name": "高山青冷泡茶",
+          "price": 0,
+          "sortOrder": 1,
+          "productId": "wqj_dr_01"
+        },
+        {
+          "id": "opt_wqj_tea_02",
+          "name": "黃金烏龍冷泡茶",
+          "price": 0,
+          "sortOrder": 2,
+          "productId": "wqj_dr_02"
+        },
+        {
+          "id": "opt_wqj_tea_03",
+          "name": "烏龍綠冷泡茶",
+          "price": 0,
+          "sortOrder": 3,
+          "productId": "wqj_dr_03"
+        },
+        {
+          "id": "opt_wqj_tea_04",
+          "name": "阿里山冰茶",
+          "price": 0,
+          "sortOrder": 4,
+          "productId": "wqj_dr_04"
+        },
+        {
+          "id": "opt_wqj_tea_05",
+          "name": "日月潭魚池紅茶",
+          "price": 0,
+          "sortOrder": 5,
+          "productId": "wqj_dr_05"
+        }
+      ]
+    }
+  ],
+  "productUpdates": [
+    {
+      "id": "wqj_cb_05",
+      "name": "加購升級E (雞腿塊翅組合餐 (6塊))",
+      "description": "內含：雞腿塊翅組合餐 (6塊)",
+      "price": 340
+    },
+    {
+      "id": "wqj_fs_05",
+      "name": "脆薯條"
+    },
+    {
+      "id": "wqj_fs_07",
+      "name": "細薯條"
+    }
+  ]
+}

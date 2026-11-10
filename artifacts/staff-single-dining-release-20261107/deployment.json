@@ -1,0 +1,11 @@
+{
+  "id": "fded7a3d-a673-4eac-95a8-a8897c4b1973",
+  "environment": "production",
+  "stage": {
+    "name": "deploy",
+    "started_on": null,
+    "ended_on": "2026-11-07T09:35:52.198484Z",
+    "status": "success"
+  },
+  "commit": "e0a099c76f1a290810431bcd3874bdcaf7a0a9eb"
+}

@@ -1,0 +1,2092 @@
+{
+  "browser": "chromium",
+  "base": "production frontend 289a04c3",
+  "checks": [],
+  "errors": [],
+  "attemptedWrites": [],
+  "screenshots": [
+    "order-before-chromium-390.png",
+    "item-before-chromium-390.png"
+  ],
+  "phase": "before",
+  "cases": [
+    {
+      "case": "short",
+      "width": 320,
+      "kind": "order",
+      "metrics": {
+        "rects": [
+          {
+            "text": "胡椒",
+            "width": 105,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 105,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 105,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 105,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "香油",
+            "width": 105,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": []
+    },
+    {
+      "case": "short",
+      "width": 320,
+      "kind": "item",
+      "metrics": {
+        "rects": [
+          {
+            "text": "胡椒 +$5",
+            "width": 124.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 124.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 124.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 124.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": []
+    },
+    {
+      "case": "short",
+      "width": 375,
+      "kind": "order",
+      "metrics": {
+        "rects": [
+          {
+            "text": "胡椒",
+            "width": 132.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 132.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 132.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 132.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "香油",
+            "width": 132.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": []
+    },
+    {
+      "case": "short",
+      "width": 375,
+      "kind": "item",
+      "metrics": {
+        "rects": [
+          {
+            "text": "胡椒 +$5",
+            "width": 152,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 152,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 152,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 152,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": []
+    },
+    {
+      "case": "short",
+      "width": 390,
+      "kind": "order",
+      "metrics": {
+        "rects": [
+          {
+            "text": "胡椒",
+            "width": 140,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 140,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 140,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 140,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "香油",
+            "width": 140,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": []
+    },
+    {
+      "case": "short",
+      "width": 390,
+      "kind": "item",
+      "metrics": {
+        "rects": [
+          {
+            "text": "胡椒 +$5",
+            "width": 151.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 151.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 151.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 151.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": []
+    },
+    {
+      "case": "short",
+      "width": 768,
+      "kind": "order",
+      "metrics": {
+        "rects": [
+          {
+            "text": "胡椒",
+            "width": 245,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 245,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 245,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 245,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "香油",
+            "width": 245,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": []
+    },
+    {
+      "case": "short",
+      "width": 768,
+      "kind": "item",
+      "metrics": {
+        "rects": [
+          {
+            "text": "胡椒 +$5",
+            "width": 246.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 246.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 246.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 246.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": []
+    },
+    {
+      "case": "long-zh",
+      "width": 320,
+      "kind": "order",
+      "metrics": {
+        "rects": [
+          {
+            "text": "調味料請另外包裝不要直接淋在餐點上以免影響小朋友與長輩食用",
+            "width": 105,
+            "height": 158.375,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 105,
+            "height": 158.375,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 105,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 105,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "香油",
+            "width": 105,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    },
+    {
+      "case": "long-zh",
+      "width": 320,
+      "kind": "item",
+      "metrics": {
+        "rects": [
+          {
+            "text": "調味料請另外包裝不要直接淋在餐點上以免影響小朋友與長輩食用 +$12345",
+            "width": 124.5,
+            "height": 152,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 124.5,
+            "height": 152,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 124.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 124.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    },
+    {
+      "case": "long-zh",
+      "width": 375,
+      "kind": "order",
+      "metrics": {
+        "rects": [
+          {
+            "text": "調味料請另外包裝不要直接淋在餐點上以免影響小朋友與長輩食用",
+            "width": 132.5,
+            "height": 105.734375,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 132.5,
+            "height": 105.734375,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 132.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 132.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "香油",
+            "width": 132.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    },
+    {
+      "case": "long-zh",
+      "width": 375,
+      "kind": "item",
+      "metrics": {
+        "rects": [
+          {
+            "text": "調味料請另外包裝不要直接淋在餐點上以免影響小朋友與長輩食用 +$12345",
+            "width": 152,
+            "height": 117,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 152,
+            "height": 117,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 152,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 152,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    },
+    {
+      "case": "long-zh",
+      "width": 390,
+      "kind": "order",
+      "metrics": {
+        "rects": [
+          {
+            "text": "調味料請另外包裝不要直接淋在餐點上以免影響小朋友與長輩食用",
+            "width": 140,
+            "height": 105.734375,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 140,
+            "height": 105.734375,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 140,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 140,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "香油",
+            "width": 140,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    },
+    {
+      "case": "long-zh",
+      "width": 390,
+      "kind": "item",
+      "metrics": {
+        "rects": [
+          {
+            "text": "調味料請另外包裝不要直接淋在餐點上以免影響小朋友與長輩食用 +$12345",
+            "width": 151.5,
+            "height": 117,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 151.5,
+            "height": 117,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 151.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 151.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    },
+    {
+      "case": "long-zh",
+      "width": 768,
+      "kind": "order",
+      "metrics": {
+        "rects": [
+          {
+            "text": "調味料請另外包裝不要直接淋在餐點上以免影響小朋友與長輩食用",
+            "width": 245,
+            "height": 70.640625,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 245,
+            "height": 70.640625,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 245,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 245,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "香油",
+            "width": 245,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    },
+    {
+      "case": "long-zh",
+      "width": 768,
+      "kind": "item",
+      "metrics": {
+        "rects": [
+          {
+            "text": "調味料請另外包裝不要直接淋在餐點上以免影響小朋友與長輩食用 +$12345",
+            "width": 246.5,
+            "height": 79,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 246.5,
+            "height": 79,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 246.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 246.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    },
+    {
+      "case": "long-latin",
+      "width": 320,
+      "kind": "order",
+      "metrics": {
+        "rects": [
+          {
+            "text": "SuperLongChildOptionWithoutAnySpaces0123456789SuperLongChildOptionWithoutAnySpaces0123456789",
+            "width": 105,
+            "height": 246.109375,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 105,
+            "height": 246.109375,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 105,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 105,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "香油",
+            "width": 105,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    },
+    {
+      "case": "long-latin",
+      "width": 320,
+      "kind": "item",
+      "metrics": {
+        "rects": [
+          {
+            "text": "SuperLongChildOptionWithoutAnySpaces0123456789SuperLongChildOptionWithoutAnySpaces0123456789 +$12345",
+            "width": 124.5,
+            "height": 230,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 124.5,
+            "height": 230,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 124.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 124.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": true,
+        "horizontalOverflow": true,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px",
+        "horizontal overflow"
+      ]
+    },
+    {
+      "case": "long-latin",
+      "width": 375,
+      "kind": "order",
+      "metrics": {
+        "rects": [
+          {
+            "text": "SuperLongChildOptionWithoutAnySpaces0123456789SuperLongChildOptionWithoutAnySpaces0123456789",
+            "width": 132.5,
+            "height": 175.921875,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 132.5,
+            "height": 175.921875,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 132.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 132.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "香油",
+            "width": 132.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    },
+    {
+      "case": "long-latin",
+      "width": 375,
+      "kind": "item",
+      "metrics": {
+        "rects": [
+          {
+            "text": "SuperLongChildOptionWithoutAnySpaces0123456789SuperLongChildOptionWithoutAnySpaces0123456789 +$12345",
+            "width": 152,
+            "height": 166,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 152,
+            "height": 166,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 152,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 152,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": true,
+        "horizontalOverflow": true,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px",
+        "horizontal overflow"
+      ]
+    },
+    {
+      "case": "long-latin",
+      "width": 390,
+      "kind": "order",
+      "metrics": {
+        "rects": [
+          {
+            "text": "SuperLongChildOptionWithoutAnySpaces0123456789SuperLongChildOptionWithoutAnySpaces0123456789",
+            "width": 140,
+            "height": 158.375,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 140,
+            "height": 158.375,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 140,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 140,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "香油",
+            "width": 140,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    },
+    {
+      "case": "long-latin",
+      "width": 390,
+      "kind": "item",
+      "metrics": {
+        "rects": [
+          {
+            "text": "SuperLongChildOptionWithoutAnySpaces0123456789SuperLongChildOptionWithoutAnySpaces0123456789 +$12345",
+            "width": 151.5,
+            "height": 166,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 151.5,
+            "height": 166,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 151.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 151.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": true,
+        "horizontalOverflow": true,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px",
+        "horizontal overflow"
+      ]
+    },
+    {
+      "case": "long-latin",
+      "width": 768,
+      "kind": "order",
+      "metrics": {
+        "rects": [
+          {
+            "text": "SuperLongChildOptionWithoutAnySpaces0123456789SuperLongChildOptionWithoutAnySpaces0123456789",
+            "width": 245,
+            "height": 88.1875,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 245,
+            "height": 88.1875,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 245,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 245,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "香油",
+            "width": 245,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    },
+    {
+      "case": "long-latin",
+      "width": 768,
+      "kind": "item",
+      "metrics": {
+        "rects": [
+          {
+            "text": "SuperLongChildOptionWithoutAnySpaces0123456789SuperLongChildOptionWithoutAnySpaces0123456789 +$12345",
+            "width": 246.5,
+            "height": 102,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 246.5,
+            "height": 102,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 246.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 246.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": true,
+        "horizontalOverflow": true,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px",
+        "horizontal overflow"
+      ]
+    },
+    {
+      "case": "mixed",
+      "width": 320,
+      "kind": "order",
+      "metrics": {
+        "rects": [
+          {
+            "text": "醬汁另放 Sauce on the side with extra garlic and seasoning in separate containers",
+            "width": 105,
+            "height": 228.5625,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 105,
+            "height": 228.5625,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 105,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 105,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "香油",
+            "width": 105,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    },
+    {
+      "case": "mixed",
+      "width": 320,
+      "kind": "item",
+      "metrics": {
+        "rects": [
+          {
+            "text": "醬汁另放 Sauce on the side with extra garlic and seasoning in separate containers +$125.5",
+            "width": 124.5,
+            "height": 185,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 124.5,
+            "height": 185,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 124.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 124.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    },
+    {
+      "case": "mixed",
+      "width": 375,
+      "kind": "order",
+      "metrics": {
+        "rects": [
+          {
+            "text": "醬汁另放 Sauce on the side with extra garlic and seasoning in separate containers",
+            "width": 132.5,
+            "height": 158.375,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 132.5,
+            "height": 158.375,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 132.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 132.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "香油",
+            "width": 132.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    },
+    {
+      "case": "mixed",
+      "width": 375,
+      "kind": "item",
+      "metrics": {
+        "rects": [
+          {
+            "text": "醬汁另放 Sauce on the side with extra garlic and seasoning in separate containers +$125.5",
+            "width": 152,
+            "height": 153,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 152,
+            "height": 153,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 152,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 152,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    },
+    {
+      "case": "mixed",
+      "width": 390,
+      "kind": "order",
+      "metrics": {
+        "rects": [
+          {
+            "text": "醬汁另放 Sauce on the side with extra garlic and seasoning in separate containers",
+            "width": 140,
+            "height": 158.375,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 140,
+            "height": 158.375,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 140,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 140,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "香油",
+            "width": 140,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    },
+    {
+      "case": "mixed",
+      "width": 390,
+      "kind": "item",
+      "metrics": {
+        "rects": [
+          {
+            "text": "醬汁另放 Sauce on the side with extra garlic and seasoning in separate containers +$125.5",
+            "width": 151.5,
+            "height": 153,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 151.5,
+            "height": 153,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 151.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 151.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    },
+    {
+      "case": "mixed",
+      "width": 768,
+      "kind": "order",
+      "metrics": {
+        "rects": [
+          {
+            "text": "醬汁另放 Sauce on the side with extra garlic and seasoning in separate containers",
+            "width": 245,
+            "height": 88.1875,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 245,
+            "height": 88.1875,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 245,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 245,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "香油",
+            "width": 245,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 18,
+            "inputHeight": 18,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    },
+    {
+      "case": "mixed",
+      "width": 768,
+      "kind": "item",
+      "metrics": {
+        "rects": [
+          {
+            "text": "醬汁另放 Sauce on the side with extra garlic and seasoning in separate containers +$125.5",
+            "width": 246.5,
+            "height": 89,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "胡椒",
+            "width": 246.5,
+            "height": 89,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蒜泥",
+            "width": 246.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          },
+          {
+            "text": "蔥",
+            "width": 246.5,
+            "height": 48,
+            "overflow": false,
+            "inputWidth": 20,
+            "inputHeight": 20,
+            "textOverlap": false,
+            "priceLines": 0
+          }
+        ],
+        "parentOverflow": false,
+        "horizontalOverflow": false,
+        "viewportOverflow": false
+      },
+      "issues": [
+        "short child stretched taller than 64px"
+      ]
+    }
+  ],
+  "violations": [
+    {
+      "case": "long-zh",
+      "width": 320,
+      "kind": "order",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "long-zh",
+      "width": 320,
+      "kind": "item",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "long-zh",
+      "width": 375,
+      "kind": "order",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "long-zh",
+      "width": 375,
+      "kind": "item",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "long-zh",
+      "width": 390,
+      "kind": "order",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "long-zh",
+      "width": 390,
+      "kind": "item",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "long-zh",
+      "width": 768,
+      "kind": "order",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "long-zh",
+      "width": 768,
+      "kind": "item",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "long-latin",
+      "width": 320,
+      "kind": "order",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "long-latin",
+      "width": 320,
+      "kind": "item",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "long-latin",
+      "width": 320,
+      "kind": "item",
+      "issue": "horizontal overflow"
+    },
+    {
+      "case": "long-latin",
+      "width": 375,
+      "kind": "order",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "long-latin",
+      "width": 375,
+      "kind": "item",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "long-latin",
+      "width": 375,
+      "kind": "item",
+      "issue": "horizontal overflow"
+    },
+    {
+      "case": "long-latin",
+      "width": 390,
+      "kind": "order",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "long-latin",
+      "width": 390,
+      "kind": "item",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "long-latin",
+      "width": 390,
+      "kind": "item",
+      "issue": "horizontal overflow"
+    },
+    {
+      "case": "long-latin",
+      "width": 768,
+      "kind": "order",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "long-latin",
+      "width": 768,
+      "kind": "item",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "long-latin",
+      "width": 768,
+      "kind": "item",
+      "issue": "horizontal overflow"
+    },
+    {
+      "case": "mixed",
+      "width": 320,
+      "kind": "order",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "mixed",
+      "width": 320,
+      "kind": "item",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "mixed",
+      "width": 375,
+      "kind": "order",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "mixed",
+      "width": 375,
+      "kind": "item",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "mixed",
+      "width": 390,
+      "kind": "order",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "mixed",
+      "width": 390,
+      "kind": "item",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "mixed",
+      "width": 768,
+      "kind": "order",
+      "issue": "short child stretched taller than 64px"
+    },
+    {
+      "case": "mixed",
+      "width": 768,
+      "kind": "item",
+      "issue": "short child stretched taller than 64px"
+    }
+  ]
+}

@@ -1,0 +1,247 @@
+{
+  "id": "e8c4d84f-f08e-4c72-a6bc-cdad12228473",
+  "name": "benmi-order",
+  "subdomain": "benmi-order.pages.dev",
+  "domains": [
+    "benmi-order.pages.dev",
+    "blabfood.app",
+    "explore.blabfood.app",
+    "order.blabfood.app",
+    "pos.blabfood.app",
+    "www.blabfood.app"
+  ],
+  "source": {
+    "type": "github",
+    "config": {
+      "owner": "Blabproject",
+      "owner_id": "353369441",
+      "repo_name": "benmi-order",
+      "repo_id": "1188465971",
+      "production_branch": "main",
+      "pr_comments_enabled": true,
+      "deployments_enabled": true,
+      "production_deployments_enabled": true,
+      "preview_deployment_setting": "all",
+      "preview_branch_includes": [
+        "*"
+      ],
+      "preview_branch_excludes": [],
+      "path_includes": [
+        "*"
+      ],
+      "path_excludes": []
+    }
+  },
+  "build_config": {
+    "build_command": "",
+    "destination_dir": "",
+    "root_dir": "",
+    "web_analytics_tag": null,
+    "web_analytics_token": null
+  },
+  "deployment_configs": {
+    "preview": {
+      "env_vars": null,
+      "fail_open": true,
+      "always_use_latest_compatibility_date": false,
+      "compatibility_date": "2026-03-22",
+      "compatibility_flags": [],
+      "build_image_major_version": 3,
+      "usage_model": "standard"
+    },
+    "production": {
+      "env_vars": null,
+      "fail_open": true,
+      "always_use_latest_compatibility_date": false,
+      "compatibility_date": "2026-03-22",
+      "compatibility_flags": [],
+      "build_image_major_version": 3,
+      "usage_model": "standard"
+    }
+  },
+  "latest_deployment": {
+    "id": "528b0f10-f62c-4eb9-b33d-fa4ce7aa9099",
+    "short_id": "528b0f10",
+    "project_id": "e8c4d84f-f08e-4c72-a6bc-cdad12228473",
+    "project_name": "benmi-order",
+    "environment": "production",
+    "url": "https://528b0f10.benmi-order.pages.dev",
+    "created_on": "2026-11-09T10:01:25.890206Z",
+    "modified_on": "2026-11-09T10:01:51.328945Z",
+    "latest_stage": {
+      "name": "deploy",
+      "started_on": "2026-11-09T10:01:38.277634Z",
+      "ended_on": "2026-11-09T10:01:51.328945Z",
+      "status": "success"
+    },
+    "deployment_trigger": {
+      "type": "github:push",
+      "metadata": {
+        "branch": "main",
+        "commit_hash": "89a8d78cfbd2256c7a3bc495ee9479593399df98",
+        "commit_message": "fix(liff): restore item image resolution on LIFF menu and bootstrap payload",
+        "commit_dirty": false
+      }
+    },
+    "stages": [
+      {
+        "name": "queued",
+        "started_on": "2026-11-09T10:01:26.179657Z",
+        "ended_on": "2026-11-09T10:01:26.209721Z",
+        "status": "success"
+      },
+      {
+        "name": "initialize",
+        "started_on": "2026-11-09T10:01:26.209721Z",
+        "ended_on": "2026-11-09T10:01:29.212939Z",
+        "status": "success"
+      },
+      {
+        "name": "clone_repo",
+        "started_on": "2026-11-09T10:01:29.212939Z",
+        "ended_on": "2026-11-09T10:01:33.012421Z",
+        "status": "success"
+      },
+      {
+        "name": "build",
+        "started_on": "2026-11-09T10:01:33.012421Z",
+        "ended_on": "2026-11-09T10:01:38.277634Z",
+        "status": "success"
+      },
+      {
+        "name": "deploy",
+        "started_on": "2026-11-09T10:01:38.277634Z",
+        "ended_on": "2026-11-09T10:01:51.328945Z",
+        "status": "success"
+      }
+    ],
+    "build_config": {
+      "build_command": "",
+      "destination_dir": "",
+      "build_caching": null,
+      "root_dir": "",
+      "web_analytics_tag": null,
+      "web_analytics_token": null
+    },
+    "source": {
+      "type": "github",
+      "config": {
+        "owner": "Blabproject",
+        "repo_name": "benmi-order",
+        "production_branch": "main",
+        "pr_comments_enabled": false
+      }
+    },
+    "env_vars": {},
+    "compatibility_date": "2026-03-22",
+    "compatibility_flags": [],
+    "build_image_major_version": 3,
+    "usage_model": "standard",
+    "aliases": [
+      "https://blabfood.app",
+      "https://explore.blabfood.app",
+      "https://order.blabfood.app",
+      "https://pos.blabfood.app",
+      "https://www.blabfood.app"
+    ],
+    "is_skipped": false,
+    "production_branch": "main",
+    "uses_functions": true
+  },
+  "canonical_deployment": {
+    "id": "528b0f10-f62c-4eb9-b33d-fa4ce7aa9099",
+    "short_id": "528b0f10",
+    "project_id": "e8c4d84f-f08e-4c72-a6bc-cdad12228473",
+    "project_name": "benmi-order",
+    "environment": "production",
+    "url": "https://528b0f10.benmi-order.pages.dev",
+    "created_on": "2026-11-09T10:01:25.890206Z",
+    "modified_on": "2026-11-09T10:01:51.328945Z",
+    "latest_stage": {
+      "name": "deploy",
+      "started_on": "2026-11-09T10:01:38.277634Z",
+      "ended_on": "2026-11-09T10:01:51.328945Z",
+      "status": "success"
+    },
+    "deployment_trigger": {
+      "type": "github:push",
+      "metadata": {
+        "branch": "main",
+        "commit_hash": "89a8d78cfbd2256c7a3bc495ee9479593399df98",
+        "commit_message": "fix(liff): restore item image resolution on LIFF menu and bootstrap payload",
+        "commit_dirty": false
+      }
+    },
+    "stages": [
+      {
+        "name": "queued",
+        "started_on": "2026-11-09T10:01:26.179657Z",
+        "ended_on": "2026-11-09T10:01:26.209721Z",
+        "status": "success"
+      },
+      {
+        "name": "initialize",
+        "started_on": "2026-11-09T10:01:26.209721Z",
+        "ended_on": "2026-11-09T10:01:29.212939Z",
+        "status": "success"
+      },
+      {
+        "name": "clone_repo",
+        "started_on": "2026-11-09T10:01:29.212939Z",
+        "ended_on": "2026-11-09T10:01:33.012421Z",
+        "status": "success"
+      },
+      {
+        "name": "build",
+        "started_on": "2026-11-09T10:01:33.012421Z",
+        "ended_on": "2026-11-09T10:01:38.277634Z",
+        "status": "success"
+      },
+      {
+        "name": "deploy",
+        "started_on": "2026-11-09T10:01:38.277634Z",
+        "ended_on": "2026-11-09T10:01:51.328945Z",
+        "status": "success"
+      }
+    ],
+    "build_config": {
+      "build_command": "",
+      "destination_dir": "",
+      "build_caching": null,
+      "root_dir": "",
+      "web_analytics_tag": null,
+      "web_analytics_token": null
+    },
+    "source": {
+      "type": "github",
+      "config": {
+        "owner": "Blabproject",
+        "repo_name": "benmi-order",
+        "production_branch": "main",
+        "pr_comments_enabled": false
+      }
+    },
+    "env_vars": {},
+    "compatibility_date": "2026-03-22",
+    "compatibility_flags": [],
+    "build_image_major_version": 3,
+    "usage_model": "standard",
+    "aliases": [
+      "https://blabfood.app",
+      "https://explore.blabfood.app",
+      "https://order.blabfood.app",
+      "https://pos.blabfood.app",
+      "https://www.blabfood.app"
+    ],
+    "is_skipped": false,
+    "production_branch": "main",
+    "uses_functions": true
+  },
+  "created_on": "2026-03-22T05:50:08.429819Z",
+  "production_branch": "main",
+  "production_script_name": "pages-worker--11939624-production",
+  "preview_script_name": "pages-worker--11939624-preview",
+  "uses_functions": true,
+  "framework": "",
+  "framework_version": ""
+}

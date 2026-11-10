@@ -1,0 +1,164 @@
+{
+  "deployments": [
+    {
+      "id": "7fb26ed0-f97d-40b0-8e48-d7e4d3179fe3",
+      "source": "cf_cli",
+      "strategy": "percentage",
+      "author_email": "sonduc2210@gmail.com",
+      "annotations": {
+        "workers/triggered_by": "deployment"
+      },
+      "versions": [
+        {
+          "version_id": "a7778baa-332e-4913-95eb-22763934a1d4",
+          "percentage": 100
+        }
+      ],
+      "created_on": "2026-11-09T09:57:02.403814Z"
+    },
+    {
+      "id": "6d941c97-c6fb-4952-878c-deb5f6bc4ae8",
+      "source": "cf_cli",
+      "strategy": "percentage",
+      "author_email": "sonduc2210@gmail.com",
+      "annotations": {
+        "workers/triggered_by": "deployment"
+      },
+      "versions": [
+        {
+          "version_id": "ad01367b-1980-47a5-9f8d-1615386355fb",
+          "percentage": 100
+        }
+      ],
+      "created_on": "2026-11-09T09:55:42.547201Z"
+    },
+    {
+      "id": "397e1e11-c028-4ee4-a406-01067546da9b",
+      "source": "cf_cli",
+      "strategy": "percentage",
+      "author_email": "sonduc2210@gmail.com",
+      "annotations": {
+        "workers/triggered_by": "deployment"
+      },
+      "versions": [
+        {
+          "version_id": "86f3c9ee-dad3-4695-a813-092f84002391",
+          "percentage": 100
+        }
+      ],
+      "created_on": "2026-11-08T17:05:07.415553Z"
+    },
+    {
+      "id": "1702b99b-3ec8-48f4-b16f-07a7be7d604f",
+      "source": "cf_cli",
+      "strategy": "percentage",
+      "author_email": "sonduc2210@gmail.com",
+      "annotations": {
+        "workers/triggered_by": "deployment"
+      },
+      "versions": [
+        {
+          "version_id": "fc5f8082-eaf4-4151-8569-48b6841dc14c",
+          "percentage": 100
+        }
+      ],
+      "created_on": "2026-11-08T16:14:12.532547Z"
+    },
+    {
+      "id": "da1e43b9-159f-4a69-a8f8-ef597b23bacf",
+      "source": "cf_cli",
+      "strategy": "percentage",
+      "author_email": "sonduc2210@gmail.com",
+      "annotations": {
+        "workers/triggered_by": "deployment"
+      },
+      "versions": [
+        {
+          "version_id": "8a345d7d-7719-4cca-9ba2-616935bdb5d6",
+          "percentage": 100
+        }
+      ],
+      "created_on": "2026-11-08T15:52:30.212981Z"
+    },
+    {
+      "id": "0db7218d-4db3-4147-88c4-082b1e520265",
+      "source": "cf_cli",
+      "strategy": "percentage",
+      "author_email": "sonduc2210@gmail.com",
+      "annotations": {
+        "workers/triggered_by": "deployment"
+      },
+      "versions": [
+        {
+          "version_id": "c4b9f97f-0b01-465d-8046-0c992e2af165",
+          "percentage": 100
+        }
+      ],
+      "created_on": "2026-11-08T15:41:09.138205Z"
+    },
+    {
+      "id": "6ae09aa4-ab34-4ff5-8c05-b6fbce359c1b",
+      "source": "cf_cli",
+      "strategy": "percentage",
+      "author_email": "sonduc2210@gmail.com",
+      "annotations": {
+        "workers/triggered_by": "deployment"
+      },
+      "versions": [
+        {
+          "version_id": "9330972e-c2a5-4dd1-b0b9-8d99c2cf165e",
+          "percentage": 100
+        }
+      ],
+      "created_on": "2026-11-08T12:18:00.069449Z"
+    },
+    {
+      "id": "62646408-136c-4db0-8009-23c177b4a857",
+      "source": "cf_cli",
+      "strategy": "percentage",
+      "author_email": "sonduc2210@gmail.com",
+      "annotations": {
+        "workers/triggered_by": "deployment"
+      },
+      "versions": [
+        {
+          "version_id": "554ca67a-b195-46f1-895d-46e9cce18046",
+          "percentage": 100
+        }
+      ],
+      "created_on": "2026-11-08T00:15:50.030576Z"
+    },
+    {
+      "id": "d0d89b2c-fb83-4c04-b886-44311facc753",
+      "source": "cf_cli",
+      "strategy": "percentage",
+      "author_email": "sonduc2210@gmail.com",
+      "annotations": {
+        "workers/triggered_by": "deployment"
+      },
+      "versions": [
+        {
+          "version_id": "cd47872f-58ae-4092-a25d-4d163525c018",
+          "percentage": 100
+        }
+      ],
+      "created_on": "2026-11-07T23:35:35.258211Z"
+    },
+    {
+      "id": "6dc1de4d-6964-43b0-9ac7-ffe267eefaba",
+      "source": "cf_cli",
+      "strategy": "percentage",
+      "author_email": "sonduc2210@gmail.com",
+      "annotations": {
+        "workers/triggered_by": "deployment"
+      },
+      "versions": [
+        {
+          "version_id": "6d8215bf-112a-40a4-b2e6-ab5f72742ed8",
+          "percentage": 100
+        }
+      ],
+      "created_on": "2026-11-07T23:32:30.058128Z"
+    }
+  ]
+}

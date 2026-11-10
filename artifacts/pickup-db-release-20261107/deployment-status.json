@@ -1,0 +1,18 @@
+{
+  "id": "42f4c0e0-895a-4d65-bf63-9da6307a4e8a",
+  "url": "https://42f4c0e0.benmi-order.pages.dev",
+  "environment": "production",
+  "stage": {
+    "name": "deploy",
+    "started_on": null,
+    "ended_on": "2026-11-06T18:09:29.341917Z",
+    "status": "success"
+  },
+  "usesFunctions": true,
+  "metadata": {
+    "branch": "main",
+    "commit_hash": "9e13302a3be1d9803025d4b8eb1c3abf841d8b0b",
+    "commit_message": "feat(liff): deploy isolated pickup time selection",
+    "commit_dirty": false
+  }
+}

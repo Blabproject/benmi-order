@@ -1,0 +1,24 @@
+{
+  "status": "passed",
+  "total": 35,
+  "passed": 35,
+  "sourceUnchanged": true,
+  "generatedGraphChangesOnly": [
+    "graphify-out/GRAPH_REPORT.md",
+    "graphify-out/graph.html",
+    "graphify-out/graph.json"
+  ],
+  "originalFullRun": "release-baseline-original.json",
+  "retry": {
+    "suite": "menu-full-pages-webkit",
+    "reason": "Miniflare startup fetch failed before test actions; rerun passed all three tests on unchanged source",
+    "log": "webkit-retry.log",
+    "sourceHash": "5a56aeefc68b128f9859cace824b5b21fb34c6b380ea92f84d0dca18a3e44248"
+  },
+  "db": {
+    "migration": "0079_customer_order_history_index.sql",
+    "alreadyApplied": true,
+    "indexVerified": true,
+    "pendingMigrations": 0
+  }
+}

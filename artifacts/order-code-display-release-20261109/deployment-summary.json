@@ -1,0 +1,17 @@
+{
+  "commit": "03defafd96c645b4af5186ab0670e6660650a631",
+  "frontend": {
+    "deploymentId": "dfd95202-8536-4ec6-86ba-167f1c614299",
+    "url": "https://dfd95202.benmi-order.pages.dev",
+    "status": "success"
+  },
+  "backend": {
+    "versionId": "a90dec27-c2d2-45b5-b021-36f7e9b5568b",
+    "previousVersionId": "a7778baa-332e-4913-95eb-22763934a1d4",
+    "health": "ok"
+  },
+  "verifiedAssets": 14,
+  "browserErrors": [],
+  "databaseMigration": false,
+  "verifiedAt": "2026-11-09T14:48:04.009Z"
+}

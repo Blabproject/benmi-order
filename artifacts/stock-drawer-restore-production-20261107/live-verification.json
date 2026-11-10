@@ -1,0 +1,50 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "orders.html",
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "js/orders-menu.js",
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "_build.json",
+      "matched": true
+    },
+    {
+      "base": "https://pos.blabfood.app",
+      "file": "orders.html",
+      "matched": true
+    },
+    {
+      "base": "https://pos.blabfood.app",
+      "file": "js/orders-menu.js",
+      "matched": true
+    },
+    {
+      "base": "https://pos.blabfood.app",
+      "file": "_build.json",
+      "matched": true
+    },
+    {
+      "url": "https://pos.blabfood.app/blab_demo",
+      "matched": true
+    },
+    {
+      "url": "https://order.blabfood.app/blab_demo",
+      "matched": true
+    },
+    {
+      "url": "https://explore.blabfood.app/",
+      "matched": true
+    }
+  ],
+  "backendUnchanged": "1c334b78f9632e4edd76931352454e2afe067e5d",
+  "browserChecks": "Chromium and WebKit: saved today, indefinite and specific date choices restore on reopen; mocked stock writes",
+  "verifiedAt": "2026-11-06T16:42:59.990Z"
+}

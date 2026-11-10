@@ -1,0 +1,43 @@
+{
+  "id": "855f11e6-2b21-457b-b6da-80aa3298a238",
+  "environment": "production",
+  "stage": {
+    "name": "deploy",
+    "started_on": null,
+    "ended_on": "2026-11-07T03:18:52.247463Z",
+    "status": "success"
+  },
+  "stages": [
+    {
+      "name": "queued",
+      "started_on": "2026-11-07T03:18:50.879397Z",
+      "ended_on": null,
+      "status": "active"
+    },
+    {
+      "name": "initialize",
+      "started_on": null,
+      "ended_on": null,
+      "status": "idle"
+    },
+    {
+      "name": "clone_repo",
+      "started_on": null,
+      "ended_on": null,
+      "status": "idle"
+    },
+    {
+      "name": "build",
+      "started_on": null,
+      "ended_on": null,
+      "status": "idle"
+    },
+    {
+      "name": "deploy",
+      "started_on": null,
+      "ended_on": "2026-11-07T03:18:52.247463Z",
+      "status": "success"
+    }
+  ],
+  "commit": "6936d9778af9a471e1753cef69212c0d89bcfe5d"
+}

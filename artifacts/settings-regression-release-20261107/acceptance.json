@@ -1,0 +1,42 @@
+{
+  "commit": "a581603df8e61b831cd8a6b2d8de3efb71a452df",
+  "application": {
+    "sha256": "2e7fe7de8f6ba48e14a6b4f31229de4cd5209c461a420eb3d5994383c4938f2b",
+    "fileCount": 199,
+    "changedFromHead": ""
+  },
+  "initialGate": {
+    "commit": "f555d3b6efec20a85f2726d4845715b77b44b30a",
+    "passed": 32,
+    "total": 35,
+    "failedSuites": [
+      "staff-browser",
+      "menu-components-webkit",
+      "menu-full-pages-webkit"
+    ]
+  },
+  "note": "Application code unchanged since full gate. Two timing assertions corrected in tests; all three failed groups rerun successfully. Original gate evidence retained.",
+  "status": "passed",
+  "passedSuites": 35,
+  "totalSuites": 35,
+  "rechecks": [
+    {
+      "name": "staff-browser",
+      "status": "passed",
+      "tests": 6,
+      "log": "artifacts/settings-regression-release-20261107/staff-browser-recheck.log"
+    },
+    {
+      "name": "menu-components-webkit",
+      "status": "passed",
+      "tests": 39,
+      "log": "artifacts/settings-regression-release-20261107/menu-components-webkit-recheck.log"
+    },
+    {
+      "name": "menu-full-pages-webkit",
+      "status": "passed",
+      "tests": 3,
+      "log": "artifacts/settings-regression-release-20261107/menu-full-pages-webkit-recheck.log"
+    }
+  ]
+}

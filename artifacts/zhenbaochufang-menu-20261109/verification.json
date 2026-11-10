@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "environment": "production",
+  "tenantId": "zhenbaochufang",
+  "categories": 2,
+  "items": 15,
+  "groups": 2,
+  "options": 16,
+  "explicitLinks": 4,
+  "catalogRevision": 125,
+  "graphValid": true,
+  "publicTenantConfigUnchanged": true,
+  "riceDefault": "標準白飯 200g"
+}

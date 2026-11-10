@@ -1,0 +1,13 @@
+{
+  "id": "f3516d7d-86fa-4449-b1cf-ecf2d89cc1e1",
+  "url": "https://f3516d7d.benmi-order.pages.dev",
+  "environment": "production",
+  "stage": {
+    "name": "queued",
+    "started_on": null,
+    "ended_on": null,
+    "status": "idle"
+  },
+  "commit": "a28f4fde2291a6b5300bad897402102cddee5c93",
+  "parentDeployment": "a7a427b3-d0f1-4a9a-bd75-f4fd615a61c0"
+}

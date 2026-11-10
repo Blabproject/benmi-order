@@ -1,0 +1,13 @@
+{
+  "id": "42f4c0e0-895a-4d65-bf63-9da6307a4e8a",
+  "url": "https://42f4c0e0.benmi-order.pages.dev",
+  "environment": "production",
+  "stage": {
+    "name": "queued",
+    "started_on": null,
+    "ended_on": null,
+    "status": "idle"
+  },
+  "commit": "9e13302a3be1d9803025d4b8eb1c3abf841d8b0b",
+  "parentDeployment": "561ee3e5-2b71-4c77-8fe7-0818250000cf"
+}

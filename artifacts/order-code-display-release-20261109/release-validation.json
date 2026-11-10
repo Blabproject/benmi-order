@@ -1,0 +1,9 @@
+{
+  "commit": "03defafd96c645b4af5186ab0670e6660650a631",
+  "status": "passed_with_runtime_retry",
+  "fullBaseline": "/Users/duccao/Documents/benmi-order-release-order-code-20261109/artifacts/release-baseline/2026-11-09T14-41-53-848Z/summary.json",
+  "originalPassed": 34,
+  "totalSuites": 35,
+  "successfulRetry": "frozen-runtime-retry.log",
+  "sourceChangedAfterTests": false
+}

@@ -1,0 +1,244 @@
+{
+  "menu_categories": [
+    {
+      "id": "cat_zb_main",
+      "tenant_id": "zhenbaochufang",
+      "name": "主餐",
+      "slug": "main-dishes",
+      "sort_order": 1,
+      "created_at": "2026-11-02 03:52:46",
+      "category_type": "catalog",
+      "selection_type": "single",
+      "is_required": 0,
+      "min_selection": 0,
+      "max_selection": 1,
+      "allow_customization": 0,
+      "applied_modifiers": "[]",
+      "short_name": "主餐",
+      "pricing_rules": null
+    }
+  ],
+  "menu_items": [
+    {
+      "id": "zb_item_01",
+      "tenant_id": "zhenbaochufang",
+      "category_id": "cat_zb_main",
+      "name": "肉燥飯",
+      "price": 45,
+      "description": null,
+      "out_of_stock_until": null,
+      "sort_order": 1,
+      "created_at": "2026-11-02 03:52:46",
+      "updated_at": "2026-11-02 03:52:46",
+      "badge_text": null,
+      "is_recommended": 0,
+      "item_type": "standard",
+      "max_per_order": null,
+      "menu_revision": 2,
+      "image_key": null
+    },
+    {
+      "id": "zb_item_02",
+      "tenant_id": "zhenbaochufang",
+      "category_id": "cat_zb_main",
+      "name": "咖哩飯",
+      "price": 85,
+      "description": null,
+      "out_of_stock_until": null,
+      "sort_order": 2,
+      "created_at": "2026-11-02 03:52:46",
+      "updated_at": "2026-11-02 03:52:46",
+      "badge_text": null,
+      "is_recommended": 0,
+      "item_type": "standard",
+      "max_per_order": null,
+      "menu_revision": 2,
+      "image_key": null
+    },
+    {
+      "id": "zhenbaochufang_product_ed3fe427-6813-49af-baf3-c043ff0401fe",
+      "tenant_id": "zhenbaochufang",
+      "category_id": "cat_zb_main",
+      "name": "配菜飯",
+      "price": 85,
+      "description": null,
+      "out_of_stock_until": null,
+      "sort_order": 5,
+      "created_at": "2026-11-08 07:07:04",
+      "updated_at": "2026-11-08 07:07:26",
+      "badge_text": "",
+      "is_recommended": 0,
+      "item_type": "standard",
+      "max_per_order": null,
+      "menu_revision": 2,
+      "image_key": null
+    }
+  ],
+  "modifier_groups": [
+    {
+      "id": "mg_zb_topping_add_on",
+      "tenant_id": "zhenbaochufang",
+      "name": "加料選項",
+      "selection_type": "multiple",
+      "is_required": 0,
+      "min_selection": 0,
+      "max_selection": 2,
+      "sort_order": 1,
+      "created_at": "2026-11-02 03:52:46",
+      "updated_at": "2026-11-08 09:18:53",
+      "scope": "item",
+      "source_metadata_json": "{}",
+      "allow_repeats": 0,
+      "included": 0,
+      "sources_json": "[]",
+      "labels_json": "{}",
+      "revision": 2,
+      "auto_popup": 0
+    }
+  ],
+  "modifier_options": [
+    {
+      "id": "opt_zb_top_01",
+      "tenant_id": "zhenbaochufang",
+      "group_id": "mg_zb_topping_add_on",
+      "name": "韓式雞排",
+      "price": 30,
+      "is_default": 0,
+      "sort_order": 0,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-08 09:18:53",
+      "updated_at": "2026-11-08 09:18:53",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "opt_zb_top_02",
+      "tenant_id": "zhenbaochufang",
+      "group_id": "mg_zb_topping_add_on",
+      "name": "照燒雞肉丸",
+      "price": 30,
+      "is_default": 0,
+      "sort_order": 1,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-08 09:18:53",
+      "updated_at": "2026-11-08 09:18:53",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "opt_zb_top_03",
+      "tenant_id": "zhenbaochufang",
+      "group_id": "mg_zb_topping_add_on",
+      "name": "無骨鹽酥雞",
+      "price": 35,
+      "is_default": 0,
+      "sort_order": 2,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-08 09:18:53",
+      "updated_at": "2026-11-08 09:18:53",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "opt_zb_top_04",
+      "tenant_id": "zhenbaochufang",
+      "group_id": "mg_zb_topping_add_on",
+      "name": "起司豬排",
+      "price": 35,
+      "is_default": 0,
+      "sort_order": 3,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-08 09:18:53",
+      "updated_at": "2026-11-08 09:18:53",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    }
+  ],
+  "item_modifier_links": [
+    {
+      "tenant_id": "zhenbaochufang",
+      "item_id": "zb_item_01",
+      "group_id": "mg_zb_topping_add_on",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "zhenbaochufang",
+      "item_id": "zb_item_02",
+      "group_id": "mg_zb_topping_add_on",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "zhenbaochufang",
+      "item_id": "zhenbaochufang_product_ed3fe427-6813-49af-baf3-c043ff0401fe",
+      "group_id": "mg_zb_topping_add_on",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    }
+  ],
+  "category_modifier_links": [],
+  "menu_customizations": [],
+  "menu_customization_option_rules": [],
+  "menu_bundle_rules": [
+    {
+      "id": "rule_zhenbaochufang_zb_item_01",
+      "tenant_id": "zhenbaochufang",
+      "parent_item_id": "zb_item_01",
+      "schema_version": 3,
+      "config_json": "{\"version\":3,\"autoPopup\":false,\"groups\":[{\"id\":\"mg_zb_topping_add_on\",\"name\":\"加料選項\",\"scope\":\"item\",\"minSelection\":0,\"maxSelection\":2,\"allowRepeats\":false,\"included\":false,\"autoPopup\":false,\"sources\":[],\"labels\":{},\"revision\":2,\"metadata\":{},\"sortOrder\":1,\"options\":[{\"id\":\"opt_zb_top_01\",\"name\":\"韓式雞排\",\"price\":30,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null},{\"id\":\"opt_zb_top_02\",\"name\":\"照燒雞肉丸\",\"price\":30,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null},{\"id\":\"opt_zb_top_03\",\"name\":\"無骨鹽酥雞\",\"price\":35,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null},{\"id\":\"opt_zb_top_04\",\"name\":\"起司豬排\",\"price\":35,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null}],\"isNew\":false,\"categoryIds\":[],\"itemIds\":[\"zb_item_01\",\"zb_item_02\",\"zhenbaochufang_product_ed3fe427-6813-49af-baf3-c043ff0401fe\"],\"delete\":false,\"inherited\":false,\"optionIds\":null,\"type\":\"choice\",\"minQuantity\":0,\"maxQuantity\":2,\"label\":{},\"eligibleItems\":[{\"id\":\"opt_zb_top_01\",\"name\":\"韓式雞排\",\"price\":30,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null,\"surcharge\":30,\"optionGroups\":[]},{\"id\":\"opt_zb_top_02\",\"name\":\"照燒雞肉丸\",\"price\":30,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null,\"surcharge\":30,\"optionGroups\":[]},{\"id\":\"opt_zb_top_03\",\"name\":\"無骨鹽酥雞\",\"price\":35,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null,\"surcharge\":35,\"optionGroups\":[]},{\"id\":\"opt_zb_top_04\",\"name\":\"起司豬排\",\"price\":35,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null,\"surcharge\":35,\"optionGroups\":[]}],\"items\":[]}]}",
+      "is_active": 1,
+      "created_at": "2026-11-02 04:23:34",
+      "updated_at": "2026-11-02 04:23:34"
+    },
+    {
+      "id": "rule_zhenbaochufang_zb_item_02",
+      "tenant_id": "zhenbaochufang",
+      "parent_item_id": "zb_item_02",
+      "schema_version": 3,
+      "config_json": "{\"version\":3,\"autoPopup\":false,\"groups\":[{\"id\":\"mg_zb_topping_add_on\",\"name\":\"加料選項\",\"scope\":\"item\",\"minSelection\":0,\"maxSelection\":2,\"allowRepeats\":false,\"included\":false,\"autoPopup\":false,\"sources\":[],\"labels\":{},\"revision\":2,\"metadata\":{},\"sortOrder\":1,\"options\":[{\"id\":\"opt_zb_top_01\",\"name\":\"韓式雞排\",\"price\":30,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null},{\"id\":\"opt_zb_top_02\",\"name\":\"照燒雞肉丸\",\"price\":30,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null},{\"id\":\"opt_zb_top_03\",\"name\":\"無骨鹽酥雞\",\"price\":35,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null},{\"id\":\"opt_zb_top_04\",\"name\":\"起司豬排\",\"price\":35,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null}],\"isNew\":false,\"categoryIds\":[],\"itemIds\":[\"zb_item_01\",\"zb_item_02\",\"zhenbaochufang_product_ed3fe427-6813-49af-baf3-c043ff0401fe\"],\"delete\":false,\"inherited\":false,\"optionIds\":null,\"type\":\"choice\",\"minQuantity\":0,\"maxQuantity\":2,\"label\":{},\"eligibleItems\":[{\"id\":\"opt_zb_top_01\",\"name\":\"韓式雞排\",\"price\":30,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null,\"surcharge\":30,\"optionGroups\":[]},{\"id\":\"opt_zb_top_02\",\"name\":\"照燒雞肉丸\",\"price\":30,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null,\"surcharge\":30,\"optionGroups\":[]},{\"id\":\"opt_zb_top_03\",\"name\":\"無骨鹽酥雞\",\"price\":35,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null,\"surcharge\":35,\"optionGroups\":[]},{\"id\":\"opt_zb_top_04\",\"name\":\"起司豬排\",\"price\":35,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null,\"surcharge\":35,\"optionGroups\":[]}],\"items\":[]}]}",
+      "is_active": 1,
+      "created_at": "2026-11-02 04:23:34",
+      "updated_at": "2026-11-02 04:23:34"
+    },
+    {
+      "id": "rule_zhenbaochufang_zhenbaochufang_product_ed3fe427-6813-49af-baf3-c043ff0401fe",
+      "tenant_id": "zhenbaochufang",
+      "parent_item_id": "zhenbaochufang_product_ed3fe427-6813-49af-baf3-c043ff0401fe",
+      "schema_version": 3,
+      "config_json": "{\"version\":3,\"autoPopup\":false,\"groups\":[{\"id\":\"mg_zb_topping_add_on\",\"name\":\"加料選項\",\"scope\":\"item\",\"minSelection\":0,\"maxSelection\":2,\"allowRepeats\":false,\"included\":false,\"autoPopup\":false,\"sources\":[],\"labels\":{},\"revision\":2,\"metadata\":{},\"sortOrder\":1,\"options\":[{\"id\":\"opt_zb_top_01\",\"name\":\"韓式雞排\",\"price\":30,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null},{\"id\":\"opt_zb_top_02\",\"name\":\"照燒雞肉丸\",\"price\":30,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null},{\"id\":\"opt_zb_top_03\",\"name\":\"無骨鹽酥雞\",\"price\":35,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null},{\"id\":\"opt_zb_top_04\",\"name\":\"起司豬排\",\"price\":35,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null}],\"isNew\":false,\"categoryIds\":[],\"itemIds\":[\"zb_item_01\",\"zb_item_02\",\"zhenbaochufang_product_ed3fe427-6813-49af-baf3-c043ff0401fe\"],\"delete\":false,\"inherited\":false,\"optionIds\":null,\"type\":\"choice\",\"minQuantity\":0,\"maxQuantity\":2,\"label\":{},\"eligibleItems\":[{\"id\":\"opt_zb_top_01\",\"name\":\"韓式雞排\",\"price\":30,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null,\"surcharge\":30,\"optionGroups\":[]},{\"id\":\"opt_zb_top_02\",\"name\":\"照燒雞肉丸\",\"price\":30,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null,\"surcharge\":30,\"optionGroups\":[]},{\"id\":\"opt_zb_top_03\",\"name\":\"無骨鹽酥雞\",\"price\":35,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null,\"surcharge\":35,\"optionGroups\":[]},{\"id\":\"opt_zb_top_04\",\"name\":\"起司豬排\",\"price\":35,\"productId\":null,\"quantity\":1,\"isDefault\":false,\"isOutOfStock\":false,\"isLocallyOutOfStock\":false,\"metadata\":{},\"outOfStockUntil\":null,\"subOptions\":[],\"eligibilityRules\":[],\"description\":null,\"imageUrl\":null,\"surcharge\":35,\"optionGroups\":[]}],\"items\":[]}]}",
+      "is_active": 1,
+      "created_at": "2026-11-08 07:07:26",
+      "updated_at": "2026-11-08 07:07:26"
+    }
+  ],
+  "menu_catalog_revisions": [
+    {
+      "tenant_id": "zhenbaochufang",
+      "revision": 76
+    }
+  ]
+}

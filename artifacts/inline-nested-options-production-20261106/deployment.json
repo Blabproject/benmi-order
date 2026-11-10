@@ -1,0 +1,193 @@
+{
+  "time": "2026-11-06T13:32:24.238Z",
+  "method": "Direct frontend Pages deployment from codex/inline-nested-options; Git main not pushed",
+  "frontend": {
+    "id": "53496c31-54fd-4d51-89dc-12034bbaaa52",
+    "url": "https://53496c31.benmi-order.pages.dev",
+    "environment": "production",
+    "stage": {
+      "name": "deploy",
+      "started_on": null,
+      "ended_on": "2026-11-06T13:31:31.375111Z",
+      "status": "success"
+    },
+    "trigger": {
+      "type": "ad_hoc",
+      "metadata": {
+        "branch": "main",
+        "commit_hash": "3631fc5e573ad37022eebf1442cefb071815a36b",
+        "commit_message": "fix(options): inline nested choices and stabilize long option labels",
+        "commit_dirty": false
+      }
+    }
+  },
+  "build": {
+    "commit": "3631fc5e573ad37022eebf1442cefb071815a36b",
+    "environment": "production",
+    "dirty": false,
+    "release": "inline-nested-options-long-labels-20261106",
+    "built_at": "2026-11-06T13:26:17.879Z",
+    "payload_sha256": "aaa9fd5e9702cf6a04555c7551f19d5bf7ce4ad0fbe019962fd7dc4386694086"
+  },
+  "assets": [
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "index.css",
+      "url": "https://benmi-order.pages.dev/index.css",
+      "http": 200,
+      "effectiveUrl": "https://benmi-order.pages.dev/index.css?release_verify=1793971941288",
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "css/client-option-groups.css",
+      "url": "https://benmi-order.pages.dev/css/client-option-groups.css",
+      "http": 200,
+      "effectiveUrl": "https://benmi-order.pages.dev/css/client-option-groups.css?release_verify=1793971941330",
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "js/client-menu.js",
+      "url": "https://benmi-order.pages.dev/js/client-menu.js",
+      "http": 200,
+      "effectiveUrl": "https://benmi-order.pages.dev/js/client-menu.js?release_verify=1793971941331",
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "js/client-option-groups.js",
+      "url": "https://benmi-order.pages.dev/js/client-option-groups.js",
+      "http": 200,
+      "effectiveUrl": "https://benmi-order.pages.dev/js/client-option-groups.js?release_verify=1793971941332",
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "js/client-cart.js",
+      "url": "https://benmi-order.pages.dev/js/client-cart.js",
+      "http": 200,
+      "effectiveUrl": "https://benmi-order.pages.dev/js/client-cart.js?release_verify=1793971941333",
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "js/client-customizations.js",
+      "url": "https://benmi-order.pages.dev/js/client-customizations.js",
+      "http": 200,
+      "effectiveUrl": "https://benmi-order.pages.dev/js/client-customizations.js?release_verify=1793971941333",
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "orders.html",
+      "url": "https://benmi-order.pages.dev/orders.html",
+      "http": 200,
+      "effectiveUrl": "https://benmi-order.pages.dev/orders?release_verify=1793971941334",
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "js/orders-core.js",
+      "url": "https://benmi-order.pages.dev/js/orders-core.js",
+      "http": 200,
+      "effectiveUrl": "https://benmi-order.pages.dev/js/orders-core.js?release_verify=1793971941334",
+      "matched": true
+    },
+    {
+      "base": "https://order.blabfood.app",
+      "file": "index.css",
+      "url": "https://order.blabfood.app/index.css",
+      "http": 200,
+      "effectiveUrl": "https://order.blabfood.app/index.css?release_verify=1793971941335",
+      "matched": true
+    },
+    {
+      "base": "https://order.blabfood.app",
+      "file": "css/client-option-groups.css",
+      "url": "https://order.blabfood.app/css/client-option-groups.css",
+      "http": 200,
+      "effectiveUrl": "https://order.blabfood.app/css/client-option-groups.css?release_verify=1793971941335",
+      "matched": true
+    },
+    {
+      "base": "https://order.blabfood.app",
+      "file": "js/client-menu.js",
+      "url": "https://order.blabfood.app/js/client-menu.js",
+      "http": 200,
+      "effectiveUrl": "https://order.blabfood.app/js/client-menu.js?release_verify=1793971941336",
+      "matched": true
+    },
+    {
+      "base": "https://order.blabfood.app",
+      "file": "js/client-option-groups.js",
+      "url": "https://order.blabfood.app/js/client-option-groups.js",
+      "http": 200,
+      "effectiveUrl": "https://order.blabfood.app/js/client-option-groups.js?release_verify=1793971941337",
+      "matched": true
+    },
+    {
+      "base": "https://order.blabfood.app",
+      "file": "js/client-cart.js",
+      "url": "https://order.blabfood.app/js/client-cart.js",
+      "http": 200,
+      "effectiveUrl": "https://order.blabfood.app/js/client-cart.js?release_verify=1793971941337",
+      "matched": true
+    },
+    {
+      "base": "https://order.blabfood.app",
+      "file": "js/client-customizations.js",
+      "url": "https://order.blabfood.app/js/client-customizations.js",
+      "http": 200,
+      "effectiveUrl": "https://order.blabfood.app/js/client-customizations.js?release_verify=1793971941337",
+      "matched": true
+    },
+    {
+      "base": "https://order.blabfood.app",
+      "file": "orders.html",
+      "url": "https://order.blabfood.app/orders.html",
+      "http": 200,
+      "effectiveUrl": "https://order.blabfood.app/orders?release_verify=1793971941338",
+      "matched": true
+    },
+    {
+      "base": "https://order.blabfood.app",
+      "file": "js/orders-core.js",
+      "url": "https://order.blabfood.app/js/orders-core.js",
+      "http": 200,
+      "effectiveUrl": "https://order.blabfood.app/js/orders-core.js?release_verify=1793971941338",
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "index.html",
+      "url": "https://benmi-order.pages.dev/index.html",
+      "http": 200,
+      "effectiveUrl": "https://benmi-order.pages.dev/?release_verify=1793971941338",
+      "matched": true
+    },
+    {
+      "base": "https://order.blabfood.app",
+      "file": "index.html",
+      "url": "https://order.blabfood.app/jiangjiejie",
+      "http": 200,
+      "effectiveUrl": "https://order.blabfood.app/jiangjiejie?release_verify=1793971941338",
+      "matched": true
+    }
+  ],
+  "workerHealth": {
+    "status": "ok",
+    "service": "benmi-worker",
+    "commit": "1c334b78f9632e4edd76931352454e2afe067e5d",
+    "environment": "production",
+    "dirty": false,
+    "tenantId": "benmi",
+    "timestamp": "2026-11-06T13:32:23.809Z"
+  },
+  "workerUnchanged": true,
+  "apkStatus": 200,
+  "historyApiStatus": 404,
+  "databaseChanges": false,
+  "sourceBranch": "codex/inline-nested-options",
+  "verified": true
+}

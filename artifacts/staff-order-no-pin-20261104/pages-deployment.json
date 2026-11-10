@@ -1,0 +1,91 @@
+[
+  {
+    "id": "d9bff467-39a4-4f0d-b17b-b4ae3a5a34cc",
+    "short_id": "d9bff467",
+    "project_id": "e8c4d84f-f08e-4c72-a6bc-cdad12228473",
+    "project_name": "benmi-order",
+    "environment": "production",
+    "url": "https://d9bff467.benmi-order.pages.dev",
+    "created_on": "2026-11-03T16:52:43.345626Z",
+    "modified_on": "2026-11-03T16:53:19.877544Z",
+    "latest_stage": {
+      "name": "deploy",
+      "started_on": "2026-11-03T16:53:02.971142Z",
+      "ended_on": "2026-11-03T16:53:19.877544Z",
+      "status": "success"
+    },
+    "deployment_trigger": {
+      "type": "github:push",
+      "metadata": {
+        "branch": "main",
+        "commit_hash": "1d9a88d5e4d214ceb700417c54cdb2e4ff45c9c3",
+        "commit_message": "feat(pos): remove PIN login from staff ordering",
+        "commit_dirty": false
+      }
+    },
+    "stages": [
+      {
+        "name": "queued",
+        "started_on": "2026-11-03T16:52:43.562686Z",
+        "ended_on": "2026-11-03T16:52:43.571912Z",
+        "status": "success"
+      },
+      {
+        "name": "initialize",
+        "started_on": "2026-11-03T16:52:43.571912Z",
+        "ended_on": "2026-11-03T16:52:47.65026Z",
+        "status": "success"
+      },
+      {
+        "name": "clone_repo",
+        "started_on": "2026-11-03T16:52:47.65026Z",
+        "ended_on": "2026-11-03T16:52:57.221159Z",
+        "status": "success"
+      },
+      {
+        "name": "build",
+        "started_on": "2026-11-03T16:52:57.221159Z",
+        "ended_on": "2026-11-03T16:53:02.971142Z",
+        "status": "success"
+      },
+      {
+        "name": "deploy",
+        "started_on": "2026-11-03T16:53:02.971142Z",
+        "ended_on": "2026-11-03T16:53:19.877544Z",
+        "status": "success"
+      }
+    ],
+    "build_config": {
+      "build_command": "",
+      "destination_dir": "",
+      "build_caching": null,
+      "root_dir": "",
+      "web_analytics_tag": null,
+      "web_analytics_token": null
+    },
+    "source": {
+      "type": "github",
+      "config": {
+        "owner": "Thuanmai56",
+        "repo_name": "benmi-order",
+        "production_branch": "main",
+        "pr_comments_enabled": false
+      }
+    },
+    "env_vars": {},
+    "compatibility_date": "2026-03-22",
+    "compatibility_flags": [],
+    "build_image_major_version": 3,
+    "usage_model": "standard",
+    "aliases": [
+      "https://blabfood.app",
+      "https://explore.blabfood.app",
+      "https://order.blabfood.app",
+      "https://pos.blabfood.app",
+      "https://www.blabfood.app"
+    ],
+    "is_skipped": false,
+    "production_branch": "main",
+    "uses_functions": true
+  }
+]

@@ -1,0 +1,88 @@
+{
+  "commit": "03defafd96c645b4af5186ab0670e6660650a631",
+  "health": {
+    "status": "ok",
+    "service": "benmi-worker",
+    "commit": "03defafd96c645b4af5186ab0670e6660650a631",
+    "environment": "production",
+    "dirty": true,
+    "tenantId": "benmi",
+    "timestamp": "2026-11-09T14:47:57.389Z"
+  },
+  "assets": [
+    {
+      "file": "js/client-checkout.js",
+      "sha256": "79f4fc5aa226b6d134f508c03608445d0b8293a5d0cbb48a317606a1b863af8b"
+    },
+    {
+      "file": "js/client-payments.js",
+      "sha256": "54bca9cf664b8d840c2d8ebb2e945df98767466fc66da21024dc82e26f246a6b"
+    },
+    {
+      "file": "js/orders-core.js",
+      "sha256": "17b4426c45cdadd24b3bc94b46845af5e829a107b693fa1e7897129dbe261d63"
+    },
+    {
+      "file": "js/orders-history.js",
+      "sha256": "96c722b773d34fa4445d3229a58e19c6a0c87c66898ffb8ec128f7b1e2d403c6"
+    },
+    {
+      "file": "js/orders-i18n.js",
+      "sha256": "910c496c81bae45e3d6c5644c34f342b4daad1b4c1e6ae71e46b382aa57c1024"
+    },
+    {
+      "file": "js/orders-live.js",
+      "sha256": "b5d6ffd50a009ef21dd6098ca676e2e375119d7899d714dbb0617588971a7938"
+    },
+    {
+      "file": "js/orders-modals.js",
+      "sha256": "f1ebba53c470ea118454b4982aaeaadb0c7b7c63aaa07a3983b753fc8482f365"
+    },
+    {
+      "file": "js/orders-payments.js",
+      "sha256": "183a6421296ec366f767c1d0fec1466877ec4e2e8278d15da6f3fce4b5e9937b"
+    },
+    {
+      "file": "js/orders-settings.js",
+      "sha256": "069bfd604edc4f352f248932b47bc8407ce3619eb0136c543af3f5838c60eaa0"
+    },
+    {
+      "file": "js/payment-actions.js",
+      "sha256": "fe48ce1f39b89635f68167526f842dd2950687334cc81740ab92f4a09f0a6691"
+    },
+    {
+      "file": "js/payment-result.js",
+      "sha256": "ea330b34e3331701c4b7312fc76bb1e1f84cddc29179a4484e9251f8dfa237fb"
+    },
+    {
+      "file": "js/printer-service.js",
+      "sha256": "8a0e8b3e08803a399f359a7e35f0d5e2a2267f14518c52c1471072629618770b"
+    },
+    {
+      "file": "js/staff-order.js",
+      "sha256": "d94f195bd40c75d38ed1c810eee3e5124aa5e68f33391e01c217ddaf624538ac"
+    },
+    {
+      "file": "js/order-code.js",
+      "sha256": "45641c9bbe7969a384c41ee9aa7b4480408dd7bb91beea66104723f320e5df4d"
+    }
+  ],
+  "pos": {
+    "labels": [
+      "1109-T901",
+      "1109-D902"
+    ],
+    "review": {
+      "key": "48cc482f-01ca-4939-ae70-f2c07c9cb4ce",
+      "label": "1109-D902"
+    },
+    "printedCode": true,
+    "printedOriginal": false
+  },
+  "customer": {
+    "sample": "1109-T901",
+    "cacheVersion": "https://order.blabfood.app/js/client-checkout.js?v=20261109_order_code_v2"
+  },
+  "browserErrors": [],
+  "verifiedAt": "2026-11-09T14:48:04.009Z"
+}

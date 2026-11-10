@@ -1,0 +1,90 @@
+{
+  "viewport": 390,
+  "results": [
+    {
+      "id": "wqj_cc_01",
+      "name": "酥皮雞排",
+      "required": true,
+      "correctPopup": true
+    },
+    {
+      "id": "wqj_cc_02",
+      "name": "脆皮雞排",
+      "required": true,
+      "correctPopup": true
+    },
+    {
+      "id": "wqj_fs_05",
+      "name": "脆薯條",
+      "required": true,
+      "correctPopup": true
+    },
+    {
+      "id": "wqj_fs_06",
+      "name": "波浪薯條",
+      "required": true,
+      "correctPopup": true
+    },
+    {
+      "id": "wqj_fs_07",
+      "name": "細薯條",
+      "required": true,
+      "correctPopup": true
+    },
+    {
+      "id": "wqj_cb_01",
+      "name": "加購升級A (細薯條(小) + 冷泡茶)",
+      "required": true,
+      "correctPopup": true
+    },
+    {
+      "id": "wqj_cb_02",
+      "name": "加購升級B (甜不辣(大) + 冷泡茶)",
+      "required": true,
+      "correctPopup": true
+    },
+    {
+      "id": "wqj_cb_03",
+      "name": "加購升級C (鹽酥雞(小) + 冷泡茶)",
+      "required": true,
+      "correctPopup": true
+    },
+    {
+      "id": "wqj_cb_04",
+      "name": "加購升級D (雞腿塊/塊、麥克雞塊 + 冷泡茶)",
+      "required": true,
+      "correctPopup": true
+    },
+    {
+      "id": "wqj_cc_03",
+      "name": "桔醬炭烤雞排",
+      "required": false,
+      "correctPopup": true
+    },
+    {
+      "id": "wqj_cc_04",
+      "name": "蜜汁雞排",
+      "required": false,
+      "correctPopup": true
+    },
+    {
+      "id": "wqj_cc_05",
+      "name": "泰式雞排",
+      "required": false,
+      "correctPopup": true
+    },
+    {
+      "id": "wqj_fs_21",
+      "name": "QQ球",
+      "required": false,
+      "correctPopup": true
+    },
+    {
+      "id": "wqj_cb_05",
+      "name": "加購升級E (雞腿塊翅組合餐 (6塊))",
+      "required": false,
+      "correctPopup": true
+    }
+  ],
+  "errors": []
+}

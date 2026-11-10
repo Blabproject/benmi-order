@@ -1,0 +1,32 @@
+{
+  "build": {
+    "commit": "26a058f1229bea86fed47f4c1689e6ba046fcf0b",
+    "environment": "production",
+    "dirty": false,
+    "release": "table-management-ui",
+    "built_at": "2026-11-07T11:59:21.514Z",
+    "parent_deployment": "2c1aee95-a4d1-4bc7-b7f0-854f71523b66"
+  },
+  "assets": [
+    {
+      "file": "orders.html",
+      "sha256": "85d59b0d902460c48eddfbabe5f2ffd22a0880236e8395803b06a8ecab17f423",
+      "match": true
+    },
+    {
+      "file": "css/orders.css",
+      "sha256": "340f2d8ccdd1d0f7e76e18fa32ec6cbab57096a9334f5425179d72347da41d7d",
+      "match": true
+    },
+    {
+      "file": "js/orders-settings.js",
+      "sha256": "5a73acbabc8d44a4afbc5516f498045812175a6b5be6ac42c9d2e4fd17fd568f",
+      "match": true
+    },
+    {
+      "file": "js/orders-i18n.js",
+      "sha256": "b2701d62d9173283f144be2a867c56044be18e7d7dc5535fc2e92a1a615a8d66",
+      "match": true
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "mode": "dev",
+    "repeatedSeed": true,
+    "foreignKeys": true,
+    "items": 39,
+    "groups": 2,
+    "links": 9
+  },
+  {
+    "mode": "test",
+    "repeatedSeed": true,
+    "foreignKeys": true,
+    "items": 39,
+    "groups": 2,
+    "links": 9
+  },
+  {
+    "mode": "production",
+    "repeatedSeed": true,
+    "foreignKeys": true,
+    "items": 39,
+    "groups": 2,
+    "links": 9
+  }
+]

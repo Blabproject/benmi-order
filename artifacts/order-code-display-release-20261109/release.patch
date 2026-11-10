@@ -1,0 +1,1479 @@
+diff --git a/benmi-worker-official/src/modules/line.ts b/benmi-worker-official/src/modules/line.ts
+index da23f464..dff8a33c 100644
+--- a/benmi-worker-official/src/modules/line.ts
++++ b/benmi-worker-official/src/modules/line.ts
+@@ -1,3 +1,4 @@
++import OrderCode from '../../../js/order-code.js';
+ import { handleOrderReceiptWebhook, handleOrderReceiptPageWebhook, prepareOrderReceipt, deliverOrderReceipt } from './line-order-receipts';
+ import { resolveOrderKey, findOrderForCustomer, isOrderId } from './order-identity';
+ import { Env } from '../types/env';
+@@ -490,7 +491,7 @@ export async function handleLineWebhook(
+         const res = orderKey ? await getOrderQueueAhead(env, tenantId, orderKey) : await getUserLatestActiveOrder(env, tenantId, userId);
+         if (res && res.order) {
+           const flex = buildProgressFlexMessage(res.order, res.queueAhead, tenantCtx);
+-          await replyLineFlexMessage(replyToken, `訂單進度 #${res.order.displayKey || res.order.key}`, flex, env, tenantCtx);
++          await replyLineFlexMessage(replyToken, `訂單進度 ${OrderCode.format(res.order.displayKey || res.order.key)}`, flex, env, tenantCtx);
+         } else {
+           await replyText(replyToken, "找不到您的相關訂單紀錄。", env, tenantCtx);
+         }
+@@ -547,7 +548,7 @@ export async function handleLineWebhook(
+             await env.DB.prepare(
+               "DELETE FROM pending_actions WHERE tenant_id = ? AND (order_key = ? OR user_id = ?)"
+             ).bind(tenantId, orderKey, userId).run();
+-            await replyText(replyToken, `✅ 訂單 #${displayKey} 已確認取消。期待下次能為您服務！`, env, tenantCtx);
++            await replyText(replyToken, `✅ 訂單 ${OrderCode.format(displayKey)} 已確認取消。期待下次能為您服務！`, env, tenantCtx);
+           } else if (action === "reject_disagree") {
+             await env.DB.prepare(
+               "UPDATE orders SET status = 'NEW', updated_at = strftime('%Y-%m-%d %H:%M:%f', 'now') WHERE tenant_id = ? AND key = ?"
+@@ -555,7 +556,7 @@ export async function handleLineWebhook(
+             await env.DB.prepare(
+               "DELETE FROM pending_actions WHERE tenant_id = ? AND (order_key = ? OR user_id = ?)"
+             ).bind(tenantId, orderKey, userId).run();
+-            await replyText(replyToken, `感謝您的回覆！店家將盡快與您聯繫或重新為您確認訂單 #${displayKey}。`, env, tenantCtx);
++            await replyText(replyToken, `感謝您的回覆！店家將盡快與您聯繫或重新為您確認訂單 ${OrderCode.format(displayKey)}。`, env, tenantCtx);
+           } else if (action === "change_agree") {
+             const pendingRow = await env.DB.prepare(
+               "SELECT * FROM pending_actions WHERE tenant_id = ? AND (order_key = ? OR user_id = ?) LIMIT 1"
+@@ -610,7 +611,7 @@ export async function handleLineWebhook(
+ 
+             const liffUrl = tenantCtx?.liffUrl || (await resolveSecret(env.LIFF_URL)) || "https://liff.line.me/";
+             const confirmedFlex = createTimeChangeConfirmedFlexBubble(orderKey, newTimeParam, liffUrl, brandName, displayKey);
+-            await replyLineFlexMessage(replyToken, `訂單 #${displayKey} 已確認修改！`, confirmedFlex, env, tenantCtx);
++            await replyLineFlexMessage(replyToken, `訂單 ${OrderCode.format(displayKey)} 已確認修改！`, confirmedFlex, env, tenantCtx);
+           } else if (action === "change_cancel") {
+             const orderRow = await env.DB.prepare(
+               "SELECT * FROM orders WHERE tenant_id = ? AND key = ? LIMIT 1"
+@@ -650,7 +651,7 @@ export async function handleLineWebhook(
+             await env.DB.prepare(
+               "DELETE FROM pending_actions WHERE tenant_id = ? AND (order_key = ? OR user_id = ?)"
+             ).bind(tenantId, orderKey, userId).run();
+-            await replyText(replyToken, `收到，已為您取消訂單 #${displayKey}，謝謝您！`, env, tenantCtx);
++            await replyText(replyToken, `收到，已為您取消訂單 ${OrderCode.format(displayKey)}，謝謝您！`, env, tenantCtx);
+           }
+           continue;
+         } catch (postbackErr) {
+@@ -698,7 +699,7 @@ export async function handleLineWebhook(
+       const res = orderKey ? await getOrderQueueAhead(env, tenantId, orderKey) : (match ? null : await getUserLatestActiveOrder(env, tenantId, userId));
+       if (res && res.order) {
+         const flex = buildProgressFlexMessage(res.order, res.queueAhead, tenantCtx);
+-        await replyLineFlexMessage(replyToken, `訂單進度 #${res.order.displayKey || res.order.key}`, flex, env, tenantCtx);
++        await replyLineFlexMessage(replyToken, `訂單進度 ${OrderCode.format(res.order.displayKey || res.order.key)}`, flex, env, tenantCtx);
+       } else {
+         await replyText(replyToken, "目前查無您的進行中訂單。", env, tenantCtx);
+       }
+@@ -784,7 +785,7 @@ export async function handleLineWebhook(
+             tenantCtx
+           );
+ 
+-          const altText = `現場加點 (第 ${order.roundCount} 輪) #${order.displayKey || order.key}`;
++          const altText = `現場加點 (第 ${order.roundCount} 輪) ${OrderCode.format(order.displayKey || order.key)}`;
+           if (flexBubble.type === 'receipt-pages' && tenantCtx) {
+             // Very large legacy append receipts also need stored, recipient-bound continuation pages.
+             const receipt = await prepareOrderReceipt(env, tenantId, order.key, userId, 'append', altText, flexBubble);
+@@ -857,7 +858,7 @@ export async function handleLineWebhook(
+ 
+           await replyLineFlexMessage(
+             replyToken,
+-            `[${brandName}] 訂單品項已成功更換 #${displayKey || orderKey}`,
++            `[${brandName}] 訂單品項已成功更換 ${OrderCode.format(displayKey || orderKey)}`,
+             confirmBubble,
+             env,
+             tenantCtx
+@@ -969,7 +970,7 @@ export async function handleLineWebhook(
+             const queueRes = await getOrderQueueAhead(env, tenantId, orderKey);
+             const queueAheadCount = queueRes ? queueRes.queueAhead : 0;
+             const flexBubble = buildProgressFlexMessage(existingOrderData, queueAheadCount, tenantCtx);
+-            await replyLineFlexMessage(replyToken, `訂單進度 #${displayKey}`, flexBubble, env, tenantCtx);
++            await replyLineFlexMessage(replyToken, `訂單進度 ${OrderCode.format(displayKey)}`, flexBubble, env, tenantCtx);
+           } catch (replyErr) {
+             console.error(`[${brandName}] Reply existing order progress error:`, replyErr);
+           }
+@@ -1048,7 +1049,7 @@ export async function handleLineWebhook(
+           const queueRes = await getOrderQueueAhead(env, tenantId, orderKey);
+           const queueAheadCount = queueRes ? queueRes.queueAhead : 0;
+           const flexBubble = buildProgressFlexMessage(orderData, queueAheadCount, tenantCtx);
+-          await replyLineFlexMessage(replyToken, `訂單進度 #${displayKey}`, flexBubble, env, tenantCtx);
++          await replyLineFlexMessage(replyToken, `訂單進度 ${OrderCode.format(displayKey)}`, flexBubble, env, tenantCtx);
+         } catch (replyErr) {
+           console.error(`[${brandName}] Reply progress flex confirmation error:`, replyErr);
+         }
+@@ -1182,7 +1183,7 @@ export async function handleLineWebhook(
+ 
+             if (isCancel) {
+               order.status = "REJECTED";
+-              await replyText(replyToken, `收到，已為您取消訂單 #${order.displayKey || order.key}，謝謝您！`, env, tenantCtx);
++              await replyText(replyToken, `收到，已為您取消訂單 ${OrderCode.format(order.displayKey || order.key)}，謝謝您！`, env, tenantCtx);
+               const cleanup = async () => { await saveOrder(env, order, tenantId); await finishPending(); await syncToGoogleSheets(order, env, tenantCtx); };
+               if (ctx && ctx.waitUntil) ctx.waitUntil(cleanup()); else await cleanup();
+             }
+@@ -1202,7 +1203,7 @@ export async function handleLineWebhook(
+ 
+               const liffUrl = tenantCtx?.liffUrl || (await resolveSecret(env.LIFF_URL)) || "https://liff.line.me/";
+               const confirmedFlex = createTimeChangeConfirmedFlexBubble(order.key, newSuggestedTime, liffUrl, brandName, order.displayKey);
+-              await replyLineFlexMessage(replyToken, `訂單 #${order.displayKey || order.key} 已確認修改！`, confirmedFlex, env, tenantCtx);
++              await replyLineFlexMessage(replyToken, `訂單 ${OrderCode.format(order.displayKey || order.key)} 已確認修改！`, confirmedFlex, env, tenantCtx);
+ 
+               const cleanup = async () => { await saveOrder(env, order, tenantId); await finishPending(); };
+               if (ctx && ctx.waitUntil) ctx.waitUntil(cleanup()); else await cleanup();
+@@ -1279,7 +1280,7 @@ export async function handleLineWebhook(
+ 
+             if (isCancel) {
+               order.status = "REJECTED";
+-              await replyText(replyToken, `好的，已為您取消訂單 #${order.displayKey || order.key}。`, env, tenantCtx);
++              await replyText(replyToken, `好的，已為您取消訂單 ${OrderCode.format(order.displayKey || order.key)}。`, env, tenantCtx);
+               const cleanup = async () => { await saveOrder(env, order, tenantId); await finishPending(); await syncToGoogleSheets(order, env, tenantCtx); };
+               if (ctx && ctx.waitUntil) ctx.waitUntil(cleanup()); else await cleanup();
+               continue;
+@@ -1310,7 +1311,7 @@ export async function handleLineWebhook(
+               const reason = order.reason || "（未提供原因）";
+               await replyText(
+                 replyToken,
+-                `非常抱歉！${brandName} 無法接下您的訂單 #${order.displayKey || order.key}。\n原因：${reason}\n感謝您訂購 ${brandName}，歡迎您下次再訂購。`,
++                `非常抱歉！${brandName} 無法接下您的訂單 ${OrderCode.format(order.displayKey || order.key)}。\n原因：${reason}\n感謝您訂購 ${brandName}，歡迎您下次再訂購。`,
+                 env,
+                 tenantCtx
+               );
+@@ -1323,7 +1324,7 @@ export async function handleLineWebhook(
+               order.status = "NEW";
+               await replyText(
+                 replyToken,
+-                `謝謝您的回覆！我已將訂單 #${order.displayKey || order.key} 回到「等待店家接單」狀態，店家會再為您確認。`,
++                `謝謝您的回覆！我已將訂單 ${OrderCode.format(order.displayKey || order.key)} 回到「等待店家接單」狀態，店家會再為您確認。`,
+                 env,
+                 tenantCtx
+               );
+diff --git a/benmi-worker-official/src/modules/line/templates/order-receipt.ts b/benmi-worker-official/src/modules/line/templates/order-receipt.ts
+index 506401ad..17507a8c 100644
+--- a/benmi-worker-official/src/modules/line/templates/order-receipt.ts
++++ b/benmi-worker-official/src/modules/line/templates/order-receipt.ts
+@@ -1,3 +1,4 @@
++import OrderCode from '../../../../../js/order-code.js';
+ import LegacyOrderAdapter from '../../../../../js/order-legacy-adapter.js';
+ import { DetailView } from '../../order-detail';
+ import { Order, OrderItemInput } from '../../../types/index';
+@@ -123,7 +124,7 @@ export function buildOrderFlexMessage(
+           layout: "horizontal",
+           contents: [
+             { type: "text", text: "訂單明細", size: "xs", weight: "bold", color: "#64748B", flex: 0 },
+-            { type: "text", text: `#${order.displayKey || order.key}`, size: "sm", weight: "bold", color: "#059669", align: "end", flex: 1 }
++            { type: "text", text: `${OrderCode.format(order.displayKey || order.key)}`, size: "sm", weight: "bold", color: "#059669", align: "end", flex: 1 }
+           ]
+         },
+         {
+@@ -314,7 +315,7 @@ export function buildProgressFlexMessage(order: Order, queueAheadCount: number,
+           layout: "horizontal",
+           contents: [
+             { type: "text", text: "訂單進度狀態", size: "xs", weight: "bold", color: "#64748B", flex: 0 },
+-            { type: "text", text: `#${order.displayKey || order.key}`, size: "sm", weight: "bold", color: "#0F172A", align: "end", flex: 1 }
++            { type: "text", text: `${OrderCode.format(order.displayKey || order.key)}`, size: "sm", weight: "bold", color: "#0F172A", align: "end", flex: 1 }
+           ]
+         },
+         {
+@@ -462,7 +463,7 @@ export function buildAppendConfirmationFlexMessage(
+           layout: "horizontal",
+           contents: [
+             { type: "text", text: `現場加點 (第 ${roundNumber} 輪)`, size: "xs", weight: "bold", color: "#7C3AED", flex: 0 },
+-            { type: "text", text: `#${order.displayKey || order.key}`, size: "sm", weight: "bold", color: "#0F172A", align: "end", flex: 1 }
++            { type: "text", text: `${OrderCode.format(order.displayKey || order.key)}`, size: "sm", weight: "bold", color: "#0F172A", align: "end", flex: 1 }
+           ]
+         },
+         {
+diff --git a/benmi-worker-official/src/modules/line/templates/order-sold-out.ts b/benmi-worker-official/src/modules/line/templates/order-sold-out.ts
+index 6fcc433b..78ba493f 100644
+--- a/benmi-worker-official/src/modules/line/templates/order-sold-out.ts
++++ b/benmi-worker-official/src/modules/line/templates/order-sold-out.ts
+@@ -1,3 +1,4 @@
++import OrderCode from '../../../../../js/order-code.js';
+ import LineOrderPresentation from '../../../../../js/line-order-presentation.js';
+ import type { OrderItemInput } from '../../../types/index';
+ import { renderReceiptItem } from './order-receipt';
+@@ -43,7 +44,7 @@ export function createSoldOutItemFlexBubble(
+             },
+             {
+               type: "text",
+-              text: `#${displayKey}`,
++              text: `${OrderCode.format(displayKey)}`,
+               size: "sm",
+               weight: "bold",
+               color: "#0F172A",
+@@ -151,7 +152,7 @@ export function createOrderModifiedConfirmationFlexBubble(
+             },
+             {
+               type: "text",
+-              text: `#${displayKey}`,
++              text: `${OrderCode.format(displayKey)}`,
+               size: "sm",
+               weight: "bold",
+               color: "#0F172A",
+@@ -162,7 +163,7 @@ export function createOrderModifiedConfirmationFlexBubble(
+         },
+         {
+           type: "text",
+-          text: `訂單 #${displayKey} 已成功更換品項！`,
++          text: `訂單 ${OrderCode.format(displayKey)} 已成功更換品項！`,
+           weight: "bold",
+           size: "lg",
+           color: "#0F172A",
+diff --git a/benmi-worker-official/src/modules/line/templates/order-status.ts b/benmi-worker-official/src/modules/line/templates/order-status.ts
+index e166cd77..4c384dba 100644
+--- a/benmi-worker-official/src/modules/line/templates/order-status.ts
++++ b/benmi-worker-official/src/modules/line/templates/order-status.ts
+@@ -1,3 +1,4 @@
++import OrderCode from '../../../../../js/order-code.js';
+ export function createRejectFlexBubble(
+   orderKey: string,
+   reason: string,
+@@ -20,7 +21,7 @@ export function createRejectFlexBubble(
+           contents: [
+             {
+               type: "text",
+-              text: `訂單 #${displayKey}`,
++              text: `訂單 ${OrderCode.format(displayKey)}`,
+               size: "sm",
+               weight: "bold",
+               color: "#DC2626"
+@@ -108,7 +109,7 @@ export function createTimeChangeFlexBubble(
+           contents: [
+             {
+               type: "text",
+-              text: `訂單 #${displayKey}`,
++              text: `訂單 ${OrderCode.format(displayKey)}`,
+               size: "sm",
+               weight: "bold",
+               color: "#64748B"
+@@ -205,7 +206,7 @@ export function createTimeChangeConfirmedFlexBubble(
+             },
+             {
+               type: "text",
+-              text: `#${displayKey}`,
++              text: `${OrderCode.format(displayKey)}`,
+               size: "sm",
+               weight: "bold",
+               color: "#0F172A",
+@@ -215,7 +216,7 @@ export function createTimeChangeConfirmedFlexBubble(
+         },
+         {
+           type: "text",
+-          text: `訂單 #${displayKey} 已確認修改！`,
++          text: `訂單 ${OrderCode.format(displayKey)} 已確認修改！`,
+           weight: "bold",
+           size: "lg",
+           color: "#0F172A",
+diff --git a/benmi-worker-official/src/modules/order-detail-write.ts b/benmi-worker-official/src/modules/order-detail-write.ts
+index 60991f87..498e9190 100644
+--- a/benmi-worker-official/src/modules/order-detail-write.ts
++++ b/benmi-worker-official/src/modules/order-detail-write.ts
+@@ -1,3 +1,4 @@
++import OrderCode from '../../../js/order-code.js';
+ import type { Env } from '../types/env';
+ import type { Order, DiningOption } from '../types';
+ import type { OrderDetailSnapshot } from '../types/order-detail';
+@@ -97,7 +98,7 @@ export async function writeDetailedOrder(env: Env, tenant: string, input: any, k
+     const receiptOrder = kind === 'append' ? { ...order, total: round.total,
+       detailSnapshot: { schemaVersion: 1 as const, rounds: [round], total: round.total } } : order;
+     const receipt = await prepareOrderReceipt(env, tenant, key, order.userId, kind,
+-      `[${tenantCtx?.brandName || tenant}] #${displayKey}`, buildOrderFlexMessage(receiptOrder, tenantCtx));
++      `[${tenantCtx?.brandName || tenant}] ${OrderCode.format(displayKey)}`, buildOrderFlexMessage(receiptOrder, tenantCtx));
+     const statements: D1PreparedStatement[] = [];
+     let tableId: string | null = null;
+     if (order.tableNumber && env.DB) {
+diff --git a/benmi-worker-official/src/modules/orders.ts b/benmi-worker-official/src/modules/orders.ts
+index bfa1aa5a..799319cb 100644
+--- a/benmi-worker-official/src/modules/orders.ts
++++ b/benmi-worker-official/src/modules/orders.ts
+@@ -1,3 +1,4 @@
++import OrderCode from '../../../js/order-code.js';
+ import { attachPayments } from './payments';
+ import { verifyStaffSession } from './staff';
+ import { writeDetailedOrder } from './order-detail-write';
+@@ -615,7 +616,7 @@ export async function createOrder(
+   for (let attempt = 0; attempt < 2; attempt++) {
+     try {
+       receipt = await prepareOrderReceipt(env, tenantId, order.key, order.userId, 'create',
+-        `[${tenantCtx?.brandName || "Benmi"}] 訂單明細 #${order.displayKey || order.key}`,
++        `[${tenantCtx?.brandName || "Benmi"}] 訂單明細 ${OrderCode.format(order.displayKey || order.key)}`,
+         buildOrderFlexMessage(order, tenantCtx, rawItems, data.customizations));
+       if (rawItems.length > 0 && env.DB) {
+         let tableId: string | null = null;
+@@ -1167,7 +1168,7 @@ export async function updateOrder(
+         notifyText = `不好意思 ${joinedItems}我們現在賣完了，請問可以幫您換別的嗎？`;
+       } else {
+         notifyText =
+-          `${brandName} 已收到您的訂單 #${order.displayKey || order.key}，需要做小幅調整。\n` +
++          `${brandName} 已收到您的訂單 ${OrderCode.format(order.displayKey || order.key)}，需要做小幅調整。\n` +
+           `原因：${reason}\n` +
+           (note ? `備註：${note}\n` : "") +
+           `\n請回覆您想更換的品項，或回覆「取消 / 不要了」以取消訂單。`;
+@@ -1186,7 +1187,7 @@ export async function updateOrder(
+ 
+       if (reason === "時間需調整") {
+         const timeFlex = createTimeChangeFlexBubble(order.key, note, brandName, order.displayKey);
+-        const flexSent = await pushLineFlexMessage(order.userId, `[${brandName}] 調整取餐時間確認 #${order.displayKey || order.key}`, timeFlex, env, tenantCtx);
++        const flexSent = await pushLineFlexMessage(order.userId, `[${brandName}] 調整取餐時間確認 ${OrderCode.format(order.displayKey || order.key)}`, timeFlex, env, tenantCtx);
+         if (!flexSent) {
+           await pushLineMessage(order.userId, notifyText, env, tenantCtx);
+         }
+@@ -1196,7 +1197,7 @@ export async function updateOrder(
+         const fallbackSoldItems = (order.reason || "").replace("賣完了：", "").split(/[,、]/).map((s: string) => s.trim()).filter(Boolean);
+         const soldOutList = rawSoldItems.length > 0 ? rawSoldItems : fallbackSoldItems;
+         const soldOutFlex = createSoldOutItemFlexBubble(order.key, soldOutList.length > 0 ? soldOutList : (note || "部分品項"), brandName, order.displayKey, liffUrl, tenantId);
+-        const flexSent = await pushLineFlexMessage(order.userId, `[${brandName}] 品項售完通知 #${order.displayKey || order.key}`, soldOutFlex, env, tenantCtx);
++        const flexSent = await pushLineFlexMessage(order.userId, `[${brandName}] 品項售完通知 ${OrderCode.format(order.displayKey || order.key)}`, soldOutFlex, env, tenantCtx);
+         if (!flexSent) {
+           await pushLineMessage(order.userId, notifyText, env, tenantCtx);
+         }
+@@ -1223,7 +1224,7 @@ export async function updateOrder(
+     if (order.userId) {
+       const reason = order.reason || "商品已售完 / 目前無法接單";
+       const notifyText =
+-        `非常抱歉！${brandName} 目前無法接下您的訂單 #${order.displayKey || order.key}。\n` +
++        `非常抱歉！${brandName} 目前無法接下您的訂單 ${OrderCode.format(order.displayKey || order.key)}。\n` +
+         `原因：${reason}\n` +
+         `\n請回覆「同意」以取消訂單，或回覆「不同意」以重新確認。`;
+ 
+@@ -1239,7 +1240,7 @@ export async function updateOrder(
+       ).bind(tenantId, order.userId, order.key, "REJECT", notifyText, reason, order.note || "").run();
+ 
+       const rejectFlex = createRejectFlexBubble(order.key, reason, brandName, undefined, order.displayKey);
+-      const flexSent = await pushLineFlexMessage(order.userId, `[${brandName}] 無法接單通知 #${order.displayKey || order.key}`, rejectFlex, env, tenantCtx);
++      const flexSent = await pushLineFlexMessage(order.userId, `[${brandName}] 無法接單通知 ${OrderCode.format(order.displayKey || order.key)}`, rejectFlex, env, tenantCtx);
+       if (!flexSent) {
+         await pushLineMessage(order.userId, notifyText, env, tenantCtx);
+       }
+@@ -1259,7 +1260,7 @@ export async function updateOrder(
+           "DELETE FROM pending_actions WHERE tenant_id = ? AND user_id = ? AND order_key = ?"
+         ).bind(tenantId, order.userId, order.key).run();
+       } catch { }
+-      await pushLineMessage(order.userId, `${brandName}：由於未收到您的回覆，訂單 #${order.displayKey || order.key} 已自動取消。期待下次為您服務！`, env, tenantCtx);
++      await pushLineMessage(order.userId, `${brandName}：由於未收到您的回覆，訂單 ${OrderCode.format(order.displayKey || order.key)} 已自動取消。期待下次為您服務！`, env, tenantCtx);
+     }
+ 
+     if (ctx && ctx.waitUntil) ctx.waitUntil(syncToGoogleSheets(order, env, tenantCtx));
+@@ -1933,7 +1934,7 @@ export async function modifyOrder(
+     const customerNote = payload.note ? String(payload.note).trim() : (orderRow.note || "");
+ 
+     const receipt = await prepareOrderReceipt(env, tenantId, resolvedKey, orderRow.user_id, 'modify',
+-      `[${tenantCtx?.brandName || "Benmi"}] 訂單品項已成功更換 #${orderRow.display_key || resolvedKey}`,
++      `[${tenantCtx?.brandName || "Benmi"}] 訂單品項已成功更換 ${OrderCode.format(orderRow.display_key || resolvedKey)}`,
+       createOrderModifiedConfirmationFlexBubble(resolvedKey, newTotal, deltaAmount, tenantCtx?.brandName || "Benmi", orderRow.display_key, rawItems));
+ 
+     // 4. Atomic D1 Batch: Update orders, delete old order_items & insert new ones, delete pending_actions
+diff --git a/benmi-worker-official/src/modules/payments.ts b/benmi-worker-official/src/modules/payments.ts
+index 7ccd5d26..195b354c 100644
+--- a/benmi-worker-official/src/modules/payments.ts
++++ b/benmi-worker-official/src/modules/payments.ts
+@@ -1,3 +1,4 @@
++import OrderCode from '../../../js/order-code.js';
+ import type { Env } from '../types/env';
+ import type { Order } from '../types';
+ import type { TenantContext } from '../types/tenant';
+@@ -77,7 +78,7 @@ async function publish(env:Env,p:Payment,transaction:string) {
+  const order:Order={key:row.key,orderId:row.order_id,displayKey:row.display_key,customer:row.customer_name,time:row.pickup_time,
+  status:'NEW',createdAt:Date.now(),userId:row.user_id,payment:{id:p.id,method:'line_pay',status:'PAID',amount:p.amount,currency:p.currency,paidAt:Date.now(),refundedAmount:0},total:p.amount,content:row.order_content,diningOption:'takeaway',detailSnapshot:detail.snapshot};
+  const receipt=await prepareOrderReceipt(env,p.tenant_id,p.order_key,order.userId,'create',
+-  `[${ctx?.brandName||p.tenant_id}] #${row.display_key} LINE Pay`,buildOrderFlexMessage(order,ctx));
++  `[${ctx?.brandName||p.tenant_id}] ${OrderCode.format(row.display_key)} LINE Pay`,buildOrderFlexMessage(order,ctx));
+  // Only the current lease owner can commit a publication. Guard aborts entire batch.
+  const statements=[env.DB.prepare("INSERT INTO payment_events(payment_id,event,result_code,created_at) VALUES(?,'publish',?,?)").bind(p.id,p.lease_token,Date.now()),env.DB.prepare(`UPDATE payments SET status='PAID',transaction_id=?,paid_at=COALESCE(paid_at,?),updated_at=?,result_code='0000'
+   WHERE id=? AND lease_token=? AND paid_at IS NULL`).bind(transaction,Date.now(),Date.now(),p.id,p.lease_token),
+diff --git a/index.html b/index.html
+index 31d28c1a..42da7ae2 100644
+--- a/index.html
++++ b/index.html
+@@ -395,7 +395,7 @@
+                 </div>
+                 <div id="append-mode-desc"
+                     style="font-size: 13px; color: #ede9fe; margin-top: 2px; font-weight: 600; line-height: 1.4;">正在為
+-                    <strong id="append-mode-table">-</strong> (<span id="append-mode-key">#-</span>) 加點</div>
++                    <strong id="append-mode-table">-</strong> (<span id="append-mode-key">-</span>) 加點</div>
+             </div>
+             <button type="button" onclick="cancelAppendMode()"
+                 style="background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.45); color: #fff; padding: 5px 10px; border-radius: 8px; font-size: 12.5px; font-weight: 800; cursor: pointer; white-space: nowrap; transition: all 0.15s ease;">
+@@ -437,7 +437,7 @@
+                     已移除售完餐點</div>
+                 <div id="edit-order-mode-desc"
+                     style="font-size: 13px; color: #fef3c7; margin-top: 2px; font-weight: 600; line-height: 1.4;">
+-                    訂單 <strong id="edit-order-mode-key">#-</strong> 部分品項售完，請直接調整購物車更換餐點
++                    訂單 <strong id="edit-order-mode-key">-</strong> 部分品項售完，請直接調整購物車更換餐點
+                 </div>
+             </div>
+         </div>
+@@ -972,6 +972,8 @@
+     </div>
+ 
+     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
++
++  <script src="/js/order-code.js?v=20261109_order_code_v1"></script>
+     <script src="/js/client-pricing-wasm.js?v=20261108_wasm_portion_pricing_v1"></script>
+     <script src="/js/client-core.js?v=20261109_overnight_liff_v1"></script>
+     <script src="/js/client-menu.js?v=20261109_item_images_v1"></script>
+@@ -1006,8 +1008,8 @@
+   <script src="/js/order-detail-view.js?v=20261017_order_detail_v1"></script>
+   <script src="/js/order-detail-checkout.js?v=20261017_order_detail_v1"></script>
+   <script src="/js/line-order-presentation.js?v=20261030_line_portions_v3"></script>
+-    <script src="/js/client-checkout.js?v=20261108_auto_reopen_status_v1"></script>
+-    <script src="/js/staff-order.js?v=20261108_staff_counter_v8"></script>
++    <script src="/js/client-checkout.js?v=20261109_order_code_v2"></script>
++    <script src="/js/staff-order.js?v=20261109_order_code_v1"></script>
+     <script>
+         if (window.__TENANT_RESOLUTION_FAILED) {
+             document.getElementById('page-body-content').style.display = 'none';
+@@ -1019,8 +1021,8 @@
+     </script>
+   <script src="/js/payment-session.js?v=20261103_linepay_mobile_redirect_v1"></script>
+   <script src="/js/payment-view.js?v=20261101_payment_result_v1"></script>
+-  <script src="/js/payment-actions.js?v=20261101_payment_cancel_v1"></script>
+-  <script src="/js/client-payments.js?v=20261107_table_qr_v1"></script>
++  <script src="/js/payment-actions.js?v=20261109_order_code_v1"></script>
++  <script src="/js/client-payments.js?v=20261109_order_code_v1"></script>
+ </body>
+ 
+ </html>
+diff --git a/js/client-checkout.js b/js/client-checkout.js
+index 6477754e..4fae5a08 100644
+--- a/js/client-checkout.js
++++ b/js/client-checkout.js
+@@ -238,7 +238,7 @@ function initAppendModeIfPresent() {
+             const tableEl = document.getElementById('append-mode-table');
+             if (tableEl) tableEl.innerText = paramTableNumber ? `桌號 ${paramTableNumber}` : '現場內用';
+             const keyEl = document.getElementById('append-mode-key');
+-            if (keyEl) keyEl.innerText = `#${window.parentOrderDisplayKey}`;
++            if (keyEl) keyEl.innerText = OrderCode.format(window.parentOrderDisplayKey);
+         }
+ 
+         // Lock Dining Option to Dine-In
+@@ -330,7 +330,7 @@ async function initTableQrModeIfPresent() {
+                     const tableEl = document.getElementById('append-mode-table');
+                     if (tableEl) tableEl.innerText = `桌號 ${paramTable}`;
+                     const keyEl = document.getElementById('append-mode-key');
+-                    if (keyEl) keyEl.innerText = `#${window.parentOrderDisplayKey}`;
++                    if (keyEl) keyEl.innerText = OrderCode.format(window.parentOrderDisplayKey);
+                 }
+                 const tableBanner = document.getElementById('table-order-banner');
+                 if (tableBanner) tableBanner.style.display = 'none';
+@@ -545,7 +545,7 @@ async function initEditOrderModeIfPresent() {
+             if (bannerEl) {
+                 bannerEl.style.display = 'flex';
+                 const keyEl = document.getElementById('edit-order-mode-key');
+-                if (keyEl) keyEl.innerText = `#${window.editOrderDisplayKey}`;
++                if (keyEl) keyEl.innerText = OrderCode.format(window.editOrderDisplayKey);
+             }
+ 
+             // 2. Hide dining option switchers & table input (order details are fixed)
+@@ -1938,9 +1938,15 @@ function resolveOptionDisplayName(val) {
+ }
+ 
+ // 8.1 Định dạng nội dung tin nhắn đơn hàng
+-function formatOrderTextMessage(orderNum, dateInput, timeInput, currentTotal, mainNote, canonical = false) {
++function formatOrderTextMessage(orderNum, dateInput, timeInput, currentTotal, mainNote, canonical = false, displayKey = orderNum) {
+     const zhNumbers = ['第一份', '第二份', '第三份', '第四份', '第五份', '第六份', '第七份', '第八份', '第九份', '第十份'];
++    // Legacy LINE readers use 訂單編號 as the lookup key. Keep it exact;
++    // the separate receipt label is presentation-only, including UUID-key orders.
+     let msg = `訂單編號：${orderNum}\n\n`;
++    if (!canonical) {
++        const displayCode = OrderCode.format(displayKey);
++        if (displayCode && displayCode !== orderNum) msg = `取餐號碼：${displayCode}\n` + msg;
++    }
+ 
+     const globalFlavor = formatGlobalCustomizationsText();
+     if (globalFlavor) {
+@@ -3084,7 +3090,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
+ 
+             const tablePart = currentTable ? `\n桌號：${currentTable}` : '';
+             const notePart = mainNote ? `\n📝 備註：${mainNote}` : '';
+-            const appendChatMsg = `[加點 #${window.parentOrderDisplayKey || ""}]\n訂單參考：${window.parentOrderKey}${tablePart}\n現場加點品項：\n${displayItemsText}${notePart}\n\n💰 加點金額：+$${currentTotal}`;
++            const appendChatMsg = `[加點 ${OrderCode.format(window.parentOrderDisplayKey || "")}]\n訂單參考：${window.parentOrderKey}${tablePart}\n現場加點品項：\n${displayItemsText}${notePart}\n\n💰 加點金額：+$${currentTotal}`;
+ 
+             cart = {};
+             window.cart = cart;
+@@ -3213,7 +3219,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
+ 
+             const rawItemsText = typeof formatAppendItemsOnlyText === 'function' ? formatAppendItemsOnlyText() : '';
+             const notePart = mainNote ? `\n📝 備註：${mainNote}` : '';
+-            const editChatMsg = `[更換品項 #${window.editOrderDisplayKey || window.editOrderKey || ""}]\n訂單參考：${window.editOrderKey || ""}\n\n📦 更新後餐點內容：\n${rawItemsText}${notePart}\n\n💰 更新後金額：$${currentTotal}`;
++            const editChatMsg = `[更換品項 ${OrderCode.format(window.editOrderDisplayKey || window.editOrderKey || "")}]\n訂單參考：${window.editOrderKey || ""}\n\n📦 更新後餐點內容：\n${rawItemsText}${notePart}\n\n💰 更新後金額：$${currentTotal}`;
+ 
+             cart = {};
+             window.cart = cart;
+@@ -3357,10 +3363,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
+         const resData = await res.json().catch(() => ({}));
+         if (resData && resData.key) {
+             orderNum = resData.displayKey || resData.key;
+-            // Older LINE Workers read 訂單編號 as a lookup key. Keep that reference
+-            // stable during rolling deployment; show the receipt separately on collision.
+-            msg = formatOrderTextMessage(resData.key, dateInput, timeInput, currentTotal, mainNote);
+-            if (orderNum !== resData.key) msg = `取餐號碼：${orderNum}\n` + msg;
++            msg = formatOrderTextMessage(resData.key, dateInput, timeInput, currentTotal, mainNote, false, orderNum);
+             msg += `\n訂單參考：${resData.key}`;
+         }
+ 
+@@ -3491,7 +3494,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
+                 if (window.isEditOrderMode && window.editOrderKey) {
+                     const rawItemsText = typeof formatAppendItemsOnlyText === 'function' ? formatAppendItemsOnlyText(true) : '';
+                     const notePart = mainNote ? `\n📝 備註：${mainNote}` : '';
+-                    const editChatMsg = `[更換品項 #${window.editOrderDisplayKey || window.editOrderKey || ""}]\n訂單參考：${window.editOrderKey || ""}\n\n📦 更新後餐點內容：\n${rawItemsText}${notePart}\n\n💰 更新後金額：$${currentTotal}`;
++                    const editChatMsg = `[更換品項 ${OrderCode.format(window.editOrderDisplayKey || window.editOrderKey || "")}]\n訂單參考：${window.editOrderKey || ""}\n\n📦 更新後餐點內容：\n${rawItemsText}${notePart}\n\n💰 更新後金額：$${currentTotal}`;
+                     await sendLiffMessagesWithRetry([{ type: 'text', text: editChatMsg }], {
+                         tenantId, orderKey: window.editOrderKey, flow: 'modify_fallback'
+                     });
+@@ -3501,7 +3504,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
+                     const currentTable = (tableInput && tableInput.value.trim()) || window.appendTableNumber || window.currentTableNumber || '';
+                     const tablePart = currentTable ? `\n桌號：${currentTable}` : '';
+                     const notePart = mainNote ? `\n📝 備註：${mainNote}` : '';
+-                    const appendChatMsg = `[加點 #${window.parentOrderDisplayKey || ""}]\n訂單參考：${window.parentOrderKey}${tablePart}\n現場加點品項：\n${rawItemsText}${notePart}\n\n💰 加點金額：+$${currentTotal}`;
++                    const appendChatMsg = `[加點 ${OrderCode.format(window.parentOrderDisplayKey || "")}]\n訂單參考：${window.parentOrderKey}${tablePart}\n現場加點品項：\n${rawItemsText}${notePart}\n\n💰 加點金額：+$${currentTotal}`;
+                     await sendLiffMessagesWithRetry([{ type: 'text', text: appendChatMsg }], {
+                         tenantId, orderKey: window.parentOrderKey, flow: 'append_fallback'
+                     });
+@@ -3509,7 +3512,8 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
+                     const isDineIn = (window.currentDiningOption === 'dine_in');
+                     const diningOption = isDineIn ? 'dine_in' : 'takeaway';
+                     const orderNum = generateOrderNumber(diningOption);
+-                    const msg = formatOrderTextMessage(orderNum, dateInput, timeInput, currentTotal, mainNote, true);
++                    const msg = `取餐號碼：${OrderCode.format(orderNum)}\n` +
++                        formatOrderTextMessage(orderNum, dateInput, timeInput, currentTotal, mainNote, true) + `\n訂單參考：${orderNum}`;
+                     await sendLiffMessagesWithRetry([{ type: 'text', text: msg }], {
+                         tenantId, orderKey: orderNum, flow: 'create_fallback'
+                     });
+diff --git a/js/client-payments.js b/js/client-payments.js
+index 5e5ef50f..af59d547 100644
+--- a/js/client-payments.js
++++ b/js/client-payments.js
+@@ -61,7 +61,7 @@ window.LinePayCheckout = (function () {
+     const session=S.active();if(!session)return;
+     removeBanner();const panel=PaymentView.element('section','payment-panel');panel.id='payment-result';panel.setAttribute('aria-live','polite');
+     panel.append(PaymentView.element('p','',PaymentActions.message(latest)));
+-    if(latest?.displayKey)panel.append(PaymentView.element('p','payment-pending-meta','#'+latest.displayKey+' · TWD '+latest.amount));
++    if(latest?.displayKey)panel.append(PaymentView.element('p','payment-pending-meta',OrderCode.format(latest.displayKey)+' · TWD '+latest.amount));
+     panel.append(PaymentActions.button(text('繼續舊訂單','Tiếp tục đơn cũ'),()=>resume()));
+     if(!latest?.cancelRequestedAt)panel.append(PaymentActions.button(text('取消舊付款流程','Hủy phiên cũ'),()=>cancelCurrent()));
+     else panel.append(PaymentActions.button(text('重新查詢','Kiểm tra lại'),()=>inspect()));
+diff --git a/js/orders-core.js b/js/orders-core.js
+index c147dd1f..fed44e52 100644
+--- a/js/orders-core.js
++++ b/js/orders-core.js
+@@ -1069,9 +1069,9 @@ if (typeof window !== "undefined" && !window.__staffOrderMessageListenerBound) {
+         const isTakeaway = data.diningOption === "takeaway";
+         const toastKey = isTakeaway ? "staffTakeawayOrderSubmittedToast" : "staffOrderSubmittedToast";
+         const fallback = isTakeaway
+-          ? `Đơn mang đi đã gửi thành công! #${data.displayKey || ""}`
+-          : `Bàn đã gửi đơn thành công! #${data.displayKey || ""}`;
+-        const msg = (typeof t === "function" && t(toastKey, { key: data.displayKey || "" })) || fallback;
++          ? `Đơn mang đi đã gửi thành công! ${OrderCode.format(data.displayKey || "")}`
++          : `Bàn đã gửi đơn thành công! ${OrderCode.format(data.displayKey || "")}`;
++        const msg = (typeof t === "function" && t(toastKey, { key: OrderCode.format(data.displayKey || "") })) || fallback;
+         showToast(msg, "success");
+       }
+     }
+diff --git a/js/orders-history.js b/js/orders-history.js
+index 4dee2559..78669636 100644
+--- a/js/orders-history.js
++++ b/js/orders-history.js
+@@ -28,6 +28,8 @@ function matchesHistorySearch(order, query) {
+   const qNoHash = q.replace(/^#/, "");
+ 
+   // 1. Order Key / Number (e.g. B0906-T005, T005, #005, 005)
++  const displayCode = OrderCode.format(order.displayKey || order.key).toLowerCase();
++  if (displayCode.includes(qNoHash)) return true;
+   const key = String(order.key || "").toLowerCase();
+   const keyClean = key.replace(/^#/, "");
+   if (key.includes(q) || keyClean.includes(qNoHash) || key.includes(qNoHash)) return true;
+@@ -388,7 +390,7 @@ function renderHistory(orders) {
+         <div class="history-tile-info">
+           <div class="history-tile-top">
+             <span class="history-tile-customer" title="${escapeHtml(order.customer || t('defaultCustomer'))}">${escapeHtml(order.customer || t('defaultCustomer'))}</span>
+-            <span class="history-tile-key">#${escapeHtml(order.displayKey || order.key)}</span>
++            <span class="history-tile-key">${escapeHtml(OrderCode.format(order.displayKey || order.key))}</span>
+             ${diningBadge}
+             ${appendBadge}
+             ${window.PaymentPOS ? PaymentPOS.badge(order) : ''}
+diff --git a/js/orders-i18n.js b/js/orders-i18n.js
+index 867635b1..b61e7059 100644
+--- a/js/orders-i18n.js
++++ b/js/orders-i18n.js
+@@ -958,7 +958,7 @@ const I18N = {
+     roundBlockTitle: "第 {n} 輪餐點",
+     roundBlockLatest: "最新加點",
+     roundBlockInitial: "第 1 輪 (最初點餐)",
+-    alertNewAppended: "🔔 桌號 {table} (單號 #{key}) 有新加點餐點！",
++    alertNewAppended: "🔔 桌號 {table} (單號 {key}) 有新加點餐點！",
+     // Store Pairing & Activation (Universal Multi-Tenant POS)
+     tocStorePairing: "門市終端綁定",
+     settingPairingTitle: "門市終端與設備綁定",
+@@ -1154,8 +1154,8 @@ const I18N = {
+     staffStatusConflict: "訂單已更新，請確認最新內容後再操作。",
+     staffFeatureClosed: "桌邊點餐尚未啟用",
+     staffFeatureClosedHelp: "此門市尚未開放桌邊點餐權限。",
+-    staffOrderSubmittedToast: "桌號已送出點餐！#{key}",
+-    staffTakeawayOrderSubmittedToast: "外帶訂單已送出成功！#{key}",
++    staffOrderSubmittedToast: "桌號已送出點餐！{key}",
++    staffTakeawayOrderSubmittedToast: "外帶訂單已送出成功！{key}",
+     staffContact: "聯絡支援",
+     tableDisable: "停用",
+     tableEnable: "啟用",
+@@ -2170,7 +2170,7 @@ const I18N = {
+     roundBlockTitle: "Đợt {n}",
+     roundBlockLatest: "Mới gọi thêm",
+     roundBlockInitial: "Đợt 1 (Đơn ban đầu)",
+-    alertNewAppended: "🔔 Bàn {table} (Đơn #{key}) vừa gọi thêm món mới!",
++    alertNewAppended: "🔔 Bàn {table} (Đơn {key}) vừa gọi thêm món mới!",
+     // Store Pairing & Activation (Universal Multi-Tenant POS)
+     tocStorePairing: "Điểm bán & Thiết bị",
+     settingPairingTitle: "Điểm Bán & Thiết Bị POS",
+@@ -2366,8 +2366,8 @@ const I18N = {
+     staffStatusConflict: "Đơn đã thay đổi. Vui lòng kiểm tra lại trước khi thao tác.",
+     staffFeatureClosed: "Chưa bật nhận đơn tại bàn",
+     staffFeatureClosedHelp: "Cửa hàng chưa được bật quyền nhận đơn tại bàn.",
+-    staffOrderSubmittedToast: "Bàn đã gửi đơn thành công! #{key}",
+-    staffTakeawayOrderSubmittedToast: "Đơn mang đi đã gửi thành công! #{key}",
++    staffOrderSubmittedToast: "Bàn đã gửi đơn thành công! {key}",
++    staffTakeawayOrderSubmittedToast: "Đơn mang đi đã gửi thành công! {key}",
+     staffContact: "Liên hệ hỗ trợ",
+     tableDisable: "Ngừng dùng",
+     tableEnable: "Kích hoạt",
+diff --git a/js/orders-live.js b/js/orders-live.js
+index 9f68393f..0dffd02f 100644
+--- a/js/orders-live.js
++++ b/js/orders-live.js
+@@ -542,7 +542,7 @@ function renderListLeft(orders) {
+       <div class="tile-info">
+         <div class="tile-top">
+           <span class="tile-customer" title="${escapeHtml(order.customer || t('defaultCustomer'))}">${escapeHtml(order.customer || t('defaultCustomer'))}</span>
+-          <span class="tile-order-key">#${escapeHtml(order.displayKey || order.key)}</span>
++          <span class="tile-order-key">${escapeHtml(OrderCode.format(order.displayKey || order.key))}</span>
+           ${newBadge}
+           ${window.PaymentPOS ? PaymentPOS.badge(order) : ''}
+           ${modifiedBadge}
+@@ -626,7 +626,7 @@ function renderListRight(orders) {
+       <div class="tile-info">
+         <div class="tile-top">
+           <span class="tile-customer" title="${escapeHtml(order.customer || t('defaultCustomer'))}">${escapeHtml(order.customer || t('defaultCustomer'))}</span>
+-          <span class="tile-order-key">#${escapeHtml(order.displayKey || order.key)}</span>
++          <span class="tile-order-key">${escapeHtml(OrderCode.format(order.displayKey || order.key))}</span>
+           ${window.PaymentPOS ? PaymentPOS.badge(order) : ''}
+           ${modifiedBadge}
+           ${diningBadge}
+diff --git a/js/orders-modals.js b/js/orders-modals.js
+index d4da8537..af8e8cb7 100644
+--- a/js/orders-modals.js
++++ b/js/orders-modals.js
+@@ -167,7 +167,7 @@ function openReview(orderKey) {
+ 
+   const elKeyBadge = document.getElementById("review-order-key-badge");
+   if (elKeyBadge) {
+-    elKeyBadge.innerText = (order.displayKey || order.key || "-").replace(/^#/, "");
++    elKeyBadge.innerText = OrderCode.format(order.displayKey || order.key || "-");
+   }
+ 
+   const elCustAvatar = document.getElementById("review-customer-avatar");
+@@ -176,7 +176,7 @@ function openReview(orderKey) {
+   }
+ 
+   const elKey = document.getElementById("review-order-key");
+-  if (elKey) elKey.innerText = order.displayKey || order.key || "-";
++  if (elKey) elKey.innerText = OrderCode.format(order.displayKey || order.key || "-");
+   const elCust = document.getElementById("review-customer");
+   if (elCust) {
+     elCust.innerText = order.customer ? order.customer.trim() : "-";
+diff --git a/js/orders-payments.js b/js/orders-payments.js
+index cd7c0c5e..5cbd5515 100644
+--- a/js/orders-payments.js
++++ b/js/orders-payments.js
+@@ -140,12 +140,12 @@ window.PaymentPOS = (function () {
+   async function refundPayment(order,after) {
+     if(!await token())return;
+     const scope=contextKey(),operationId=crypto.randomUUID();
+-    const orderKey=order.displayKey||order.key;
++    const orderKey=OrderCode.format(order.displayKey||order.key);
+     const summary={
+-      key:'#'+orderKey+' · LINE Pay',
++      key:orderKey+' · LINE Pay',
+       amount:'TWD '+order.payment.amount
+     };
+-    await dialog(t('paymentRefund')+' #'+orderKey+' · TWD '+order.payment.amount,
++    await dialog(t('paymentRefund')+' '+orderKey+' · TWD '+order.payment.amount,
+       [{key:'reason',label:t('paymentReason'),type:'textarea'}],async values=>{
+         if(scope!==contextKey())throw cancelledAuth();
+         const payment=await authorized('/api/payments/'+order.payment.id+'/refunds',{...values,operationId});
+@@ -279,7 +279,7 @@ window.PaymentPOS = (function () {
+     body.replaceChildren();
+     const labels=['paymentOrder','paymentCreated','paymentAmount','paymentStatus','paymentAttentionReason','paymentActions'];
+     for(const payment of state.items){
+-      const row=node('tr');const values=[payment.displayKey||payment.orderKey,stamp(payment.createdAt),money(payment.amount),label(payment),payment.attentionReason?t('paymentReason'+payment.attentionReason):'—'];
++      const row=node('tr');const values=[OrderCode.format(payment.displayKey||payment.orderKey),stamp(payment.createdAt),money(payment.amount),label(payment),payment.attentionReason?t('paymentReason'+payment.attentionReason):'—'];
+       values.forEach((value,index)=>{const cell=node('td','',value);cell.dataset.label=t(labels[index]);row.append(cell);});
+       const action=node('td');action.dataset.label=t('paymentActions');
+       const actionKey=state.view==='attention'?(payment.status==='REFUND_FAILED'?'paymentViewRefundFailure':payment.canRefund?'paymentViewRefund':payment.canReconcile?'paymentViewCheck':'paymentViewDetail'):'paymentViewDetail';
+@@ -403,7 +403,7 @@ window.PaymentPOS = (function () {
+     if(state.detailBusy){body.append(node('p','',t('paymentLoading')));return;}
+     const p=state.detail;if(!p)return;
+     const data=node('dl','payment-detail-data');
+-    const fields=[['paymentOrder',p.displayKey||p.orderKey],['paymentStatus',label(p)],['paymentAmount',money(p.amount)],['paymentTransactionId',p.transactionId||'—'],['paymentProviderOrderId',p.providerOrderId],['paymentCreated',stamp(p.createdAt)],['paymentPaidAt',stamp(p.paidAt)],['paymentRefundedAt',stamp(p.refundedAt)]];
++    const fields=[['paymentOrder',OrderCode.format(p.displayKey||p.orderKey)],['paymentStatus',label(p)],['paymentAmount',money(p.amount)],['paymentTransactionId',p.transactionId||'—'],['paymentProviderOrderId',p.providerOrderId],['paymentCreated',stamp(p.createdAt)],['paymentPaidAt',stamp(p.paidAt)],['paymentRefundedAt',stamp(p.refundedAt)]];
+     if(p.attentionReason)fields.push(['paymentAttentionReason',t('paymentReason'+p.attentionReason)]);
+     if(p.refund){fields.push(['paymentReason',p.refund.reason||'—'],['paymentRefundRequestedAt',stamp(p.refund.requestedAt)],['paymentRefundStatus',t('paymentRefundState'+p.refund.status)],['paymentRefundTransactionId',p.refund.transactionId||'—']);}
+     if(p.resultCode||p.refund?.resultCode)fields.push(['paymentResultCode',p.refund?.resultCode||p.resultCode]);
+diff --git a/js/orders-settings.js b/js/orders-settings.js
+index 3c766b51..b85a5770 100644
+--- a/js/orders-settings.js
++++ b/js/orders-settings.js
+@@ -2708,11 +2708,11 @@ function renderRestaurantTablesList() {
+     let statusPill = "";
+     if (isActive) {
+       if (hasActiveOrder) {
+-        const orderCode = escapeHtml(table.active_display_key || table.active_order_id || '');
+-        statusPill = `<span class="restaurant-table-status-pill status-occupied" title="${t("tableOccupied")} #${orderCode}">
++        const orderCode = escapeHtml(OrderCode.format(table.active_display_key || table.active_order_id || ''));
++        statusPill = `<span class="restaurant-table-status-pill status-occupied" title="${t("tableOccupied")} ${orderCode}">
+           <span class="restaurant-table-status-dot"></span>
+           <span>${t("tableOccupied")}</span>
+-        </span><span class="restaurant-table-order-code">#${orderCode}</span>`;
++        </span><span class="restaurant-table-order-code">${orderCode}</span>`;
+       } else {
+         statusPill = `<span class="restaurant-table-status-pill status-empty">
+           <span class="restaurant-table-status-dot"></span>
+diff --git a/js/payment-actions.js b/js/payment-actions.js
+index 1c9ef3b0..d3e7f014 100644
+--- a/js/payment-actions.js
++++ b/js/payment-actions.js
+@@ -13,7 +13,7 @@ window.PaymentActions=(function(){
+   return new Promise(resolve=>{
+    const dialog=V.element('dialog','payment-cancel-dialog');dialog.id='payment-cancel-dialog';dialog.setAttribute('aria-labelledby','payment-cancel-title');
+    const title=V.element('h2','',text('取消舊付款流程','Hủy phiên thanh toán cũ'));title.id='payment-cancel-title';
+-   const identity=data?.displayKey?' #'+data.displayKey:'';
++   const identity=data?.displayKey?' '+OrderCode.format(data.displayKey):'';
+    dialog.append(title,V.element('p','',text('取消訂單'+identity+'的付款流程？目前選擇的餐點將保留。','Hủy phiên thanh toán của đơn'+identity+'? Các món đang chọn sẽ được giữ lại.')));
+    const error=V.element('p','payment-action-message');error.setAttribute('role','status');dialog.append(error);
+    let busy=false,answer=null;
+diff --git a/js/payment-result.js b/js/payment-result.js
+index 81cfd3b2..5a663ba1 100644
+--- a/js/payment-result.js
++++ b/js/payment-result.js
+@@ -44,7 +44,7 @@
+     const copy=V.element('div','payment-result-titles');copy.append(V.element('h1','payment-result-title',title),V.element('p','payment-result-description',description));heading.append(mark,copy);el.append(heading);
+     if(data?.displayKey){
+       const meta=V.element('div','payment-receipt-meta'),identity=V.element('div','payment-receipt-identity'),amount=V.element('div','payment-receipt-amount');
+-      identity.append(V.element('span','payment-receipt-label',text('訂單編號','Mã đơn')),V.element('strong','payment-receipt-key','#'+data.displayKey));
++      identity.append(V.element('span','payment-receipt-label',text('訂單編號','Mã đơn')),V.element('strong','payment-receipt-key',OrderCode.format(data.displayKey)));
+       amount.append(V.element('span','payment-receipt-label',paid?text('已付金額','Đã thanh toán'):text('訂單金額','Giá trị đơn')),V.element('strong','payment-receipt-total','TWD '+data.amount));meta.append(identity,amount);
+       if(data.pickupTime){const pickup=V.element('div','payment-pickup');pickup.append(V.element('span','',text('取餐時間','Giờ lấy món')),V.element('span','',data.pickupTime));meta.append(pickup);}el.append(meta);
+     }
+diff --git a/js/printer-service.js b/js/printer-service.js
+index 288a09af..881c384f 100644
+--- a/js/printer-service.js
++++ b/js/printer-service.js
+@@ -409,7 +409,7 @@
+     async printManual(orderKey, stationTarget = 'all') {
+       const order = this.resolveOrder(orderKey);
+       if (!order) {
+-        if (typeof showToast === 'function') showToast(`❌ 找不到訂單 #${orderKey}`);
++        if (typeof showToast === 'function') showToast(`❌ 找不到訂單 ${OrderCode.format(orderKey)}`);
+         return;
+       }
+ 
+@@ -437,7 +437,7 @@
+ 
+       const results = [];
+       try {
+-        this.notifyToast(`🖨️ 正在列印訂單 #${orderKey}...`, 'info');
++        this.notifyToast(`🖨️ 正在列印訂單 ${OrderCode.format(order.displayKey || orderKey)}...`, 'info');
+         // Keep manual full-order reprints in the same bill -> stickers order as autoprint,
+         // while isolating per-station errors so an unconfigured/offline station does not block the other.
+         for (const task of tasks) {
+@@ -455,7 +455,7 @@
+           this.markOrderAsPrinted(orderKey);
+         }
+         if (failed.length === 0) {
+-          this.notifyToast(`✅ 訂單 #${orderKey} 列印完成！`, 'success');
++          this.notifyToast(`✅ 訂單 ${OrderCode.format(order.displayKey || orderKey)} 列印完成！`, 'success');
+         } else if (succeeded.length > 0) {
+           const firstErr = failed[0].error;
+           this.notifyToast(`⚠️ 部分列印完成 (另一台印表機連線失敗: ${firstErr?.message || firstErr})`, 'warning');
+@@ -484,7 +484,7 @@
+     async printSingleItemSticker(orderKey, itemIndex) {
+       const order = this.resolveOrder(orderKey);
+       if (!order) {
+-        if (typeof showToast === 'function') showToast(`❌ 找不到訂單 #${orderKey}`);
++        if (typeof showToast === 'function') showToast(`❌ 找不到訂單 ${OrderCode.format(orderKey)}`);
+         return;
+       }
+       const items = this.parseOrderItems(order, true);
+@@ -506,7 +506,7 @@
+         const itemLabelName = targetItem.name + (targetItem.originalQty > 1 ? ` (${targetItem.unitIndex}/${targetItem.originalQty})` : '');
+         if (typeof showToast === 'function') showToast(`🏷️ 正在列印「${itemLabelName}」貼紙...`);
+         const png = this.drawItemStickerToCanvas(targetItem, order, idx + 1, items.length, dim.widthMm, dim.heightMm, dim.dpi);
+-        await this.transmitReceiptBitmap(png, config, `Single Sticker #${order.key} (${idx + 1}/${items.length})`);
++        await this.transmitReceiptBitmap(png, config, `Single Sticker ${OrderCode.format(order.displayKey || order.key)} (${idx + 1}/${items.length})`);
+         if (typeof showToast === 'function') {
+           const successMsg = (typeof t === 'function' && t('printSingleItemSuccess', { name: itemLabelName })) || `✅ 已列印「${itemLabelName}」貼紙！`;
+           showToast(successMsg);
+@@ -520,7 +520,7 @@
+     async printItemRangeStickers(orderKey, startIndex, count, itemName = '') {
+       const order = this.resolveOrder(orderKey);
+       if (!order) {
+-        if (typeof showToast === 'function') showToast(`❌ 找不到訂單 #${orderKey}`);
++        if (typeof showToast === 'function') showToast(`❌ 找不到訂單 ${OrderCode.format(orderKey)}`);
+         return;
+       }
+       const items = this.parseOrderItems(order, true);
+@@ -550,7 +550,7 @@
+         for (let i = start; i < end; i++) {
+           const it = items[i];
+           const png = this.drawItemStickerToCanvas(it, order, i + 1, items.length, dim.widthMm, dim.heightMm, dim.dpi);
+-          await this.transmitReceiptBitmap(png, config, `Sticker #${order.key} (${i + 1}/${items.length})`);
++          await this.transmitReceiptBitmap(png, config, `Sticker ${OrderCode.format(order.displayKey || order.key)} (${i + 1}/${items.length})`);
+         }
+         if (typeof showToast === 'function') {
+           const successMsg = (typeof t === 'function' && t('printPortionsSuccess', { count: totalToPrint, name: displayName }))
+@@ -805,16 +805,16 @@
+           for (let idx = 0; idx < items.length; idx++) {
+             const it = items[idx];
+             const png = this.drawItemStickerToCanvas(it, order, idx + 1, items.length, dim.widthMm, dim.heightMm, dim.dpi);
+-            results.push(await this.transmitReceiptBitmap(png, config, `Sticker #${order.key} (${idx + 1}/${items.length})`));
++            results.push(await this.transmitReceiptBitmap(png, config, `Sticker ${OrderCode.format(order.displayKey || order.key)} (${idx + 1}/${items.length})`));
+           }
+           return results;
+         } else {
+           const base64Png = this.drawOrderLabelToCanvas(order, false, dim.widthMm, dim.heightMm, dim.dpi);
+-          return this.transmitReceiptBitmap(base64Png, config, `TSPL Label #${order.key}`);
++          return this.transmitReceiptBitmap(base64Png, config, `TSPL Label ${OrderCode.format(order.displayKey || order.key)}`);
+         }
+       }
+       const base64Png = this.drawReceiptToCanvas(order, false, config.paperWidth || 80);
+-      return this.transmitReceiptBitmap(base64Png, config, `Cashier #${order.key}`);
++      return this.transmitReceiptBitmap(base64Png, config, `Cashier ${OrderCode.format(order.displayKey || order.key)}`);
+     }
+ 
+     async printKitchenTicket(order, config) {
+@@ -826,16 +826,16 @@
+           for (let idx = 0; idx < items.length; idx++) {
+             const it = items[idx];
+             const png = this.drawItemStickerToCanvas(it, order, idx + 1, items.length, dim.widthMm, dim.heightMm, dim.dpi);
+-            results.push(await this.transmitReceiptBitmap(png, config, `Kitchen Sticker #${order.key} (${idx + 1}/${items.length})`));
++            results.push(await this.transmitReceiptBitmap(png, config, `Kitchen Sticker ${OrderCode.format(order.displayKey || order.key)} (${idx + 1}/${items.length})`));
+           }
+           return results;
+         } else {
+           const base64Png = this.drawOrderLabelToCanvas(order, true, dim.widthMm, dim.heightMm, dim.dpi);
+-          return this.transmitReceiptBitmap(base64Png, config, `Kitchen TSPL Label #${order.key}`);
++          return this.transmitReceiptBitmap(base64Png, config, `Kitchen TSPL Label ${OrderCode.format(order.displayKey || order.key)}`);
+         }
+       }
+       const base64Png = this.drawReceiptToCanvas(order, true, config.paperWidth || 80);
+-      return this.transmitReceiptBitmap(base64Png, config, `Kitchen #${order.key}`);
++      return this.transmitReceiptBitmap(base64Png, config, `Kitchen ${OrderCode.format(order.displayKey || order.key)}`);
+     }
+ 
+     async testPrint(stationType, targetConfig = null) {
+@@ -987,7 +987,7 @@
+       const diningText = order.diningOption === 'dine_in'
+         ? '內用 ' + (order.tableNumber ? '桌號：' + order.tableNumber : '')
+         : '外帶自取';
+-      row('#' + (order.displayKey || order.key), 36, diningText, 'bold', false, 32, 'bold');
++      row(OrderCode.format(order.displayKey || order.key), 36, diningText, 'bold', false, 32, 'bold');
+       row('顧客：' + (order.customer || '顧客'), 29, '', 'normal');
+       row('時間：' + (order.time || ''), 29, '', 'normal');
+       divider();
+@@ -1199,7 +1199,7 @@
+       const body = this.parseOrderItems(order, false).map(item =>
+         [item.quantity + ' x ' + item.name, item.options, item.note].filter(Boolean).join('\n')).join('\n');
+       return this.drawStickerLayout(
+-        [window.currentTenantBrandName, '#' + (order.displayKey || order.key), dining].filter(Boolean).join(' '),
++        [window.currentTenantBrandName, OrderCode.format(order.displayKey || order.key), dining].filter(Boolean).join(' '),
+         [body, order.note].filter(Boolean).join('\n'),
+         isKitchen ? (order.customer || '') : '應收總計：$' + (order.total ?? 0),
+         widthMm, heightMm, dpi, [60, 36, 52]);
+@@ -1245,7 +1245,7 @@
+     drawItemStickerToCanvas(item, orderContext, itemIdx, totalItems, widthMm = 40, heightMm = 30, dpi = 203) {
+       const compact = widthMm <= 42;
+       const dining = orderContext.diningOption === 'dine_in' ? '桌:' + (orderContext.tableNumber || '-') : '外帶';
+-      const header = '#' + (orderContext.displayKey || orderContext.key) + ' ' + dining + ' [' + itemIdx + '/' + totalItems + ']';
++      const header = OrderCode.format(orderContext.displayKey || orderContext.key) + ' ' + dining + ' [' + itemIdx + '/' + totalItems + ']';
+       const body = [item.name + ' x' + item.quantity, item.options, item.note].filter(Boolean).join('\n');
+       const dateTime = this.formatShortDateTime(orderContext.time, orderContext.createdAt);
+       return this.drawStickerLayout(header, body, (orderContext.customer || '顧客') + ' ' + dateTime,
+@@ -1256,7 +1256,7 @@
+       const compact = widthMm <= 42;
+       const context = orderContext || {};
+       const dateTime = this.formatShortDateTime(context.time, context.createdAt);
+-      return this.drawStickerLayout(context.key ? '#' + (context.displayKey || context.key) : '備註',
++      return this.drawStickerLayout(context.key ? OrderCode.format(context.displayKey || context.key) : '備註',
+         String(text || '').trim(), (window.currentTenantBrandName || '') + ' ' + dateTime,
+         widthMm, heightMm, dpi, compact ? [26, 72, 22] : [32, 90, 26]);
+     }
+diff --git a/js/staff-order.js b/js/staff-order.js
+index 0a9e8ca9..e39d9a87 100644
+--- a/js/staff-order.js
++++ b/js/staff-order.js
+@@ -87,7 +87,7 @@ window.StaffOrder = (() => {
+     }
+     if (table?.active_order_key) {
+       roundEl.hidden = false;
+-      roundEl.textContent = `#${table.active_display_key || table.active_order_id} · ${text('加點', 'Gọi thêm')}`;
++      roundEl.textContent = `${OrderCode.format(table.active_display_key || table.active_order_id)} · ${text('加點', 'Gọi thêm')}`;
+     } else {
+       roundEl.hidden = true;
+       roundEl.textContent = '';
+@@ -157,7 +157,7 @@ window.StaffOrder = (() => {
+     if (!tables.length) return message(text('尚未設定桌號，請先在設定中新增桌號。', 'Chưa cấu hình bàn. Hãy thêm bàn trong Cài đặt.'));
+     const table = tables.find(row => row.id === select()?.value);
+     message(table?.active_order_key
+-      ? text(`將加點至 #${table.active_display_key || table.active_order_id}`, `Gọi thêm vào đơn #${table.active_display_key || table.active_order_id}`)
++      ? text(`將加點至 ${OrderCode.format(table.active_display_key || table.active_order_id)}`, `Gọi thêm vào đơn ${OrderCode.format(table.active_display_key || table.active_order_id)}`)
+       : text('空桌將建立新訂單。', 'Bàn trống sẽ tạo đơn mới.'));
+   }
+ 
+@@ -833,7 +833,7 @@ window.StaffOrder = (() => {
+       renderDynamicCatalog(); updateTotal();
+       await refreshTables().catch(() => {}); select().value = '';
+       renderTableBar();
+-      message(text(`已送出 #${result.displayKey || result.orderId}。`, `Đã gửi đơn #${result.displayKey || result.orderId}.`), { toast: true, type: 'success' });
++      message(text(`已送出 ${OrderCode.format(result.displayKey || result.orderId)}。`, `Đã gửi đơn ${OrderCode.format(result.displayKey || result.orderId)}.`), { toast: true, type: 'success' });
+       if (parent !== window) parent.postMessage({
+         type: 'STAFF_ORDER_SUBMITTED', orderKey: result.orderKey || result.key,
+         displayKey: result.displayKey, diningOption: dining, roundCount: result.roundCount
+diff --git a/orders.html b/orders.html
+index cdcf5caa..1e804eaa 100644
+--- a/orders.html
++++ b/orders.html
+@@ -6,6 +6,8 @@
+   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+   <title id="pos-page-title">Blab POS</title>
+   <base href="/" />
++
++  <script src="/js/order-code.js?v=20261109_order_code_v1"></script>
+   <script src="js/orders-display.js?v=20261007_dev_main_sync_v1"></script>
+   <link rel="stylesheet" href="css/orders.css?v=20261109_hours_scroll_v1" />
+   <link rel="stylesheet" href="css/orders-stock.css?v=20261107_stock_drawer_v1" />
+@@ -3289,18 +3291,18 @@
+   </section>
+ 
+   <!-- Benmi POS Modular Architecture Scripts -->
+-  <script src="js/orders-i18n.js?v=20261109_single_hours_header_v1"></script>
+-  <script src="js/orders-core.js?v=20261108_staff_header_v2"></script>
++  <script src="js/orders-i18n.js?v=20261109_order_code_v1"></script>
++  <script src="js/orders-core.js?v=20261109_order_code_v1"></script>
+   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
+   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
+   <script src="js/order-detail-view.js?v=20261017_order_detail_v1"></script>
+-  <script src="js/printer-service.js?v=20261105_print_after_accept_v1"></script>
+-  <script src="js/orders-live.js?v=20261108_hide_empty_portions_v1"></script>
+-  <script src="js/orders-modals.js?v=20261101_linepay_v1"></script>
+-  <script src="js/orders-history.js?v=20261101_linepay_v1"></script>
++  <script src="js/printer-service.js?v=20261109_order_code_v1"></script>
++  <script src="js/orders-live.js?v=20261109_order_code_v1"></script>
++  <script src="js/orders-modals.js?v=20261109_order_code_v1"></script>
++  <script src="js/orders-history.js?v=20261109_order_code_v1"></script>
+   <script src="js/orders-reports.js?v=20261007_dev_main_sync_v1"></script>
+   <script src="js/qrcode.min.js?v=20261107_table_qr_v1"></script>
+-  <script src="js/orders-settings.js?v=20261109_hours_scroll_v1"></script>
++  <script src="js/orders-settings.js?v=20261109_order_code_v1"></script>
+   <script src="js/orders-menu-model.js?v=20261104_menu_model_v1"></script>
+   <script src="js/orders-menu.js?v=20261109_menu_image_delete_v2"></script>
+   <script src="js/orders-bundle-wizard.js?v=20261007_dev_main_sync_v1"></script>
+@@ -3344,7 +3346,7 @@
+       checkInitialSessionModal();
+     });
+   </script>
+-<script src="/js/orders-payments.js?v=20261103_pin_refund_fix_v1"></script>
++<script src="/js/orders-payments.js?v=20261109_order_code_v1"></script>
+ </body>
+ 
+ </html>
+diff --git a/payment-result.html b/payment-result.html
+index d77f61d3..1550581b 100644
+--- a/payment-result.html
++++ b/payment-result.html
+@@ -14,10 +14,12 @@
+     <header class="payment-page-brand"><img id="payment-brand-logo" alt="" hidden><span id="payment-brand-name">訂單付款</span><span class="payment-provider">LINE Pay</span></header>
+     <section id="payment-result" class="payment-panel payment-result-card" aria-live="polite" aria-atomic="true"><p>正在確認付款…</p></section>
+   </main>
++
++  <script src="/js/order-code.js?v=20261109_order_code_v1"></script>
+   <script src="/js/order-detail-view.js?v=20261017_order_detail_v1"></script>
+   <script src="/js/payment-session.js?v=20261103_linepay_mobile_redirect_v1"></script>
+   <script src="/js/payment-view.js?v=20261101_payment_result_v1"></script>
+-  <script src="/js/payment-actions.js?v=20261101_payment_cancel_v1"></script>
+-  <script src="/js/payment-result.js?v=20261103_linepay_mobile_redirect_v1"></script>
++  <script src="/js/payment-actions.js?v=20261109_order_code_v1"></script>
++  <script src="/js/payment-result.js?v=20261109_order_code_v1"></script>
+ </body>
+ </html>
+diff --git a/scripts/test-order-domain-api.cjs b/scripts/test-order-domain-api.cjs
+index 17ace728..fb449883 100644
+--- a/scripts/test-order-domain-api.cjs
++++ b/scripts/test-order-domain-api.cjs
+@@ -10,7 +10,7 @@ const {handleAdminRoute}=require('../benmi-worker-official/src/modules/admin.ts'
+ function fixture() {
+   const db=new DatabaseSync(':memory:');
+   db.exec(`CREATE TABLE tenant_config(tenant_id TEXT PRIMARY KEY,liff_id TEXT,is_active INTEGER DEFAULT 1,updated_at TEXT,
+-    operating_hours TEXT,allow_scheduled_pickup INTEGER,allow_dine_in INTEGER,store_status TEXT,logo_url TEXT,store_address TEXT,announcement TEXT,features TEXT,payment_methods TEXT DEFAULT '["line_pay"]');
++    operating_hours TEXT,allow_scheduled_pickup INTEGER,allow_dine_in INTEGER,store_status TEXT,logo_url TEXT,store_address TEXT,announcement TEXT,features TEXT,payment_methods TEXT DEFAULT '["line_pay"]',prep_time_minutes INTEGER,auto_open_before_minutes INTEGER);
+     INSERT INTO tenant_config(tenant_id,liff_id) VALUES('tenant-a','12345678-abcde');`);
+   db.exec(fs.readFileSync('benmi-worker-official/migrations/0064_customer_order_domain.sql','utf8'));
+   const deletes=[];
+diff --git a/tests/menu-qa/full-pages.test.mjs b/tests/menu-qa/full-pages.test.mjs
+index baa1d911..6c979d51 100644
+--- a/tests/menu-qa/full-pages.test.mjs
++++ b/tests/menu-qa/full-pages.test.mjs
+@@ -1,5 +1,6 @@
+ import test from 'node:test';
+ import assert from 'node:assert/strict';
++import OrderCode from '../../js/order-code.js';
+ import { startRuntime, startPages, tenant } from './runtime.mjs';
+ import { browserSession, drawer, field, action, saveDrawer, newGroup, editGroup, newProduct } from './browser.mjs';
+ 
+@@ -121,7 +122,7 @@ test('Full POS page: create group, persist in D1, independent GET, reload, edit
+     assert.ok(stored.order_content.includes(product.name));
+     assert.ok(stored.order_content.includes('QA portion note'));
+     await page.locator('#tab-live').click();
+-    const orderCard = page.locator('.tile', { hasText: order.displayKey }).first();
++    const orderCard = page.locator('.tile', { hasText: OrderCode.format(order.displayKey) }).first();
+     await orderCard.waitFor();
+     await page.evaluate(() => { if (typeof dismissNewAlert === 'function') dismissNewAlert(); });
+     await orderCard.click({ force: true });
+diff --git a/tests/test_bill_and_ui_optimizations.js b/tests/test_bill_and_ui_optimizations.js
+index e8fe4164..f31c06e3 100644
+--- a/tests/test_bill_and_ui_optimizations.js
++++ b/tests/test_bill_and_ui_optimizations.js
+@@ -52,6 +52,7 @@ const window = {
+ // 2. Load PrinterService
+ const printerCode = ('(function(){var module;\n' + fs.readFileSync(require.resolve('../js/order-legacy-adapter.js'),'utf8') + '\n})();\n' + fs.readFileSync(require.resolve('../js/printer-service.js'), 'utf8'));
+ vm.runInNewContext(printerCode, {
++  OrderCode: require('../js/order-code.js'),
+   window,
+   document,
+   console,
+@@ -101,7 +102,7 @@ console.log("✅ Test 1 Passed: Multi-quantity price calculates total line price
+ console.log("Test 2: Order key and 外帶自取 on same row");
+ drawnOperations.length = 0;
+ const testOrder2 = {
+-  key: "B0912-001",
++  key: "B0912-T001",
+   diningOption: "takeaway",
+   customer: "張三",
+   time: "18:30",
+@@ -112,9 +113,11 @@ const testOrder2 = {
+ };
+ service.drawReceiptToCanvas(testOrder2, false, 80);
+ 
+-const keyOp = drawnOperations.find(op => op.text === "#B0912-001");
++const keyOp = drawnOperations.find(op => op.text === "0912-T001");
+ const diningOp = drawnOperations.find(op => op.text === "外帶自取");
+-assert(keyOp, "Receipt should contain #B0912-001");
++assert(keyOp, "Receipt should contain the short code 0912-T001");
++assert(!drawnOperations.some(op => String(op.text).includes('#B0912-T001')), "Receipt must not show the tenant prefix or hash");
++assert.strictEqual(testOrder2.key, "B0912-T001", "Rendering must preserve the original key");
+ assert(diningOp, "Receipt should contain 外帶自取");
+ assert.strictEqual(keyOp.y, diningOp.y, "Order key and 外帶自取 MUST be on the exact same row (same y-coordinate)");
+ assert.strictEqual(diningOp.align, "right", "外帶自取 MUST be right-aligned");
+@@ -188,6 +191,7 @@ const settingsDom = {
+ 
+ const settingsContext = {
+   window: {
++    addEventListener() {},
+     getComputedStyle: () => ({ display: 'block' })
+   },
+   document: {
+diff --git a/tests/test_bundle_display_all_touchpoints.cjs b/tests/test_bundle_display_all_touchpoints.cjs
+index a88fdf6f..af213b2b 100644
+--- a/tests/test_bundle_display_all_touchpoints.cjs
++++ b/tests/test_bundle_display_all_touchpoints.cjs
+@@ -116,7 +116,8 @@ const compiledReceipt = ts.transpileModule(orderReceiptTsContent, {
+ const receiptModule = { exports: {} };
+ const receiptContext = vm.createContext({
+   console,
+-  require: name => name.includes('line-order-presentation') ? require('../js/line-order-presentation.js')
++  require: name => name.includes('order-code') ? require('../js/order-code.js')
++    : name.includes('line-order-presentation') ? require('../js/line-order-presentation.js')
+     : name.includes('order-item-notes') ? noteModule.exports
+     : name === '../../order-detail' ? { DetailView: require('../js/order-detail-view.js') }
+     : name.includes('order-legacy-adapter') ? require('../js/order-legacy-adapter.js') : ({}),
+@@ -179,6 +180,7 @@ const mockDocument = {
+ };
+ 
+ const domSandbox = {
++  OrderCode: require('../js/order-code.js'),
+   window: mockWindow,
+   document: mockDocument,
+   console,
+diff --git a/tests/test_checkout_unlock.cjs b/tests/test_checkout_unlock.cjs
+index 7730797e..dc943354 100644
+--- a/tests/test_checkout_unlock.cjs
++++ b/tests/test_checkout_unlock.cjs
+@@ -110,6 +110,7 @@ function createCheckoutEnvironment(overrides = {}) {
+   sandbox.alerts = alerts;
+ 
+   vm.createContext(sandbox);
++  vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/order-code.js'), 'utf8'), sandbox);
+   const coreCode = fs.readFileSync(path.join(__dirname, '../js/client-core.js'), 'utf8');
+   vm.runInContext(coreCode, sandbox);
+   const checkoutCode = fs.readFileSync(path.join(__dirname, '../js/client-checkout.js'), 'utf8');
+@@ -255,6 +256,23 @@ test('doSubmitOrderExecution on successful create: clears cart immediately and d
+   assert.match(env.alerts[0].msg, /訂單已送出成功/);
+ });
+ 
++test('successful checkout separates the short receipt label from the original LINE lookup and request keys', async () => {
++  for (const key of ['MY1024-T001', '48cc482f-01ca-4939-ae70-f2c07c9cb4ce']) {
++    const env = createCheckoutEnvironment();
++    let delivered;
++    env.fetch = async url => ({ ok: true, json: async () => url.includes('/api/tenant/bootstrap')
++      ? env.bootstrapData : { key, displayKey: 'MY1024-T001' } });
++    env.sendOrderConfirmation = async (messages, context) => { delivered = { messages, context }; };
++    await env.doSubmitOrderExecution('2026-10-24', '12:00');
++    assert.ok(delivered, 'Checkout must deliver a confirmation');
++    assert.equal(delivered.context.orderKey, key);
++    const message = delivered.messages[0].text;
++    assert.match(message, /^取餐號碼：1024-T001\n/);
++    assert.equal(message.split('\n').find(line => line.startsWith('訂單編號：')), '訂單編號：' + key);
++    assert.equal(message.split('\n').find(line => line.startsWith('訂單參考：')), '訂單參考：' + key);
++  }
++});
++
+ test('index.html extractTenantId cleanly extracts tenant even when LINE appends query params with ? or &', () => {
+   const indexHtml = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+   
+diff --git a/tests/test_combo_price_recovery_browser.cjs b/tests/test_combo_price_recovery_browser.cjs
+index a3d17e95..bb38c02a 100644
+--- a/tests/test_combo_price_recovery_browser.cjs
++++ b/tests/test_combo_price_recovery_browser.cjs
+@@ -21,7 +21,7 @@ test('removed last option group can be reviewed and submitted again in create, a
+           <div id="custom-alert-message"></div><button onclick="closeCustomAlert()">OK</button>
+         </div></div></body></html>`);
+       await page.addStyleTag({ content: fs.readFileSync(path.join(root, 'index.css'), 'utf8') });
+-      for (const file of ['client-core', 'client-menu', 'client-customizations', 'client-cart', 'bundle-builder-v2',
++      for (const file of ['order-code', 'client-core', 'client-menu', 'client-customizations', 'client-cart', 'bundle-builder-v2',
+         'client-option-groups', 'order-detail-checkout', 'client-checkout'])
+         await page.addScriptTag({ content: fs.readFileSync(path.join(root, `js/${file}.js`), 'utf8') });
+       await page.evaluate(({ flow, lang }) => {
+@@ -99,7 +99,7 @@ test('mobile combo checkout can recover from parent and child price changes and
+         </div></div></body></html>`);
+       for (const file of ['index.css', 'css/client-option-groups.css'])
+         await page.addStyleTag({ content: fs.readFileSync(path.join(root, file), 'utf8') });
+-      for (const file of ['js/client-core.js', 'js/client-menu.js', 'js/client-customizations.js',
++      for (const file of ['js/order-code.js', 'js/client-core.js', 'js/client-menu.js', 'js/client-customizations.js',
+         'js/client-cart.js', 'js/bundle-builder-v2.js', 'js/client-option-groups.js', 'js/client-checkout.js'])
+         await page.addScriptTag({ content: fs.readFileSync(path.join(root, file), 'utf8') });
+       await page.evaluate(({ locale, flow }) => {
+diff --git a/tests/test_customization_price_e2e.cjs b/tests/test_customization_price_e2e.cjs
+index c3a78a1e..9d49ad5e 100644
+--- a/tests/test_customization_price_e2e.cjs
++++ b/tests/test_customization_price_e2e.cjs
+@@ -76,6 +76,7 @@ const context = vm.createContext(sandbox);
+ 
+ // Load files in order as in index.html
+ const files = [
++  'js/order-code.js',
+   'js/client-core.js',
+   'js/client-menu.js',
+   'js/client-customizations.js',
+diff --git a/tests/test_item_customization_note.cjs b/tests/test_item_customization_note.cjs
+index cc9d22d0..b3ea8968 100644
+--- a/tests/test_item_customization_note.cjs
++++ b/tests/test_item_customization_note.cjs
+@@ -81,6 +81,7 @@ const checkoutSandbox = {
+   console
+ };
+ checkoutSandbox.window = checkoutSandbox;
++checkoutSandbox.OrderCode = require('../js/order-code.js');
+ vm.createContext(checkoutSandbox);
+ 
+ const checkoutJsPath = path.join(__dirname, '../js/client-checkout.js');
+@@ -164,6 +165,7 @@ const posSandbox = {
+   console
+ };
+ posSandbox.window = posSandbox;
++posSandbox.OrderCode = require('../js/order-code.js');
+ vm.createContext(posSandbox);
+ 
+ // Load orders-core.js for parsePortionCustomizations
+diff --git a/tests/test_line_order_layout.cjs b/tests/test_line_order_layout.cjs
+index 48431e9e..36352da0 100644
+--- a/tests/test_line_order_layout.cjs
++++ b/tests/test_line_order_layout.cjs
+@@ -235,6 +235,7 @@ test('actual checkout groups display text while canonical stored text stays comp
+     resolveCatalogItem: () => ({ catSlug: 'any', origName: 'Meal', displayName: 'Meal', basePrice: 50, categoryName: 'Any', itemId: 'meal' }) };
+   sandbox.window = sandbox; sandbox.bundleCartData = { any_Meal: F.portions() };
+   vm.createContext(sandbox);
++  vm.runInContext(fs.readFileSync('js/order-code.js', 'utf8'), sandbox);
+   vm.runInContext(fs.readFileSync('js/line-order-presentation.js', 'utf8'), sandbox);
+   vm.runInContext(fs.readFileSync('js/client-checkout.js', 'utf8'), sandbox);
+   const displayed = sandbox.formatOrderTextMessage('key', 'date', 'time', 140, 'Order note');
+@@ -244,6 +245,8 @@ test('actual checkout groups display text while canonical stored text stays comp
+   assert.ok(canonical.includes('第1份 先選米'));
+   assert.ok(!canonical.includes('第 1 份:'));
+   assert.match(displayed, /訂單編號：key/);
++  assert.match(sandbox.formatOrderTextMessage('ZBCF1109-T001', 'date', 'time', 140, ''), /^取餐號碼：1109-T001\n訂單編號：ZBCF1109-T001\n/);
++  assert.match(sandbox.formatOrderTextMessage('ZBCF1109-T001', 'date', 'time', 140, '', true), /^訂單編號：ZBCF1109-T001\n/);
+   assert.match(displayed, /📦 訂單內容：/);
+   assert.match(displayed, /總金額：\$140/);
+   assert.ok(sandbox.formatAppendItemsOnlyText().includes('第 2 份:'));
+diff --git a/tests/test_linepay_browser.cjs b/tests/test_linepay_browser.cjs
+index 2b0296b2..e1cae150 100644
+--- a/tests/test_linepay_browser.cjs
++++ b/tests/test_linepay_browser.cjs
+@@ -2,7 +2,7 @@ const {test}=require('node:test');
+ const assert=require('node:assert/strict');
+ const {chromium,webkit}=require('playwright');
+ const fs=require('node:fs');
+-const pos=fs.readFileSync('js/orders-payments.js','utf8');
++const pos=fs.readFileSync('js/order-code.js','utf8')+'\n'+fs.readFileSync('js/orders-payments.js','utf8');
+ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('LINE Pay '+name+': keyboard refund confirmation',async()=>{
+  const browser=await engine.launch({headless:true});
+  try{
+diff --git a/tests/test_menu_display_scale.cjs b/tests/test_menu_display_scale.cjs
+index f4d8a47f..650d0f00 100644
+--- a/tests/test_menu_display_scale.cjs
++++ b/tests/test_menu_display_scale.cjs
+@@ -58,14 +58,14 @@ test('I18N dictionaries contain store closed status in zh-TW and vi', () => {
+   const i18nJs = read('js/orders-i18n.js');
+ 
+   // zh-TW dictionary
+-  assert.match(i18nJs, /statusClosed:\s*"打烊休息"/);
+-  assert.match(i18nJs, /statusOptClosedTitle:\s*"打烊休息"/);
+-  assert.match(i18nJs, /statusOptClosedDesc:\s*"暫停接受新訂單"/);
++  assert.match(i18nJs, /statusClosed:\s*"今日打烊"/);
++  assert.match(i18nJs, /statusOptClosedTitle:\s*"今日打烊"/);
++  assert.match(i18nJs, /statusOptClosedDesc:\s*"今日停止接單，下個營業日自動恢復"/);
+ 
+   // vi dictionary
+-  assert.match(i18nJs, /statusClosed:\s*"Đóng cửa nghỉ"/);
+-  assert.match(i18nJs, /statusOptClosedTitle:\s*"Đóng cửa nghỉ"/);
+-  assert.match(i18nJs, /statusOptClosedDesc:\s*"Tạm ngừng nhận đơn mới"/);
++  assert.match(i18nJs, /statusClosed:\s*"Đóng cửa hôm nay"/);
++  assert.match(i18nJs, /statusOptClosedTitle:\s*"Đóng cửa hôm nay"/);
++  assert.match(i18nJs, /statusOptClosedDesc:\s*"Dừng nhận đơn hôm nay, tự động mở lại vào ngày mở quán tiếp theo"/);
+ });
+ 
+ test('orders.html has updated cache-busters for menu and display scaling', () => {
+diff --git a/tests/test_option_surcharge_cart.cjs b/tests/test_option_surcharge_cart.cjs
+index 28c00ece..8d0de25f 100644
+--- a/tests/test_option_surcharge_cart.cjs
++++ b/tests/test_option_surcharge_cart.cjs
+@@ -31,6 +31,7 @@ function client() {
+   context.window = context;
+   vm.createContext(context);
+   for (const file of [
++    'js/order-code.js',
+     'js/client-core.js', 'js/client-menu.js', 'js/client-customizations.js',
+     'js/client-cart.js', 'js/bundle-builder-v2.js', 'js/client-checkout.js',
+   ]) {
+diff --git a/tests/test_order_detail_mobile_scroll.cjs b/tests/test_order_detail_mobile_scroll.cjs
+index f1fa188e..bf7e865b 100644
+--- a/tests/test_order_detail_mobile_scroll.cjs
++++ b/tests/test_order_detail_mobile_scroll.cjs
+@@ -28,7 +28,7 @@ async function run() {
+     await page.setContent(htmlRaw);
+     await page.addStyleTag({ content: css });
+ 
+-    for (const file of ['js/orders-i18n.js', 'js/order-legacy-adapter.js', 'js/orders-core.js', 'js/orders-live.js', 'js/orders-modals.js']) {
++    for (const file of ['js/order-code.js', 'js/orders-i18n.js', 'js/order-legacy-adapter.js', 'js/orders-core.js', 'js/orders-live.js', 'js/orders-modals.js']) {
+       await page.addScriptTag({ content: fs.readFileSync(path.join(root, file), 'utf8') });
+     }
+ 
+diff --git a/tests/test_order_identity.cjs b/tests/test_order_identity.cjs
+index 439cfecf..d57e8047 100644
+--- a/tests/test_order_identity.cjs
++++ b/tests/test_order_identity.cjs
+@@ -3,6 +3,7 @@
+ const assert = require('node:assert/strict');
+ const fs = require('node:fs');
+ const path = require('node:path');
++const vm = require('node:vm');
+ const { execFileSync } = require('node:child_process');
+ const root = path.resolve(__dirname, '..');
+ const workerRoot = path.join(root, 'benmi-worker-official');
+@@ -141,9 +142,10 @@ async function check(name, fn) { await fn(); passed++; console.log(`PASS ${name}
+  await check('LINE card displays receipt while buttons retain stable references', async()=>{
+    const order={key:created.key,displayKey:created.displayKey,customer:'Test',status:'NEW',content:'Item',total:50,time:'12:00',createdAt:Date.now(),diningOption:'dine_in',tableNumber:'1'};
+    const card=line.buildProgressFlexMessage(order,0,{...tenant('a'),liffUrl:'https://liff.line.me/test'});
+-   const text=JSON.stringify(card);assert(text.includes('#'+created.displayKey));assert(text.includes('order_key='+created.key));
++   const visible=require('../js/order-code.js').format(created.displayKey);
++   const text=JSON.stringify(card);assert(text.includes(visible));assert(!text.includes('#'+created.displayKey));assert(text.includes('order_key='+created.key));
+    const reject=JSON.stringify(line.createRejectFlexBubble(created.key,'reason','Store',undefined,created.displayKey));
+-   assert(reject.includes('#'+created.displayKey));assert(reject.includes('orderKey='+created.key));
++   assert(reject.includes(visible));assert(!reject.includes('#'+created.displayKey));assert(reject.includes('orderKey='+created.key));
+  });
+  await check('LINE receipt links by immutable reference without creating a duplicate', async()=>{
+    const before=(await DB.prepare('SELECT count(*) n FROM orders').first()).n;
+@@ -213,5 +215,31 @@ async function check(name, fn) { await fn(); passed++; console.log(`PASS ${name}
+    assert.equal((await DB.prepare('SELECT count(*) n FROM orders').first()).n,before);
+    assert.equal((await DB.prepare('SELECT user_id FROM orders WHERE key=?').bind(id).first()).user_id,'legacy-line-user');
+  });
++ await check('actual checkout messages replay on the legacy LINE reader without duplicating prefixed or UUID orders',async()=>{
++   const browser={console,URLSearchParams,location:{search:'',hostname:'localhost'},
++     document:{readyState:'loading',addEventListener(){},getElementById:()=>null},
++     cart:{},customizeData:{},comboDrinkData:{},bootstrapData:{unifiedMenu:true},storeConfig:{}};
++   browser.window=browser;vm.createContext(browser);
++   for(const file of ['js/order-code.js','js/client-checkout.js'])vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),browser);
++   const Module=require('node:module'),legacy=new Module(path.join(workerRoot,'src/modules/legacy-line.ts'),module);
++   legacy.filename=path.join(workerRoot,'src/modules/legacy-line.ts');legacy.paths=Module._nodeModulePaths(path.dirname(legacy.filename));
++   const source=execFileSync('git',['show',(process.env.ORDER_IDENTITY_LEGACY_REF||'2e3600b')+':benmi-worker-official/src/modules/line.ts'],{cwd:root,encoding:'utf8'});
++   legacy._compile(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,legacy.filename);
++   for(const useUuid of [false,true]){
++     const id=crypto.randomUUID(),display='B1201-T401',key=useUuid?id:display;
++     await orders.saveOrder(env,{key,orderId:id,displayKey:display,businessDate:'2027-12-01',customer:'Review',total:11,content:'Item',time:'12:00',status:'NEW',createdAt:Date.now()},'a',true);
++     const messages=[browser.formatOrderTextMessage(key,'2027-12-01','12:00',11,'',false,display)+`\n訂單參考：${key}`,
++       `取餐號碼：1201-T401\n`+browser.formatOrderTextMessage(key,'2027-12-01','12:00',11,'',true)+`\n訂單參考：${key}`];
++     for(const text of messages){
++       assert(text.startsWith('取餐號碼：1201-T401\n'));
++       assert.equal(text.split('\n').find(l=>l.startsWith('訂單編號：')),`訂單編號：${key}`);
++       const before=(await DB.prepare('SELECT count(*) n FROM orders').first()).n;
++       await legacy.exports.handleLineWebhook(request('/webhook/a',{events:[{type:'message',source:{userId:'legacy-review-user'},message:{type:'text',text}}]}),env,{waitUntil:()=>{}},tenant('a'));
++       assert.equal((await DB.prepare('SELECT count(*) n FROM orders').first()).n,before,'Receipt replay must not insert another order');
++       const row=await DB.prepare('SELECT key,order_id,total_amount,user_id FROM orders WHERE key=?').bind(key).first();
++       assert.equal(row.key,key);assert.equal(row.order_id,id);assert.equal(row.total_amount,11);assert.equal(row.user_id,'legacy-review-user');
++     }
++   }
++ });
+  console.log(`${passed} order identity checks passed`);
+ })().catch(error=>{console.error(error);process.exitCode=1}).finally(async()=>{global.fetch=originalFetch;await mf.dispose()});
+diff --git a/tests/test_order_identity_print.cjs b/tests/test_order_identity_print.cjs
+index 2a159d65..d9b6e8d6 100644
+--- a/tests/test_order_identity_print.cjs
++++ b/tests/test_order_identity_print.cjs
+@@ -15,17 +15,18 @@ const document = { createElement() {
+ }};
+ const window={currentTenantBrandName:'Test',location:{search:'?tenant=identity-test'}};
+ vm.runInNewContext(('(function(){var module;\n' + fs.readFileSync(require.resolve('../js/order-legacy-adapter.js'),'utf8') + '\n})();\n' + fs.readFileSync(require.resolve('../js/printer-service.js'),'utf8')),{
+-  window,document,console,URLSearchParams,localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>{storage[k]=v}}
++  OrderCode:require('../js/order-code.js'),window,document,console,URLSearchParams,localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>{storage[k]=v}}
+ });
+ const service=window.PrinterService;
+ const order={key:'48cc482f-01ca-4939-ae70-f2c07c9cb4ce',legacyKey:'B0914-T007',displayKey:'B0914-T007',status:'ACCEPTED',total:100,content:'Item',customer:'Test'};
+ for(const kitchen of [false,true]) {
+  printedText.length=0; service.drawReceiptToCanvas(order,kitchen,80);
+- assert(printedText.join('').includes('#B0914-T007'));
++ assert(printedText.includes('0914-T007'));
++ assert(!printedText.join('').includes('#B0914-T007'));
+  assert(!printedText.join('').includes(order.key));
+ }
+ printedText.length=0;service.drawItemStickerToCanvas({name:'Item',quantity:1},order,1,1);
+-assert(printedText.join('').includes('#B0914-T007'));assert(!printedText.join('').includes(order.key));
++assert(printedText.join('').includes('0914-T007'));assert(!printedText.join('').includes('#B0914-T007'));assert(!printedText.join('').includes(order.key));
+ (async()=>{
+  service.saveSettings({autoPrintNewOrders:true});
+  service.markOrderAsPrinted(order.legacyKey);
+diff --git a/tests/test_order_print_subtotal_bundle.cjs b/tests/test_order_print_subtotal_bundle.cjs
+index 8f5372c0..8f4860c6 100644
+--- a/tests/test_order_print_subtotal_bundle.cjs
++++ b/tests/test_order_print_subtotal_bundle.cjs
+@@ -29,6 +29,7 @@ const window = {
+   location: { hostname: 'localhost', search: '', href: 'http://localhost/' }
+ };
+ const sandbox = {
++  OrderCode: require('../js/order-code.js'),
+   window,
+   document,
+   console,
+diff --git a/tests/test_payment_result_browser.cjs b/tests/test_payment_result_browser.cjs
+index ca15a789..245a906c 100644
+--- a/tests/test_payment_result_browser.cjs
++++ b/tests/test_payment_result_browser.cjs
+@@ -16,7 +16,7 @@ const saved=JSON.parse(localStorage.getItem('cart_save_a')||'null');
+ window.cart=saved?.cart||{};window.customizeData=saved?.customizeData||{};window.comboDrinkData=saved?.comboDrinkData||{};window.bundleCartData=saved?.bundleCartData||{};
+ window.isSubmitting=false;window.updateTotal=()=>{};window.DetailCheckout={completed:()=>sessionStorage.removeItem('order_detail_pending:a')};
+ document.getElementById('add').onclick=()=>{cart.meal=(cart.meal||0)+1;LinePayCheckout.onCartChange();};
+-</script><script src="/js/client-checkout.js"></script><script src="/js/payment-session.js"></script><script src="/js/payment-view.js"></script><script src="/js/payment-actions.js"></script><script src="/js/client-payments.js"></script></body></html>`;
++</script><script src="/js/order-code.js"></script><script src="/js/client-checkout.js"></script><script src="/js/payment-session.js"></script><script src="/js/payment-view.js"></script><script src="/js/payment-actions.js"></script><script src="/js/client-payments.js"></script></body></html>`;
+ async function fixture(browser,options={}){
+  const context=await browser.newContext({viewport:{width:390,height:844},...options.device}),calls=[],errors=[];
+  const model={data:paid,...options};
+diff --git a/tests/test_payment_workspace_browser.cjs b/tests/test_payment_workspace_browser.cjs
+index 20d50a1f..47f8bec8 100644
+--- a/tests/test_payment_workspace_browser.cjs
++++ b/tests/test_payment_workspace_browser.cjs
+@@ -180,9 +180,9 @@ test('workspace discards superseded filter/tenant responses and pauses polling w
+ 
+ for(const [name,engine]of Object.entries({chromium,webkit}))test(`${name}: unconfigured tenant fixes payment to pay later and disables LINE Pay`,async t=>{
+  const {page,configured,errors}=await setup(t,engine);
+- assert.equal(await page.locator('#store-status-menu .status-option').count(),3);
++ assert.equal(await page.locator('#store-status-menu .status-option').count(),4);
+  await page.evaluate(()=>renderStoreStatusUI('closed'));
+- assert.equal(await page.locator('#store-status-label').innerText(),'Tạm dừng nhận đơn');
++ assert.equal(await page.locator('#store-status-label').innerText(),'Đóng cửa hôm nay');
+  configured(false);
+  await page.evaluate(async()=>{openPaymentSettingsFromWorkspace();await loadStoreStatus();});
+  await until(page,()=>document.querySelector('#setting-payment-opt-linepay').disabled);
+diff --git a/tests/test_pickup_time_picker.cjs b/tests/test_pickup_time_picker.cjs
+index df392301..0ddb5f94 100644
+--- a/tests/test_pickup_time_picker.cjs
++++ b/tests/test_pickup_time_picker.cjs
+@@ -179,6 +179,7 @@ console.log(`✓ initPickupTimePicker default initial state verified: ${elements
+ 
+ // 2b. Test customizable prepTimeMinutes parameter
+ const testNow = ctx.getTaiwanDate();
++testNow.setHours(12, 0, 0, 0); // Keep prep-time assertions inside operating hours, independent of the test run time.
+ ctx.storeConfig.prepTimeMinutes = 10;
+ const asap10 = ctx.calcAsapPickupTime(testNow);
+ ctx.storeConfig.prepTimeMinutes = 5;
+diff --git a/tests/test_pos_live_mobile.cjs b/tests/test_pos_live_mobile.cjs
+index b9a7692b..903f079a 100644
+--- a/tests/test_pos_live_mobile.cjs
++++ b/tests/test_pos_live_mobile.cjs
+@@ -33,7 +33,7 @@ async function loadFixture(page) {
+       };
+     };
+   });
+-  for (const file of ['js/orders-display.js', 'js/orders-i18n.js', 'js/order-legacy-adapter.js', 'js/orders-core.js', 'js/orders-live.js', 'js/orders-modals.js']) {
++  for (const file of ['js/order-code.js', 'js/orders-display.js', 'js/orders-i18n.js', 'js/order-legacy-adapter.js', 'js/orders-core.js', 'js/orders-live.js', 'js/orders-modals.js']) {
+     await page.addScriptTag({ content: readSource(file) });
+   }
+   await page.evaluate(() => {
+diff --git a/tests/test_printer_sequence.js b/tests/test_printer_sequence.js
+index 926879ab..29deef5d 100644
+--- a/tests/test_printer_sequence.js
++++ b/tests/test_printer_sequence.js
+@@ -1,6 +1,7 @@
+ const assert = require('assert');
+ const fs = require('fs');
+ const path = require('path');
++const OrderCode = require('../js/order-code.js');
+ 
+ const storage = {};
+ global.localStorage = {
+diff --git a/tests/test_printer_system.js b/tests/test_printer_system.js
+index 3ef56bfd..78fcaf68 100644
+--- a/tests/test_printer_system.js
++++ b/tests/test_printer_system.js
+@@ -60,6 +60,7 @@ global.window = {
+ 
+ // Load js/printer-service.js
+ const printerServiceCode = ('(function(){var module;\n' + fs.readFileSync(require.resolve('../js/order-legacy-adapter.js'),'utf8') + '\n})();\n' + fs.readFileSync(path.join(__dirname, '../js/printer-service.js'), 'utf8'));
++const OrderCode = require('../js/order-code.js');
+ eval(printerServiceCode);
+ 
+ const service = global.window.PrinterService;
+diff --git a/tests/test_receipt_canvas_height.js b/tests/test_receipt_canvas_height.js
+index cfd417f5..f1a8a376 100644
+--- a/tests/test_receipt_canvas_height.js
++++ b/tests/test_receipt_canvas_height.js
+@@ -22,7 +22,7 @@ const document = {
+ };
+ const window = { currentTenantBrandName: 'Test Restaurant' };
+ vm.runInNewContext(('(function(){var module;\n' + fs.readFileSync(require.resolve('../js/order-legacy-adapter.js'),'utf8') + '\n})();\n' + fs.readFileSync(require.resolve('../js/printer-service.js'), 'utf8')), {
+-  window, document, console, URLSearchParams,
++  OrderCode: require('../js/order-code.js'), window, document, console, URLSearchParams,
+   localStorage: { getItem: () => null }
+ });
+ for (const width of [58, 80]) for (const kitchen of [false, true]) {
+diff --git a/tests/test_yanxiansuji_option_display_hotfix.cjs b/tests/test_yanxiansuji_option_display_hotfix.cjs
+index 78a77e0c..1bf8895a 100644
+--- a/tests/test_yanxiansuji_option_display_hotfix.cjs
++++ b/tests/test_yanxiansuji_option_display_hotfix.cjs
+@@ -101,6 +101,7 @@ function setupCustomerSandbox(bootstrapData) {
+     sandbox.addEventListener = () => {};
+     sandbox.removeEventListener = () => {};
+ 
++    sandbox.OrderCode = require('../js/order-code.js');
+     vm.createContext(sandbox);
+     vm.runInContext(clientCoreCode, sandbox);
+     vm.runInContext(clientCustomizationsCode, sandbox);
+@@ -144,6 +145,7 @@ function setupPosSandbox(bootstrapData) {
+     sandbox.addEventListener = () => {};
+     sandbox.removeEventListener = () => {};
+ 
++    sandbox.OrderCode = require('../js/order-code.js');
+     vm.createContext(sandbox);
+     vm.runInContext(ordersCoreCode, sandbox);
+     vm.runInContext(printerServiceCode, sandbox);

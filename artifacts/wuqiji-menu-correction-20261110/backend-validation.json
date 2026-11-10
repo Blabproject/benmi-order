@@ -1,0 +1,29 @@
+[
+  {
+    "mode": "dev",
+    "validGraph": true,
+    "testedChoices": 42,
+    "requiredSelectionEnforced": true,
+    "extraChoiceRejected": true,
+    "snackLemonRejected": true,
+    "catalogMatchesCorrectedImage": true
+  },
+  {
+    "mode": "test",
+    "validGraph": true,
+    "testedChoices": 42,
+    "requiredSelectionEnforced": true,
+    "extraChoiceRejected": true,
+    "snackLemonRejected": true,
+    "catalogMatchesCorrectedImage": true
+  },
+  {
+    "mode": "production",
+    "validGraph": true,
+    "testedChoices": 42,
+    "requiredSelectionEnforced": true,
+    "extraChoiceRejected": true,
+    "snackLemonRejected": true,
+    "catalogMatchesCorrectedImage": true
+  }
+]

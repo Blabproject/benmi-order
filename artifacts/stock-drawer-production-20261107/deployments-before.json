@@ -1,0 +1,257 @@
+[
+  {
+    "id": "53496c31-54fd-4d51-89dc-12034bbaaa52",
+    "short_id": "53496c31",
+    "project_id": "e8c4d84f-f08e-4c72-a6bc-cdad12228473",
+    "project_name": "benmi-order",
+    "environment": "production",
+    "url": "https://53496c31.benmi-order.pages.dev",
+    "created_on": "2026-11-06T13:31:29.115504Z",
+    "modified_on": "2026-11-06T13:31:31.375111Z",
+    "latest_stage": {
+      "name": "deploy",
+      "started_on": null,
+      "ended_on": "2026-11-06T13:31:31.375111Z",
+      "status": "success"
+    },
+    "deployment_trigger": {
+      "type": "ad_hoc",
+      "metadata": {
+        "branch": "main",
+        "commit_hash": "3631fc5e573ad37022eebf1442cefb071815a36b",
+        "commit_message": "fix(options): inline nested choices and stabilize long option labels",
+        "commit_dirty": false
+      }
+    },
+    "stages": [
+      {
+        "name": "queued",
+        "started_on": "2026-11-06T13:31:29.115504Z",
+        "ended_on": null,
+        "status": "active"
+      },
+      {
+        "name": "initialize",
+        "started_on": null,
+        "ended_on": null,
+        "status": "idle"
+      },
+      {
+        "name": "clone_repo",
+        "started_on": null,
+        "ended_on": null,
+        "status": "idle"
+      },
+      {
+        "name": "build",
+        "started_on": null,
+        "ended_on": null,
+        "status": "idle"
+      },
+      {
+        "name": "deploy",
+        "started_on": null,
+        "ended_on": "2026-11-06T13:31:31.375111Z",
+        "status": "success"
+      }
+    ],
+    "build_config": {
+      "build_command": "",
+      "destination_dir": "",
+      "build_caching": null,
+      "root_dir": "",
+      "web_analytics_tag": null,
+      "web_analytics_token": null
+    },
+    "source": {
+      "type": "github",
+      "config": {
+        "owner": "Thuanmai56",
+        "repo_name": "benmi-order",
+        "production_branch": "main",
+        "pr_comments_enabled": false
+      }
+    },
+    "env_vars": {},
+    "compatibility_date": "2026-03-22",
+    "compatibility_flags": [],
+    "build_image_major_version": 3,
+    "usage_model": "standard",
+    "aliases": [
+      "https://blabfood.app",
+      "https://explore.blabfood.app",
+      "https://order.blabfood.app",
+      "https://pos.blabfood.app",
+      "https://www.blabfood.app"
+    ],
+    "is_skipped": false,
+    "production_branch": "main",
+    "uses_functions": true
+  },
+  {
+    "id": "9d781645-296d-499b-b0e4-96a3bc3ac083",
+    "short_id": "9d781645",
+    "project_id": "e8c4d84f-f08e-4c72-a6bc-cdad12228473",
+    "project_name": "benmi-order",
+    "environment": "production",
+    "url": "https://9d781645.benmi-order.pages.dev",
+    "created_on": "2026-11-06T12:45:21.267907Z",
+    "modified_on": "2026-11-06T12:45:23.193023Z",
+    "latest_stage": {
+      "name": "deploy",
+      "started_on": null,
+      "ended_on": "2026-11-06T12:45:23.193023Z",
+      "status": "success"
+    },
+    "deployment_trigger": {
+      "type": "ad_hoc",
+      "metadata": {
+        "branch": "main",
+        "commit_hash": "289a04c3b8f21cb6482582d6e70b3604da893b02",
+        "commit_message": "fix(cart): unify edit and remove actions for every portion",
+        "commit_dirty": false
+      }
+    },
+    "stages": [
+      {
+        "name": "queued",
+        "started_on": "2026-11-06T12:45:21.267907Z",
+        "ended_on": null,
+        "status": "active"
+      },
+      {
+        "name": "initialize",
+        "started_on": null,
+        "ended_on": null,
+        "status": "idle"
+      },
+      {
+        "name": "clone_repo",
+        "started_on": null,
+        "ended_on": null,
+        "status": "idle"
+      },
+      {
+        "name": "build",
+        "started_on": null,
+        "ended_on": null,
+        "status": "idle"
+      },
+      {
+        "name": "deploy",
+        "started_on": null,
+        "ended_on": "2026-11-06T12:45:23.193023Z",
+        "status": "success"
+      }
+    ],
+    "build_config": {
+      "build_command": "",
+      "destination_dir": "",
+      "build_caching": null,
+      "root_dir": "",
+      "web_analytics_tag": null,
+      "web_analytics_token": null
+    },
+    "source": {
+      "type": "github",
+      "config": {
+        "owner": "Thuanmai56",
+        "repo_name": "benmi-order",
+        "production_branch": "main",
+        "pr_comments_enabled": false
+      }
+    },
+    "env_vars": {},
+    "compatibility_date": "2026-03-22",
+    "compatibility_flags": [],
+    "build_image_major_version": 3,
+    "usage_model": "standard",
+    "aliases": null,
+    "is_skipped": false,
+    "production_branch": "main",
+    "uses_functions": true
+  },
+  {
+    "id": "a407a47e-619b-4ffc-83ee-e85473dc1c26",
+    "short_id": "a407a47e",
+    "project_id": "e8c4d84f-f08e-4c72-a6bc-cdad12228473",
+    "project_name": "benmi-order",
+    "environment": "production",
+    "url": "https://a407a47e.benmi-order.pages.dev",
+    "created_on": "2026-11-05T06:48:19.753828Z",
+    "modified_on": "2026-11-05T06:48:44.885551Z",
+    "latest_stage": {
+      "name": "deploy",
+      "started_on": "2026-11-05T06:48:31.972395Z",
+      "ended_on": "2026-11-05T06:48:44.885551Z",
+      "status": "success"
+    },
+    "deployment_trigger": {
+      "type": "github:push",
+      "metadata": {
+        "branch": "main",
+        "commit_hash": "b6b4e96c607f90f6eb27c17b182c0ab3e81b9210",
+        "commit_message": "fix(pos): initialize branding for the requested tenant",
+        "commit_dirty": false
+      }
+    },
+    "stages": [
+      {
+        "name": "queued",
+        "started_on": "2026-11-05T06:48:19.968506Z",
+        "ended_on": "2026-11-05T06:48:19.976674Z",
+        "status": "success"
+      },
+      {
+        "name": "initialize",
+        "started_on": "2026-11-05T06:48:19.976674Z",
+        "ended_on": "2026-11-05T06:48:22.310197Z",
+        "status": "success"
+      },
+      {
+        "name": "clone_repo",
+        "started_on": "2026-11-05T06:48:22.310197Z",
+        "ended_on": "2026-11-05T06:48:26.510795Z",
+        "status": "success"
+      },
+      {
+        "name": "build",
+        "started_on": "2026-11-05T06:48:26.510795Z",
+        "ended_on": "2026-11-05T06:48:31.972395Z",
+        "status": "success"
+      },
+      {
+        "name": "deploy",
+        "started_on": "2026-11-05T06:48:31.972395Z",
+        "ended_on": "2026-11-05T06:48:44.885551Z",
+        "status": "success"
+      }
+    ],
+    "build_config": {
+      "build_command": "",
+      "destination_dir": "",
+      "build_caching": null,
+      "root_dir": "",
+      "web_analytics_tag": null,
+      "web_analytics_token": null
+    },
+    "source": {
+      "type": "github",
+      "config": {
+        "owner": "Thuanmai56",
+        "repo_name": "benmi-order",
+        "production_branch": "main",
+        "pr_comments_enabled": false
+      }
+    },
+    "env_vars": {},
+    "compatibility_date": "2026-03-22",
+    "compatibility_flags": [],
+    "build_image_major_version": 3,
+    "usage_model": "standard",
+    "aliases": null,
+    "is_skipped": false,
+    "production_branch": "main",
+    "uses_functions": true
+  }
+]

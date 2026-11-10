@@ -1,0 +1,13 @@
+{
+  "releaseCommit": "c7bd8ba0f300076c9c7be2a7bfa0e90d3266b967",
+  "baselineCommit": "f1620da6fac8f4e0daa77d0c87d88042354ef85f",
+  "baselinePassed": 34,
+  "baselineTotal": 35,
+  "initialFailure": "menu-static-contracts: pickup time test expected past lunch slots",
+  "resolution": "Test now selects a future date before asserting both meal periods",
+  "rerunSuite": "menu-static-contracts",
+  "rerunTests": 229,
+  "rerunFailures": 0,
+  "applicationUnchangedFromBaseline": true,
+  "effectiveStatus": "passed"
+}

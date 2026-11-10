@@ -1,0 +1,132 @@
+[
+  {
+    "results": [
+      {
+        "tenant_id": "52kaoroufan",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}",
+        "is_active": 1
+      },
+      {
+        "tenant_id": "benmi",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}",
+        "is_active": 1
+      },
+      {
+        "tenant_id": "blab_demo",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}",
+        "is_active": 1
+      },
+      {
+        "tenant_id": "bsc",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}",
+        "is_active": 1
+      },
+      {
+        "tenant_id": "dafobenwan",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}",
+        "is_active": 1
+      },
+      {
+        "tenant_id": "dapinglin",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}",
+        "is_active": 1
+      },
+      {
+        "tenant_id": "haoshiguoshao",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}",
+        "is_active": 1
+      },
+      {
+        "tenant_id": "jiangjiejie",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}",
+        "is_active": 1
+      },
+      {
+        "tenant_id": "jidangaodashu",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}",
+        "is_active": 1
+      },
+      {
+        "tenant_id": "miyansuo",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}",
+        "is_active": 1
+      },
+      {
+        "tenant_id": "nongfumingjia",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}",
+        "is_active": 1
+      },
+      {
+        "tenant_id": "quanthuyhang",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}",
+        "is_active": 1
+      },
+      {
+        "tenant_id": "thuyngason",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}",
+        "is_active": 1
+      },
+      {
+        "tenant_id": "weiweibao",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}",
+        "is_active": 1
+      },
+      {
+        "tenant_id": "xiaolan",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}",
+        "is_active": 1
+      },
+      {
+        "tenant_id": "yanxiansuji",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}",
+        "is_active": 1
+      },
+      {
+        "tenant_id": "zhadantongxue",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}",
+        "is_active": 1
+      },
+      {
+        "tenant_id": "zhenbaochufang",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}",
+        "is_active": 1
+      }
+    ],
+    "success": true,
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "APAC",
+      "served_by_colo": "NRT",
+      "served_by_primary": true,
+      "timings": {
+        "sql_duration_ms": 1.0771
+      },
+      "duration": 1.0771,
+      "changes": 0,
+      "last_row_id": 0,
+      "changed_db": false,
+      "size_after": 28696576,
+      "rows_read": 18,
+      "rows_written": 0,
+      "total_attempts": 1
+    }
+  }
+]

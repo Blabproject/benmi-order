@@ -1,0 +1,43 @@
+[
+  {
+    "queue_id": "a2970258af924919aa1c35d276e60f6d",
+    "queue_name": "order-cancellation-staging",
+    "settings": {
+      "delivery_delay": 0,
+      "message_retention_period": 345600
+    },
+    "created_on": "2026-10-13T17:41:21.851422Z",
+    "modified_on": "2026-10-13T17:41:21.851422Z",
+    "producers_total_count": 0,
+    "producers": [],
+    "consumers_total_count": 1,
+    "consumers": [
+      {
+        "script": "platform-worker-staging",
+        "dead_letter_queue": "order-cancellation-staging-dlq",
+        "settings": {
+          "batch_size": 5,
+          "max_retries": 3,
+          "max_wait_time_ms": 1000,
+          "retry_delay": 30
+        },
+        "consumer_id": "6983d740751d4ad7a9ef4881f359e4a6",
+        "type": "worker"
+      }
+    ]
+  },
+  {
+    "queue_id": "a212f4b4f969467384b0165f00367b6d",
+    "queue_name": "order-cancellation-staging-dlq",
+    "settings": {
+      "delivery_delay": 0,
+      "message_retention_period": 345600
+    },
+    "created_on": "2026-10-13T17:40:46.043722Z",
+    "modified_on": "2026-10-13T17:40:46.043722Z",
+    "producers_total_count": 0,
+    "producers": [],
+    "consumers_total_count": 0,
+    "consumers": []
+  }
+]

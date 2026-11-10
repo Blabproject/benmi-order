@@ -1,0 +1,20 @@
+{
+  "id": "a407a47e-619b-4ffc-83ee-e85473dc1c26",
+  "url": "https://a407a47e.benmi-order.pages.dev",
+  "environment": "production",
+  "latestStage": {
+    "name": "deploy",
+    "started_on": "2026-11-05T06:48:31.972395Z",
+    "ended_on": "2026-11-05T06:48:44.885551Z",
+    "status": "success"
+  },
+  "trigger": {
+    "type": "github:push",
+    "metadata": {
+      "branch": "main",
+      "commit_hash": "b6b4e96c607f90f6eb27c17b182c0ab3e81b9210",
+      "commit_message": "fix(pos): initialize branding for the requested tenant",
+      "commit_dirty": false
+    }
+  }
+}

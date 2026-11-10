@@ -1,0 +1,50 @@
+{
+  "id": "a7a427b3-d0f1-4a9a-bd75-f4fd615a61c0",
+  "url": "https://a7a427b3.benmi-order.pages.dev",
+  "environment": "production",
+  "stage": {
+    "name": "deploy",
+    "started_on": null,
+    "ended_on": "2026-11-06T15:53:22.554467Z",
+    "status": "success"
+  },
+  "stages": [
+    {
+      "name": "queued",
+      "started_on": "2026-11-06T15:53:20.924535Z",
+      "ended_on": null,
+      "status": "active"
+    },
+    {
+      "name": "initialize",
+      "started_on": null,
+      "ended_on": null,
+      "status": "idle"
+    },
+    {
+      "name": "clone_repo",
+      "started_on": null,
+      "ended_on": null,
+      "status": "idle"
+    },
+    {
+      "name": "build",
+      "started_on": null,
+      "ended_on": null,
+      "status": "idle"
+    },
+    {
+      "name": "deploy",
+      "started_on": null,
+      "ended_on": "2026-11-06T15:53:22.554467Z",
+      "status": "success"
+    }
+  ],
+  "usesFunctions": true,
+  "metadata": {
+    "branch": "main",
+    "commit_hash": "3fd153728816f05e3f9a830ea826eea4a36ed8ce",
+    "commit_message": "feat(pos): save stock changes from a side drawer",
+    "commit_dirty": false
+  }
+}

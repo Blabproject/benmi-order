@@ -1,0 +1,1975 @@
+{
+  "modifier_groups": [
+    {
+      "id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "tenant_id": "dafobenwan",
+      "name": "加料 10元",
+      "selection_type": "multiple",
+      "is_required": 0,
+      "min_selection": 0,
+      "max_selection": 6,
+      "sort_order": 0,
+      "created_at": "2026-11-04 13:42:54",
+      "updated_at": "2026-11-05 12:48:37",
+      "scope": "item",
+      "source_metadata_json": "{}",
+      "allow_repeats": 0,
+      "included": 0,
+      "sources_json": "[]",
+      "labels_json": "{}",
+      "revision": 2,
+      "auto_popup": 0
+    },
+    {
+      "id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "tenant_id": "dafobenwan",
+      "name": "加料 15元",
+      "selection_type": "multiple",
+      "is_required": 0,
+      "min_selection": 0,
+      "max_selection": 6,
+      "sort_order": 0,
+      "created_at": "2026-11-04 13:44:52",
+      "updated_at": "2026-11-05 13:36:28",
+      "scope": "item",
+      "source_metadata_json": "{}",
+      "allow_repeats": 0,
+      "included": 0,
+      "sources_json": "[]",
+      "labels_json": "{}",
+      "revision": 7,
+      "auto_popup": 0
+    },
+    {
+      "id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "tenant_id": "dafobenwan",
+      "name": "加料 25元",
+      "selection_type": "multiple",
+      "is_required": 0,
+      "min_selection": 0,
+      "max_selection": 3,
+      "sort_order": 0,
+      "created_at": "2026-11-04 13:48:18",
+      "updated_at": "2026-11-05 12:48:13",
+      "scope": "item",
+      "source_metadata_json": "{}",
+      "allow_repeats": 0,
+      "included": 0,
+      "sources_json": "[]",
+      "labels_json": "{}",
+      "revision": 2,
+      "auto_popup": 0
+    },
+    {
+      "id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "tenant_id": "dafobenwan",
+      "name": "不加配料",
+      "selection_type": "multiple",
+      "is_required": 0,
+      "min_selection": 0,
+      "max_selection": 9,
+      "sort_order": 0,
+      "created_at": "2026-11-05 12:35:10",
+      "updated_at": "2026-11-05 13:58:49",
+      "scope": "item",
+      "source_metadata_json": "{}",
+      "allow_repeats": 0,
+      "included": 0,
+      "sources_json": "[]",
+      "labels_json": "{}",
+      "revision": 5,
+      "auto_popup": 0
+    },
+    {
+      "id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "tenant_id": "dafobenwan",
+      "name": "辣度選擇",
+      "selection_type": "single",
+      "is_required": 1,
+      "min_selection": 1,
+      "max_selection": 1,
+      "sort_order": 0,
+      "created_at": "2026-11-05 16:38:47",
+      "updated_at": "2026-11-05 16:38:47",
+      "scope": "item",
+      "source_metadata_json": "{}",
+      "allow_repeats": 0,
+      "included": 0,
+      "sources_json": "[]",
+      "labels_json": "{}",
+      "revision": 1,
+      "auto_popup": 1
+    },
+    {
+      "id": "mg_df_rice_type",
+      "tenant_id": "dafobenwan",
+      "name": "先選米",
+      "selection_type": "single",
+      "is_required": 1,
+      "min_selection": 1,
+      "max_selection": 1,
+      "sort_order": 1,
+      "created_at": "2026-10-29 15:30:36",
+      "updated_at": "2026-11-04 12:50:52",
+      "scope": "item",
+      "source_metadata_json": "{}",
+      "allow_repeats": 0,
+      "included": 0,
+      "sources_json": "[]",
+      "labels_json": "{\"zh-TW\":\"請選擇米種\",\"vi\":\"Chọn loại gạo\"}",
+      "revision": 4,
+      "auto_popup": 1
+    },
+    {
+      "id": "mg_df_size",
+      "tenant_id": "dafobenwan",
+      "name": "份量調整",
+      "selection_type": "single",
+      "is_required": 0,
+      "min_selection": 0,
+      "max_selection": 1,
+      "sort_order": 2,
+      "created_at": "2026-10-29 15:30:36",
+      "updated_at": "2026-11-04 08:22:18",
+      "scope": "item",
+      "source_metadata_json": "{}",
+      "allow_repeats": 0,
+      "included": 0,
+      "sources_json": "[]",
+      "labels_json": "{}",
+      "revision": 3,
+      "auto_popup": 0
+    }
+  ],
+  "modifier_options": [
+    {
+      "id": "opt_df_size_large",
+      "tenant_id": "dafobenwan",
+      "group_id": "mg_df_size",
+      "name": "加大",
+      "price": 10,
+      "is_default": 0,
+      "sort_order": 0,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-04 08:22:18",
+      "updated_at": "2026-11-04 08:22:18",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "opt_df_rt_white",
+      "tenant_id": "dafobenwan",
+      "group_id": "mg_df_rice_type",
+      "name": "白米",
+      "price": 0,
+      "is_default": 1,
+      "sort_order": 0,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-04 12:50:52",
+      "updated_at": "2026-11-04 12:50:52",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "opt_df_rt_purple",
+      "tenant_id": "dafobenwan",
+      "group_id": "mg_df_rice_type",
+      "name": "紫米",
+      "price": 5,
+      "is_default": 0,
+      "sort_order": 1,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-04 12:50:52",
+      "updated_at": "2026-11-04 12:50:52",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_756330de-6283-46d1-a1ed-223d5c3dcad0",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "name": "嫩煎豬排",
+      "price": 25,
+      "is_default": 0,
+      "sort_order": 0,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 12:48:13",
+      "updated_at": "2026-11-05 12:48:13",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_497ea9a8-8ecb-4393-b42d-20a4dbfb7769",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "name": "燻雞",
+      "price": 25,
+      "is_default": 0,
+      "sort_order": 1,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 12:48:13",
+      "updated_at": "2026-11-05 12:48:13",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_6687c703-f22a-481d-9f1c-ae107768ab27",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "name": "素瓜仔肉",
+      "price": 25,
+      "is_default": 0,
+      "sort_order": 2,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 12:48:13",
+      "updated_at": "2026-11-05 12:48:13",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_8fff6337-6990-42a3-a96d-853abf791498",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "name": "玉米",
+      "price": 10,
+      "is_default": 0,
+      "sort_order": 0,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 12:48:37",
+      "updated_at": "2026-11-05 12:48:37",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_b4130ffe-1ef1-4c82-8f07-5e83a1d1c681",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "name": "起司",
+      "price": 10,
+      "is_default": 0,
+      "sort_order": 1,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 12:48:37",
+      "updated_at": "2026-11-05 12:48:37",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_a90c238d-9b9a-4e9e-882d-f9299e4ceabb",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "name": "海苔",
+      "price": 10,
+      "is_default": 0,
+      "sort_order": 2,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 12:48:37",
+      "updated_at": "2026-11-05 12:48:37",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_13d62530-a3c1-4594-b489-17a84df9c29b",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "name": "油條",
+      "price": 10,
+      "is_default": 0,
+      "sort_order": 3,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 12:48:37",
+      "updated_at": "2026-11-05 12:48:37",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_71b932f7-081f-4389-8490-07edf3a40d84",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "name": "肉鬆",
+      "price": 10,
+      "is_default": 0,
+      "sort_order": 4,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 12:48:37",
+      "updated_at": "2026-11-05 12:48:37",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_7432f334-eb26-442f-9e04-5624faed234f",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "name": "花生粉",
+      "price": 10,
+      "is_default": 0,
+      "sort_order": 5,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 12:48:37",
+      "updated_at": "2026-11-05 12:48:37",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_384aaa2c-82f8-420f-b430-eb216d95cef1",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "name": "滷蛋",
+      "price": 15,
+      "is_default": 0,
+      "sort_order": 0,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 13:36:28",
+      "updated_at": "2026-11-05 13:36:28",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_f13d746a-1011-4935-9cd6-801f8619b7eb",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "name": "皮蛋",
+      "price": 15,
+      "is_default": 0,
+      "sort_order": 1,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 13:36:28",
+      "updated_at": "2026-11-05 13:36:28",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_ec8302b0-0240-49fa-83d5-763b7b8b1b45",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "name": "鹹蛋",
+      "price": 15,
+      "is_default": 0,
+      "sort_order": 2,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 13:36:28",
+      "updated_at": "2026-11-05 13:36:28",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_989faa55-6628-41b7-bdf1-5d4ecfdae5d8",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "name": "鮪魚",
+      "price": 15,
+      "is_default": 0,
+      "sort_order": 3,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 13:36:28",
+      "updated_at": "2026-11-05 13:36:28",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_7f7321c5-9e2e-4b4d-9e0f-66113837efd8",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "name": "泡菜",
+      "price": 15,
+      "is_default": 0,
+      "sort_order": 4,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 13:36:28",
+      "updated_at": "2026-11-05 13:36:28",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_59ea44c0-55ce-4c0a-b587-4a1aa7c34525",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "name": "剝皮辣椒",
+      "price": 15,
+      "is_default": 0,
+      "sort_order": 5,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 13:36:28",
+      "updated_at": "2026-11-05 13:36:28",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_08979420-a12a-46e7-b0aa-f2d951558872",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "name": "不加菜脯",
+      "price": 0,
+      "is_default": 0,
+      "sort_order": 0,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 13:58:49",
+      "updated_at": "2026-11-05 13:58:49",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_bd84136f-83b6-43bf-8a09-779e26ac2501",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "name": "不加酸菜",
+      "price": 0,
+      "is_default": 0,
+      "sort_order": 1,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 13:58:49",
+      "updated_at": "2026-11-05 13:58:49",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_50d90a95-01fd-4eee-89b5-1d05e51499a2",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "name": "不加肉鬆",
+      "price": 0,
+      "is_default": 0,
+      "sort_order": 2,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 13:58:49",
+      "updated_at": "2026-11-05 13:58:49",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_5a6313be-3813-474d-b9b5-d6e165b470fe",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "name": "不加油條",
+      "price": 0,
+      "is_default": 0,
+      "sort_order": 3,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 13:58:49",
+      "updated_at": "2026-11-05 13:58:49",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_929d86a1-4a5f-4157-96b0-7b241c5acab2",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "name": "飯少一點",
+      "price": 0,
+      "is_default": 0,
+      "sort_order": 4,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 13:58:49",
+      "updated_at": "2026-11-05 13:58:49",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_df67c28a-4cc2-4985-9716-1fcc901dcbcd",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "name": "菜脯少一點",
+      "price": 0,
+      "is_default": 0,
+      "sort_order": 5,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 13:58:49",
+      "updated_at": "2026-11-05 13:58:49",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_1bcf7bc7-a55e-4573-9e71-349b7e80477f",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "name": "酸菜少一點",
+      "price": 0,
+      "is_default": 0,
+      "sort_order": 6,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 13:58:49",
+      "updated_at": "2026-11-05 13:58:49",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_21bb60d3-4bc9-4a79-913d-29e426a7e09b",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "name": "肉鬆少一點",
+      "price": 0,
+      "is_default": 0,
+      "sort_order": 7,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 13:58:49",
+      "updated_at": "2026-11-05 13:58:49",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_0a25e5fe-bd1b-4732-ba60-b251d20a87f5",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "name": "油條少一點",
+      "price": 0,
+      "is_default": 0,
+      "sort_order": 8,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 13:58:49",
+      "updated_at": "2026-11-05 13:58:49",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_59a1b854-9b47-46e3-a228-ee1c1fa4b9d2",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "name": "不加辣",
+      "price": 0,
+      "is_default": 0,
+      "sort_order": 0,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 16:38:47",
+      "updated_at": "2026-11-05 16:38:47",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_45fb96a7-fd44-4c84-ad4e-043fafe83d95",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "name": "小辣",
+      "price": 0,
+      "is_default": 0,
+      "sort_order": 1,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 16:38:47",
+      "updated_at": "2026-11-05 16:38:47",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_afee1279-a9ba-4cad-a457-55c64aba434c",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "name": "中辣",
+      "price": 0,
+      "is_default": 0,
+      "sort_order": 2,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 16:38:47",
+      "updated_at": "2026-11-05 16:38:47",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    },
+    {
+      "id": "dafobenwan_option_e6d84d2b-4f2c-448d-bc27-749ee6409e53",
+      "tenant_id": "dafobenwan",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "name": "大辣",
+      "price": 0,
+      "is_default": 0,
+      "sort_order": 3,
+      "out_of_stock_until": null,
+      "created_at": "2026-11-05 16:38:47",
+      "updated_at": "2026-11-05 16:38:47",
+      "sub_options_json": "[]",
+      "eligibility_rules_json": "[]",
+      "is_out_of_stock": 0,
+      "description": null,
+      "source_metadata_json": "{}",
+      "product_id": null,
+      "included_quantity": 1
+    }
+  ],
+  "item_modifier_links": [
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "dafobenwan_product_1c4128dc-9afa-4e01-ada5-c216d6878470",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "dafobenwan_product_1c4128dc-9afa-4e01-ada5-c216d6878470",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "dafobenwan_product_1c4128dc-9afa-4e01-ada5-c216d6878470",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "dafobenwan_product_1c4128dc-9afa-4e01-ada5-c216d6878470",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "dafobenwan_product_517287ec-09de-4cdc-b2a8-cebb89c0210a",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "dafobenwan_product_517287ec-09de-4cdc-b2a8-cebb89c0210a",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "dafobenwan_product_517287ec-09de-4cdc-b2a8-cebb89c0210a",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "dafobenwan_product_517287ec-09de-4cdc-b2a8-cebb89c0210a",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "dafobenwan_product_ecee875e-9044-488f-8c25-f3827a450851",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "dafobenwan_product_ecee875e-9044-488f-8c25-f3827a450851",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "dafobenwan_product_ecee875e-9044-488f-8c25-f3827a450851",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "dafobenwan_product_ecee875e-9044-488f-8c25-f3827a450851",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_01_l",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_01_l",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_01_l",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_01_l",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_01_l",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_01_s",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_01_s",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_01_s",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_01_s",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_01_s",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_02_l",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_02_l",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_02_l",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_02_l",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_02_l",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_02_s",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_02_s",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_02_s",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_02_s",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_02_s",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_03_l",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_03_l",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_03_l",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_03_l",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_03_l",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_03_s",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_03_s",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_03_s",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_03_s",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_pr_03_s",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_01",
+      "group_id": "mg_df_size",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_01",
+      "group_id": "mg_df_rice_type",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_01",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_01",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_01",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_01",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_01",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_02",
+      "group_id": "mg_df_size",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_02",
+      "group_id": "mg_df_rice_type",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_02",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_02",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_02",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_02",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_02",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_03",
+      "group_id": "mg_df_size",
+      "sort_order": 4,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_03",
+      "group_id": "mg_df_rice_type",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_03",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_03",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_03",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_03",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_03",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_04",
+      "group_id": "mg_df_size",
+      "sort_order": 4,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_04",
+      "group_id": "mg_df_rice_type",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_04",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_04",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_04",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_04",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_04",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_05",
+      "group_id": "mg_df_size",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_05",
+      "group_id": "mg_df_rice_type",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_05",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_05",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_05",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_05",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_05",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_06",
+      "group_id": "mg_df_size",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_06",
+      "group_id": "mg_df_rice_type",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_06",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_06",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_06",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_06",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_06",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_07",
+      "group_id": "mg_df_size",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_07",
+      "group_id": "mg_df_rice_type",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_07",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_07",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_07",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_07",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_07",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_08",
+      "group_id": "mg_df_size",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_08",
+      "group_id": "mg_df_rice_type",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_08",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_08",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_08",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_08",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_08",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_09",
+      "group_id": "mg_df_size",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_09",
+      "group_id": "mg_df_rice_type",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_09",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_09",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_09",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_09",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_09",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_10",
+      "group_id": "mg_df_size",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_10",
+      "group_id": "mg_df_rice_type",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_10",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_10",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_10",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_10",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_10",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_11",
+      "group_id": "mg_df_size",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_11",
+      "group_id": "mg_df_rice_type",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_11",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_11",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_11",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_11",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_11",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_12",
+      "group_id": "mg_df_size",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_12",
+      "group_id": "mg_df_rice_type",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_12",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_12",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_12",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_12",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_12",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_13",
+      "group_id": "mg_df_size",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_13",
+      "group_id": "mg_df_rice_type",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_13",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_13",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_13",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_13",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_13",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_14",
+      "group_id": "mg_df_size",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_14",
+      "group_id": "mg_df_rice_type",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_14",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_14",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_14",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_14",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_14",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_15",
+      "group_id": "mg_df_size",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_15",
+      "group_id": "mg_df_rice_type",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_15",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_15",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_15",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_15",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_15",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_16",
+      "group_id": "mg_df_size",
+      "sort_order": 4,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_16",
+      "group_id": "mg_df_rice_type",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_16",
+      "group_id": "dafobenwan_group_39fb3961-5d0a-4332-8391-fbb4f3a907ee",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_16",
+      "group_id": "dafobenwan_group_749e28e9-c058-49c0-a377-f319472f3f9b",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_16",
+      "group_id": "dafobenwan_group_856f5fd1-a0c7-4de5-8a37-a96f7c5070f9",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_16",
+      "group_id": "dafobenwan_group_181f9e0d-f093-424e-8f3f-e34d036bcc5a",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    },
+    {
+      "tenant_id": "dafobenwan",
+      "item_id": "df_rb_16",
+      "group_id": "dafobenwan_group_353adfd3-cd08-4a7a-ae24-3b8de4ad2aec",
+      "sort_order": 0,
+      "option_ids_json": null,
+      "is_disabled": 0
+    }
+  ],
+  "menu_catalog_revisions": [
+    {
+      "tenant_id": "dafobenwan",
+      "revision": 2887
+    }
+  ]
+}

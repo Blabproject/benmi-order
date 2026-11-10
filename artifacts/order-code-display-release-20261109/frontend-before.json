@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/css/staff-order.css?v=20261108_staff_counter_v8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title id="page-title">線上點餐</title>
+    <link rel="preload" href="/index.css?v=20261108_option_flicker_fix_v1" as="style">
+    <link rel="preload" href="/js/client-core.js?v=20261109_overnight_liff_v1" as="script">
+    <link rel="preload" href="/js/client-menu.js?v=20261109_item_images_v1" as="script">
+    <link rel="stylesheet" href="/index.css?v=20261108_option_flicker_fix_v1">
+    <style>html.tenant-resolution-failed body > :not(#tenant-resolution-error) { display: none !important; }</style>
+    <script>
+        try {
+            window.isStaffOrderMode = new URLSearchParams(location.search).get('mode') === 'staff';
+            if (window.isStaffOrderMode) document.documentElement.classList.add('staff-order-mode');
+        } catch (e) { }
+
+        // Redirect root visits on blabfood.app to /landing
+        try {
+            const h = window.location.hostname;
+            if ((h === 'blabfood.app' || h === 'www.blabfood.app') &&
+                (window.location.pathname === '/' || window.location.pathname === '/index.html') &&
+                !window.location.search && !window.location.hash) {
+                window.location.replace('/landing');
+            }
+        } catch (e) { }
+
+        function extractTenantId() {
+            try {
+                const searchParams = new URLSearchParams(window.location.search);
+                const orderPath = window.location.hostname === 'order.blabfood.app' && window.location.pathname.match(/^\/([a-zA-Z0-9_-]+)\/?$/);
+                if (orderPath) {
+                    const pathTenant = orderPath[1];
+                    const candidates = [...searchParams.getAll('tenant_id'), ...searchParams.getAll('tenant')];
+                    const state = searchParams.get('liff.state');
+                    if (state) {
+                        let decoded = state;
+                        try { decoded = decodeURIComponent(state); } catch (e) { }
+                        const stateParams = new URLSearchParams(decoded.includes('?') ? decoded.slice(decoded.indexOf('?') + 1).split('#')[0] : decoded);
+                        candidates.push(...stateParams.getAll('tenant_id'), ...stateParams.getAll('tenant'));
+                        const statePath = decoded.split('?')[0].match(/^\/([a-zA-Z0-9_-]+)\/?$/);
+                        if (statePath) candidates.push(statePath[1]);
+                    }
+                    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+                    candidates.push(hashParams.get('tenant_id'), hashParams.get('tenant'));
+                    if (candidates.some(value => value && value !== pathTenant)) {
+                        window.__TENANT_RESOLUTION_FAILED = true;
+                        return null;
+                    }
+                    return pathTenant;
+                }
+                const liffState = searchParams.get('liff.state');
+                if (liffState) {
+                    let decoded = liffState;
+                    try { decoded = decodeURIComponent(liffState); } catch (e) { }
+                    const queryPart = decoded.includes('?') ? decoded.split('?')[1] : decoded;
+                    const stateParams = new URLSearchParams(queryPart);
+                    if (stateParams.has('tenant_id') && stateParams.get('tenant_id')) return stateParams.get('tenant_id');
+                    if (stateParams.has('tenant') && stateParams.get('tenant')) return stateParams.get('tenant');
+                }
+
+                const queryTenant = searchParams.get('tenant_id') || searchParams.get('tenant');
+                if (queryTenant) {
+                    // Recover LINE's malformed endpoint-query concatenation:
+                    // ?tenant_id=storeA?tenant_id=storeB or ?tenant_id=storeA?liffClientId=...
+                    const matchNested = queryTenant.match(/[?&]tenant(?:_id)?=([a-zA-Z0-9_-]+)/);
+                    if (matchNested) return matchNested[1];
+                    const cleanSlug = queryTenant.split(/[?&#]/)[0];
+                    return cleanSlug || queryTenant;
+                }
+
+                if (window.location.hash) {
+                    const hashStr = window.location.hash.substring(1);
+                    const hashParams = new URLSearchParams(hashStr.includes('?') ? hashStr.split('?')[1] : hashStr);
+                    if (hashParams.has('tenant_id') && hashParams.get('tenant_id')) return hashParams.get('tenant_id');
+                    if (hashParams.has('tenant') && hashParams.get('tenant')) return hashParams.get('tenant');
+                }
+
+                const liffRedirectUri = searchParams.get('liffRedirectUri');
+                if (liffRedirectUri) {
+                    try {
+                        const redirectParams = new URL(liffRedirectUri, window.location.href).searchParams;
+                        if (redirectParams.get('tenant_id')) return redirectParams.get('tenant_id');
+                        if (redirectParams.get('tenant')) return redirectParams.get('tenant');
+                    } catch (e) { }
+                }
+
+                // A LINE login callback may omit the original query string. Only the
+                // tenant saved for this login attempt can be used to recover it.
+                if (searchParams.has('code') || searchParams.has('liffClientId') || searchParams.has('liffRedirectUri')) {
+                    const pendingTenant = sessionStorage.getItem('pending_line_login_tenant_id');
+                    if (pendingTenant) return pendingTenant;
+                    window.__TENANT_RESOLUTION_FAILED = true;
+                    return null;
+                }
+            } catch (e) {
+                const params = new URLSearchParams(window.location.search);
+                if (params.has('code') || params.has('liffClientId') || params.has('liffRedirectUri')) {
+                    window.__TENANT_RESOLUTION_FAILED = true;
+                    return null;
+                }
+            }
+            return "benmi";
+        }
+
+        // Early detection for edit order mode to prevent FOUC / flash of $0
+        (function () {
+            try {
+                let isEdit = false;
+                const sp = new URLSearchParams(window.location.search);
+                let mode = sp.get('mode');
+                if (mode === 'edit_order' || mode === 'edit') isEdit = true;
+
+                if (!isEdit && sp.has('liff.state')) {
+                    const liffState = decodeURIComponent(sp.get('liff.state') || '');
+                    const qPart = liffState.includes('?') ? liffState.split('?')[1] : liffState;
+                    const lp = new URLSearchParams(qPart);
+                    if (lp.get('mode') === 'edit_order' || lp.get('mode') === 'edit') isEdit = true;
+                }
+
+                if (!isEdit && window.location.hash) {
+                    const hRaw = decodeURIComponent(window.location.hash.substring(1));
+                    const hp = new URLSearchParams(hRaw.includes('?') ? hRaw.split('?')[1] : hRaw);
+                    if (hp.get('mode') === 'edit_order' || hp.get('mode') === 'edit') isEdit = true;
+                }
+
+                if (!isEdit && !window.isStaffOrderMode) {
+                    const savedKey = sessionStorage.getItem('benmi_edit_order_key');
+                    if (savedKey && !sp.has('table') && !sp.has('takeaway') && !sp.has('mode')) isEdit = true;
+                }
+
+                if (isEdit) {
+                    document.documentElement.classList.add('is-edit-order-loading');
+                }
+            } catch (e) { }
+        })();
+
+        (function () {
+            const tenantId = extractTenantId();
+            window.__INITIAL_TENANT_ID = tenantId;
+            if (window.__TENANT_RESOLUTION_FAILED) {
+                document.documentElement.classList.add('tenant-resolution-failed');
+            }
+            try {
+                if (tenantId) sessionStorage.setItem('current_tenant_id', tenantId);
+            } catch (e) { }
+            try {
+                const cached = localStorage.getItem("tenant_bootstrap_" + tenantId) || localStorage.getItem("tenant_branding_" + tenantId) || localStorage.getItem("tenant_theme_" + tenantId);
+                if (cached) {
+                    const t = JSON.parse(cached);
+                    const cachedTenant = t.tenant || t;
+                    const brand = !cachedTenant.id || cachedTenant.id === tenantId ? (cachedTenant.brandName || "") : "";
+                    if (brand) document.title = brand + " 點餐";
+                } else if (tenantId === "benmi") {
+                    document.title = "Benmi 點餐";
+                } else {
+                    document.title = "線上點餐";
+                }
+            } catch (e) { }
+        })();
+    </script>
+<link rel="stylesheet" href="/css/client-option-groups.css?v=20261108_option_flicker_fix_v1">
+  <link rel="stylesheet" href="/css/payments.css?v=20261103_payment_section_top_v1">
+</head>
+
+<body>
+    <div id="tenant-resolution-error" style="display: none; max-width: 420px; margin: 15vh auto; padding: 24px; text-align: center; font-family: sans-serif;">
+        <h1 style="font-size: 22px;">無法確認店家</h1>
+        <p style="line-height: 1.7;">請返回原本的店家連結，再次開啟並登入 LINE。</p>
+    </div>
+    <!-- Edit Order Loading Overlay (Prevents $0 / Empty Cart FOUC) -->
+    <div id="edit-order-loading-overlay" class="edit-order-loading-overlay">
+        <div class="edit-order-loading-card">
+            <div class="edit-order-spinner"></div>
+            <div class="edit-order-loading-title">正在載入訂單內容</div>
+            <div class="edit-order-loading-sub">正在確認剩餘餐點與金額，請稍候...</div>
+        </div>
+    </div>
+
+    <div id="desktop-auth-bar" class="desktop-auth-bar" style="display: none;">
+        <div class="desktop-auth-inner">
+            <div class="desktop-auth-user" id="desktop-auth-logged-in" style="display: none;">
+                <img id="desktop-user-avatar" src="" alt="Avatar" class="desktop-user-avatar" style="display: none;">
+                <div id="desktop-user-placeholder-icon" class="desktop-user-placeholder">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </div>
+                <span id="desktop-user-name" class="desktop-user-name">顧客</span>
+                <span class="desktop-auth-badge">已登入</span>
+            </div>
+            <div class="desktop-auth-prompt" id="desktop-auth-logged-out" style="display: flex;">
+                <span class="desktop-auth-text">請先登入 LINE 帳號以開始選購餐點</span>
+                <button type="button" class="btn-line-login" onclick="triggerDesktopLineLogin()">
+                    <svg class="line-btn-svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.121.303.079.778.039 1.085l-.171 1.027c-.053.303-.242 1.186 1.039.647 1.281-.54 6.911-4.069 9.428-6.967 1.739-1.907 2.572-3.843 2.572-5.992z" />
+                    </svg>
+                    <span>LINE 帳號登入</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="store-header" id="store-header-box">
+        <div class="store-header-top">
+            <div class="store-logo-wrapper" id="store-logo-wrapper" style="display: none;">
+                <img id="store-logo" src="" alt="Logo" class="store-logo">
+            </div>
+            <div class="store-info">
+                <h1 class="store-name" id="store-name"></h1>
+                <p class="store-subtitle" id="store-subtitle"></p>
+            </div>
+            <div class="store-status-wrapper">
+                <div id="store-status" class="store-status" style="display: none;">營業中</div>
+                <div id="waiting-counter-badge" class="waiting-badge" style="display: none;"></div>
+            </div>
+        </div>
+        <div class="store-details">
+            <div class="store-detail-row" id="store-address-row"
+                style="display: none; align-items: flex-start; gap: 8px;">
+                <svg class="detail-svg-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444"
+                    stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+                    style="flex-shrink: 0; margin-top: 3px;">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                <span id="store-address"
+                    style="font-size: 15.5px; font-weight: 500; color: #374151; line-height: 1.4; white-space: pre-line; word-break: break-word; flex: 1;"></span>
+            </div>
+            <div class="store-detail-row store-hours-row" id="store-hours-row" onclick="toggleStoreHours(event)"
+                style="cursor: pointer; display: none;">
+                <div style="flex: 1; min-width: 0;">
+                    <div class="store-hours-toggle"
+                        style="display: flex; align-items: center; justify-content: space-between; user-select: none; gap: 8px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 7px; flex-wrap: wrap;">
+                            <svg class="detail-svg-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                stroke="#4b5563" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+                                style="flex-shrink: 0;">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            <span
+                                style="font-weight: 700; color: #111; font-size: 15.5px; line-height: 1.4;">營業時間</span>
+                            <span id="hours-today-preview"
+                                style="font-size: 14px; font-weight: 600; color: #059669; background: #f0fdf4; padding: 2px 8px; border-radius: 6px; border: 1px solid #bbf7d0; line-height: 1.4;">載入中...</span>
+                        </div>
+                        <div id="hours-toggle-btn" class="hours-toggle-btn">
+                            <span id="hours-toggle-text">展開</span>
+                            <svg id="hours-arrow-icon" class="hours-arrow-icon" width="14" height="14"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="time-block" id="store-hours-display"
+                        style="display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e2e8f0; font-size: 14.5px; line-height: 1.6; color: #374151; padding-left: 23px;">
+                    </div>
+                </div>
+            </div>
+            <div class="store-detail-row" id="store-announcement-row"
+                style="display: none; align-items: flex-start; gap: 8px;">
+                <svg class="detail-svg-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4b5563"
+                    stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+                    style="flex-shrink: 0; margin-top: 3px;">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <span id="store-announcement"
+                    style="font-size: 15.5px; font-weight: 500; color: #374151; line-height: 1.4; word-break: break-word; flex: 1;"></span>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function () {
+            const tenantId = window.__INITIAL_TENANT_ID || (typeof extractTenantId === 'function' ? extractTenantId() : "benmi");
+            const BENMI_DEFAULT_THEME = {
+                brandName: "本米",
+                brandSubtitle: "Bánh mì Việt Nam<br>越式法國麵包",
+                storeAddress: "新北市土城區中央路二段135號",
+                logoUrl: "./benmi_logo.png"
+            };
+
+            let theme = null;
+            try {
+                const rawBootstrap = localStorage.getItem("tenant_bootstrap_" + tenantId);
+                if (rawBootstrap) {
+                    const parsed = JSON.parse(rawBootstrap);
+                    if (parsed?.tenant?.id === tenantId) theme = parsed.tenant;
+                }
+                if (!theme) {
+                    const rawTheme = localStorage.getItem("tenant_theme_" + tenantId);
+                    if (rawTheme) {
+                        const parsedTheme = JSON.parse(rawTheme);
+                        if (!parsedTheme.id || parsedTheme.id === tenantId) theme = parsedTheme;
+                    }
+                }
+            } catch (e) { }
+
+            // Only Benmi tenant falls back to hardcoded Benmi theme. Other tenants show neutral clean placeholder!
+            if (!theme && tenantId === "benmi") {
+                theme = BENMI_DEFAULT_THEME;
+            }
+
+            if (theme) {
+                document.title = (theme.brandName || "點餐系統") + " 點餐";
+                const pageTitle = document.getElementById("page-title");
+                if (pageTitle) pageTitle.innerText = (theme.brandName || "點餐系統") + " 點餐";
+
+                const nameEl = document.getElementById("store-name");
+                if (nameEl && theme.brandName) nameEl.innerText = theme.brandName;
+
+                const subEl = document.getElementById("store-subtitle");
+                if (subEl && theme.brandSubtitle) subEl.innerHTML = theme.brandSubtitle.replace(/\n/g, "<br>");
+
+                const addrEl = document.getElementById("store-address");
+                const addrRow = document.getElementById("store-address-row");
+                if (addrEl && theme.storeAddress) {
+                    addrEl.innerText = theme.storeAddress;
+                    if (addrRow) addrRow.style.display = "flex";
+                }
+
+                const logoEl = document.getElementById("store-logo");
+                const logoWrapper = document.getElementById("store-logo-wrapper");
+                if (logoEl && theme.logoUrl) {
+                    logoEl.src = theme.logoUrl;
+                    if (logoWrapper) logoWrapper.style.display = "flex";
+                }
+
+                const statusEl = document.getElementById("store-status");
+                if (statusEl) statusEl.style.display = "block";
+
+                const hoursRow = document.getElementById("store-hours-row");
+                if (hoursRow) hoursRow.style.display = "flex";
+                const todayPreviewEl = document.getElementById("hours-today-preview");
+                if (todayPreviewEl) {
+                    try {
+                        const hrs = theme.parsedHours || (typeof theme.operatingHours === 'string' ? JSON.parse(theme.operatingHours) : theme.operatingHours);
+                        if (hrs) {
+                            const todayDay = new Date().getDay();
+                            const todayShifts = hrs[todayDay] || [];
+                            if (todayShifts.length > 0) {
+                                const formatShift = (s) => {
+                                    if (!s || !s.start || !s.end) return "";
+                                    const [sh, sm] = (s.start || "0:0").split(":").map(Number);
+                                    const [eh, em] = (s.end || "0:0").split(":").map(Number);
+                                    const isOvernight = (eh * 60 + (em || 0)) <= (sh * 60 + (sm || 0));
+                                    const nextTag = isOvernight ? '<span style="font-size: 11px; background: #eff6ff; color: #2563eb; padding: 1px 5px; border-radius: 4px; font-weight: 800; border: 1px solid #bfdbfe; margin-right: 3px; vertical-align: middle;">隔日</span>' : '';
+                                    return `${s.start} - ${nextTag}${s.end}`;
+                                };
+                                todayPreviewEl.innerHTML = `今日 <strong style="color: #111827;">${todayShifts.map(formatShift).filter(Boolean).join(", ")}</strong>`;
+                            } else {
+                                todayPreviewEl.innerHTML = `<strong style="color: #dc2626;">今日公休</strong>`;
+                                todayPreviewEl.style.background = '#fef2f2';
+                                todayPreviewEl.style.color = '#dc2626';
+                                todayPreviewEl.style.borderColor = '#fca5a5';
+                            }
+                        }
+                    } catch (e) { }
+                }
+
+                const annEl = document.getElementById("store-announcement");
+                const annRow = document.getElementById("store-announcement-row");
+                if (annEl && theme.announcement) {
+                    annEl.innerText = theme.announcement;
+                    if (annRow) annRow.style.display = "flex";
+                }
+            } else {
+                // Neutral clean state for new tenants: Never show Benmi!
+                const nameEl = document.getElementById("store-name");
+                if (nameEl) nameEl.innerText = "線上點餐";
+            }
+        })();
+    </script>
+
+    <!-- Page Body Wrapper (Blurred on desktop when guest) -->
+    <div id="page-body-content" class="page-body-content">
+        <!-- Dine-In Append Mode Banner -->
+        <div id="append-mode-banner" class="append-mode-banner" style="display: none;">
+            <div
+                style="width: 34px; height: 34px; border-radius: 10px; background: rgba(255,255,255,0.22); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="16"></line>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                </svg>
+            </div>
+            <div style="flex: 1;">
+                <div id="append-mode-title" style="font-weight: 900; font-size: 15px; letter-spacing: 0.2px;">正在加點餐點
+                </div>
+                <div id="append-mode-desc"
+                    style="font-size: 13px; color: #ede9fe; margin-top: 2px; font-weight: 600; line-height: 1.4;">正在為
+                    <strong id="append-mode-table">-</strong> (<span id="append-mode-key">#-</span>) 加點</div>
+            </div>
+            <button type="button" onclick="cancelAppendMode()"
+                style="background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.45); color: #fff; padding: 5px 10px; border-radius: 8px; font-size: 12.5px; font-weight: 800; cursor: pointer; white-space: nowrap; transition: all 0.15s ease;">
+                ✕ 建立新單
+            </button>
+        </div>
+
+        <!-- Table QR Order Banner (Fresh Table Order) -->
+        <div id="table-order-banner" class="table-order-banner" style="display: none;">
+            <div style="width: 34px; height: 34px; border-radius: 10px; background: #dcfce7; color: #15803d; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid #bbf7d0;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="3" y1="9" x2="21" y2="9"></line>
+                    <line x1="9" y1="21" x2="9" y2="9"></line>
+                </svg>
+            </div>
+            <div style="flex: 1;">
+                <div style="font-weight: 900; font-size: 15px; color: #166534; letter-spacing: 0.2px;">
+                    內用桌號：<strong id="table-order-banner-label" style="font-weight: 1000; color: #15803d;">-</strong>
+                </div>
+                <div style="font-size: 12.5px; color: #166534; margin-top: 2px; font-weight: 600; line-height: 1.4;">
+                    掃碼點餐專屬通道，餐點將送至您的座位
+                </div>
+            </div>
+        </div>
+
+        <!-- Sold Out Edit Order Mode Banner -->
+        <div id="edit-order-mode-banner" class="edit-order-mode-banner" style="display: none;">
+            <div
+                style="width: 34px; height: 34px; border-radius: 10px; background: rgba(255,255,255,0.22); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+            </div>
+            <div style="flex: 1;">
+                <div id="edit-order-mode-title" style="font-weight: 900; font-size: 15px; letter-spacing: 0.2px;">
+                    已移除售完餐點</div>
+                <div id="edit-order-mode-desc"
+                    style="font-size: 13px; color: #fef3c7; margin-top: 2px; font-weight: 600; line-height: 1.4;">
+                    訂單 <strong id="edit-order-mode-key">#-</strong> 部分品項售完，請直接調整購物車更換餐點
+                </div>
+            </div>
+        </div>
+
+        <!-- Store Status Dynamic Alert Banners -->
+        <div id="store-paused-banner" class="store-alert-banner paused" style="display: none;">
+            <div
+                style="width: 36px; height: 36px; border-radius: 10px; background: #fee2e2; border: 1px solid #fecaca; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #dc2626;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                </svg>
+            </div>
+            <div style="flex: 1;">
+                <div style="font-weight: 900; font-size: 15px; letter-spacing: 0.2px; color: #991b1b;">店家目前暫停接單中</div>
+                <div style="font-size: 13px; color: #b91c1c; margin-top: 2px; font-weight: 600; line-height: 1.45;">
+                    目前門市暫不接受新訂單，敬請見諒！</div>
+            </div>
+        </div>
+
+        <div id="store-busy-banner" class="store-alert-banner busy" style="display: none;">
+            <div
+                style="width: 36px; height: 36px; border-radius: 10px; background: #fef3c7; border: 1px solid #fde68a; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #d97706;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+            </div>
+            <div style="flex: 1;">
+                <div style="font-weight: 900; font-size: 15px; letter-spacing: 0.2px; color: #92400e;">門市繁忙中（製作時間 +1 小時）
+                </div>
+                <div style="font-size: 13px; color: #b45309; margin-top: 2px; font-weight: 600; line-height: 1.45;">
+                    現場訂單較多，新訂單取餐時間預計延長 1 小時，感謝您的體諒！</div>
+            </div>
+        </div>
+
+        <!-- Dining Option Switcher (Uber Eats style Segmented Control) -->
+        <div id="dining-option-wrapper" class="dining-option-wrapper" style="display: none;">
+            <div class="dining-segmented-control" role="tablist">
+                <button type="button" class="dining-seg-btn active" id="btn-dining-takeaway" role="tab"
+                    aria-selected="true" onclick="setCustomerDiningOption('takeaway')">
+                    <svg class="dining-seg-svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                        <path d="M3 6h18"></path>
+                        <path d="M16 10a4 4 0 0 1-8 0"></path>
+                    </svg>
+                    <span class="dining-seg-text">外帶自取</span>
+                </button>
+                <button type="button" class="dining-seg-btn" id="btn-dining-dinein" role="tab" aria-selected="false"
+                    onclick="setCustomerDiningOption('dine_in')">
+                    <svg class="dining-seg-svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"></path>
+                        <path d="M15 2v10"></path>
+                        <path d="M15 14v8"></path>
+                        <path d="M6 2v20"></path>
+                        <path d="M6 2a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3"></path>
+                    </svg>
+                    <span class="dining-seg-text">店內用餐</span>
+                </button>
+            </div>
+        </div>
+
+        <nav class="sticky-nav" id="main-nav">
+            <div class="skeleton-shimmer skeleton-nav-pill"></div>
+            <div class="skeleton-shimmer skeleton-nav-pill"></div>
+            <div class="skeleton-shimmer skeleton-nav-pill"></div>
+            <div class="skeleton-shimmer skeleton-nav-pill"></div>
+        </nav>
+
+        <div class="container main-order-layout">
+            <!-- Left Column: Menu Catalog & Customizations -->
+            <div class="menu-catalog-col">
+                <!-- Catalog Container with Guest Lock Wrapper -->
+                <div class="catalog-sections-wrapper" id="catalog-sections-wrapper">
+                    <div id="catalog-sections">
+                        <div id="catalog-skeleton" style="padding-top: 4px;">
+                            <div class="skeleton-shimmer"
+                                style="width: 110px; height: 22px; border-radius: 6px; margin-bottom: 12px;"></div>
+                            <div class="skeleton-card">
+                                <div class="skeleton-card-left">
+                                    <div class="skeleton-shimmer skeleton-title"></div>
+                                    <div class="skeleton-shimmer skeleton-subtitle"></div>
+                                    <div class="skeleton-shimmer skeleton-price"></div>
+                                </div>
+                                <div class="skeleton-shimmer skeleton-img"></div>
+                            </div>
+                            <div class="skeleton-card">
+                                <div class="skeleton-card-left">
+                                    <div class="skeleton-shimmer skeleton-title"></div>
+                                    <div class="skeleton-shimmer skeleton-subtitle"></div>
+                                    <div class="skeleton-shimmer skeleton-price"></div>
+                                </div>
+                                <div class="skeleton-shimmer skeleton-img"></div>
+                            </div>
+                            <div class="skeleton-card">
+                                <div class="skeleton-card-left">
+                                    <div class="skeleton-shimmer skeleton-title" style="width: 50%;"></div>
+                                    <div class="skeleton-shimmer skeleton-subtitle" style="width: 30%;"></div>
+                                    <div class="skeleton-shimmer skeleton-price"></div>
+                                </div>
+                                <div class="skeleton-shimmer skeleton-img"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Click Interceptor Layer for Desktop Guest Users -->
+                    <div id="catalog-locked-click-layer" class="catalog-locked-click-layer" style="display: none;"
+                        onclick="triggerDesktopLineLogin()"></div>
+                </div>
+            </div>
+
+            <!-- Right Column: Sticky Checkout Sidebar on Desktop -->
+            <div class="checkout-sidebar-col">
+                <div class="section-container checkout-sidebar-card" id="sec-checkout">
+                    <div id="checkout-payment-method"></div>
+                    <!-- 1. Cart Summary -->
+                    <div class="section-title checkout-section-title">
+                        <svg class="section-title-svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                            <path d="M3 6h18"></path>
+                            <path d="M16 10a4 4 0 0 1-8 0"></path>
+                        </svg>
+                        <span>購物車清單</span>
+                    </div>
+                    <div id="cart-summary"
+                        style="margin-bottom: 12px; padding: 14px 16px; background: #fff; border-radius: 14px; border: 1px solid #f1f5f9; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02); font-size: 15px; color: #334155;">
+                        <div style="text-align:center; color:#9ca3af;">(目前沒有已選商品)</div>
+                    </div>
+
+                    <!-- 2. Dining Option in Checkout (Synchronized with top switcher) -->
+                    <div class="input-group" id="checkout-dining-option-group" style="display: none;">
+                        <label
+                            style="font-weight: 800; color: #111827; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; font-size: 15.5px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                            <span>用餐方式</span>
+                        </label>
+                        <div class="dining-segmented-control" style="margin-bottom: 14px;">
+                            <button type="button" class="dining-seg-btn active" id="checkout-btn-takeaway"
+                                onclick="setCustomerDiningOption('takeaway')">
+                                <svg class="dining-seg-svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                                    <path d="M3 6h18"></path>
+                                    <path d="M16 10a4 4 0 0 1-8 0"></path>
+                                </svg>
+                                <span class="dining-seg-text">外帶自取</span>
+                            </button>
+                            <button type="button" class="dining-seg-btn" id="checkout-btn-dinein"
+                                onclick="setCustomerDiningOption('dine_in')">
+                                <svg class="dining-seg-svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"></path>
+                                    <path d="M15 2v10"></path>
+                                    <path d="M15 14v8"></path>
+                                    <path d="M6 2v20"></path>
+                                    <path d="M6 2a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3"></path>
+                                </svg>
+                                <span class="dining-seg-text">店內用餐</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="pickup-time-section">
+                        <div class="section-title checkout-section-title" id="pickup-time-section-title">
+                            <svg class="section-title-svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            <span id="pickup-time-title-text">取餐時間</span>
+                        </div>
+
+                        <!-- Dine-In Table Number Input -->
+                        <div class="input-group" id="dinein-table-input-group"
+                            style="display: none; margin-bottom: 14px;">
+                            <label
+                                style="font-weight: 800; color: #5b21b6; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+                                <span style="display: flex; align-items: center; gap: 6px;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="3" y1="9" x2="21" y2="9"></line>
+                                        <line x1="9" y1="21" x2="9" y2="9"></line>
+                                    </svg>
+                                    <span>用餐桌號</span>
+                                </span>
+                                <span
+                                    style="font-size: 11px; background: #ede9fe; color: #6d28d9; padding: 2px 8px; border-radius: 6px; font-weight: 800;">必填
+                                    (送餐依據)</span>
+                            </label>
+                            <input type="text" id="dinein-table-number" placeholder="請輸入桌號 (例如: 1, 05, A2, B3...)"
+                                maxlength="20"
+                                style="width: 100%; box-sizing: border-box; padding: 12px 14px; font-size: 16px; font-weight: 700; border-radius: 10px; border: 2px solid #c4b5fd; background: #fff; color: #1e1b4b;"
+                                autocomplete="off">
+                        </div>
+
+                        <div class="input-group" id="pickup-time-picker-group">
+                            <label
+                                style="font-weight: 800; color: var(--primary); display: flex; align-items: center; justify-content: space-between;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                    </svg>
+                                    <span>預計取餐時間</span>
+                                </div>
+                                <span style="font-size: 11px; font-weight: 700; color: var(--primary); background: #f0fdf4; border: 1px solid #bbf7d0; padding: 2px 8px; border-radius: 99px;">點擊修改</span>
+                            </label>
+
+                            <!-- Modern Clickable Trigger Card (Replaces clumsy native input) -->
+                            <div class="pickup-time-trigger-card" id="pickup-time-trigger" onclick="openPickupTimeModal()" role="button" tabindex="0" aria-label="選擇取餐時間">
+                                <div class="pickup-trigger-left">
+                                    <div class="pickup-trigger-icon-box">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="pickup-trigger-text">
+                                        <div class="pickup-trigger-primary" id="pickup-trigger-display-time">最快取餐 (店家即刻製作)</div>
+                                        <div class="pickup-trigger-secondary" id="pickup-trigger-display-date">今日取餐 · 點擊更改時間</div>
+                                    </div>
+                                </div>
+                                <div class="pickup-trigger-chevron">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="9 18 15 12 9 6"></polyline>
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <!-- Keep native inputs visually hidden for 100% downstream, submitOrder & test compatibility -->
+                            <div style="position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;">
+                                <input type="date" id="pickup-date" autocomplete="off" onchange="window.isPickupTimeManuallyChanged=true">
+                                <input type="time" id="pickup-time" autocomplete="off" onchange="window.isPickupTimeManuallyChanged=true">
+                            </div>
+                            <script>
+                                try {
+                                    const _twToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date());
+                                    const _dEl = document.getElementById('pickup-date');
+                                    if (_dEl) { _dEl.min = _twToday; if (!_dEl.value) _dEl.value = _twToday; }
+                                } catch (e) { }
+                            </script>
+                        </div>
+                        <!-- Dine-In Real-time notice -->
+                        <div id="pickup-time-dinein-notice"
+                            style="display:none; padding: 14px 16px; background: #f5f3ff; border: 1.5px solid #c4b5fd; border-radius: 14px; color: #5b21b6; margin-bottom: 12px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                <div
+                                    style="display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 16px;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed"
+                                        stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"></path>
+                                        <path d="M15 2v10"></path>
+                                        <path d="M15 14v8"></path>
+                                        <path d="M6 2v20"></path>
+                                        <path d="M6 2a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3"></path>
+                                    </svg>
+                                    <span>現場內用・即時製作</span>
+                                </div>
+                                <span
+                                    style="font-size: 12px; background: #ede9fe; color: #6d28d9; padding: 3px 10px; border-radius: 99px; font-weight: 800;">現點現做</span>
+                            </div>
+                            <div
+                                style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #c4b5fd; display: flex; align-items: center; justify-content: space-between; font-size: 15px;">
+                                <span style="color: #5b21b6; font-weight: 700;">點餐時間：</span>
+                                <span id="dinein-current-time"
+                                    style="font-weight: 900; color: #5b21b6; font-size: 16px; font-family: ui-monospace, monospace;">-</span>
+                            </div>
+                            <div
+                                style="margin-top: 6px; font-size: 12px; color: #6d28d9; font-weight: 600; line-height: 1.45;">
+                                ※ 訂單送出後廚房將立即依照排單順序為您製作，出餐時請留意叫號或您的取餐號碼。
+                            </div>
+                        </div>
+                        <div id="pickup-time-asap-notice"
+                            style="display:none; padding: 14px 16px; background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 14px; color: #166534; margin-bottom: 12px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                <div
+                                    style="display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 16px;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a"
+                                        stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                                    </svg>
+                                    <span>即時排隊製作模式</span>
+                                </div>
+                                <span
+                                    style="font-size: 12px; background: #dcfce7; color: #15803d; padding: 3px 10px; border-radius: 99px; font-weight: 800;">現場排單</span>
+                            </div>
+                            <div
+                                style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #86efac; display: flex; align-items: center; justify-content: space-between; font-size: 15px;">
+                                <span style="color: #374151; font-weight: 700;">預計下單時間：</span>
+                                <span id="asap-current-time"
+                                    style="font-weight: 900; color: #15803d; font-size: 16px; font-family: ui-monospace, monospace;">-</span>
+                            </div>
+                            <div
+                                style="margin-top: 6px; font-size: 12px; color: #4b5563; font-weight: 600; line-height: 1.4;">
+                                ※ 訂單送出後將以當前時間排單，門市人員會依序儘速為您新鮮現做。
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-title checkout-section-title">
+                        <svg class="section-title-svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <line x1="10" y1="9" x2="8" y2="9"></line>
+                        </svg>
+                        <span>其他要求</span>
+                    </div>
+                    <div class="input-group">
+                        <textarea id="note" rows="3" placeholder="請填寫您的備注"></textarea>
+                    </div>
+
+                    <!-- Subtle & Professional Powered by Blab Footer -->
+                    <div class="powered-by-blab-wrap"
+                        style="text-align: center; margin: 22px auto 12px; padding: 0 10px;">
+                        <a href="https://blabfood.app" target="_blank" class="powered-by-blab-link"
+                            style="display: inline-flex; align-items: center; gap: 7px; text-decoration: none; padding: 7px 16px; border-radius: 999px; background: rgba(0, 0, 0, 0.03); border: 1px solid rgba(0, 0, 0, 0.06); font-size: 13.5px; color: #64748b; font-weight: 500;">
+                            <span style="color: #94a3b8; font-size: 13px;">Powered by</span>
+                            <img src="/blab_icon.png" alt="BLAB"
+                                style="height: 20px; width: 20px; object-fit: contain; vertical-align: middle; mix-blend-mode: multiply;">
+                            <span
+                                style="font-weight: 800; color: #1e293b; font-size: 13.5px; letter-spacing: 0.5px;">BLAB</span>
+                            <span style="color: #cbd5e1; font-size: 11px;">•</span>
+                            <span style="color: #64748b; font-size: 12.5px; font-weight: 500;">LINE 智慧點餐系統 ↗</span>
+                        </a>
+                    </div>
+
+                    <!-- Desktop Direct Action Box (Total + Submit Button) -->
+                    <div class="desktop-sidebar-submit-wrap">
+                        <div class="desktop-sidebar-total-row">
+                            <div class="desktop-sidebar-price">$<span id="desktop-total-price">0</span></div>
+                        </div>
+                        <p id="checkout-empty-cart-hint" class="checkout-empty-cart-hint" hidden></p>
+                        <button type="button" class="btn-desktop-submit" id="btn-desktop-submit"
+                            onclick="submitOrder()">
+                            <span>確認下單</span>
+                        </button>
+                    </div>
+                </div><!-- /checkout-sidebar-card -->
+            </div><!-- /checkout-sidebar-col -->
+        </div><!-- /container -->
+
+        <div class="footer">
+            <div class="footer-inner">
+                <div class="total-wrap" onclick="scrollToSec('sec-checkout')">
+                    <div class="footer-cart-icon-wrap"
+                        style="position: relative; display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; background: rgba(0,0,0,0.06); border-radius: 12px; color: #1e293b;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                            <path d="M3 6h18"></path>
+                            <path d="M16 10a4 4 0 0 1-8 0"></path>
+                        </svg>
+                        <span id="cart-badge"
+                            style="display:none; position:absolute; top:-5px; right:-5px; background:var(--red); color:#fff; font-size:12px; font-weight:900; border-radius:99px; padding: 2px 7px; min-width:18px; text-align:center; box-shadow: 0 2px 5px rgba(239,68,68,0.4);">0</span>
+                    </div>
+                    <span class="total-price">$<span id="total-price">0</span></span>
+                </div>
+                <button class="btn-send" id="btn-submit" onclick="handleFooterAction()">
+                    <span>前往結帳</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                        stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px;">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div><!-- /page-body-content -->
+
+    <div id="custom-alert" class="custom-alert-overlay">
+        <div class="custom-alert-box">
+            <div class="custom-alert-header">提醒</div>
+            <div id="custom-alert-message" class="custom-alert-body"></div>
+            <button class="custom-alert-btn" onclick="closeCustomAlert()">確定</button>
+        </div>
+    </div>
+
+    <div id="image-lightbox" class="custom-alert-overlay" style="display:none; z-index: 2000;"
+        onclick="closeImageLightbox()">
+        <img id="lightbox-img" src=""
+            style="max-width: 90%; max-height: 90%; border-radius: 16px; object-fit: contain; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+    </div>
+
+    <!-- Desktop Mobile-Only QR Code Modal -->
+    <div id="desktop-qr-modal" class="custom-alert-overlay" style="display:none; z-index: 2500;">
+        <div class="custom-alert-box" style="max-width: 380px; text-align: center; padding: 24px 20px;">
+            <div style="font-size: 20px; font-weight: 900; color: #1e293b; margin-bottom: 8px;">請使用手機 LINE 掃碼點餐</div>
+            <div style="font-size: 14px; color: #64748b; margin-bottom: 18px; line-height: 1.5;">
+                為了確保能即時接收製作進度通知與優惠，本門市僅支援手機 LINE 點餐。
+            </div>
+            <div id="desktop-qr-container" style="display: flex; justify-content: center; margin-bottom: 16px;">
+                <img id="desktop-qr-img" src="" alt="QR Code"
+                    style="width: 180px; height: 180px; border-radius: 12px; border: 1px solid #e2e8f0; padding: 6px; background: #fff;">
+            </div>
+            <button class="custom-alert-btn" onclick="closeDesktopQrModal()"
+                style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">關閉</button>
+        </div>
+    </div>
+
+    <!-- Universal Mobile-First Bundle Builder Modal -->
+    <div id="bundle-builder-modal" class="custom-alert-overlay" style="display:none; z-index: 2600;"
+        onclick="if(event.target===this)closeBundleBuilderModal()">
+        <div class="bundle-modal-sheet" onclick="event.stopPropagation()">
+            <!-- Drag Handle for Mobile Ergonomics -->
+            <div class="bundle-drag-handle-bar"></div>
+
+            <!-- Sheet Header -->
+            <div class="bundle-sheet-header">
+                <div style="flex: 1; padding-right: 12px; min-width: 0;">
+                    <div id="bundle-modal-item-name" class="bundle-header-title">套餐名稱</div>
+                    <div id="bundle-modal-group-name" class="bundle-header-subtitle">
+                        <span id="bundle-modal-group-label"><span id="bundle-modal-prompt-text">請選擇配菜</span></span>
+                        <span class="bundle-header-dot">·</span>
+                        <span>已選 <strong id="bundle-modal-current-count">0</strong>/<span
+                                id="bundle-modal-max-count">6</span> 樣</span>
+                        <span id="bundle-quota-badge" class="bundle-quota-badge" style="display: none;">已選滿</span>
+                    </div>
+                    <!-- Animated Progress Bar -->
+                    <div class="bundle-progress-track">
+                        <div id="bundle-progress-fill" class="bundle-progress-fill" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <button type="button" class="bundle-close-btn" onclick="closeBundleBuilderModal()" aria-label="關閉">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Category Filter Tabs & Navigation -->
+            <div id="bundle-step-nav" class="bundle-v2-step-nav"></div>
+            <button type="button" id="bundle-refresh-prices" class="bundle-v2-copy" onclick="bundleRefreshPrices()" style="display:none">價格已變更，查看並套用新價格</button>
+            <button type="button" id="bundle-copy-previous" class="bundle-v2-copy" onclick="bundleCopyPrevious()" style="display:none">與上一份相同</button>
+            <div id="bundle-cat-tabs" class="bundle-cat-tabs-row">
+            </div>
+
+            <!-- Items List Scroll Area -->
+            <div class="bundle-items-scroll-list">
+                <div id="bundle-items-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                <!-- Unified Modifiers/Addons Section (Zero Delay) -->
+                <div id="bundle-addons-container"
+                    style="display: none; margin-top: 14px; padding-top: 14px; border-top: 1.5px dashed #e2e8f0;"></div>
+            </div>
+            <div id="bundle-modifier-editor" class="bundle-v2-mod-overlay" style="display:none"></div>
+
+            <!-- Bottom Sticky Confirmation Bar -->
+            <div class="bundle-sheet-footer">
+                <button id="bundle-confirm-btn" type="button" class="bundle-confirm-btn pending"
+                    onclick="confirmBundleSelection()" disabled>
+                    還需選擇 6 樣配菜
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Universal Mobile-First Pickup Time Picker Bottom Sheet (Phương án 1) -->
+    <div id="pickup-time-modal" class="pickup-time-modal" style="display:none;" onclick="if(event.target===this)closePickupTimeModal()">
+        <div class="pickup-time-sheet" onclick="event.stopPropagation()">
+            <div class="pickup-sheet-handle"></div>
+            <div class="pickup-sheet-header">
+                <div class="pickup-sheet-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span>選擇取餐時間</span>
+                </div>
+                <button type="button" class="pickup-sheet-close" onclick="closePickupTimeModal()" aria-label="關閉">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="pickup-sheet-body">
+                <!-- Date Selector Tabs (Today, Tomorrow, Day+2, ... 7 days + More) -->
+                <div class="pickup-date-tabs" id="pickup-date-tabs"></div>
+                <input type="date" id="pickup-custom-date-picker" style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;" tabindex="-1">
+
+                <!-- ASAP Quick Option Card -->
+                <div class="pickup-asap-card" id="pickup-asap-card" onclick="selectPickupAsap()">
+                    <div class="pickup-asap-left">
+                        <div class="pickup-asap-badge">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                            </svg>
+                            <span>最快取餐</span>
+                        </div>
+                        <div class="pickup-asap-title">店家即刻備餐</div>
+                        <div class="pickup-asap-desc" id="pickup-asap-eta-desc">預計約 15-20 分鐘後可取餐</div>
+                    </div>
+                    <div class="pickup-asap-time" id="pickup-asap-time-val">--:--</div>
+                </div>
+
+                <!-- Slots Section Title -->
+                <div class="pickup-slots-section-title">
+                    <span>或選擇指定時間</span>
+                    <span class="pickup-slots-step-hint">每 15 分鐘為一時段</span>
+                </div>
+
+                <!-- Time Slots Grid -->
+                <div class="pickup-slots-grid" id="pickup-slots-grid"></div>
+                <div class="pickup-slots-empty" id="pickup-slots-empty" style="display: none;">
+                    本日營業時間已結束，請選擇明日或其他日期
+                </div>
+            </div>
+
+            <div class="pickup-sheet-footer">
+                <button type="button" class="pickup-sheet-btn-cancel" onclick="closePickupTimeModal()">取消</button>
+                <button type="button" class="pickup-sheet-btn-confirm" id="pickup-sheet-confirm-btn" onclick="confirmPickupTimeSelection()">確認時間</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="/js/client-pricing-wasm.js?v=20261108_wasm_portion_pricing_v1"></script>
+    <script src="/js/client-core.js?v=20261109_overnight_liff_v1"></script>
+    <script src="/js/client-menu.js?v=20261109_item_images_v1"></script>
+    <script src="/js/client-customizations.js?v=20261108_wasm_portion_pricing_v1"></script>
+    <script src="/js/client-bundle.js?v=20261108_wasm_portion_pricing_v1"></script>
+    <script src="/js/client-cart.js?v=20261108_threshold_paid_upgrade_v1"></script>
+    <script src="/js/bundle-builder-v2.js?v=20261108_wasm_portion_pricing_v1"></script>
+    <script src="/js/client-option-groups.js?v=20261108_option_flicker_fix_v1"></script>
+    <!-- Center Auth Card & Overlay for Desktop Guest Users -->
+    <div id="desktop-center-auth-overlay" class="desktop-center-auth-overlay" style="display: none;">
+        <div class="desktop-center-auth-backdrop" onclick="triggerDesktopLineLogin()"></div>
+        <div class="desktop-center-auth-card">
+            <div class="center-auth-icon-circle">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#06C755" stroke-width="2.2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+            </div>
+            <h2 class="center-auth-title">請登入 LINE 帳號開始點餐</h2>
+            <p class="center-auth-desc">登入後即可自訂餐點口味、加入購物車並即時接收餐點製作與取餐通知。</p>
+            <button type="button" class="btn-center-line-login" onclick="triggerDesktopLineLogin()">
+                <svg class="line-btn-svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.121.303.079.778.039 1.085l-.171 1.027c-.053.303-.242 1.186 1.039.647 1.281-.54 6.911-4.069 9.428-6.967 1.739-1.907 2.572-3.843 2.572-5.992z" />
+                </svg>
+                <span>使用 LINE 帳號一鍵登入</span>
+            </button>
+        </div>
+    </div>
+    <script src="/js/order-legacy-adapter.js?v=20261017_order_detail_v1"></script>
+  <script src="/js/order-detail-view.js?v=20261017_order_detail_v1"></script>
+  <script src="/js/order-detail-checkout.js?v=20261017_order_detail_v1"></script>
+  <script src="/js/line-order-presentation.js?v=20261030_line_portions_v3"></script>
+    <script src="/js/client-checkout.js?v=20261108_auto_reopen_status_v1"></script>
+    <script src="/js/staff-order.js?v=20261108_staff_counter_v8"></script>
+    <script>
+        if (window.__TENANT_RESOLUTION_FAILED) {
+            document.getElementById('page-body-content').style.display = 'none';
+            document.getElementById('tenant-resolution-error').style.display = 'block';
+        } else {
+            if (window.isStaffOrderMode) StaffOrder.start();
+            else initApp();
+        }
+    </script>
+  <script src="/js/payment-session.js?v=20261103_linepay_mobile_redirect_v1"></script>
+  <script src="/js/payment-view.js?v=20261101_payment_result_v1"></script>
+  <script src="/js/payment-actions.js?v=20261101_payment_cancel_v1"></script>
+  <script src="/js/client-payments.js?v=20261107_table_qr_v1"></script>
+</body>
+
+</html>

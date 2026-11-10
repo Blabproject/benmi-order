@@ -1,0 +1,22 @@
+{
+  "base": "origin/main b6b4e96c",
+  "checks": [
+    "Plain, optional-but-empty and combo items all have edit and remove for each portion",
+    "Plain item editor saves a portion note and renders markup as text",
+    "Optional item opens the existing canonical option editor",
+    "Removing a selected combo portion keeps the remaining note and canonical indices",
+    "Plain portion removal preserves the other portion note",
+    "Buttons align with 48px targets, 8px gap and no overflow: zh-TW 320px",
+    "Buttons align with 48px targets, 8px gap and no overflow: vi 390px",
+    "Buttons align with 48px targets, 8px gap and no overflow: zh-TW 1280px",
+    "Plain item editor can add a portion; menu decrement removes its matching note",
+    "Adding a plain portion respects the existing per-order quantity limit"
+  ],
+  "errors": [],
+  "writesBlocked": [],
+  "screenshots": [
+    "cart-zh-TW-320.png",
+    "cart-vi-390.png",
+    "cart-zh-TW-1280.png"
+  ]
+}

@@ -1,0 +1,257 @@
+[
+  {
+    "id": "dfd95202-8536-4ec6-86ba-167f1c614299",
+    "short_id": "dfd95202",
+    "project_id": "e8c4d84f-f08e-4c72-a6bc-cdad12228473",
+    "project_name": "benmi-order",
+    "environment": "production",
+    "url": "https://dfd95202.benmi-order.pages.dev",
+    "created_on": "2026-11-09T14:46:59.475743Z",
+    "modified_on": "2026-11-09T14:47:11.477819Z",
+    "latest_stage": {
+      "name": "deploy",
+      "started_on": "2026-11-09T14:47:11.477819Z",
+      "ended_on": null,
+      "status": "active"
+    },
+    "deployment_trigger": {
+      "type": "github:push",
+      "metadata": {
+        "branch": "main",
+        "commit_hash": "03defafd96c645b4af5186ab0670e6660650a631",
+        "commit_message": "fix(orders): shorten display codes while preserving order references",
+        "commit_dirty": false
+      }
+    },
+    "stages": [
+      {
+        "name": "queued",
+        "started_on": "2026-11-09T14:47:00.336402Z",
+        "ended_on": "2026-11-09T14:47:00.34049Z",
+        "status": "success"
+      },
+      {
+        "name": "initialize",
+        "started_on": "2026-11-09T14:47:00.34049Z",
+        "ended_on": "2026-11-09T14:47:03.671039Z",
+        "status": "success"
+      },
+      {
+        "name": "clone_repo",
+        "started_on": "2026-11-09T14:47:03.671039Z",
+        "ended_on": "2026-11-09T14:47:07.092983Z",
+        "status": "success"
+      },
+      {
+        "name": "build",
+        "started_on": "2026-11-09T14:47:07.092983Z",
+        "ended_on": "2026-11-09T14:47:11.477819Z",
+        "status": "success"
+      },
+      {
+        "name": "deploy",
+        "started_on": "2026-11-09T14:47:11.477819Z",
+        "ended_on": null,
+        "status": "active"
+      }
+    ],
+    "build_config": {
+      "build_command": "",
+      "destination_dir": "",
+      "build_caching": null,
+      "root_dir": "",
+      "web_analytics_tag": null,
+      "web_analytics_token": null
+    },
+    "source": {
+      "type": "github",
+      "config": {
+        "owner": "Blabproject",
+        "repo_name": "benmi-order",
+        "production_branch": "main",
+        "pr_comments_enabled": false
+      }
+    },
+    "env_vars": {},
+    "compatibility_date": "2026-03-22",
+    "compatibility_flags": [],
+    "build_image_major_version": 3,
+    "usage_model": null,
+    "aliases": null,
+    "is_skipped": false,
+    "production_branch": "main",
+    "uses_functions": null
+  },
+  {
+    "id": "528b0f10-f62c-4eb9-b33d-fa4ce7aa9099",
+    "short_id": "528b0f10",
+    "project_id": "e8c4d84f-f08e-4c72-a6bc-cdad12228473",
+    "project_name": "benmi-order",
+    "environment": "production",
+    "url": "https://528b0f10.benmi-order.pages.dev",
+    "created_on": "2026-11-09T10:01:25.890206Z",
+    "modified_on": "2026-11-09T10:01:51.328945Z",
+    "latest_stage": {
+      "name": "deploy",
+      "started_on": "2026-11-09T10:01:38.277634Z",
+      "ended_on": "2026-11-09T10:01:51.328945Z",
+      "status": "success"
+    },
+    "deployment_trigger": {
+      "type": "github:push",
+      "metadata": {
+        "branch": "main",
+        "commit_hash": "89a8d78cfbd2256c7a3bc495ee9479593399df98",
+        "commit_message": "fix(liff): restore item image resolution on LIFF menu and bootstrap payload",
+        "commit_dirty": false
+      }
+    },
+    "stages": [
+      {
+        "name": "queued",
+        "started_on": "2026-11-09T10:01:26.179657Z",
+        "ended_on": "2026-11-09T10:01:26.209721Z",
+        "status": "success"
+      },
+      {
+        "name": "initialize",
+        "started_on": "2026-11-09T10:01:26.209721Z",
+        "ended_on": "2026-11-09T10:01:29.212939Z",
+        "status": "success"
+      },
+      {
+        "name": "clone_repo",
+        "started_on": "2026-11-09T10:01:29.212939Z",
+        "ended_on": "2026-11-09T10:01:33.012421Z",
+        "status": "success"
+      },
+      {
+        "name": "build",
+        "started_on": "2026-11-09T10:01:33.012421Z",
+        "ended_on": "2026-11-09T10:01:38.277634Z",
+        "status": "success"
+      },
+      {
+        "name": "deploy",
+        "started_on": "2026-11-09T10:01:38.277634Z",
+        "ended_on": "2026-11-09T10:01:51.328945Z",
+        "status": "success"
+      }
+    ],
+    "build_config": {
+      "build_command": "",
+      "destination_dir": "",
+      "build_caching": null,
+      "root_dir": "",
+      "web_analytics_tag": null,
+      "web_analytics_token": null
+    },
+    "source": {
+      "type": "github",
+      "config": {
+        "owner": "Blabproject",
+        "repo_name": "benmi-order",
+        "production_branch": "main",
+        "pr_comments_enabled": false
+      }
+    },
+    "env_vars": {},
+    "compatibility_date": "2026-03-22",
+    "compatibility_flags": [],
+    "build_image_major_version": 3,
+    "usage_model": "standard",
+    "aliases": [
+      "https://blabfood.app",
+      "https://explore.blabfood.app",
+      "https://order.blabfood.app",
+      "https://pos.blabfood.app",
+      "https://www.blabfood.app"
+    ],
+    "is_skipped": false,
+    "production_branch": "main",
+    "uses_functions": true
+  },
+  {
+    "id": "2ef659ef-3a3d-4f67-9e4a-f383261041d9",
+    "short_id": "2ef659ef",
+    "project_id": "e8c4d84f-f08e-4c72-a6bc-cdad12228473",
+    "project_name": "benmi-order",
+    "environment": "production",
+    "url": "https://2ef659ef.benmi-order.pages.dev",
+    "created_on": "2026-11-08T17:20:08.034079Z",
+    "modified_on": "2026-11-08T17:20:28.422773Z",
+    "latest_stage": {
+      "name": "deploy",
+      "started_on": "2026-11-08T17:20:18.129443Z",
+      "ended_on": "2026-11-08T17:20:28.422773Z",
+      "status": "success"
+    },
+    "deployment_trigger": {
+      "type": "github:push",
+      "metadata": {
+        "branch": "main",
+        "commit_hash": "68ca447c18838d1e07e3a497263b4040333c7407",
+        "commit_message": "feat(pos): auto scroll to day detail editor when selecting operating day",
+        "commit_dirty": false
+      }
+    },
+    "stages": [
+      {
+        "name": "queued",
+        "started_on": "2026-11-08T17:20:08.203969Z",
+        "ended_on": "2026-11-08T17:20:08.208694Z",
+        "status": "success"
+      },
+      {
+        "name": "initialize",
+        "started_on": "2026-11-08T17:20:08.208694Z",
+        "ended_on": "2026-11-08T17:20:10.939194Z",
+        "status": "success"
+      },
+      {
+        "name": "clone_repo",
+        "started_on": "2026-11-08T17:20:10.939194Z",
+        "ended_on": "2026-11-08T17:20:14.091934Z",
+        "status": "success"
+      },
+      {
+        "name": "build",
+        "started_on": "2026-11-08T17:20:14.091934Z",
+        "ended_on": "2026-11-08T17:20:18.129443Z",
+        "status": "success"
+      },
+      {
+        "name": "deploy",
+        "started_on": "2026-11-08T17:20:18.129443Z",
+        "ended_on": "2026-11-08T17:20:28.422773Z",
+        "status": "success"
+      }
+    ],
+    "build_config": {
+      "build_command": "",
+      "destination_dir": "",
+      "build_caching": null,
+      "root_dir": "",
+      "web_analytics_tag": null,
+      "web_analytics_token": null
+    },
+    "source": {
+      "type": "github",
+      "config": {
+        "owner": "Blabproject",
+        "repo_name": "benmi-order",
+        "production_branch": "main",
+        "pr_comments_enabled": false
+      }
+    },
+    "env_vars": {},
+    "compatibility_date": "2026-03-22",
+    "compatibility_flags": [],
+    "build_image_major_version": 3,
+    "usage_model": "standard",
+    "aliases": null,
+    "is_skipped": false,
+    "production_branch": "main",
+    "uses_functions": true
+  }
+]

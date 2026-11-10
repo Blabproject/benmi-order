@@ -1,0 +1,11 @@
+{
+  "canonical": "561ee3e5-2b71-4c77-8fe7-0818250000cf",
+  "build_config": {
+    "build_command": "",
+    "destination_dir": "",
+    "root_dir": "",
+    "web_analytics_tag": null,
+    "web_analytics_token": null
+  },
+  "production_branch": "main"
+}

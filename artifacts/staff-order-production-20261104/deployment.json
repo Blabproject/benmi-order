@@ -1,0 +1,89 @@
+{
+  "id": "278acfc8-df83-4398-bf08-bf557494325c",
+  "short_id": "278acfc8",
+  "project_id": "e8c4d84f-f08e-4c72-a6bc-cdad12228473",
+  "project_name": "benmi-order",
+  "environment": "production",
+  "url": "https://278acfc8.benmi-order.pages.dev",
+  "created_on": "2026-11-03T16:16:28.402992Z",
+  "modified_on": "2026-11-03T16:17:19.534227Z",
+  "latest_stage": {
+    "name": "deploy",
+    "started_on": "2026-11-03T16:17:05.871136Z",
+    "ended_on": "2026-11-03T16:17:19.534227Z",
+    "status": "success"
+  },
+  "deployment_trigger": {
+    "type": "github:push",
+    "metadata": {
+      "branch": "main",
+      "commit_hash": "fe8bcca40359f0b0ea3c6cf1b6f94bd56ff04fbc",
+      "commit_message": "fix(pos): restore staff ordering and prevent duplicate headers",
+      "commit_dirty": false
+    }
+  },
+  "stages": [
+    {
+      "name": "queued",
+      "started_on": "2026-11-03T16:16:28.569156Z",
+      "ended_on": "2026-11-03T16:16:54.633171Z",
+      "status": "success"
+    },
+    {
+      "name": "initialize",
+      "started_on": "2026-11-03T16:16:54.633171Z",
+      "ended_on": "2026-11-03T16:16:56.758451Z",
+      "status": "success"
+    },
+    {
+      "name": "clone_repo",
+      "started_on": "2026-11-03T16:16:56.758451Z",
+      "ended_on": "2026-11-03T16:17:00.861439Z",
+      "status": "success"
+    },
+    {
+      "name": "build",
+      "started_on": "2026-11-03T16:17:00.861439Z",
+      "ended_on": "2026-11-03T16:17:05.871136Z",
+      "status": "success"
+    },
+    {
+      "name": "deploy",
+      "started_on": "2026-11-03T16:17:05.871136Z",
+      "ended_on": "2026-11-03T16:17:19.534227Z",
+      "status": "success"
+    }
+  ],
+  "build_config": {
+    "build_command": "",
+    "destination_dir": "",
+    "build_caching": null,
+    "root_dir": "",
+    "web_analytics_tag": null,
+    "web_analytics_token": null
+  },
+  "source": {
+    "type": "github",
+    "config": {
+      "owner": "Thuanmai56",
+      "repo_name": "benmi-order",
+      "production_branch": "main",
+      "pr_comments_enabled": false
+    }
+  },
+  "env_vars": {},
+  "compatibility_date": "2026-03-22",
+  "compatibility_flags": [],
+  "build_image_major_version": 3,
+  "usage_model": "standard",
+  "aliases": [
+    "https://blabfood.app",
+    "https://explore.blabfood.app",
+    "https://order.blabfood.app",
+    "https://pos.blabfood.app",
+    "https://www.blabfood.app"
+  ],
+  "is_skipped": false,
+  "production_branch": "main",
+  "uses_functions": true
+}

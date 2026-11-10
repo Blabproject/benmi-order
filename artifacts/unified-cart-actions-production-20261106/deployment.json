@@ -1,0 +1,149 @@
+{
+  "time": "2026-11-06T12:46:42.454Z",
+  "method": "Direct Pages upload of clean frontend commit; Git main was not pushed to avoid rebuilding its stale backend source",
+  "frontend": {
+    "id": "9d781645-296d-499b-b0e4-96a3bc3ac083",
+    "url": "https://9d781645.benmi-order.pages.dev",
+    "environment": "production",
+    "created_on": "2026-11-06T12:45:21.267907Z",
+    "stage": {
+      "name": "deploy",
+      "started_on": null,
+      "ended_on": "2026-11-06T12:45:23.193023Z",
+      "status": "success"
+    },
+    "trigger": {
+      "type": "ad_hoc",
+      "metadata": {
+        "branch": "main",
+        "commit_hash": "289a04c3b8f21cb6482582d6e70b3604da893b02",
+        "commit_message": "fix(cart): unify edit and remove actions for every portion",
+        "commit_dirty": false
+      }
+    }
+  },
+  "build": {
+    "commit": "289a04c3b8f21cb6482582d6e70b3604da893b02",
+    "environment": "production",
+    "dirty": false,
+    "release": "unified-cart-actions-20261106",
+    "built_at": "2026-11-06T12:43:29.529Z",
+    "payload_sha256": "58b74a9c9e65179c3027995124d51c6837d3f7b80f126a7ce832b77263ecf9b3"
+  },
+  "assets": [
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "index.html",
+      "http": 200,
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "index.css",
+      "http": 200,
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "js/client-cart.js",
+      "http": 200,
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "js/client-customizations.js",
+      "http": 200,
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "js/client-menu.js",
+      "http": 200,
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "orders.html",
+      "http": 200,
+      "matched": true
+    },
+    {
+      "base": "https://benmi-order.pages.dev",
+      "file": "js/orders-core.js",
+      "http": 200,
+      "matched": true
+    },
+    {
+      "base": "https://order.blabfood.app",
+      "file": "index.css",
+      "http": 200,
+      "matched": true
+    },
+    {
+      "base": "https://order.blabfood.app",
+      "file": "js/client-cart.js",
+      "http": 200,
+      "matched": true
+    },
+    {
+      "base": "https://order.blabfood.app",
+      "file": "js/client-customizations.js",
+      "http": 200,
+      "matched": true
+    },
+    {
+      "base": "https://order.blabfood.app",
+      "file": "js/client-menu.js",
+      "http": 200,
+      "matched": true
+    },
+    {
+      "base": "https://order.blabfood.app",
+      "file": "orders.html",
+      "http": 200,
+      "matched": true
+    },
+    {
+      "base": "https://order.blabfood.app",
+      "file": "js/orders-core.js",
+      "http": 200,
+      "matched": true
+    },
+    {
+      "base": "https://order.blabfood.app",
+      "file": "index.html",
+      "requestedUrl": "https://order.blabfood.app/dafobenwan?release_verify=1793969257992",
+      "effectiveUrl": "https://order.blabfood.app/dafobenwan?release_verify=1793969257992",
+      "http": 200,
+      "matched": true
+    }
+  ],
+  "download": {
+    "file": "apps/android-pos/blab-pos.apk",
+    "http": 200,
+    "bytes": null,
+    "expectedBytes": 4994279,
+    "rangeHttp": 200,
+    "contentRange": null
+  },
+  "workerHealth": {
+    "status": "ok",
+    "service": "benmi-worker",
+    "commit": "1c334b78f9632e4edd76931352454e2afe067e5d",
+    "environment": "production",
+    "dirty": false,
+    "tenantId": "benmi",
+    "timestamp": "2026-11-06T12:46:41.700Z"
+  },
+  "workerUnchanged": true,
+  "historyApiStatus": 404,
+  "databaseChanges": false,
+  "remoteBranch": "codex/unified-cart-actions",
+  "gitMainUnchangedAt": "b6b4e96c607f90f6eb27c17b182c0ab3e81b9210",
+  "tenantlessRoute": {
+    "http": 400,
+    "expected": 400,
+    "reason": "Order domain requires a tenant in its URL; this is the existing middleware guard"
+  },
+  "verified": true
+}

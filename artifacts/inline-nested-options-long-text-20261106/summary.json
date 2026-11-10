@@ -1,0 +1,21 @@
+{
+  "cases": 64,
+  "engines": [
+    "chromium",
+    "webkit"
+  ],
+  "widths": [
+    320,
+    375,
+    390,
+    768
+  ],
+  "fixtures": [
+    "short Chinese labels",
+    "long Traditional Chinese parent/child",
+    "long Latin without spaces",
+    "mixed Chinese and English with surcharge"
+  ],
+  "violations": 0,
+  "productionModified": false
+}

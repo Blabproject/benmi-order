@@ -1,0 +1,171 @@
+[
+  {
+    "results": [
+      {
+        "tenant_id": "52kaoroufan",
+        "allow_dine_in": 0,
+        "features": "[]",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}"
+      },
+      {
+        "tenant_id": "benmi",
+        "allow_dine_in": 0,
+        "features": "[\"reports\"]",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}"
+      },
+      {
+        "tenant_id": "blab_demo",
+        "allow_dine_in": 0,
+        "features": "[\"reports\", \"flex_notifications\", \"dine_in\", \"inventory\", \"printer\"]",
+        "staff_ordering_enabled": 1,
+        "staff_ordering_capabilities": "{\"session\":true,\"tables_read\":true,\"tables_write\":true,\"orders_read\":true,\"create\":true,\"append\":true,\"status\":true,\"pos_entry\":true,\"auto_print_new\":false,\"auto_print_round\":false}"
+      },
+      {
+        "tenant_id": "bsc",
+        "allow_dine_in": 0,
+        "features": "[\"reports\", \"flex_notifications\"]",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}"
+      },
+      {
+        "tenant_id": "dafobenwan",
+        "allow_dine_in": 0,
+        "features": "[\"reports\", \"flex_notifications\"]",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}"
+      },
+      {
+        "tenant_id": "dapinglin",
+        "allow_dine_in": 0,
+        "features": "[\"reports\", \"flex_notifications\"]",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}"
+      },
+      {
+        "tenant_id": "haoshiguoshao",
+        "allow_dine_in": 1,
+        "features": "[\"reports\", \"flex_notifications\"]",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}"
+      },
+      {
+        "tenant_id": "jiangjiejie",
+        "allow_dine_in": 0,
+        "features": "[]",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}"
+      },
+      {
+        "tenant_id": "jidangaodashu",
+        "allow_dine_in": 1,
+        "features": "[]",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}"
+      },
+      {
+        "tenant_id": "miyansuo",
+        "allow_dine_in": 0,
+        "features": "[\"reports\", \"flex_notifications\"]",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}"
+      },
+      {
+        "tenant_id": "nongfumingjia",
+        "allow_dine_in": 0,
+        "features": "[\"reports\", \"flex_notifications\"]",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}"
+      },
+      {
+        "tenant_id": "quanthuyhang",
+        "allow_dine_in": 0,
+        "features": "[]",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}"
+      },
+      {
+        "tenant_id": "thuyngason",
+        "allow_dine_in": 0,
+        "features": "[]",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}"
+      },
+      {
+        "tenant_id": "weiweibao",
+        "allow_dine_in": 1,
+        "features": "[]",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}"
+      },
+      {
+        "tenant_id": "xiaolan",
+        "allow_dine_in": 0,
+        "features": "[]",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}"
+      },
+      {
+        "tenant_id": "yanxiansuji",
+        "allow_dine_in": 0,
+        "features": "[\"reports\", \"flex_notifications\"]",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}"
+      },
+      {
+        "tenant_id": "zhadantongxue",
+        "allow_dine_in": 1,
+        "features": "[]",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}"
+      },
+      {
+        "tenant_id": "zhenbaochufang",
+        "allow_dine_in": 1,
+        "features": "[\"reports\", \"flex_notifications\"]",
+        "staff_ordering_enabled": 0,
+        "staff_ordering_capabilities": "{}"
+      }
+    ],
+    "success": true,
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "APAC",
+      "served_by_colo": "NRT",
+      "served_by_primary": true,
+      "timings": {
+        "sql_duration_ms": 0.4319
+      },
+      "duration": 0.4319,
+      "changes": 0,
+      "last_row_id": 0,
+      "changed_db": false,
+      "size_after": 28696576,
+      "rows_read": 18,
+      "rows_written": 0,
+      "total_attempts": 1
+    }
+  },
+  {
+    "results": [],
+    "success": true,
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "APAC",
+      "served_by_colo": "NRT",
+      "served_by_primary": true,
+      "timings": {
+        "sql_duration_ms": 0.23
+      },
+      "duration": 0.23,
+      "changes": 0,
+      "last_row_id": 0,
+      "changed_db": false,
+      "size_after": 28696576,
+      "rows_read": 1,
+      "rows_written": 0,
+      "total_attempts": 1
+    }
+  }
+]
