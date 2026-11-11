@@ -852,5 +852,27 @@ window.StaffOrder = (() => {
     }
   }
 
-  return { start, submit, ready };
+  // Keep table occupancy fresh: Live Order may settle/close a table while this
+  // view stays mounted (embedded iframe or a long-lived standalone tab).
+  let tableSync = null;
+  function syncTables() {
+    if (!ready() || tableSync) return tableSync;
+    tableSync = refreshTables()
+      .catch(error => console.warn('[StaffOrder] table sync failed', error))
+      .finally(() => { tableSync = null; });
+    return tableSync;
+  }
+  window.addEventListener('message', event => {
+    if (event.origin !== location.origin || event.source !== window.parent) return;
+    if (event.data?.type === 'STAFF_TABLES_REFRESH') syncTables();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') syncTables();
+  });
+  window.addEventListener('focus', () => syncTables());
+  setInterval(() => {
+    if (document.visibilityState === 'visible') syncTables();
+  }, 15000);
+
+  return { start, submit, ready, syncTables };
 })();

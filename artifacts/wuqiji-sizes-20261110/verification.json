@@ -1,0 +1,101 @@
+{
+  "source": "corrected menu photo 20261110",
+  "sizes": [
+    {
+      "id": "wqj_fs_01",
+      "group": "mg_wqj_size_fs_01",
+      "smallId": "opt_wqj_size_fs_01_small",
+      "largeId": "opt_wqj_size_fs_01_large",
+      "small": 65,
+      "large": 110
+    },
+    {
+      "id": "wqj_fs_02",
+      "group": "mg_wqj_size_fs_02",
+      "smallId": "opt_wqj_size_fs_02_small",
+      "largeId": "opt_wqj_size_fs_02_large",
+      "small": 70,
+      "large": 115
+    },
+    {
+      "id": "wqj_fs_04",
+      "group": "mg_wqj_size_fs_04",
+      "smallId": "opt_wqj_size_fs_04_small",
+      "largeId": "opt_wqj_size_fs_04_large",
+      "small": 65,
+      "large": 105
+    },
+    {
+      "id": "wqj_fs_05",
+      "group": "mg_wqj_size_fs_05",
+      "smallId": "opt_wqj_size_fs_05_small",
+      "largeId": "opt_wqj_size_fs_05_large",
+      "small": 60,
+      "large": 100
+    },
+    {
+      "id": "wqj_fs_06",
+      "group": "mg_wqj_size_fs_06",
+      "smallId": "opt_wqj_size_fs_06_small",
+      "largeId": "opt_wqj_size_fs_06_large",
+      "small": 60,
+      "large": 100
+    },
+    {
+      "id": "wqj_fs_07",
+      "group": "mg_wqj_size_fs_07",
+      "smallId": "opt_wqj_size_fs_07_small",
+      "largeId": "opt_wqj_size_fs_07_large",
+      "small": 45,
+      "large": 60
+    },
+    {
+      "id": "wqj_fs_08",
+      "group": "mg_wqj_size_fs_08",
+      "smallId": "opt_wqj_size_fs_08_small",
+      "largeId": "opt_wqj_size_fs_08_large",
+      "small": 45,
+      "large": 65
+    }
+  ],
+  "environments": [
+    {
+      "mode": "dev",
+      "requiredSizeItems": 7,
+      "totalItems": 39,
+      "basePricesPreserved": true,
+      "existingOptionsPreserved": true,
+      "configPreserved": true,
+      "freshAndCachedVerified": true,
+      "verifiedAt": "2026-11-10T13:54:47.445Z"
+    },
+    {
+      "mode": "test",
+      "requiredSizeItems": 7,
+      "totalItems": 39,
+      "basePricesPreserved": true,
+      "existingOptionsPreserved": true,
+      "configPreserved": true,
+      "freshAndCachedVerified": true,
+      "verifiedAt": "2026-11-10T13:55:33.724Z"
+    },
+    {
+      "mode": "production",
+      "requiredSizeItems": 7,
+      "totalItems": 39,
+      "basePricesPreserved": true,
+      "existingOptionsPreserved": true,
+      "configPreserved": true,
+      "freshAndCachedVerified": true,
+      "verifiedAt": "2026-11-10T13:56:24.813Z"
+    }
+  ],
+  "validation": {
+    "isolatedLocalPriceCasesPerEnvironment": 14,
+    "staleStateGuardVerified": true,
+    "mobileCases": 14,
+    "requiredSizeSelection": true,
+    "flavorSelectionPreserved": true,
+    "cartAndPayloadPricesMatch": true
+  }
+}

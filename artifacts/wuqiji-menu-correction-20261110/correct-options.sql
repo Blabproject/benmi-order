@@ -1,4 +1,6 @@
 -- Correct wuqiji item-level flavor and combo drink choices; confirmed from reference menu.
+-- Historical one-time patch, already applied to all three environments.
+-- Do not replay over later customer/POS edits; prepare a fresh scoped patch.
 
 -- Latest reference image supersedes the first image. Tenant configuration, credentials and LIFF are preserved.
 

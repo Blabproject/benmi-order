@@ -101,6 +101,9 @@ graph TD
    - **Production DB**: `blab-db-production` (`48479f91-eec7-4da2-b044-edaaf622f195`)
    - **Staging/Test DB**: `blab-db-test` (`c0152835-7d42-4545-8cb4-6658dfc7e97d`)
    - File migrations nằm tại `benmi-worker-official/migrations/`.
+   - **Tenant seed SQL chỉ chạy một lần trên mỗi môi trường thật**. Sau khi áp dụng, dữ liệu D1 hiện tại và các chỉnh sửa của khách/POS là nguồn chuẩn; không chạy lại seed cũ khi deploy, sửa lỗi, kiểm thử hoặc retry tự động.
+   - `ON CONFLICT DO UPDATE` vẫn có thể ghi đè thay đổi của khách. Các cập nhật sau phải đọc snapshot mới và tạo bản vá giới hạn đúng phạm vi; chỉ replay toàn bộ khi người dùng yêu cầu rõ việc reset/reseed và đã xác định phạm vi ghi đè.
+   - Kiểm thử chạy lặp, nếu cần, chỉ thực hiện trên database cục bộ dùng một lần, không chạy vào D1 Dev/Staging/Production.
 2. **Cloudflare Workers KV (`ORDER_STATE`)**:
    - `tenant:{tenant_id}:bootstrap`: Cache toàn bộ Catalog, Modifiers, Branding phục vụ khách tải menu < 10ms.
    - Khi cập nhật menu qua POS hoặc API, bắt buộc gọi `invalidateBootstrapCache(tenantId, env)` để làm mới cache.

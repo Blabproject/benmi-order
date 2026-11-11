@@ -2,6 +2,8 @@
 
 Source: the user's second image, `codex-clipboard-457aa75b-5c4a-458e-91be-b6da4005b960.png`. It supersedes the first image and all provisional combo assumptions in `wuqiji-options-fix-20261110`.
 
+The seed and incremental patch are historical one-time payloads, already applied to Dev, Staging and Production. Do not replay them over later customer/POS changes. Future updates use a fresh live snapshot and a new scoped patch; repeated-seed checks below were isolated local tests only.
+
 | Items | Required choice |
 | --- | --- |
 | 酥皮雞排, 脆皮雞排 | Exactly one of 原味、甘梅、檸檬、起司、辣味 |

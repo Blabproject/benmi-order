@@ -7,6 +7,14 @@ description: Seed new restaurant menus and tenant configurations into Cloudflare
 
 Use this skill when the user wants to add, seed, or migrate a new restaurant (tenant), its menu catalog, unified option groups (`modifier_groups` / `modifier_options` / `item_modifier_links`), order-wide customizations, and store settings into the Cloudflare D1 database.
 
+### One-Time Live Execution
+- Treat tenant seed SQL as a historical, **one-time payload per target environment**. After application, the current D1 menu, including subsequent customer/POS edits, is authoritative. An old seed is not ongoing desired-state configuration.
+- `ON CONFLICT DO UPDATE` may avoid duplicate IDs while still overwriting edited names, prices, options and links. Repeatability does not make live replay safe.
+- Never replay an applied seed during deployment, commit/push, routine testing, menu repair or automatic retries. If execution times out or application status is uncertain, inspect the resulting state/application evidence before doing anything further; do not retry the full SQL blindly.
+- For later changes, take a fresh snapshot of the affected current rows, compare them with the requested changes, and prepare a new scoped incremental patch or use the existing revision-aware menu API. Preserve customer edits outside that scope. If the observed state changes before application, refresh the comparison rather than overwriting it.
+- Replaying a full seed requires an explicit user request to reset/reseed that tenant's menu, with the overwrite scope established. A general request to fix a menu or deploy does not authorize restoring an old seed snapshot.
+- Repeatability checks, when useful, run only on isolated disposable local databases. They must not execute the seed against real Dev, Staging or Production data. Explain that distinction when reporting these tests.
+
 ---
 
 ## 1. Input Contract & The 3-Level F&B Choice Hierarchy
@@ -100,14 +108,14 @@ Keep a concise preflight record (matrix, source/version, unresolved issues and i
 ### Step 0: Target, Snapshot and Source Preflight
 Complete the applicable business preflight above before executing SQL. Inspect the target schema and existing state relevant to the change; save a scoped snapshot or recovery artifact. Check tenant lifecycle, ownership of IDs being written and order-prefix collisions when creating/changing a prefix. Do not reassign another tenant's IDs on conflict.
 
-For menu-only changes, leave `tenants` and `tenant_config` untouched. For initial onboarding, create missing rows and explicitly distinguish initialization defaults from supplied restaurant facts. On reseed, update only fields requested/provided for this task; do not overwrite credentials, passwords, LIFF, domain routing, features, status or models with template defaults. Keep secrets out of versioned SQL and verification output. Verify unchanged configuration with a digest or redacted comparison where appropriate.
+For menu-only changes, leave `tenants` and `tenant_config` untouched. For initial onboarding, verify that the target has not already been initialized before applying a full seed; create missing rows and distinguish initialization defaults from supplied restaurant facts. For an explicitly requested reset/reseed or a scoped update, write only the established overwrite scope; do not overwrite credentials, passwords, LIFF, domain routing, features, status or models with template defaults. Keep secrets out of versioned SQL and verification output. Verify unchanged configuration with a digest or redacted comparison where appropriate.
 
 ### Step 1: File Location & Naming
 1. Tenant SQL seed files live in `benmi-worker-official/seeds/tenants/<tenant_id>.sql`.
 2. **Do NOT put tenant menu seeds into `migrations/`**. The `migrations/` directory is strictly reserved for platform-wide Schema DDL and verified data repair migrations.
 
-### Step 2: Idempotent SQL Seed Template (Canonical Unified Schema)
-Use `INSERT ... ON CONFLICT DO UPDATE` so the seed file can be executed repeatedly without errors or duplicate records. Scope every write to `tenant_id`.
+### Step 2: One-Time SQL Seed Template (Canonical Unified Schema)
+Scope every write to `tenant_id`. Conflict handling below is a SQL construction pattern for the authorized payload; it is not permission to replay the seed over a live menu. Preserve an applied seed as history and use a fresh incremental patch for subsequent changes.
 
 The following is an illustrative initial-onboarding template, not a list of rows or settings to create for every restaurant. Include only groups/components established by the input. Choose initialization LIFF/settings from the tenant's supplied configuration or the selected environment. The `tenant_config` update list below assumes those business fields were supplied; remove assignments for omitted fields. Guard ID-based upserts with tenant ownership and never update `tenant_id` on conflict.
 
@@ -117,6 +125,8 @@ When correcting an existing group, reconcile its seed-owned links and obsolete o
 -- ==============================================================================
 -- Tenant Seed: <tenant_id> (<brand_name>)
 -- Description: Initial menu catalog, unified option groups, and store config
+-- ONE-TIME LIVE PAYLOAD PER ENVIRONMENT. Do not replay over customer/POS edits.
+-- Subsequent changes require a fresh snapshot and a scoped incremental patch.
 -- Execution (from benmi-worker-official/):
 --   node -e "require('./scripts/cloudflare-d1.cjs').executeD1File('<database_name>', 'seeds/tenants/<tenant_id>.sql', true, '<dev|test|production>')"
 -- ==============================================================================
@@ -404,7 +414,7 @@ npx cf d1 query <database_id> --sql "<SQL>" --mode <dev|test|production>
 node -e "require('./scripts/cloudflare-d1.cjs').executeD1File('<database_name>', 'seeds/tenants/<tenant_id>.sql', true, '<dev|test|production>')"
 ```
 
-Run a repeated local seed/schema check when the patch changes links, options or prices; verify foreign keys and business selection behavior. Apply only to the environment(s) authorized by the user. Authentication/permission errors require restoring valid access; do not substitute a different target environment.
+When useful for changed links, options or prices, check repeatability in an isolated disposable local database; verify foreign keys and business selection behavior there. Execute the live payload once in each authorized target environment, never as a release test or deployment hook. Check application history/current state before running it. Authentication/permission errors require restoring valid access; do not substitute a different target environment.
 
 ---
 

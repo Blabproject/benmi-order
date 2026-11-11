@@ -1,4 +1,7 @@
 -- Tenant seed: wuqiji / 舞奇雞. Source: user JSON, 2026-11-10.
+-- ONE-TIME LIVE PAYLOAD PER ENVIRONMENT. Already applied; do not rerun on D1.
+-- UPSERTs can overwrite later customer/POS edits even without creating duplicates.
+-- Future changes require a fresh live snapshot and a new scoped incremental patch.
 
 -- Default LIFF applies only to initial creation; upserts preserve the configured tenant LIFF.
 

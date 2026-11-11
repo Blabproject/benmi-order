@@ -1,4 +1,7 @@
 -- Menu-only update: 珍寶廚坊 / zhenbaochufang, 2026-11-09.
+-- ONE-TIME LIVE PAYLOAD PER ENVIRONMENT. Do not replay an already applied patch.
+-- DELETEs and UPSERTs can remove or overwrite later customer/POS edits.
+-- Future changes require a fresh live snapshot and a new scoped incremental patch.
 
 -- Source: /Users/duccao/Desktop/zhenbaochufang.txt.
 

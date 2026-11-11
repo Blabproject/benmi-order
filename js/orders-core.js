@@ -1048,9 +1048,22 @@ function initStaffOrderFrame() {
         ? "dev"
         : "prod";
     frame.src = `staff-order.html?tenant_id=${encodeURIComponent(tenantId)}&env=${environment}&embedded=1`;
+  } else {
+    // Frame already loaded: its table list may be stale after Live Order changes.
+    notifyStaffOrderTablesChanged();
   }
 }
 window.initStaffOrderFrame = initStaffOrderFrame;
+
+function notifyStaffOrderTablesChanged() {
+  const frame = document.getElementById("staff-order-iframe");
+  const src = frame ? frame.getAttribute("src") || "" : "";
+  if (!frame || !src || src === "about:blank" || !frame.contentWindow) return;
+  try {
+    frame.contentWindow.postMessage({ type: "STAFF_TABLES_REFRESH" }, window.location.origin);
+  } catch (e) {}
+}
+window.notifyStaffOrderTablesChanged = notifyStaffOrderTablesChanged;
 
 if (typeof window !== "undefined" && !window.__staffOrderMessageListenerBound) {
   window.__staffOrderMessageListenerBound = true;
