@@ -1,6 +1,6 @@
 # PDP: Frontend Modernization — Migrate
 
-Ngày: 2026-11-11. Trạng thái: Đã chốt 3 quyết định nền tảng; đang triển khai PR 1 + PR 2 trên nhánh `staging` (tách mới từ `main`).
+Ngày: 2026-11-11. Trạng thái: Đã chốt 3 quyết định nền tảng; hoàn thành PR 1–4 trên nhánh `staging` (tách mới từ `main`), triển khai tab History & Order Detail chỉ đọc bằng React + TypeScript + Vite thay thế `js/orders-history.js` trong bản build `dist/orders.html`.
 
 ### Quyết định đã chốt (2026-11-11)
 1. **UI Runtime**: **React + Vite + TypeScript (`strict`)**. Ưu tiên hệ sinh thái chuẩn, ít rủi ro tương thích; phần Customer LIFF tách chunk riêng và đo hiệu năng thật trước khi mở rộng.
@@ -124,8 +124,8 @@ React hỗ trợ thêm từng phần vào ứng dụng hiện hữu; Vite hỗ t
 
 - [x] PR 1: Baseline, fixture và bản đồ dependency cho lát cắt đầu tiên.
 - [x] PR 2: Vite/TypeScript, entry cô lập, asset pipeline và kiểm tra module mới song song gate legacy.
-- [ ] PR 3: Contract/model và adapter; bỏ phụ thuộc DOM trong tính subtotal/validation của lát cắt chuyển đổi.
-- [ ] PR 4: Tokens/component nền và POS lịch sử/chi tiết đơn chỉ đọc.
+- [x] PR 3: Contract/model và adapter; bỏ phụ thuộc DOM trong tính subtotal/validation của lát cắt chuyển đổi.
+- [x] PR 4: Tokens/component nền và POS lịch sử/chi tiết đơn chỉ đọc.
 - [ ] PR 5: Menu editor, draft và option workspace; kiểm chứng không ghi đè dữ liệu ngoài phạm vi.
 - [ ] PR 6: Live orders, reconnect, cảnh báo và printer integration.
 - [ ] PR 7: Customer catalog/options/cart/checkout qua từng release nhỏ.
@@ -142,4 +142,4 @@ Chưa chốt lịch tuần: cần biết nhân lực, lịch release và số th
 - Test lỗi: mất mạng khi submit, response về trễ, reconnect, tab sleep/resume, WASM chưa tải, menu đổi trong lúc đang chọn, chuyển tenant, payment redirect, reload với draft.
 - Test release: tab cũ tải chunk sau deploy, rollback entry, đường dẫn domain/LIFF/query cũ và phiên đang thanh toán. Chỉ phát hành khi không có sai lệch nghiệp vụ còn chưa giải thích.
 
-PR 1 và PR 2 đã được triển khai trên nhánh `staging` (baseline/contract/sync tests, Vite + React 19 + TypeScript strict và sandbox cô lập); legacy POS vẫn phục vụ chính thức trong khi chờ PR 3+.
+PR 1–4 đã được triển khai trên nhánh `staging` (baseline/contract/sync tests, Vite + React 19 + TypeScript strict, shared order formatters/i18n/store, và `PosHistoryPanel` + `history-bridge.tsx` thay thế `js/orders-history.js` trong `orders.html` qua `dist/`); các tab POS khác (`live`, `menu`, `settings`, `reports`, `payments`) vẫn dùng module JS hiện hành trong khi chờ PR 5+ và kiểm chứng thực tế trên staging.

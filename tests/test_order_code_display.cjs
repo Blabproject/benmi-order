@@ -63,14 +63,10 @@ test('LINE status and sold-out cards format labels without changing postback or 
 });
 
 test('POS history search finds the displayed number even when the storage key is a UUID', () => {
-  const source = fs.readFileSync('js/orders-history.js', 'utf8');
-  const ast = acorn.parse(source, { ecmaVersion: 'latest' });
-  const functions = ast.body.filter(n => n.type === 'FunctionDeclaration' && ['matchesHistorySearch', 'removeVietnameseDiacritics'].includes(n.id.name));
-  const context = vm.createContext({ OrderCode });
-  vm.runInContext(functions.map(n => source.slice(n.start, n.end)).join('\n'), context);
+  const { matchesHistorySearch } = require('../frontend/shared/contracts/history-model.ts');
   const order = Object.freeze({ key: '48cc482f-01ca-4939-ae70-f2c07c9cb4ce', displayKey: 'ZBCF1109-T001' });
-  assert.equal(context.matchesHistorySearch(order, '1109-T001'), true);
-  assert.equal(context.matchesHistorySearch(order, '#1109-T001'), true);
-  assert.equal(context.matchesHistorySearch(order, order.key), true);
-  assert.equal(context.matchesHistorySearch(order, 'missing'), false);
+  assert.equal(matchesHistorySearch(order, '1109-T001'), true);
+  assert.equal(matchesHistorySearch(order, '#1109-T001'), true);
+  assert.equal(matchesHistorySearch(order, order.key), true);
+  assert.equal(matchesHistorySearch(order, 'missing'), false);
 });

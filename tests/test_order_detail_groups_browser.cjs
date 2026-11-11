@@ -3,21 +3,31 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const chromium = require(process.env.PLAYWRIGHT_MODULE || 'playwright')[process.env.MENU_QA_BROWSER || 'chromium'];
+const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
-const read = file => fs.readFileSync(path.join(root, file), 'utf8');
+const distRoot = path.join(root, 'dist');
+function ensureDistBuilt() {
+  if (!fs.existsSync(path.join(distRoot, '.vite/manifest.json')) || !fs.existsSync(path.join(distRoot, 'orders.html'))) {
+    execFileSync(process.execPath, [path.join(root, 'node_modules/vite/bin/vite.js'), 'build', '--config', 'vite.config.mts'], { cwd: root, stdio: 'inherit' });
+  }
+}
+const read = file => fs.readFileSync(path.join(distRoot, file), 'utf8');
 let browser;
 before(async () => { browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined }); });
 after(async () => { await browser?.close(); });
 
 async function fixture(page, lang) {
+  ensureDistBuilt();
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/*', route => {
     const url = new URL(route.request().url());
     if (url.pathname === '/orders.html')
       return route.fulfill({ body: read('orders.html').replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, ''), contentType: 'text/html' });
-    if (/^\/(js|css)\/[\w.-]+$/.test(url.pathname))
-      return route.fulfill({ body: read(url.pathname.slice(1)), contentType: url.pathname.endsWith('.css') ? 'text/css' : 'text/javascript' });
+    if (/^\/(js|css|assets)\/[\w.-]+$/.test(url.pathname)) {
+      const rel = url.pathname.slice(1);
+      return route.fulfill({ body: fs.readFileSync(path.join(distRoot, rel)), contentType: rel.endsWith('.css') ? 'text/css' : rel.endsWith('.png') ? 'image/png' : 'application/javascript', headers: { 'Access-Control-Allow-Origin': '*' } });
+    }
     return route.fulfill({ body: '{}', contentType: 'application/json' });
   });
   await page.addInitScript(lang => {

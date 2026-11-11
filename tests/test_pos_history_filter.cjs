@@ -1,22 +1,42 @@
 // Targeted test for POS Order History Filter visibility & layout
 const fs = require('node:fs');
+const { execFileSync } = require('node:child_process');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const root = path.resolve(__dirname, '..');
-const read = file => fs.readFileSync(path.join(root, file), 'utf8');
+const distRoot = path.join(root, 'dist');
+
+function ensureDistBuilt() {
+  if (!fs.existsSync(path.join(distRoot, '.vite/manifest.json')) || !fs.existsSync(path.join(distRoot, 'orders.html'))) {
+    execFileSync(process.execPath, [path.join(root, 'node_modules/vite/bin/vite.js'), 'build', '--config', 'vite.config.mts'], {
+      cwd: root,
+      stdio: 'inherit'
+    });
+  }
+}
+
+const readDist = file => fs.readFileSync(path.join(distRoot, file), 'utf8');
 
 async function setupPage(page) {
+  ensureDistBuilt();
   await page.route('**/*', route => {
     const url = new URL(route.request().url());
     if (url.pathname === '/orders.html') {
-      const html = read('orders.html').replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '');
+      const html = readDist('orders.html').replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '');
       return route.fulfill({ body: html, contentType: 'text/html' });
     }
-    if (/^\/(js|css)\/[\w.-]+$/.test(url.pathname)) {
+    if (/^\/(js|css|assets)\/[\w.-]+$/.test(url.pathname)) {
+      const rel = url.pathname.slice(1);
+      const contentType = rel.endsWith('.css')
+        ? 'text/css'
+        : rel.endsWith('.png')
+          ? 'image/png'
+          : 'application/javascript';
       return route.fulfill({
-        body: read(url.pathname.slice(1)),
-        contentType: url.pathname.endsWith('.css') ? 'text/css' : 'text/javascript'
+        body: fs.readFileSync(path.join(distRoot, rel)),
+        contentType,
+        headers: { 'Access-Control-Allow-Origin': '*' }
       });
     }
     return route.fulfill({ body: '{}', contentType: 'application/json' });

@@ -111,7 +111,7 @@ export function matchesHistorySearch(
   const keyClean = key.replace(/^#/, '');
   if (key.includes(q) || keyClean.includes(qNoHash) || key.includes(qNoHash)) return true;
 
-  const customer = String(order.customer || '').toLowerCase();
+  const customer = String(order.customer || order.customer_name || '').toLowerCase();
   if (customer.includes(q) || removeVietnameseDiacritics(customer).includes(qClean)) return true;
 
   const table = extractOrderTableNumber(order).toLowerCase();
@@ -268,3 +268,73 @@ export function formatOrderTotal(order: Pick<HistoryOrderDto, 'total' | 'content
   }
   return order?.total !== undefined && order?.total !== null ? `$${order.total}` : '-';
 }
+
+export type DefaultHistoryExpandMode = 'latest' | 'all';
+
+/** Computes initial expanded/collapsed key set matching legacy or sandbox defaults. */
+export function createInitialHistoryExpandedKeys(
+  dates: readonly string[],
+  mode: DefaultHistoryExpandMode = 'latest'
+): ReadonlySet<string> {
+  if (mode === 'all') {
+    return new Set(dates);
+  }
+  const first = dates[0];
+  return first ? new Set([first]) : new Set();
+}
+
+/** Resolves whether a date group should render expanded under active filter state. */
+export function resolveDateExpanded(
+  date: string,
+  expandedKeys: ReadonlySet<string>,
+  isFilterActive: boolean
+): boolean {
+  return isFilterActive ? !expandedKeys.has(`collapsed_${date}`) : expandedKeys.has(date);
+}
+
+/** Checks if every visible date group is expanded. */
+export function areAllDatesExpanded(
+  dates: readonly string[],
+  expandedKeys: ReadonlySet<string>,
+  isFilterActive: boolean
+): boolean {
+  return dates.length > 0 && dates.every(date => resolveDateExpanded(date, expandedKeys, isFilterActive));
+}
+
+/** Toggles one date group cleanly respecting filter-mode overrides. */
+export function toggleDateExpanded(
+  expandedKeys: ReadonlySet<string>,
+  date: string,
+  isFilterActive: boolean
+): Set<string> {
+  const next = new Set(expandedKeys);
+  const targetKey = isFilterActive ? `collapsed_${date}` : date;
+  if (next.has(targetKey)) next.delete(targetKey);
+  else next.add(targetKey);
+  return next;
+}
+
+/** Toggles all visible date groups open or closed consistently. */
+export function toggleAllDatesExpanded(
+  expandedKeys: ReadonlySet<string>,
+  dates: readonly string[],
+  isFilterActive: boolean
+): Set<string> {
+  const next = new Set(expandedKeys);
+  if (isFilterActive) {
+    const anyCollapsed = dates.some(date => next.has(`collapsed_${date}`));
+    for (const date of dates) {
+      if (anyCollapsed) next.delete(`collapsed_${date}`);
+      else next.add(`collapsed_${date}`);
+    }
+    return next;
+  }
+
+  const allOpen = areAllDatesExpanded(dates, expandedKeys, false);
+  for (const date of dates) {
+    if (allOpen) next.delete(date);
+    else next.add(date);
+  }
+  return next;
+}
+

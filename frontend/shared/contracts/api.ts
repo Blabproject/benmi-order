@@ -108,6 +108,7 @@ export interface HistoryOrderDto {
   legacyKey?: string | null;
   businessDate?: string | null;
   customer: string;
+  customer_name?: string;
   phone?: string;
   phoneNumber?: string;
   time: string;

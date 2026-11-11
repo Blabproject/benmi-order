@@ -1,0 +1,180 @@
+/* Scoped integration styling inside legacy #view-history mount */
+.pos-history-mount {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
+}
+
+#pos-history-react-root.blab-modern-root {
+  background: transparent;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
+}
+
+#pos-history-react-root .panel {
+  height: 100%;
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+#pos-history-react-root .history-list-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+#pos-history-react-root .history-loading-state {
+  text-align: center;
+  padding: 22px;
+  color: #64748b;
+}
+
+/* Native <details> accordion resets & accessible visual affordances */
+#pos-history-react-root details.history-date-group > summary.history-date-header {
+  list-style: none;
+  min-height: 52px;
+  box-sizing: border-box;
+}
+
+#pos-history-react-root details.history-date-group > summary.history-date-header::-webkit-details-marker {
+  display: none;
+}
+
+#pos-history-react-root .history-group-count-badge {
+  background: #f3f4f6;
+  color: #374151;
+  font-weight: 800;
+  font-size: var(--pos-text-meta);
+}
+
+#pos-history-react-root .history-group-total-badge {
+  background: rgba(0, 185, 0, 0.1);
+  color: var(--primary);
+  font-weight: 1000;
+  font-size: var(--pos-text-meta);
+}
+
+#pos-history-react-root .history-tile-dining-badge {
+  font-size: var(--pos-text-meta);
+  padding: 2px 6px;
+  margin-left: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#pos-history-react-root .history-tile-append-badge {
+  font-size: var(--pos-text-meta);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 800;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+#pos-history-react-root .history-tile-modified-badge {
+  font-size: var(--pos-text-meta);
+  padding: 2px 6px;
+  margin-left: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#pos-history-react-root .history-status-paid {
+  background: #ede9fe;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+}
+
+#pos-history-react-root .history-status-rejected {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+#pos-history-react-root .history-payment-warning {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+#pos-history-react-root .history-older-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Guarantee >= 48px touch targets on EVERY interactive button across all viewports */
+#pos-history-react-root .history-search-clear-btn {
+  right: 0;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+}
+
+#pos-history-react-root .history-filter-btn,
+#pos-history-react-root .history-toggle-btn,
+#pos-history-react-root .history-clear-filter-btn,
+#pos-history-react-root .history-tile-btn,
+#pos-history-react-root .history-older-btn {
+  min-width: 48px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+#pos-history-react-root .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+#pos-history-react-root [hidden] {
+  display: none !important;
+}
+
+#pos-history-react-root .history-date-header,
+#pos-history-react-root .history-older-card {
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+@media (max-width: 680px) {
+  #pos-history-react-root .history-filter-btn,
+  #pos-history-react-root .history-toggle-btn {
+    min-height: 48px;
+    height: auto;
+  }
+
+  #pos-history-react-root .history-search-input {
+    min-height: 48px;
+    height: 48px;
+    padding-right: 48px;
+  }
+}

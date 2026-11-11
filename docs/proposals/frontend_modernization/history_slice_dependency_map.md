@@ -1,6 +1,6 @@
 # Bản đồ phụ thuộc lát cắt đầu tiên: POS Order History & Read-Only Detail
 
-Tài liệu PR 1 (khóa baseline & ranh giới phụ thuộc) dựa trên kiểm tra trực tiếp mã nguồn hiện tại trên `staging`/`main`.
+Tài liệu PR 1 (khóa baseline & ranh giới phụ thuộc) dựa trên kiểm tra trực tiếp mã nguồn `main`. Từ PR 4 trên nhánh `staging`, lát cắt `#view-history` đã được chuyển sang React (`frontend/apps/pos/PosHistoryPanel.tsx`, `frontend/apps/pos/history-bridge.tsx`, `frontend/apps/pos/history-store.ts`, `frontend/shared/contracts/order-formatters.ts`) và `js/orders-history.js` đã được gỡ bỏ.
 
 ---
 

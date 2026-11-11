@@ -17,10 +17,14 @@ for(const [name,engine]of Object.entries({chromium,webkit}))test(`${name}: table
  const page=await browser.newPage({viewport:{width:1440,height:900},hasTouch:true});page.setDefaultTimeout(8000);
  const errors=[],writes=[];let canWrite=true,capabilityGate=null;
  page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.dismiss());
+ const distRoot=path.join(root,'dist');
+ if(!fs.existsSync(path.join(distRoot,'.vite/manifest.json'))||!fs.existsSync(path.join(distRoot,'orders.html'))){
+  require('node:child_process').execFileSync(process.execPath,[path.join(root,'node_modules/vite/bin/vite.js'),'build','--config','vite.config.mts'],{cwd:root,stdio:'inherit'});
+ }
  await page.route('**/*',async route=>{
   const r=route.request(),url=new URL(r.url()),p=url.pathname;
-  if(p==='/orders.html')return route.fulfill({contentType:'text/html',body:fs.readFileSync(path.join(root,'orders.html'),'utf8').replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi,'')});
-  if(/^\/(js|css)\/[\w.-]+$/.test(p))return route.fulfill({contentType:p.endsWith('.css')?'text/css':'application/javascript',body:fs.readFileSync(path.join(root,p.slice(1)),'utf8')});
+  if(p==='/orders.html')return route.fulfill({contentType:'text/html',body:fs.readFileSync(path.join(distRoot,'orders.html'),'utf8').replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi,'')});
+  if(/^\/(js|css|assets)\/[\w.-]+$/.test(p))return route.fulfill({contentType:p.endsWith('.css')?'text/css':p.endsWith('.png')?'image/png':'application/javascript',headers:{'Access-Control-Allow-Origin':'*'},body:fs.readFileSync(path.join(distRoot,p.slice(1)))});
   if(p.startsWith('/api/staff/')){
    if(r.method()==='OPTIONS')return route.fulfill({status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Allow-Methods':'GET,POST,PATCH,OPTIONS'}});
    if(!['GET','HEAD'].includes(r.method()))writes.push({path:p,body:r.postDataJSON()});

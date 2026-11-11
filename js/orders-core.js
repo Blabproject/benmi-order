@@ -31,6 +31,7 @@ const WORKER_BASE = _isDev
   : (_isStaging
     ? "https://platform-worker-staging.thuanmnc.workers.dev"
     : "https://benmi-worker-official.thuanmnc.workers.dev");
+window.WORKER_BASE = WORKER_BASE;
 
 var POS_SVG = {
   takeaway: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:-1px; margin-right:4px;"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg>`,

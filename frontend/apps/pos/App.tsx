@@ -1,15 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { HistoryOrderDto } from '@shared/contracts/api';
 import {
+  areAllDatesExpanded,
   buildHistoryGroups,
   buildOrderItemsSummary,
+  createInitialHistoryExpandedKeys,
   extractOrderTableNumber,
   formatOrderSubmissionTime,
   formatOrderTotal,
   formatPickupTimeDisplay,
   isOrderDineIn,
+  resolveDateExpanded,
+  toggleAllDatesExpanded,
+  toggleDateExpanded,
   type HistoryFilterType
 } from '@shared/contracts/history-model';
+import { ChevronDownIcon, SearchIcon } from '@shared/ui/PosIcons';
 import { translatePos, type PosLocale, type PosTranslationKey } from '@shared/i18n/pos-dictionary';
 import { fetchJson, resolveWorkerBase } from '@shared/infra/http';
 import { DEFAULT_SANDBOX_ORDERS } from './history-fixtures';
@@ -46,7 +52,12 @@ export function App({
   const [orders, setOrders] = useState<readonly HistoryOrderDto[]>(initialOrders);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<HistoryFilterType>('all');
-  const [collapsedDates, setCollapsedDates] = useState<Record<string, boolean>>({});
+  const [expandedDates, setExpandedDates] = useState<ReadonlySet<string>>(() =>
+    createInitialHistoryExpandedKeys(
+      buildHistoryGroups(initialOrders, { nowMs }).groups.map(group => group.date),
+      'all'
+    )
+  );
   const [selectedOrder, setSelectedOrder] = useState<HistoryOrderDto | null>(null);
   const [liveTenantId, setLiveTenantId] = useState<string | null>(null);
   const [liveLoading, setLiveLoading] = useState(false);
@@ -76,6 +87,12 @@ export function App({
         const list = Array.isArray(data) ? data : Array.isArray(data?.orders) ? data.orders : null;
         if (list) {
           setOrders(list);
+          setExpandedDates(
+            createInitialHistoryExpandedKeys(
+              buildHistoryGroups(list).groups.map(group => group.date),
+              'all'
+            )
+          );
         }
       })
       .catch(() => {
@@ -99,10 +116,6 @@ export function App({
   const effectiveNowMs = nowMs ?? Date.now();
   const isFiltering = Boolean(searchQuery.trim() || filterType !== 'all');
 
-  useEffect(() => {
-    setCollapsedDates({});
-  }, [searchQuery, filterType]);
-
   const { groups } = useMemo(
     () =>
       buildHistoryGroups(orders, {
@@ -113,27 +126,16 @@ export function App({
     [orders, filterType, searchQuery, effectiveNowMs]
   );
 
+  const dates = useMemo(() => groups.map(group => group.date), [groups]);
   const hasAnyOrders = orders.length > 0;
-  const allGroupsExpanded =
-    groups.length > 0 && groups.every(group => !(collapsedDates[group.date] ?? false));
+  const allGroupsExpanded = areAllDatesExpanded(dates, expandedDates, isFiltering);
 
   const handleToggleDate = (date: string) => {
-    setCollapsedDates(prev => ({
-      ...prev,
-      [date]: !(prev[date] ?? false)
-    }));
+    setExpandedDates(prev => toggleDateExpanded(prev, date, isFiltering));
   };
 
-  const handleSetAllExpanded = (expand: boolean) => {
-    if (expand) {
-      setCollapsedDates({});
-      return;
-    }
-    const next: Record<string, boolean> = {};
-    for (const group of groups) {
-      next[group.date] = true;
-    }
-    setCollapsedDates(next);
+  const handleSetAllExpanded = () => {
+    setExpandedDates(prev => toggleAllDatesExpanded(prev, dates, isFiltering));
   };
 
   const handleClearFilters = () => {
@@ -181,21 +183,7 @@ export function App({
           {hasAnyOrders ? (
             <div className="pos-toolbar">
               <div className="pos-search-wrap">
-                <svg
-                  className="pos-search-icon"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.3-4.3" />
-                </svg>
+                <SearchIcon size={18} className="pos-search-icon" />
                 <label htmlFor="pos-history-search" className="visually-hidden">
                   {t('searchLabel')}
                 </label>
@@ -240,7 +228,7 @@ export function App({
                   type="button"
                   className="pos-btn"
                   aria-expanded={allGroupsExpanded}
-                  onClick={() => handleSetAllExpanded(!allGroupsExpanded)}
+                  onClick={handleSetAllExpanded}
                 >
                   {allGroupsExpanded ? t('btnCollapseAll') : t('btnExpandAll')}
                 </button>
@@ -263,7 +251,7 @@ export function App({
           ) : (
             <div className="pos-group-list">
               {groups.map(group => {
-                const isOpen = !(collapsedDates[group.date] ?? false);
+                const isOpen = resolveDateExpanded(group.date, expandedDates, isFiltering);
                 return (
                   <details key={group.date} className="pos-date-group" open={isOpen}>
                     <summary
@@ -274,18 +262,7 @@ export function App({
                       }}
                     >
                       <span className="pos-date-summary-left">
-                        <svg
-                          className="pos-chevron"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="m6 9 6 6 6-6" />
-                        </svg>
+                        <ChevronDownIcon className="pos-chevron" />
                         <span>{group.date}</span>
                         {group.isToday ? <span className="pos-today-pill">{t('todayTag')}</span> : null}
                       </span>

@@ -70,8 +70,8 @@ Thứ tự load trong `orders.html` (từ dòng ~2788):
 6. [`js/orders-live.js`](file:///Users/duccao/Documents/benmi-order/js/orders-live.js) (~1,690 dòng):
    - Render lưới thẻ đơn hàng trực tiếp (`renderAll`, `renderItemRowHtml`, `formatContentHtml`, `openReview`).
    - Thao tác nhận đơn, báo hết món, đổi giờ hẹn, hoàn tất đơn.
-7. [`js/orders-history.js`](file:///Users/duccao/Documents/benmi-order/js/orders-history.js) (~510 dòng):
-   - Tab **Lịch sử đơn hàng (30 ngày)**: `fetchHistoryOrders()`, `renderHistory()`, `matchesHistorySearch()`.
+7. [`frontend/apps/pos/PosHistoryPanel.tsx`](file:///Users/duccao/Documents/benmi-order/frontend/apps/pos/PosHistoryPanel.tsx), [`history-bridge.tsx`](file:///Users/duccao/Documents/benmi-order/frontend/apps/pos/history-bridge.tsx), [`history-store.ts`](file:///Users/duccao/Documents/benmi-order/frontend/apps/pos/history-store.ts), [`history-model.ts`](file:///Users/duccao/Documents/benmi-order/frontend/shared/contracts/history-model.ts), [`order-formatters.ts`](file:///Users/duccao/Documents/benmi-order/frontend/shared/contracts/order-formatters.ts):
+   - Tab **Lịch sử đơn hàng (30 ngày)** (React 19 + TypeScript strict + Vite): `fetchHistoryOrders()`, `renderHistory()`, `matchesHistorySearch()`, `formatPosShortItems()`.
 8. [`js/orders-menu-model.js`](../../js/orders-menu-model.js) (~328 dòng - Browser & CommonJS):
    - **`MenuEditorModel`**: `canonicalMenuSnapshot(data)`, `serializeMenuData(categories, dependencies)`, `getMenuDeletions(before, after, dependencies)`; logic dữ liệu không đọc DOM hay state toàn cục.
    - Snapshot và tính danh sách xóa không sửa đầu vào. Serializer giữ cập nhật ID/liên kết trên bản nháp; nhận callback tenant, UUID, thông báo lỗi và danh mục dùng chung từ caller.
@@ -109,7 +109,7 @@ Thứ tự load trong `orders.html` (từ dòng ~2788):
 | **Lỗi hiển thị giỏ hàng / tính tổng tiền / ngưỡng满額** | `js/client-cart.js` (`updateTotal`, `updateCustomizationThresholdUI`) |
 | **Lỗi gửi đơn / sửa đơn / thêm món (Client)** | `js/order-detail-checkout.js` + `js/client-checkout.js` (`submitOrder`, `initEditOrderMode`) |
 | **Lỗi hiển thị thẻ đơn hàng mới hoặc Modal Xem đơn (POS)** | `js/orders-live.js` (`formatContentHtml`, `renderItemRowHtml`) + `js/order-detail-view.js` |
-| **Lỗi hiển thị dòng tóm tắt ở tab Lịch sử đơn (POS)** | `js/orders-history.js` (`renderHistory`) + `js/orders-core.js` (`shortItems`) |
+| **Lỗi hiển thị dòng tóm tắt ở tab Lịch sử đơn (POS)** | `frontend/apps/pos/PosHistoryPanel.tsx` + `frontend/shared/contracts/order-formatters.ts` (`formatPosShortItems`) |
 | **Lỗi in hóa đơn / in tem nhãn / dịch mã ID tùy chọn** | `js/printer-service.js` (`formatPrintOptions`, `parseOrderItems`) + `js/order-legacy-adapter.js` |
 | **Lỗi phát hiện thay đổi (dirty), payload lưu hoặc danh sách xóa menu POS** | `js/orders-menu-model.js` (snapshot/serialize/deletions) + `js/orders-menu.js` (wrapper, DOM và gọi API) |
 | **Lỗi tạo/sửa nhóm tùy chọn trên POS** | `js/orders-option-groups.js` + `benmi-worker-official/src/modules/option-groups.ts` |

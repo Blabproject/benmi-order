@@ -57,6 +57,12 @@ test('Vite dist/ bundle coexists with legacy pages and serves POS React sandbox 
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   const entry = manifest['frontend/apps/pos/sandbox.html'];
   assert.ok(entry?.file?.startsWith('assets/pos-sandbox-'), JSON.stringify(manifest));
+  const ordersEntry = manifest['orders.html'];
+  assert.ok(ordersEntry?.file?.startsWith('assets/orders-'), JSON.stringify(manifest));
+  assert.ok(
+    Array.isArray(ordersEntry?.css) && ordersEntry.css.some(c => c.startsWith('assets/orders-')),
+    JSON.stringify(ordersEntry)
+  );
   assert.equal(fs.existsSync(path.join(distDir, entry.file)), true);
   assert.ok(entry.css?.[0]?.startsWith('assets/pos-sandbox-'));
   assert.equal(fs.existsSync(path.join(distDir, entry.css[0])), true);
@@ -133,7 +139,9 @@ test('Vite dist/ bundle coexists with legacy pages and serves POS React sandbox 
   await page.route('**/api/**', route => route.fulfill({ json: [] }));
   await page.route('**/bootstrap*', route => route.fulfill({ json: {} }));
   await page.goto(`${baseUrl}/orders.html?tenant=demo&env=dev`, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => typeof switchTab === 'function');
+  await page.waitForFunction(() => typeof switchTab === 'function' && typeof window.fetchHistoryOrders === 'function');
+  await page.evaluate(() => switchTab('history'));
+  await page.waitForSelector('#pos-history-react-root #history-search-input');
   await page.goto(`${baseUrl}/index.html?tenant=demo&env=dev`, { waitUntil: 'domcontentloaded' });
 
   assert.deepEqual(failedLocalRequests, [], `Broken local assets in dist/: ${failedLocalRequests.join(', ')}`);

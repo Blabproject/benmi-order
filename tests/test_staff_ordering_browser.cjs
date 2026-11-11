@@ -26,10 +26,16 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  INSERT INTO modifier_options(id,tenant_id,group_id,name,price,is_default) VALUES
  ('mild','a','order-flavor','Không cay',0,1),('hot','a','order-flavor','Cay vừa',0,0),
  ('cutlery','a','order-extra','Lấy dụng cụ ăn',0,0),('soup','a','order-extra','Súp thêm',15,0);`);
+ const distRoot=path.join(process.cwd(),'dist');
+ if(!fs.existsSync(path.join(distRoot,'.vite/manifest.json'))||!fs.existsSync(path.join(distRoot,'orders.html'))){
+  require('node:child_process').execFileSync(process.execPath,[path.join(process.cwd(),'node_modules/vite/bin/vite.js'),'build','--config','vite.config.mts'],{cwd:process.cwd(),stdio:'inherit'});
+ }
  const server=http.createServer((req,res)=>{
-  const file=path.resolve(new URL(req.url,'http://local').pathname.slice(1));
-  if(!file.startsWith(process.cwd()+path.sep)||!fs.existsSync(file)){res.writeHead(404);res.end();return;}
-  res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html');res.end(fs.readFileSync(file));
+  const rel=new URL(req.url,'http://local').pathname.slice(1);
+  const file=path.resolve(distRoot,rel);
+  if((!file.startsWith(distRoot+path.sep)&&file!==distRoot)||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404);res.end();return;}
+  const contentType=file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':file.endsWith('.png')?'image/png':file.endsWith('.svg')?'image/svg+xml':file.endsWith('.wasm')?'application/wasm':'text/html';
+  res.setHeader('Content-Type',contentType);res.end(fs.readFileSync(file));
  });
  await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>server.close(r)));
  const browser=await engine.launch();t.after(()=>browser.close());

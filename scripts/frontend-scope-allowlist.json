@@ -24,18 +24,5 @@
       "sha256": "b3507ebacbae7615db9f98d5c9c368bb9e015ea24f63ce5ecc41decc8037ce9f"
     },
     "reason": "Legacy checkout resolver overrides the menu resolver; retained during scope-check rollout without changing production behavior."
-  },
-  {
-    "page": "orders.html",
-    "name": "isOrderDineIn",
-    "previous": {
-      "file": "js/orders-live.js",
-      "sha256": "d6abcfb22ddf99eb32fc24855de2d9cd86252944daf6e17e7171b6a61c824dd7"
-    },
-    "current": {
-      "file": "js/orders-history.js",
-      "sha256": "6f5a778efaa88fd73fadf148ce271054aa7bcb5694972b33afccd5d827774321"
-    },
-    "reason": "History supplies the existing broader dining-mode detection used by the POS shared scope."
   }
 ]

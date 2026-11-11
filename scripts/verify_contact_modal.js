@@ -12,7 +12,8 @@ console.log("🔍 Verifying BLAB Support & Contact Modal Redesign...");
 console.log("=================================================");
 
 const ordersHtml = fs.readFileSync(path.join(__dirname, '../orders.html'), 'utf-8');
-const historyJs = fs.readFileSync(path.join(__dirname, '../js/orders-history.js'), 'utf-8');
+const posHistoryPanelTsx = fs.readFileSync(path.join(__dirname, '../frontend/apps/pos/PosHistoryPanel.tsx'), 'utf-8');
+const historyBridgeTsx = fs.readFileSync(path.join(__dirname, '../frontend/apps/pos/history-bridge.tsx'), 'utf-8');
 const modalsJs = fs.readFileSync(path.join(__dirname, '../js/orders-modals.js'), 'utf-8');
 const i18nJs = fs.readFileSync(path.join(__dirname, '../js/orders-i18n.js'), 'utf-8');
 
@@ -64,10 +65,10 @@ assert(
   'Reports locked upgrade button calls openBlabContactModal(\'upgrade\')'
 );
 
-// 3. Check orders-history.js for clean SVG icons (No childish emojis)
-assert(!historyJs.includes('📦'), 'Emoji 📦 eliminated from js/orders-history.js');
-assert(!historyJs.includes('💬'), 'Emoji 💬 eliminated from js/orders-history.js');
-assert(historyJs.includes("openBlabContactModal('history')"), 'js/orders-history.js calls openBlabContactModal(\'history\')');
+// 3. Check POS History React module for clean SVG icons (No childish emojis)
+assert(!posHistoryPanelTsx.includes('📦'), 'Emoji 📦 eliminated from frontend/apps/pos/PosHistoryPanel.tsx');
+assert(!posHistoryPanelTsx.includes('💬'), 'Emoji 💬 eliminated from frontend/apps/pos/PosHistoryPanel.tsx');
+assert(historyBridgeTsx.includes("openBlabContactModal?.('history')"), 'frontend/apps/pos/history-bridge.tsx calls openBlabContactModal(\'history\')');
 
 // 4. Verify DOM VM logic & I18N
 const elements = {};

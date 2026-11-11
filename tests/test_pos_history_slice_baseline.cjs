@@ -1,11 +1,22 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
 const { chromium } = require('playwright');
 
 const root = process.cwd();
+const distRoot = path.join(root, 'dist');
+
+function ensureDistBuilt() {
+  if (!fs.existsSync(path.join(distRoot, '.vite/manifest.json')) || !fs.existsSync(path.join(distRoot, 'orders.html'))) {
+    execFileSync(process.execPath, [path.join(root, 'node_modules/vite/bin/vite.js'), 'build', '--config', 'vite.config.mts'], {
+      cwd: root,
+      stdio: 'inherit'
+    });
+  }
+}
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -18,11 +29,12 @@ const MIME_TYPES = {
 };
 
 function startStaticServer(t) {
+  ensureDistBuilt();
   const server = http.createServer((req, res) => {
     const reqPath = new URL(req.url, 'http://127.0.0.1').pathname;
     const rel = reqPath === '/' ? 'orders.html' : reqPath.replace(/^\/+/, '');
-    const abs = path.resolve(root, rel);
-    if (!abs.startsWith(root + path.sep) && abs !== root) {
+    const abs = path.resolve(distRoot, rel);
+    if (!abs.startsWith(distRoot + path.sep) && abs !== distRoot) {
       res.writeHead(403).end();
       return;
     }

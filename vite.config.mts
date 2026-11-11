@@ -13,7 +13,6 @@ const LEGACY_ROOT_FILES = [
   '_build.json',
   'index.css',
   'index.html',
-  'orders.html',
   'marketplace.html',
   'staff-order.html',
   'payment-result.html',
@@ -72,7 +71,8 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       input: {
-        'pos-sandbox': path.resolve(rootDir, 'frontend/apps/pos/sandbox.html')
+        'pos-sandbox': path.resolve(rootDir, 'frontend/apps/pos/sandbox.html'),
+        orders: path.resolve(rootDir, 'orders.html')
       }
     }
   }

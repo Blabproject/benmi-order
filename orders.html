@@ -432,45 +432,7 @@
     </div>
 
     <div class="content" id="view-history" style="display:none;">
-      <div class="panel" style="height: 100%;">
-        <div class="panel-header history-header">
-          <!-- History Quick Search & Filter Toolbar -->
-          <div class="history-toolbar">
-            <div class="history-search-box">
-              <span class="history-search-icon" aria-hidden="true">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
-              </span>
-              <input type="text" id="history-search-input" class="history-search-input" placeholder="搜尋訂單編號 / 顧客姓名 / 桌號..." oninput="onHistorySearchInput(this.value)" onchange="onHistorySearchInput(this.value)" autocomplete="off">
-              <button type="button" id="btn-history-search-clear" class="history-search-clear-btn" onclick="clearHistorySearch()" aria-label="Clear Search" style="display:none;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
-              </button>
-            </div>
-
-            <div class="history-controls-row">
-              <div class="history-filter-group" id="history-filter-group" style="display:none;">
-                <button type="button" class="history-filter-btn active" data-filter="all" onclick="setHistoryFilter('all')" id="i18n-hist-filter-all">全部</button>
-                <button type="button" class="history-filter-btn" data-filter="dine_in" onclick="setHistoryFilter('dine_in')" id="i18n-hist-filter-dinein">內用</button>
-                <button type="button" class="history-filter-btn" data-filter="takeaway" onclick="setHistoryFilter('takeaway')" id="i18n-hist-filter-takeaway">外帶</button>
-              </div>
-
-              <div class="history-header-actions">
-                <div class="badge history-total-badge" id="history-total-summary-badge">
-                  0 單
-                </div>
-                <button type="button" class="btn btn-ghost history-toggle-btn" id="btn-toggle-all-history" onclick="toggleAllHistoryGroups()">
-                  <span id="btn-toggle-all-icon" class="history-toggle-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"></path></svg>
-                  </span>
-                  <span id="btn-toggle-all-text">展開全部</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="panel-body" id="list-history" style="padding: 14px; display: flex; flex-direction: column; gap: 12px;">
-          <div style="text-align:center; padding: 22px; color:#999;" id="list-history-loading">載入中...</div>
-        </div>
-      </div>
+      <div id="pos-history-react-root" class="pos-history-mount blab-modern-root"></div>
     </div>
 
     <!-- Reports / Item Analytics Panel -->
@@ -3325,14 +3287,13 @@
 
   <!-- Benmi POS Modular Architecture Scripts -->
   <script src="js/orders-i18n.js?v=20261111_store_notice_v1"></script>
-  <script src="js/orders-core.js?v=20261111_staff_table_sync_v1"></script>
+  <script src="js/orders-core.js?v=20261112_react_history_v1"></script>
   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
   <script src="js/order-detail-view.js?v=20261017_order_detail_v1"></script>
   <script src="js/printer-service.js?v=20261111_sticker_no_customer_v2"></script>
-  <script src="js/orders-live.js?v=20261109_order_code_v1"></script>
+  <script src="js/orders-live.js?v=20261112_react_history_v1"></script>
   <script src="js/orders-modals.js?v=20261109_order_code_v1"></script>
-  <script src="js/orders-history.js?v=20261109_order_code_v1"></script>
   <script src="js/orders-reports.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/qrcode.min.js?v=20261107_table_qr_v1"></script>
   <script src="js/store-notice-format.js?v=20261111_store_notice_v1"></script>
@@ -3381,6 +3342,7 @@
     });
   </script>
 <script src="/js/orders-payments.js?v=20261109_order_code_v1"></script>
+<script type="module" src="/frontend/apps/pos/history-bridge.tsx"></script>
 </body>
 
 </html>

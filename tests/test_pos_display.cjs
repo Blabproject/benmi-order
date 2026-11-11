@@ -9,15 +9,38 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const sizes = { standard: 1, large: 1.125, 'extra-large': 1.25 };
 
 async function fixture(page) {
+  const nodeFs = require('node:fs');
+  const nodePath = require('node:path');
+  const { execFileSync } = require('node:child_process');
+  const repoRoot = nodePath.resolve(__dirname, '..');
+  const distDir = nodePath.join(repoRoot, 'dist');
+  if (!nodeFs.existsSync(nodePath.join(distDir, '.vite/manifest.json')) || !nodeFs.existsSync(nodePath.join(distDir, 'orders.html'))) {
+    execFileSync(process.execPath, [nodePath.join(repoRoot, 'node_modules/vite/bin/vite.js'), 'build', '--config', 'vite.config.mts'], {
+      cwd: repoRoot,
+      stdio: 'inherit'
+    });
+  }
+
   await page.route('**/*', route => {
     const url = new URL(route.request().url());
     if (url.pathname === '/orders.html') {
       // Keep actual linked assets and load order; avoid background API/bootstrap work.
-      const html = read('orders.html').replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '');
+      const html = nodeFs.readFileSync(nodePath.join(distDir, 'orders.html'), 'utf8')
+        .replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '');
       return route.fulfill({ body: html, contentType: 'text/html' });
     }
-    if (/^\/(js|css)\/[\w.-]+$/.test(url.pathname)) {
-      return route.fulfill({ body: read(url.pathname.slice(1)), contentType: url.pathname.endsWith('.css') ? 'text/css' : 'text/javascript' });
+    if (/^\/(js|css|assets)\/[\w.-]+$/.test(url.pathname)) {
+      const rel = url.pathname.slice(1);
+      const contentType = rel.endsWith('.css')
+        ? 'text/css'
+        : rel.endsWith('.png')
+          ? 'image/png'
+          : 'application/javascript';
+      return route.fulfill({
+        body: nodeFs.readFileSync(nodePath.join(distDir, rel)),
+        contentType,
+        headers: { 'Access-Control-Allow-Origin': '*' }
+      });
     }
     return route.fulfill({ body: '{}', contentType: 'application/json' });
   });

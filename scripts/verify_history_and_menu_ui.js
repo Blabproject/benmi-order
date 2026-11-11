@@ -13,24 +13,38 @@ console.log('====================================================\n');
 const rootDir = path.resolve(__dirname, '..');
 
 // 1. Emoji Prohibition Check in targeted files
-console.log('1. Checking for emojis in orders-history.js and orders-menu.js...');
-const historyJs = fs.readFileSync(path.join(rootDir, 'js/orders-history.js'), 'utf8');
+console.log('1. Checking for emojis in React POS History modules and orders-menu.js...');
+const posHistorySources = [
+  'frontend/apps/pos/PosHistoryPanel.tsx',
+  'frontend/apps/pos/history-bridge.tsx',
+  'frontend/apps/pos/history-store.ts',
+  'frontend/shared/contracts/history-model.ts',
+  'frontend/shared/i18n/pos-dictionary.ts',
+  'frontend/shared/ui/PosIcons.tsx'
+].map(rel => [rel, fs.readFileSync(path.join(rootDir, rel), 'utf8')]);
+const posHistoryPanelTsx = posHistorySources[0][1];
+const historyBridgeTsx = posHistorySources[1][1];
+const historyStoreTs = posHistorySources[2][1];
 const menuJs = fs.readFileSync(path.join(rootDir, 'js/orders-menu.js'), 'utf8');
 
 // Common emojis to guard against in POS code
 const forbiddenEmojis = ['📅', '📂', '📁', '⚙️', '✏️', '🗑️', '🍽️', '🏷️', '🧪', '🟢', '🔴', '📷', '➕', '📦', '🪑'];
 
 forbiddenEmojis.forEach(emoji => {
-    assert(!historyJs.includes(emoji), `Forbidden emoji found in js/orders-history.js: ${emoji}`);
+    for (const [rel, src] of posHistorySources) {
+        assert(!src.includes(emoji), `Forbidden emoji found in ${rel}: ${emoji}`);
+    }
     assert(!menuJs.includes(emoji), `Forbidden emoji found in js/orders-menu.js: ${emoji}`);
 });
-console.log('  ✓ No forbidden emojis found in js/orders-history.js & js/orders-menu.js');
+console.log('  ✓ No forbidden emojis found in React POS History modules & js/orders-menu.js');
 
-// 2. HTML Elements Check
-console.log('2. Verifying DOM structure in orders.html...');
+// 2. HTML & React Mount Elements Check
+console.log('2. Verifying DOM structure in orders.html and PosHistoryPanel.tsx...');
 const ordersHtml = fs.readFileSync(path.join(rootDir, 'orders.html'), 'utf8');
+assert(ordersHtml.includes('id="pos-history-react-root"'), 'Missing #pos-history-react-root mount in orders.html');
+assert(ordersHtml.includes('src="/frontend/apps/pos/history-bridge.tsx"'), 'Missing history-bridge module script in orders.html');
 
-const requiredHtmlIds = [
+const requiredHistoryIds = [
     'history-search-input',
     'btn-history-search-clear',
     'history-filter-group',
@@ -38,7 +52,16 @@ const requiredHtmlIds = [
     'i18n-hist-filter-dinein',
     'i18n-hist-filter-takeaway',
     'history-total-summary-badge',
-    'btn-toggle-all-history',
+    'btn-toggle-all-history'
+];
+requiredHistoryIds.forEach(id => {
+    assert(
+        posHistoryPanelTsx.includes(`id="${id}"`) || posHistoryPanelTsx.includes(`id: '${id}'`),
+        `Missing required element ID in PosHistoryPanel.tsx: ${id}`
+    );
+});
+
+const requiredHtmlIds = [
     'btn-menu-save',
     'btn-menu-add-item',
     'menu-categories'
@@ -47,7 +70,7 @@ const requiredHtmlIds = [
 requiredHtmlIds.forEach(id => {
     assert(ordersHtml.includes(`id="${id}"`), `Missing required element ID in orders.html: ${id}`);
 });
-console.log('  ✓ All required IDs for history toolbar and menu management are present in orders.html');
+console.log('  ✓ All required IDs for history toolbar and menu management are present');
 
 // 3. I18N Parity Check
 console.log('3. Verifying I18N keys parity in js/orders-i18n.js...');
@@ -126,41 +149,24 @@ assert(priceInputMatch && parseInt(priceInputMatch[1], 10) <= 56, `menu-item-pri
 
 console.log('  ✓ All required CSS component classes exist and price input is made compact & narrow (<= 56px)');
 
-// 5. JavaScript Logic & Method Verification
+// 5. TypeScript / React Bridge Logic & Method Verification
 console.log('5. Verifying function signatures & logic...');
-assert(historyJs.includes('function onHistorySearchInput'), 'Missing onHistorySearchInput in js/orders-history.js');
-assert(historyJs.includes('function clearHistorySearch'), 'Missing clearHistorySearch in js/orders-history.js');
-assert(historyJs.includes('function setHistoryFilter'), 'Missing setHistoryFilter in js/orders-history.js');
-assert(historyJs.includes('historySearchQuery'), 'Missing historySearchQuery state in js/orders-history.js');
-assert(historyJs.includes('historyFilterType'), 'Missing historyFilterType state in js/orders-history.js');
+assert(historyBridgeTsx.includes('onHistorySearchInput'), 'Missing onHistorySearchInput in frontend/apps/pos/history-bridge.tsx');
+assert(historyBridgeTsx.includes('clearHistorySearch'), 'Missing clearHistorySearch in frontend/apps/pos/history-bridge.tsx');
+assert(historyBridgeTsx.includes('setHistoryFilter'), 'Missing setHistoryFilter in frontend/apps/pos/history-bridge.tsx');
+assert(historyStoreTs.includes('searchQuery'), 'Missing searchQuery state in frontend/apps/pos/history-store.ts');
+assert(historyStoreTs.includes('filterType'), 'Missing filterType state in frontend/apps/pos/history-store.ts');
 
 assert(menuJs.includes('menu-item-status-pill'), 'Missing menu-item-status-pill rendering in js/orders-menu.js');
 assert(menuJs.includes('status-dot'), 'Missing status-dot rendering in js/orders-menu.js');
 assert(menuJs.includes('POS_SVG.grip'), 'Missing POS_SVG.grip in js/orders-menu.js');
 
-console.log('  ✓ JavaScript logic, filters, and status pill renderers verified');
+console.log('  ✓ React/TS history bridge, filters, and status pill renderers verified');
 
 // 6. Detailed Search & Filter Execution Verification
 console.log('6. Running simulated search & filter tests with real-world sample orders...');
 
-const testVm = {
-  window: {},
-  document: {
-    getElementById: (id) => ({
-      style: {},
-      value: "",
-      focus: () => {},
-      innerText: ""
-    }),
-    querySelectorAll: () => [],
-    addEventListener: () => {}
-  },
-  POS_SVG: { inbox: "", search: "", calendar: "", folder: "", folderOpen: "" },
-  t: (k) => k,
-  escapeHtml: (s) => s
-};
-vm.createContext(testVm);
-vm.runInContext(historyJs, testVm);
+const historyModel = require(path.join(rootDir, 'frontend/shared/contracts/history-model.ts'));
 
 const mockOrders = [
   {
@@ -183,19 +189,19 @@ const mockOrders = [
 ];
 
 // Test matchesHistorySearch
-assert(testVm.matchesHistorySearch(mockOrders[0], "T005"), "Should match order by key T005");
-assert(testVm.matchesHistorySearch(mockOrders[0], "#005"), "Should match order by key #005");
-assert(testVm.matchesHistorySearch(mockOrders[0], "nick"), "Should match customer nick");
-assert(testVm.matchesHistorySearch(mockOrders[0], "Set 11"), "Should match dish Set 11");
-assert(!testVm.matchesHistorySearch(mockOrders[0], "thuan"), "Should not match different customer");
+assert(historyModel.matchesHistorySearch(mockOrders[0], "T005"), "Should match order by key T005");
+assert(historyModel.matchesHistorySearch(mockOrders[0], "#005"), "Should match order by key #005");
+assert(historyModel.matchesHistorySearch(mockOrders[0], "nick"), "Should match customer nick");
+assert(historyModel.matchesHistorySearch(mockOrders[0], "Set 11"), "Should match dish Set 11");
+assert(!historyModel.matchesHistorySearch(mockOrders[0], "thuan"), "Should not match different customer");
 
-assert(testVm.matchesHistorySearch(mockOrders[1], "thuan"), "Should match unaccented thuan");
-assert(testVm.matchesHistorySearch(mockOrders[1], "banh mi"), "Should match unaccented banh mi");
-assert(testVm.matchesHistorySearch(mockOrders[1], "5"), "Should match table 5");
+assert(historyModel.matchesHistorySearch(mockOrders[1], "thuan"), "Should match unaccented thuan");
+assert(historyModel.matchesHistorySearch(mockOrders[1], "banh mi"), "Should match unaccented banh mi");
+assert(historyModel.matchesHistorySearch(mockOrders[1], "5"), "Should match table 5");
 
 // Test isOrderDineIn
-assert(!testVm.isOrderDineIn(mockOrders[0]), "mockOrder 0 should be takeaway");
-assert(testVm.isOrderDineIn(mockOrders[1]), "mockOrder 1 should be dine_in");
+assert(!historyModel.isOrderDineIn(mockOrders[0]), "mockOrder 0 should be takeaway");
+assert(historyModel.isOrderDineIn(mockOrders[1]), "mockOrder 1 should be dine_in");
 
 console.log('  ✓ Search multi-field matching (key, customer, table, dishes, diacritics) and dining detection passed');
 

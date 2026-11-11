@@ -304,10 +304,26 @@ function initLiveMobileView() {
 
 function isOrderDineIn(order) {
   if (!order) return false;
-  return order.diningOption === "dine_in" ||
-         (order.content || "").includes("📍 用餐方式：🍽️ 內用") ||
-         (order.content || "").includes("【內用】") ||
-         (order.time || "").includes("現場內用");
+  const opt = String(order.diningOption || order.dining_option || "").toLowerCase().trim();
+  if (opt === "dine_in" || opt === "dinein" || opt === "in") return true;
+  if (opt === "takeaway" || opt === "take_out" || opt === "out") return false;
+
+  const table = (typeof getOrderTableNumber === "function" ? getOrderTableNumber(order) : String(order.tableNumber || order.table_number || "")).trim();
+  if (table) return true;
+
+  const key = String(order.key || "").trim();
+  if (/(?:^|-)D\d+/i.test(key)) return true;
+  if (/(?:^|-)T\d+/i.test(key)) return false;
+
+  const content = String(order.content || "");
+  if (content.includes("內用") || content.includes("Tại chỗ") || content.includes("Ăn tại chỗ")) return true;
+  if (content.includes("外帶") || content.includes("Mang đi") || content.includes("Mang về")) return false;
+
+  const time = String(order.time || "");
+  if (time.includes("現場內用") || time.includes("內用") || time.includes("Tại chỗ")) return true;
+  if (time.includes("外帶") || time.includes("Mang đi")) return false;
+
+  return false;
 }
 
 function getOrderTableNumber(order) {

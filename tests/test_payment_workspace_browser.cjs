@@ -40,10 +40,14 @@ async function setup(t,engine){
   window.setInterval=(callback,delay)=>{if(delay===30000&&callback.name==='tick')window.paymentTestTick=callback;return 0;};
   window.confirm=()=>true;
  });
+ const distRoot=path.join(root,'dist');
+ if(!fs.existsSync(path.join(distRoot,'.vite/manifest.json'))||!fs.existsSync(path.join(distRoot,'orders.html'))){
+  require('node:child_process').execFileSync(process.execPath,[path.join(root,'node_modules/vite/bin/vite.js'),'build','--config','vite.config.mts'],{cwd:root,stdio:'inherit'});
+ }
  await page.route('**/*',async route=>{
   const r=route.request(),url=new URL(r.url());
-  if(url.pathname==='/orders.html')return route.fulfill({contentType:'text/html',body:fs.readFileSync(path.join(root,'orders.html'),'utf8').replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi,'')});
-  if(/^\/(js|css)\/[\w.-]+$/.test(url.pathname))return route.fulfill({contentType:url.pathname.endsWith('.css')?'text/css':'application/javascript',body:fs.readFileSync(path.join(root,url.pathname.slice(1)),'utf8')});
+  if(url.pathname==='/orders.html')return route.fulfill({contentType:'text/html',body:fs.readFileSync(path.join(distRoot,'orders.html'),'utf8').replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi,'')});
+  if(/^\/(js|css|assets)\/[\w.-]+$/.test(url.pathname))return route.fulfill({contentType:url.pathname.endsWith('.css')?'text/css':url.pathname.endsWith('.png')?'image/png':'application/javascript',headers:{'Access-Control-Allow-Origin':'*'},body:fs.readFileSync(path.join(distRoot,url.pathname.slice(1)))});
   if(url.pathname.startsWith('/api/payments/')){
    if(r.method()==='OPTIONS')return route.fulfill({status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Allow-Methods':'GET,POST,OPTIONS'}});
    requests.push({path:url.pathname,query:url.search,method:r.method(),body:r.postData()});

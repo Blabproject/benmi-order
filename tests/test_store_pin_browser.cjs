@@ -4,10 +4,18 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { chromium, webkit } = require('playwright');
 
+const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
-const read = file => fs.readFileSync(path.join(root, file), 'utf8');
+const distRoot = path.join(root, 'dist');
+function ensureDistBuilt() {
+  if (!fs.existsSync(path.join(distRoot, '.vite/manifest.json')) || !fs.existsSync(path.join(distRoot, 'orders.html'))) {
+    execFileSync(process.execPath, [path.join(root, 'node_modules/vite/bin/vite.js'), 'build', '--config', 'vite.config.mts'], { cwd: root, stdio: 'inherit' });
+  }
+}
+const read = file => fs.readFileSync(path.join(distRoot, file), 'utf8');
 
 async function setup(page) {
+  ensureDistBuilt();
   const requests = [];
   let change = route => route.fulfill({ json: { ok: true } });
   await page.route('**/*', route => {
@@ -21,9 +29,11 @@ async function setup(page) {
       return route.fulfill({ contentType: 'text/html', body: read('orders.html')
         .replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '') });
     }
-    if (/^\/(js|css)\/[\w.-]+$/.test(url.pathname)) {
-      return route.fulfill({ body: read(url.pathname.slice(1)),
-        contentType: url.pathname.endsWith('.css') ? 'text/css' : 'text/javascript' });
+    if (/^\/(js|css|assets)\/[\w.-]+$/.test(url.pathname)) {
+      const rel = url.pathname.slice(1);
+      const contentType = rel.endsWith('.css') ? 'text/css' : rel.endsWith('.png') ? 'image/png' : 'application/javascript';
+      return route.fulfill({ body: fs.readFileSync(path.join(distRoot, rel)),
+        contentType, headers: { 'Access-Control-Allow-Origin': '*' } });
     }
     return route.fulfill({ json: {} });
   });

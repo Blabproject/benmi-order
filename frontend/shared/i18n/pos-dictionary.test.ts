@@ -18,6 +18,8 @@ describe('pos-dictionary bilingual parity', () => {
     expect(translatePos('vi', 'badgeAppendRound', { n: 2 })).toBe('Đợt 2');
     expect(translatePos('zh-TW', 'tablePrefix', { table: '5' })).toBe('桌 5');
     expect(translatePos('vi', 'tablePrefix', { table: '5' })).toBe('Bàn 5');
+    expect(translatePos('zh-TW', 'tableInline', { table: 'A1' })).toBe('桌號 A1');
+    expect(translatePos('vi', 'tableInline', { table: 'A1' })).toBe('Bàn A1');
   });
 
   it('enforces minimalist iconography rules with zero emoji characters', () => {
