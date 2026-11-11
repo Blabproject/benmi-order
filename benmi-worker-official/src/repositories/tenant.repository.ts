@@ -1,6 +1,6 @@
 import type { Env } from '../types/env';
 import type { TenantContext } from '../types/tenant';
-import { normalizeStoreStatus, getTaiwanDateStr } from '../types/tenant';
+import { normalizeStoreStatus, getTaiwanDateStr, parseStoreNotice } from '../types/tenant';
 import type { CustomerOrderDomain, OrderDomainRow } from '../utils/order-domain';
 import { resolveSecret } from '../utils/secrets';
 import { tenantIsDeleted } from '../utils/tenant-lifecycle';
@@ -114,6 +114,7 @@ export function createTenantRepository(
               logoUrl: row.logo_url || null,
               storeAddress: normalizeMultiline(row.store_address),
               announcement: normalizeMultiline(row.announcement),
+              storeNotice: parseStoreNotice(row.store_notice),
               operatingHours: normalizeMultiline(row.operating_hours),
               deliveryPolicy: normalizeMultiline(row.delivery_policy),
               allowScheduledPickup: row.allow_scheduled_pickup !== undefined && row.allow_scheduled_pickup !== null ? Boolean(row.allow_scheduled_pickup) : true,
@@ -206,7 +207,7 @@ export function createTenantRepository(
     async getTenantConfigRow(tenantId: string): Promise<TenantConfigRow | null> {
       if (!db) return null;
       return db.prepare(
-        "SELECT operating_hours, allow_scheduled_pickup, allow_dine_in, store_status, liff_id, logo_url, store_address, announcement, features, payment_methods, customer_order_domain, legacy_liff_endpoint_url, prep_time_minutes, auto_open_before_minutes FROM tenant_config WHERE tenant_id = ? AND is_active = 1"
+        "SELECT operating_hours, allow_scheduled_pickup, allow_dine_in, store_status, liff_id, logo_url, store_address, announcement, store_notice, features, payment_methods, customer_order_domain, legacy_liff_endpoint_url, prep_time_minutes, auto_open_before_minutes FROM tenant_config WHERE tenant_id = ? AND is_active = 1"
       ).bind(tenantId).first<TenantConfigRow>();
     },
 
@@ -237,6 +238,7 @@ export function createTenantRepository(
       const logoUrlVal = input.logoUrl !== undefined ? input.logoUrl : null;
       const storeAddressVal = input.storeAddress !== undefined ? input.storeAddress : null;
       const announcementVal = input.announcement !== undefined ? input.announcement : null;
+      const storeNoticeVal = input.storeNotice !== undefined ? input.storeNotice : null;
       const featuresVal = input.features !== undefined
         ? (typeof input.features === 'string' ? input.features : JSON.stringify(input.features))
         : null;
@@ -252,8 +254,8 @@ export function createTenantRepository(
       const brandName = input.brandName || (tenantId === 'benmi' ? 'Benmi 越式法國麵包' : tenantId);
 
       await db.prepare(`
-        INSERT INTO tenant_config (tenant_id, brand_name, operating_hours, allow_scheduled_pickup, allow_dine_in, store_status, liff_id, logo_url, store_address, announcement, features, prep_time_minutes, payment_methods, auto_open_before_minutes, updated_at)
-        VALUES (?, ?, ?, COALESCE(?, 1), COALESCE(?, 1), COALESCE(?, 'open'), ?, ?, ?, ?, COALESCE(?, '[]'), COALESCE(?, 5), COALESCE(?, '["line_pay"]'), COALESCE(?, 60), CURRENT_TIMESTAMP)
+        INSERT INTO tenant_config (tenant_id, brand_name, operating_hours, allow_scheduled_pickup, allow_dine_in, store_status, liff_id, logo_url, store_address, announcement, store_notice, features, prep_time_minutes, payment_methods, auto_open_before_minutes, updated_at)
+        VALUES (?, ?, ?, COALESCE(?, 1), COALESCE(?, 1), COALESCE(?, 'open'), ?, ?, ?, ?, ?, COALESCE(?, '[]'), COALESCE(?, 5), COALESCE(?, '["line_pay"]'), COALESCE(?, 60), CURRENT_TIMESTAMP)
         ON CONFLICT(tenant_id) DO UPDATE SET
           operating_hours = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.operating_hours END,
           allow_scheduled_pickup = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.allow_scheduled_pickup END,
@@ -263,6 +265,7 @@ export function createTenantRepository(
           logo_url = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.logo_url END,
           store_address = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.store_address END,
           announcement = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.announcement END,
+          store_notice = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.store_notice END,
           features = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.features END,
           prep_time_minutes = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.prep_time_minutes END,
           payment_methods = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.payment_methods END,
@@ -279,6 +282,7 @@ export function createTenantRepository(
         logoUrlVal,
         storeAddressVal,
         announcementVal,
+        storeNoticeVal,
         featuresVal,
         prepTimeVal,
         paymentMethodsVal,
@@ -291,6 +295,7 @@ export function createTenantRepository(
         logoUrlVal, logoUrlVal,
         storeAddressVal, storeAddressVal,
         announcementVal, announcementVal,
+        storeNoticeVal, storeNoticeVal,
         featuresVal, featuresVal,
         prepTimeVal, prepTimeVal,
         paymentMethodsVal, paymentMethodsVal,

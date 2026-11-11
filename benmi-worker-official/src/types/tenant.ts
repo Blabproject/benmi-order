@@ -24,6 +24,7 @@ export interface TenantContext {
   logoUrl?: string | null;
   storeAddress: string | null;
   announcement?: string | null;
+  storeNotice?: StoreNotice | null;
   // Business Config
   operatingHours: string | null;
   deliveryPolicy: string | null;
@@ -46,6 +47,31 @@ export interface TenantContext {
   longitude?: number | null;
   cuisineType?: string | null;
   isMarketplaceVisible?: boolean;
+}
+
+/** Popup notice shown on the customer ordering page. `version` changes only when content changes. */
+export interface StoreNotice {
+  enabled: boolean;
+  title: string;
+  body: string;
+  version: string;
+}
+
+export const STORE_NOTICE_TITLE_MAX = 80;
+export const STORE_NOTICE_BODY_MAX = 2000;
+
+export function parseStoreNotice(raw: unknown): StoreNotice | null {
+  if (!raw || typeof raw !== 'string') return null;
+  try {
+    const v = JSON.parse(raw);
+    if (!v || typeof v !== 'object') return null;
+    const title = typeof v.title === 'string' ? v.title : '';
+    const body = typeof v.body === 'string' ? v.body : '';
+    if (!title.trim() && !body.trim()) return null;
+    return { enabled: v.enabled !== false, title, body, version: typeof v.version === 'string' ? v.version : '' };
+  } catch {
+    return null;
+  }
 }
 
 export const ORDER_ID_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";

@@ -9,7 +9,7 @@
 
   <script src="/js/order-code.js?v=20261109_order_code_v1"></script>
   <script src="js/orders-display.js?v=20261007_dev_main_sync_v1"></script>
-  <link rel="stylesheet" href="css/orders.css?v=20261109_hours_scroll_v1" />
+  <link rel="stylesheet" href="css/orders.css?v=20261111_store_notice_v1" />
   <link rel="stylesheet" href="css/orders-stock.css?v=20261107_stock_drawer_v1" />
   <link rel="stylesheet" href="css/orders-menu.css?v=20261102_menu_mobile_v5" />
     <script>
@@ -1050,8 +1050,41 @@
                     <button type="button" class="btn btn-primary" style="padding: 8px 16px; font-size: var(--pos-text-meta); border-radius: 8px; font-weight: 800;" onclick="saveStoreAnnouncementSetting()" id="btn-save-announcement-setting">儲存公告</button>
                   </div>
                   <div>
-                    <textarea id="setting-store-announcement-input" class="form-input" style="width: 100%; box-sizing: border-box; padding: 12px 14px; font-size: var(--pos-text-body); font-weight: 600; min-height: 80px; resize: vertical; font-family: inherit; line-height: 1.45;" placeholder="請輸入門市公告（例如：今日特餐全面 9 折 / 國定假日公休公告...）"></textarea>
+                    <textarea id="setting-store-announcement-input" class="form-input" rows="5" style="width: 100%; box-sizing: border-box; padding: 12px 14px; font-size: var(--pos-text-body); font-weight: 600; min-height: 150px; resize: vertical; font-family: inherit; line-height: 1.5;" placeholder="請輸入門市公告（例如：今日特餐全面 9 折 / 國定假日公休公告...）"></textarea>
                   </div>
+                </div>
+
+                <!-- 2b. Store Popup Notice (shown over the customer ordering page) -->
+                <div class="store-notice-editor" id="setting-store-notice-section">
+                  <div class="store-notice-editor-head">
+                    <div>
+                      <div class="store-notice-editor-title" id="i18n-setting-store-notice-title">彈出公告</div>
+                      <div class="store-notice-editor-sub" id="i18n-setting-store-notice-sub">顧客開啟點餐頁面時以彈出視窗顯示，顧客勾選「已讀」後不再顯示</div>
+                    </div>
+                    <div class="store-notice-editor-actions">
+                      <label class="ui-switch" for="setting-store-notice-enabled">
+                        <input type="checkbox" id="setting-store-notice-enabled" checked onchange="renderStoreNoticePreview()">
+                        <span class="ui-switch-track"><span class="ui-switch-thumb"></span></span>
+                        <span class="ui-switch-label" id="i18n-store-notice-enable">啟用</span>
+                      </label>
+                      <button type="button" class="btn btn-primary store-notice-save-btn" onclick="saveStoreNoticeSetting()" id="btn-save-store-notice">儲存彈出公告</button>
+                    </div>
+                  </div>
+                  <label class="store-notice-field-label" for="setting-store-notice-title-input" id="i18n-store-notice-title-label">標題</label>
+                  <input type="text" id="setting-store-notice-title-input" class="form-input store-notice-input" maxlength="80" placeholder="例如：國定假日營業時間調整" oninput="renderStoreNoticePreview()" />
+                  <label class="store-notice-field-label" for="setting-store-notice-body-input" id="i18n-store-notice-body-label">內容</label>
+                  <div class="store-notice-toolbar" role="toolbar" aria-labelledby="i18n-store-notice-body-label">
+                    <button type="button" class="store-notice-tool" id="btn-store-notice-bold" onclick="applyStoreNoticeFormat('bold')" aria-label="粗體" title="粗體">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8"/></svg>
+                    </button>
+                    <button type="button" class="store-notice-tool" id="btn-store-notice-list" onclick="applyStoreNoticeFormat('list')" aria-label="項目清單" title="項目清單">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                    </button>
+                    <span class="store-notice-hint" id="i18n-store-notice-format-hint">**文字** 為粗體，行首「- 」為項目清單</span>
+                  </div>
+                  <textarea id="setting-store-notice-body-input" class="form-input store-notice-input store-notice-textarea" rows="7" maxlength="2000" placeholder="請輸入公告內容" oninput="renderStoreNoticePreview()"></textarea>
+                  <div class="store-notice-field-label" id="i18n-store-notice-preview">顧客端預覽</div>
+                  <div class="store-notice-preview" id="setting-store-notice-preview" aria-live="polite"></div>
                 </div>
 
                 <!-- 3. Store Address Section -->
@@ -3291,7 +3324,7 @@
   </section>
 
   <!-- Benmi POS Modular Architecture Scripts -->
-  <script src="js/orders-i18n.js?v=20261109_order_code_v1"></script>
+  <script src="js/orders-i18n.js?v=20261111_store_notice_v1"></script>
   <script src="js/orders-core.js?v=20261109_order_code_v1"></script>
   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
@@ -3302,7 +3335,8 @@
   <script src="js/orders-history.js?v=20261109_order_code_v1"></script>
   <script src="js/orders-reports.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/qrcode.min.js?v=20261107_table_qr_v1"></script>
-  <script src="js/orders-settings.js?v=20261109_order_code_v1"></script>
+  <script src="js/store-notice-format.js?v=20261111_store_notice_v1"></script>
+  <script src="js/orders-settings.js?v=20261111_store_notice_v1"></script>
   <script src="js/orders-menu-model.js?v=20261104_menu_model_v1"></script>
   <script src="js/orders-menu.js?v=20261109_menu_image_delete_v2"></script>
   <script src="js/orders-bundle-wizard.js?v=20261007_dev_main_sync_v1"></script>

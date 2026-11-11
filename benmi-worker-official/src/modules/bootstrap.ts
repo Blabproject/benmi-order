@@ -59,6 +59,7 @@ export interface BootstrapResponse {
     logoUrl: string | null;
     storeAddress: string | null;
     announcement?: string | null;
+    storeNotice?: { enabled: boolean; title: string; body: string; version: string } | null;
     operatingHours: string | null;
     parsedHours: Record<string, Array<{ start: string; end: string }>>;
     formattedHours?: string;
@@ -1055,6 +1056,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
         logoUrl,
         storeAddress,
         announcement: tenantCtx?.announcement || null,
+        storeNotice: tenantCtx?.storeNotice && tenantCtx.storeNotice.enabled ? tenantCtx.storeNotice : null,
         operatingHours,
         parsedHours: parseOperatingHours(operatingHours, tenantId),
         formattedHours: formatOperatingHoursForDisplay(operatingHours, locale, tenantId),

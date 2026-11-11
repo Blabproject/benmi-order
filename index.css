@@ -3281,3 +3281,137 @@ input[type="checkbox"] {
     transform: scale(0.98);
     background: var(--primary-dark);
 }
+
+/* Store Notice Popup Modal (Customer LIFF) */
+.store-notice-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9990;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(15, 23, 42, 0.56);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    box-sizing: border-box;
+}
+
+.store-notice-modal-overlay.is-open {
+    display: flex;
+}
+
+.store-notice-modal-box {
+    width: 100%;
+    max-width: 400px;
+    max-height: 82vh;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.28);
+    animation: alertShow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.store-notice-modal-header {
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    background: #ffffff;
+}
+
+.store-notice-modal-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.35;
+}
+
+.store-notice-modal-body {
+    padding: 16px 22px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #334155;
+    text-align: left;
+    word-break: break-word;
+}
+
+.store-notice-modal-body p {
+    margin: 0 0 10px 0;
+}
+
+.store-notice-modal-body p:last-child {
+    margin-bottom: 0;
+}
+
+.store-notice-modal-body ul {
+    margin: 6px 0 10px 0;
+    padding-left: 20px;
+}
+
+.store-notice-modal-body ul:last-child {
+    margin-bottom: 0;
+}
+
+.store-notice-modal-body li {
+    margin-bottom: 4px;
+}
+
+.store-notice-modal-body strong {
+    color: #0f172a;
+    font-weight: 700;
+}
+
+.store-notice-modal-footer {
+    padding: 12px 22px 18px;
+    border-top: 1px solid #f1f5f9;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.store-notice-modal-ack {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 4px 2px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.store-notice-modal-ack input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--primary);
+    cursor: pointer;
+    flex-shrink: 0;
+    margin: 0;
+}
+
+.store-notice-modal-btn {
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 18px;
+    border: none;
+    border-radius: 12px;
+    background: var(--primary);
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.store-notice-modal-btn:active {
+    background: var(--primary-dark);
+    transform: scale(0.99);
+}

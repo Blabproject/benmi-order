@@ -459,6 +459,7 @@ async function loadOperatingHours() {
         const annInput = document.getElementById("setting-store-announcement-input");
         if (annInput) annInput.value = data.announcement || "";
       }
+      if (data.storeNotice !== undefined) fillStoreNoticeForm(data.storeNotice);
       if (data.logoUrl) {
         currentStoreLogoUrl = data.logoUrl;
         renderStoreLogoUI(data.logoUrl);
@@ -1284,6 +1285,100 @@ async function saveStoreAnnouncementSetting() {
   }
 }
 
+// --- Store Popup Notice ---
+function fillStoreNoticeForm(notice) {
+  const enabledEl = document.getElementById("setting-store-notice-enabled");
+  const titleEl = document.getElementById("setting-store-notice-title-input");
+  const bodyEl = document.getElementById("setting-store-notice-body-input");
+  if (enabledEl) enabledEl.checked = notice ? notice.enabled !== false : true;
+  if (titleEl) titleEl.value = notice?.title || "";
+  if (bodyEl) bodyEl.value = notice?.body || "";
+  renderStoreNoticePreview();
+}
+
+function readStoreNoticeForm() {
+  const enabledEl = document.getElementById("setting-store-notice-enabled");
+  const titleEl = document.getElementById("setting-store-notice-title-input");
+  const bodyEl = document.getElementById("setting-store-notice-body-input");
+  if (!titleEl || !bodyEl) return undefined;
+  const title = String(titleEl.value || "").trim();
+  const body = String(bodyEl.value || "").trim();
+  if (!title && !body) return null;
+  return { enabled: enabledEl ? enabledEl.checked : true, title, body };
+}
+
+function renderStoreNoticePreview() {
+  const preview = document.getElementById("setting-store-notice-preview");
+  if (!preview) return;
+  const notice = readStoreNoticeForm();
+  const fmt = window.StoreNoticeFormat;
+  if (!notice || !fmt) {
+    if (preview.classList && typeof preview.classList.remove === "function") {
+      preview.classList.remove("is-disabled");
+    }
+    preview.innerHTML = `<div class="store-notice-preview-empty">${t("storeNoticePreviewEmpty")}</div>`;
+    return;
+  }
+  if (preview.classList) {
+    if (notice.enabled === false && typeof preview.classList.add === "function") {
+      preview.classList.add("is-disabled");
+    } else if (typeof preview.classList.remove === "function") {
+      preview.classList.remove("is-disabled");
+    }
+  }
+  preview.innerHTML =
+    (notice.title ? `<div class="store-notice-preview-title">${fmt.escapeHtml(notice.title)}</div>` : "") +
+    `<div class="store-notice-preview-body">${fmt.renderBody(notice.body)}</div>`;
+}
+
+function applyStoreNoticeFormat(kind) {
+  const el = document.getElementById("setting-store-notice-body-input");
+  if (!el) return;
+  const value = String(el.value || "");
+  const start = el.selectionStart ?? value.length;
+  const end = el.selectionEnd ?? value.length;
+  if (kind === "bold") {
+    const selected = value.slice(start, end) || t("storeNoticeBoldSample");
+    el.value = value.slice(0, start) + "**" + selected + "**" + value.slice(end);
+    if (typeof el.setSelectionRange === "function") {
+      el.setSelectionRange(start + 2, start + 2 + selected.length);
+    }
+  } else if (kind === "list") {
+    const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+    const block = value.slice(lineStart, end);
+    const listed = block.split("\n").map(l => (/^\s*-\s/.test(l) ? l : "- " + l)).join("\n");
+    el.value = value.slice(0, lineStart) + listed + value.slice(end);
+    if (typeof el.setSelectionRange === "function") {
+      el.setSelectionRange(lineStart + listed.length, lineStart + listed.length);
+    }
+  }
+  if (typeof el.focus === "function") el.focus();
+  renderStoreNoticePreview();
+}
+
+async function saveStoreNoticeSetting() {
+  const notice = readStoreNoticeForm();
+  const btn = document.getElementById("btn-save-store-notice");
+  const oldText = btn ? btn.innerText : "";
+  if (btn) { btn.innerText = t("saving"); btn.disabled = true; }
+  try {
+    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ storeNotice: notice })
+    });
+    if (!res.ok) throw new Error("API returned " + res.status);
+    alert(t("saveSuccess"));
+  } catch (e) {
+    alert(t("saveFail") + e.message);
+  } finally {
+    if (btn) { btn.innerText = oldText; btn.disabled = false; }
+  }
+}
+window.renderStoreNoticePreview = renderStoreNoticePreview;
+window.applyStoreNoticeFormat = applyStoreNoticeFormat;
+window.saveStoreNoticeSetting = saveStoreNoticeSetting;
+
 // --- Logo Management ---
 function renderStoreLogoUI(url) {
   const preview = document.getElementById("setting-logo-preview");
@@ -1459,6 +1554,8 @@ async function saveAllStoreInfoSettings() {
       storeAddress: newAddress,
       announcement: newAnnouncement
     };
+    const storeNotice = readStoreNoticeForm();
+    if (storeNotice !== undefined) payload.storeNotice = storeNotice;
     if (finalLogoUrl !== undefined && finalLogoUrl !== null) {
       payload.logoUrl = finalLogoUrl;
     }

@@ -447,6 +447,20 @@ const I18N = {
     settingAnnouncementSub: "顯示於顧客點餐頁面 Header 最下方，留空則自動隱藏",
     settingAnnouncementPlaceholder: "請輸入門市公告（例如：今日特餐全面 9 折 / 國定假日公休公告...）",
     btnSaveAnnouncement: "儲存公告",
+    settingStoreNoticeTitle: "彈出公告",
+    settingStoreNoticeSub: "顧客開啟點餐頁面時以彈出視窗顯示，顧客勾選「已讀」後不再顯示；內容變更後會再次顯示",
+    storeNoticeEnable: "啟用",
+    storeNoticeTitleLabel: "標題",
+    storeNoticeTitlePlaceholder: "例如：國定假日營業時間調整",
+    storeNoticeBodyLabel: "內容",
+    storeNoticeBodyPlaceholder: "請輸入公告內容",
+    storeNoticeBold: "粗體",
+    storeNoticeList: "項目清單",
+    storeNoticeBoldSample: "重點文字",
+    storeNoticeFormatHint: "**文字** 為粗體，行首「- 」為項目清單",
+    storeNoticePreview: "顧客端預覽",
+    storeNoticePreviewEmpty: "尚未設定彈出公告，顧客端不會顯示",
+    btnSaveStoreNotice: "儲存彈出公告",
     settingLogoTitle: "門市 Logo",
     settingLogoSub: "顯示於顧客點餐頁面頂部與 POS 系統",
     btnChooseLogo: "選擇圖片",
@@ -1659,6 +1673,20 @@ const I18N = {
     settingAnnouncementSub: "Hiển thị dưới cùng của Header trên trang đặt món của khách, để trống sẽ tự động ẩn",
     settingAnnouncementPlaceholder: "Nhập thông báo cửa hàng (ví dụ: Hôm nay có món mới / Nghỉ lễ 2/9...)",
     btnSaveAnnouncement: "Lưu thông báo",
+    settingStoreNoticeTitle: "Công cáo",
+    settingStoreNoticeSub: "Hiển thị dạng cửa sổ nổi khi khách mở trang đặt món. Khách đánh dấu Đã xem sẽ không hiện lại; khi đổi nội dung, công cáo sẽ hiện lại",
+    storeNoticeEnable: "Bật",
+    storeNoticeTitleLabel: "Tiêu đề",
+    storeNoticeTitlePlaceholder: "Ví dụ: Thay đổi giờ mở cửa dịp lễ",
+    storeNoticeBodyLabel: "Nội dung",
+    storeNoticeBodyPlaceholder: "Nhập nội dung công cáo",
+    storeNoticeBold: "In đậm",
+    storeNoticeList: "Danh sách",
+    storeNoticeBoldSample: "nội dung quan trọng",
+    storeNoticeFormatHint: "**chữ** để in đậm, đầu dòng «- » để tạo danh sách",
+    storeNoticePreview: "Xem trước phía khách",
+    storeNoticePreviewEmpty: "Chưa có công cáo, trang khách sẽ không hiển thị",
+    btnSaveStoreNotice: "Lưu công cáo",
     settingLogoTitle: "Logo cửa hàng",
     settingLogoSub: "Hiển thị ở đầu trang đặt món của khách và hệ thống POS",
     btnChooseLogo: "Chọn ảnh",
@@ -3143,6 +3171,30 @@ function applyLanguageToDOM() {
   if (setAnnInp) setAnnInp.placeholder = dict.settingAnnouncementPlaceholder;
   const btnSaveAnn = document.getElementById("btn-save-announcement-setting");
   if (btnSaveAnn) btnSaveAnn.innerText = dict.btnSaveAnnouncement;
+
+  const storeNoticeText = {
+    "i18n-setting-store-notice-title": "settingStoreNoticeTitle",
+    "i18n-setting-store-notice-sub": "settingStoreNoticeSub",
+    "i18n-store-notice-enable": "storeNoticeEnable",
+    "i18n-store-notice-title-label": "storeNoticeTitleLabel",
+    "i18n-store-notice-body-label": "storeNoticeBodyLabel",
+    "i18n-store-notice-format-hint": "storeNoticeFormatHint",
+    "i18n-store-notice-preview": "storeNoticePreview",
+    "btn-save-store-notice": "btnSaveStoreNotice"
+  };
+  Object.entries(storeNoticeText).forEach(([id, key]) => {
+    const node = document.getElementById(id);
+    if (node) node.textContent = dict[key];
+  });
+  const noticeTitleInp = document.getElementById("setting-store-notice-title-input");
+  if (noticeTitleInp) noticeTitleInp.placeholder = dict.storeNoticeTitlePlaceholder;
+  const noticeBodyInp = document.getElementById("setting-store-notice-body-input");
+  if (noticeBodyInp) noticeBodyInp.placeholder = dict.storeNoticeBodyPlaceholder;
+  [["btn-store-notice-bold", "storeNoticeBold"], ["btn-store-notice-list", "storeNoticeList"]].forEach(([id, key]) => {
+    const node = document.getElementById(id);
+    if (node) { node.setAttribute("aria-label", dict[key]); node.setAttribute("title", dict[key]); }
+  });
+  if (typeof renderStoreNoticePreview === "function") renderStoreNoticePreview();
 
   const setLogoT = document.getElementById("i18n-setting-logo-title");
   if (setLogoT) setLogoT.innerText = dict.settingLogoTitle;

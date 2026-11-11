@@ -789,6 +789,11 @@ function applyTenantTheme(tenant) {
         annEl.innerText = tenant.announcement || '';
         if (annRow) annRow.style.display = tenant.announcement ? 'flex' : 'none';
     }
+    if (tenant && tenant.id) {
+        window.__storeNoticeTenantId = tenant.id;
+    }
+    window.__currentStoreNotice = tenant && tenant.storeNotice ? tenant.storeNotice : null;
+    maybeShowStoreNotice();
 }
 
 // --- TIME & TIMEZONE HELPERS ---
@@ -1359,6 +1364,8 @@ async function updateDesktopAuthUI() {
         if (centerOverlay) centerOverlay.style.display = 'none';
         if (pageBody) pageBody.classList.remove('desktop-guest-locked');
         syncOrderStickyLayout();
+        window.__storeAuthCleared = true;
+        maybeShowStoreNotice();
         return;
     }
 
@@ -1381,6 +1388,8 @@ async function updateDesktopAuthUI() {
         if (centerOverlay) centerOverlay.style.display = 'none';
         if (pageBody) pageBody.classList.remove('desktop-guest-locked');
         syncOrderStickyLayout();
+        window.__storeAuthCleared = true;
+        maybeShowStoreNotice();
 
         try {
             const profile = await liff.getProfile();
@@ -1397,6 +1406,9 @@ async function updateDesktopAuthUI() {
             }
         } catch(e) {}
     } else {
+        window.__storeAuthCleared = false;
+        const noticeModal = document.getElementById('store-notice-modal');
+        if (noticeModal) noticeModal.classList.remove('is-open');
         if (bar) bar.style.display = 'none';
         if (loggedInEl) loggedInEl.style.display = 'none';
         if (loggedOutEl) loggedOutEl.style.display = 'none';
@@ -1782,6 +1794,112 @@ window.openDesktopQrModal = openDesktopQrModal;
 window.isDesktopOutsideLiff = isDesktopOutsideLiff;
 window.checkDesktopAuthGuard = checkDesktopAuthGuard;
 window.openDesktopLoginModal = openDesktopLoginModal;
+function getStoreNoticeTenantKey() {
+    if (window.__storeNoticeTenantId) return String(window.__storeNoticeTenantId);
+    if (typeof TENANT_ID !== 'undefined' && TENANT_ID) return String(TENANT_ID);
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const qTenant = params.get('tenant');
+        if (qTenant) return String(qTenant);
+    } catch (e) {}
+    return (window.location && window.location.hostname) || 'default';
+}
+
+function getStoreNoticeAckKey() {
+    return `store_notice_seen_${getStoreNoticeTenantKey()}`;
+}
+
+function getStoreNoticeVersion(notice) {
+    if (!notice) return '';
+    if (notice.version && String(notice.version).trim()) {
+        return String(notice.version).trim();
+    }
+    return `${notice.title || ''}\n${notice.body || ''}`;
+}
+
+function openStoreNoticeModal(notice) {
+    const modal = document.getElementById('store-notice-modal');
+    if (!modal || !notice) return;
+
+    const titleEl = document.getElementById('store-notice-modal-title');
+    const bodyEl = document.getElementById('store-notice-modal-body');
+    const ackEl = document.getElementById('store-notice-ack-checkbox');
+
+    const titleText = notice.title ? String(notice.title).trim() : '';
+    const bodyText = notice.body ? String(notice.body).trim() : '';
+
+    if (titleEl) {
+        titleEl.textContent = titleText || '門市公告';
+    }
+    if (bodyEl) {
+        if (bodyText) {
+            bodyEl.innerHTML = (window.StoreNoticeFormat && typeof window.StoreNoticeFormat.renderBody === 'function')
+                ? window.StoreNoticeFormat.renderBody(bodyText)
+                : bodyText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+            bodyEl.style.display = '';
+        } else {
+            bodyEl.innerHTML = '';
+            bodyEl.style.display = 'none';
+        }
+    }
+    if (ackEl) {
+        ackEl.checked = false;
+    }
+
+    const version = getStoreNoticeVersion(notice);
+    modal.dataset.version = version;
+    window.__storeNoticeHandledVersion = version;
+    modal.classList.add('is-open');
+}
+
+function closeStoreNoticeModal() {
+    const modal = document.getElementById('store-notice-modal');
+    if (!modal) return;
+
+    const ackEl = document.getElementById('store-notice-ack-checkbox');
+    const version = modal.dataset.version || getStoreNoticeVersion(window.__currentStoreNotice);
+
+    if (ackEl && ackEl.checked && version) {
+        try {
+            localStorage.setItem(getStoreNoticeAckKey(), version);
+        } catch (e) {}
+    }
+
+    modal.classList.remove('is-open');
+}
+
+function maybeShowStoreNotice() {
+    if (!window.__storeAuthCleared) return;
+
+    const notice = window.__currentStoreNotice;
+    if (!notice || notice.enabled === false) {
+        const modal = document.getElementById('store-notice-modal');
+        if (modal && modal.classList.contains('is-open')) {
+            modal.classList.remove('is-open');
+        }
+        return;
+    }
+
+    const hasTitle = Boolean(notice.title && String(notice.title).trim());
+    const hasBody = Boolean(notice.body && String(notice.body).trim());
+    if (!hasTitle && !hasBody) return;
+
+    const version = getStoreNoticeVersion(notice);
+    if (window.__storeNoticeHandledVersion === version) return;
+
+    try {
+        const seenVersion = localStorage.getItem(getStoreNoticeAckKey());
+        if (seenVersion && seenVersion === version) {
+            return;
+        }
+    } catch (e) {}
+
+    openStoreNoticeModal(notice);
+}
+
+window.openStoreNoticeModal = openStoreNoticeModal;
+window.closeStoreNoticeModal = closeStoreNoticeModal;
+window.maybeShowStoreNotice = maybeShowStoreNotice;
 window.closeDesktopLoginModal = closeDesktopLoginModal;
 window.triggerDesktopLineLogin = triggerDesktopLineLogin;
 window.updateDesktopAuthUI = updateDesktopAuthUI;

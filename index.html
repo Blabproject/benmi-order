@@ -6,10 +6,11 @@
     <link rel="stylesheet" href="/css/staff-order.css?v=20261108_staff_counter_v8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title id="page-title">線上點餐</title>
-    <link rel="preload" href="/index.css?v=20261108_option_flicker_fix_v1" as="style">
-    <link rel="preload" href="/js/client-core.js?v=20261109_overnight_liff_v1" as="script">
+    <link rel="preload" href="/index.css?v=20261111_store_notice_v1" as="style">
+    <link rel="preload" href="/js/store-notice-format.js?v=20261111_store_notice_v1" as="script">
+    <link rel="preload" href="/js/client-core.js?v=20261111_store_notice_v1" as="script">
     <link rel="preload" href="/js/client-menu.js?v=20261109_item_images_v1" as="script">
-    <link rel="stylesheet" href="/index.css?v=20261108_option_flicker_fix_v1">
+    <link rel="stylesheet" href="/index.css?v=20261111_store_notice_v1">
     <style>html.tenant-resolution-failed body > :not(#tenant-resolution-error) { display: none !important; }</style>
     <script>
         try {
@@ -831,6 +832,22 @@
         </div>
     </div>
 
+    <div id="store-notice-modal" class="store-notice-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="store-notice-modal-title">
+        <div class="store-notice-modal-box">
+            <div class="store-notice-modal-header">
+                <h2 id="store-notice-modal-title" class="store-notice-modal-title">門市公告</h2>
+            </div>
+            <div id="store-notice-modal-body" class="store-notice-modal-body"></div>
+            <div class="store-notice-modal-footer">
+                <label class="store-notice-modal-ack" for="store-notice-ack-checkbox">
+                    <input type="checkbox" id="store-notice-ack-checkbox">
+                    <span>已閱讀，下次不再顯示</span>
+                </label>
+                <button type="button" id="store-notice-close-btn" class="store-notice-modal-btn" onclick="closeStoreNoticeModal()">我知道了</button>
+            </div>
+        </div>
+    </div>
+
     <div id="image-lightbox" class="custom-alert-overlay" style="display:none; z-index: 2000;"
         onclick="closeImageLightbox()">
         <img id="lightbox-img" src=""
@@ -973,9 +990,10 @@
 
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-  <script src="/js/order-code.js?v=20261109_order_code_v1"></script>
+    <script src="/js/order-code.js?v=20261109_order_code_v1"></script>
     <script src="/js/client-pricing-wasm.js?v=20261108_wasm_portion_pricing_v1"></script>
-    <script src="/js/client-core.js?v=20261109_overnight_liff_v1"></script>
+    <script src="/js/store-notice-format.js?v=20261111_store_notice_v1"></script>
+    <script src="/js/client-core.js?v=20261111_store_notice_v1"></script>
     <script src="/js/client-menu.js?v=20261109_item_images_v1"></script>
     <script src="/js/client-customizations.js?v=20261108_wasm_portion_pricing_v1"></script>
     <script src="/js/client-bundle.js?v=20261108_wasm_portion_pricing_v1"></script>

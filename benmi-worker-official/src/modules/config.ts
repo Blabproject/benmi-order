@@ -1,7 +1,7 @@
 import { Env } from '../types/env';
 import { json } from '../utils/http';
 import { getTenantId } from './menu';
-import { TenantContext, tenantHasFeature, normalizeStoreStatus } from '../types/tenant';
+import { TenantContext, tenantHasFeature, normalizeStoreStatus, parseStoreNotice, STORE_NOTICE_TITLE_MAX, STORE_NOTICE_BODY_MAX } from '../types/tenant';
 import { invalidateBootstrapCache, parseOperatingHours } from './bootstrap';
 import { invalidateMarketplaceCache } from './marketplace';
 import { customerOrderConfig } from '../utils/order-domain';
@@ -78,8 +78,38 @@ export async function getConfig(
     paymentMethods: domainRow.payment_methods ? (typeof domainRow.payment_methods === 'string' ? JSON.parse(domainRow.payment_methods) : domainRow.payment_methods) : (tenantCtx?.paymentMethods || ['line_pay']),
     logoUrl: domainRow.logo_url || tenantCtx?.logoUrl || null,
     storeAddress: domainRow.store_address || tenantCtx?.storeAddress || null,
-    announcement: domainRow.announcement !== undefined && domainRow.announcement !== null ? domainRow.announcement : (tenantCtx?.announcement || null)
+    announcement: domainRow.announcement !== undefined && domainRow.announcement !== null ? domainRow.announcement : (tenantCtx?.announcement || null),
+    storeNotice: parseStoreNotice(domainRow.store_notice)
   }, 200, { 'Cache-Control': 'no-store' });
+}
+
+/**
+ * Normalize a POS-submitted notice into its stored string form.
+ * Returns undefined when absent, '' to clear, or JSON. The version is kept when
+ * title/body are unchanged so customers who dismissed it are not shown it again.
+ */
+export function serializeStoreNotice(input: unknown, existingRaw: string | null | undefined): string | undefined {
+  if (input === undefined) return undefined;
+  if (input === null || typeof input !== 'object') return '';
+  const raw = input as Record<string, unknown>;
+  const title = (typeof raw.title === 'string' ? raw.title : '').replace(/\r\n/g, '\n').trim();
+  const body = (typeof raw.body === 'string' ? raw.body : '').replace(/\r\n/g, '\n').trim();
+  if (title.length > STORE_NOTICE_TITLE_MAX || body.length > STORE_NOTICE_BODY_MAX) {
+    throw new HttpError(400, 'STORE_NOTICE_TOO_LONG');
+  }
+  if (!title && !body) return '';
+  const existing = parseStoreNotice(existingRaw);
+  const unchanged = existing && existing.title === title && existing.body === body && existing.version;
+  return JSON.stringify({
+    enabled: raw.enabled !== false,
+    title,
+    body,
+    version: unchanged ? existing!.version : new Date().toISOString()
+  });
+}
+
+class HttpError extends Error {
+  constructor(public status: number, message: string) { super(message); }
 }
 
 export async function updateConfig(
@@ -107,6 +137,12 @@ export async function updateConfig(
 
     const brandName = tenantCtx?.brandName || (tenantId === 'benmi' ? 'Benmi 越式法國麵包' : tenantId);
 
+    let storeNotice: string | undefined;
+    if (payload.storeNotice !== undefined) {
+      const current = await tenantRepo.getTenantConfigRow(tenantId);
+      storeNotice = serializeStoreNotice(payload.storeNotice, current?.store_notice);
+    }
+
     await tenantRepo.updateTenantConfig(tenantId, {
       operatingHours: payload.operatingHours,
       allowScheduledPickup: payload.allowScheduledPickup,
@@ -119,6 +155,7 @@ export async function updateConfig(
       logoUrl: payload.logoUrl,
       storeAddress: payload.storeAddress,
       announcement: payload.announcement,
+      storeNotice,
       features: payload.features,
       brandName
     });
@@ -128,6 +165,7 @@ export async function updateConfig(
 
     return json({ success: true });
   } catch (e: any) {
+    if (e instanceof HttpError) return json({ error: e.message }, e.status);
     console.error('[updateConfig] Error:', e);
     return json({ error: e.message }, 500);
   }
