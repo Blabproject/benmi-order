@@ -1198,10 +1198,11 @@
       const dining = order.diningOption === 'dine_in' ? '桌:' + (order.tableNumber || '-') : '外帶';
       const body = this.parseOrderItems(order, false).map(item =>
         [item.quantity + ' x ' + item.name, item.options, item.note].filter(Boolean).join('\n')).join('\n');
+      const dateTime = this.formatShortDateTime(order.time, order.createdAt);
       return this.drawStickerLayout(
         [window.currentTenantBrandName, OrderCode.format(order.displayKey || order.key), dining].filter(Boolean).join(' '),
         [body, order.note].filter(Boolean).join('\n'),
-        isKitchen ? (order.customer || '') : '應收總計：$' + (order.total ?? 0),
+        isKitchen ? dateTime : '應收總計：$' + (order.total ?? 0),
         widthMm, heightMm, dpi, [60, 36, 52]);
     }
 
@@ -1248,7 +1249,7 @@
       const header = OrderCode.format(orderContext.displayKey || orderContext.key) + ' ' + dining + ' [' + itemIdx + '/' + totalItems + ']';
       const body = [item.name + ' x' + item.quantity, item.options, item.note].filter(Boolean).join('\n');
       const dateTime = this.formatShortDateTime(orderContext.time, orderContext.createdAt);
-      return this.drawStickerLayout(header, body, (orderContext.customer || '顧客') + ' ' + dateTime,
+      return this.drawStickerLayout(header, body, dateTime,
         widthMm, heightMm, dpi, compact ? [28, 36, 22] : [34, 45, 26]);
     }
 

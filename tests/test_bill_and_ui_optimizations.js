@@ -117,6 +117,7 @@ const keyOp = drawnOperations.find(op => op.text === "0912-T001");
 const diningOp = drawnOperations.find(op => op.text === "外帶自取");
 assert(keyOp, "Receipt should contain the short code 0912-T001");
 assert(!drawnOperations.some(op => String(op.text).includes('#B0912-T001')), "Receipt must not show the tenant prefix or hash");
+assert(drawnOperations.some(op => String(op.text).includes('顧客：張三')), "Receipt should keep customer name");
 assert.strictEqual(testOrder2.key, "B0912-T001", "Rendering must preserve the original key");
 assert(diningOp, "Receipt should contain 外帶自取");
 assert.strictEqual(keyOp.y, diningOp.y, "Order key and 外帶自取 MUST be on the exact same row (same y-coordinate)");

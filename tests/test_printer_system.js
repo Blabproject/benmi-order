@@ -19,6 +19,7 @@ global.localStorage = {
   clear: () => { for (const k in mockStorage) delete mockStorage[k]; }
 };
 
+const renderedTexts = [];
 global.document = {
   createElement: (tag) => {
     if (tag === 'canvas') {
@@ -27,7 +28,7 @@ global.document = {
         height: 800,
         getContext: () => ({
           fillRect: () => {},
-          fillText: () => {},
+          fillText: (text) => { renderedTexts.push(String(text)); },
           strokeRect: () => {},
           stroke: () => {},
           beginPath: () => {},
@@ -103,8 +104,11 @@ const mockOrder = {
   note: "請附發票載具"
 };
 
+renderedTexts.length = 0;
 const cashierPng = service.drawReceiptToCanvas(mockOrder, false, 80);
 assert(cashierPng.startsWith("data:image/png;base64,"), "Unpaid cashier receipt should generate valid Base64 PNG without stamp");
+assert(renderedTexts.join('\n').includes(`顧客：${mockOrder.customer}`), "Cashier receipt should keep customer name");
+assert(renderedTexts.join('\n').includes("時間：12:30"), "Cashier receipt should keep time row");
 
 const mockPaidOrder = {
   ...mockOrder,
@@ -117,8 +121,10 @@ assert(paidCashierPng58.startsWith("data:image/png;base64,"), "Paid cashier rece
 console.log("✅ Test 4 Passed: Cashier receipt online-paid condition & compact square '已付款' stamp (80mm & 58mm) verified.");
 
 // 5. Test Kitchen Ticket Canvas Layout
+renderedTexts.length = 0;
 const kitchenPng = service.drawReceiptToCanvas(mockOrder, true, 80);
 assert(kitchenPng.startsWith("data:image/png;base64,"), "Kitchen ticket should generate valid Base64 PNG");
+assert(renderedTexts.join('\n').includes(`顧客：${mockOrder.customer}`), "Kitchen ticket should keep customer name");
 console.log("✅ Test 5 Passed: Kitchen ticket Canvas Painter verified.");
 
 // 6. Test Bluetooth Settings & Hybrid Dual-Interface Configuration
@@ -207,17 +213,35 @@ assert.strictEqual(parsedItems[1].name, "越式滴漏冰咖啡", "Second item na
 console.log("✅ Test 8 Passed: TSPL Dimension & DPI/Offset Resolver & Item Parser verified.");
 
 // 9. Test TSPL Order Summary Label Canvas Painter
+renderedTexts.length = 0;
 const tsplSummaryPng = service.drawOrderLabelToCanvas(mockOrder, false, 100, 150, 203);
 assert(tsplSummaryPng.startsWith("data:image/png;base64,"), "TSPL order summary label should generate valid Base64 PNG");
-console.log("✅ Test 9 Passed: TSPL Order Summary Label Canvas Painter verified.");
+assert(!renderedTexts.join('\n').includes(mockOrder.customer), "TSPL order summary label (non-kitchen) must not print customer name");
+
+renderedTexts.length = 0;
+const datedOrder = { ...mockOrder, time: "2026-11-11 17:30", customer: "Yi-Wei Tseng" };
+const tsplKitchenSummaryPng = service.drawOrderLabelToCanvas(datedOrder, true, 100, 150, 203);
+assert(tsplKitchenSummaryPng.startsWith("data:image/png;base64,"), "TSPL kitchen summary label should generate valid Base64 PNG");
+const kitchenSummaryText = renderedTexts.join('\n');
+assert(!kitchenSummaryText.includes("Yi-Wei Tseng"), "TSPL kitchen summary label must not print customer name");
+assert(kitchenSummaryText.includes("11/11 17:30"), "TSPL kitchen summary label should still print short date/time");
+console.log("✅ Test 9 Passed: TSPL Order Summary Label Canvas Painter verified (no customer name).");
 
 // 10. Test TSPL Item / Cup Sticker Canvas Painter (40x30mm compact sticker at 203 and 300 DPI)
-const tsplStickerPng203 = service.drawItemStickerToCanvas(parsedItems[0], mockOrder, 0, parsedItems.length, 40, 30, 203);
+renderedTexts.length = 0;
+const tsplStickerPng203 = service.drawItemStickerToCanvas(parsedItems[0], datedOrder, 1, parsedItems.length, 40, 30, 203);
 assert(tsplStickerPng203.startsWith("data:image/png;base64,"), "TSPL item sticker (203 DPI) should generate valid Base64 PNG");
+const stickerText203 = renderedTexts.join('\n');
+assert(!stickerText203.includes("Yi-Wei Tseng"), "TSPL item sticker must not print customer name");
+assert(!stickerText203.includes("顧客"), "TSPL item sticker must not print customer fallback label");
+assert(stickerText203.includes("11/11 17:30"), "TSPL item sticker should keep short date/time");
 
-const tsplStickerPng300 = service.drawItemStickerToCanvas(parsedItems[0], mockOrder, 0, parsedItems.length, 40, 30, 300);
+renderedTexts.length = 0;
+const anonOrder = { ...datedOrder, customer: "" };
+const tsplStickerPng300 = service.drawItemStickerToCanvas(parsedItems[0], anonOrder, 1, parsedItems.length, 40, 30, 300);
 assert(tsplStickerPng300.startsWith("data:image/png;base64,"), "TSPL item sticker (300 DPI) should generate valid Base64 PNG");
-console.log("✅ Test 10 Passed: TSPL Individual Cup/Dish 40x30mm Sticker Canvas Painter (203 & 300 DPI) verified.");
+assert(!renderedTexts.join('\n').includes("顧客"), "TSPL item sticker must not print '顧客' fallback when customer name is empty");
+console.log("✅ Test 10 Passed: TSPL Individual Cup/Dish 40x30mm Sticker Canvas Painter (203 & 300 DPI, no customer name) verified.");
 
 // 11. Test Quick Note / Emergency Sticker Canvas Painter
 const quickNotePng = service.drawQuickNoteStickerToCanvas("不要洋蔥", mockOrder, 40, 30, 203);
