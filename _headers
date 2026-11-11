@@ -1,6 +1,8 @@
 # Cloudflare Pages Headers Configuration
 
-# Cache versioned static assets (CSS, JS, Images) immutably for 1 year
+# Cache versioned static assets (Vite hashed bundles, CSS, JS, Images) immutably for 1 year
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
 /index.css
   Cache-Control: public, max-age=31536000, immutable
 /css/*

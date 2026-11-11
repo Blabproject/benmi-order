@@ -1,0 +1,29 @@
+/* Scoped design tokens for modernized POS/Customer islands. */
+.blab-modern-root {
+  --blab-bg: #f8fafc;
+  --blab-surface: #ffffff;
+  --blab-surface-muted: #f1f5f9;
+  --blab-text: #0f172a;
+  --blab-text-muted: #64748b;
+  --blab-border: #e2e8f0;
+  --blab-primary: #00b900;
+  --blab-primary-contrast: #ffffff;
+  --blab-paid-bg: #ede9fe;
+  --blab-paid-text: #6d28d9;
+  --blab-danger-bg: #fee2e2;
+  --blab-danger-text: #b91c1c;
+  --blab-touch-min: 48px;
+  --blab-radius-md: 10px;
+  --blab-radius-lg: 14px;
+
+  font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans TC', 'Segoe UI', Roboto, sans-serif;
+  color: var(--blab-text);
+  background: var(--blab-bg);
+  box-sizing: border-box;
+}
+
+.blab-modern-root *,
+.blab-modern-root *::before,
+.blab-modern-root *::after {
+  box-sizing: border-box;
+}

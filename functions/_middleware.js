@@ -67,6 +67,8 @@ const RESERVED_POS_PATHS = new Set([
   "fonts",
   "sound",
   "audio",
+  "assets",
+  "frontend",
   "dist",
   "api"
 ]);

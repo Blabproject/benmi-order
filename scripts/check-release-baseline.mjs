@@ -1,6 +1,6 @@
 import { menuSuites, testOutcome } from './menu-qa/suites.mjs';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -32,7 +32,7 @@ report.dependencies = {
   lockfiles: Object.fromEntries(['package-lock.json', 'benmi-worker-official/package-lock.json'].map(file =>
     [file, createHash('sha256').update(readFileSync(path.join(root, file))).digest('hex')]))
 };
-const sourcePaths = ['*.html', 'index.css', 'js', 'css', 'benmi-worker-official/src', 'benmi-worker-official/migrations', 'benmi-worker-official/cloudflare.config.ts', 'benmi-worker-official/wrangler.config.ts'];
+const sourcePaths = ['*.html', 'index.css', 'js', 'css', 'frontend', 'vite.config.mts', 'vitest.config.mts', 'tsconfig.frontend.json', 'tsconfig.node.json', 'benmi-worker-official/src', 'benmi-worker-official/migrations', 'benmi-worker-official/cloudflare.config.ts', 'benmi-worker-official/wrangler.config.ts'];
 const sourceFiles = git('ls-files', '--cached', '--others', '--exclude-standard', '--', ...sourcePaths).split('\n').filter(Boolean).sort();
 const sourceHash = createHash('sha256');
 for (const file of sourceFiles) sourceHash.update(file).update('\0').update(readFileSync(path.join(root, file))).update('\0');
@@ -46,6 +46,13 @@ const suites = [
   ['cloudflare-config', ['--test', 'scripts/test-cloudflare-cli.mjs']],
   ['staff-runtime', ['--test', 'tests/test_staff_ordering.cjs', 'tests/test_staff_migration.cjs', 'tests/test_store_pin_api.cjs', 'tests/test_store_status.cjs']],
   ['staff-browser', ['--test', 'tests/test_staff_ordering_browser.cjs', 'tests/test_store_pin_browser.cjs', 'tests/test_table_management_browser.cjs']],
+  ['frontend-modern-types', ['node_modules/typescript/bin/tsc', '--noEmit', '-p', 'tsconfig.frontend.json']],
+  ['frontend-modern-node-types', ['node_modules/typescript/bin/tsc', '--noEmit', '-p', 'tsconfig.node.json']],
+  ['frontend-modern-unit', ['node_modules/vitest/vitest.mjs', 'run', '--config', 'vitest.config.mts']],
+  ['frontend-vite-dist', ['--test', 'tests/test_frontend_build_dist.mjs']],
+  ['history-dto-contract', ['--test', 'tests/test_history_dto_contract.cjs']],
+  ['pos-history-baseline', ['--test', 'tests/test_pos_history_slice_baseline.cjs']],
+  ['staff-table-sync', ['--test', 'tests/test_staff_table_sync_browser.cjs']],
   ['staff-print', ['--test', 'tests/test_staff_print.cjs', 'tests/test_staff_pos.cjs']],
   ['staff-capability-schema', ['--test', 'tests/test_staff_capability_schema.cjs']],
   ['order-identity', ['tests/test_order_identity.cjs']],
@@ -89,7 +96,7 @@ for (const [name, rawArgs, overrides = {}] of [...(menuOnly ? suites.slice(0, 4)
   const log = `${result.stdout || ''}${result.stderr || ''}${result.error ? `\n${result.error.message}\n` : ''}`;
   writeFileSync(path.join(directory, `${name}.log`), log);
   const status = testOutcome(result, log, args.includes('--test'));
-  report.suites.push({ name, command: ['node', ...args], environment: overrides, status, exitCode: result.status, signal: result.signal, elapsedMs: Date.now() - started, log: `${name}.log`, inputHashes: Object.fromEntries(args.filter(file => !file.startsWith('-')).map(file => [file, createHash('sha256').update(readFileSync(path.join(root, file))).digest('hex')])) });
+  report.suites.push({ name, command: ['node', ...args], environment: overrides, status, exitCode: result.status, signal: result.signal, elapsedMs: Date.now() - started, log: `${name}.log`, inputHashes: Object.fromEntries(args.filter(file => !file.startsWith('-') && existsSync(path.join(root, file)) && statSync(path.join(root, file)).isFile()).map(file => [file, createHash('sha256').update(readFileSync(path.join(root, file))).digest('hex')])) });
   console.log(`${status === 'passed' ? 'PASS' : 'FAIL'} ${name} (${Date.now() - started} ms)`);
   if (status !== 'passed') console.error(log.slice(-6000));
   // Save after every suite so partial runs still leave reviewable evidence.

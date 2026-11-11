@@ -1,6 +1,11 @@
 # PDP: Frontend Modernization — Migrate
 
-Ngày: 2026-11-11. Trạng thái: Đề xuất để thảo luận, chưa triển khai.
+Ngày: 2026-11-11. Trạng thái: Đã chốt 3 quyết định nền tảng; đang triển khai PR 1 + PR 2 trên nhánh `staging` (tách mới từ `main`).
+
+### Quyết định đã chốt (2026-11-11)
+1. **UI Runtime**: **React + Vite + TypeScript (`strict`)**. Ưu tiên hệ sinh thái chuẩn, ít rủi ro tương thích; phần Customer LIFF tách chunk riêng và đo hiệu năng thật trước khi mở rộng.
+2. **Lát cắt UI đầu tiên (PR 4)**: **Tab History & Order Detail chỉ đọc** trong POS ([`js/orders-history.js`](file:///Users/duccao/Documents/benmi-order/js/orders-history.js)) — phạm vi gọn, không chạm side-effect in ấn/thanh toán/giỏ hàng, dùng để kiểm chứng cầu nối legacy, CSS scope, i18n `zh-TW`/`vi` và deploy `dist/`. Chi tiết bản đồ phụ thuộc tại [`history_slice_dependency_map.md`](file:///Users/duccao/Documents/benmi-order/docs/proposals/frontend_modernization/history_slice_dependency_map.md).
+3. **Contracts & Ranh giới Backend**: Giữ nguyên `benmi-worker-official/` build/deploy độc lập; định nghĩa `frontend/shared/contracts/` bám đúng JSON DTO API công khai và khóa khớp bằng contract test (tránh lẫn các trường nội bộ nhạy cảm như `lineChannelToken`, `groqApiKey` trong `TenantContext`).
 
 ## 1. Tóm tắt và mục tiêu
 
@@ -117,8 +122,8 @@ React hỗ trợ thêm từng phần vào ứng dụng hiện hữu; Vite hỗ t
 
 ## 7. Kế hoạch thực hiện
 
-- [ ] PR 1: Baseline, fixture và bản đồ dependency cho lát cắt đầu tiên.
-- [ ] PR 2: Vite/TypeScript, entry cô lập, asset pipeline và kiểm tra module mới song song gate legacy.
+- [x] PR 1: Baseline, fixture và bản đồ dependency cho lát cắt đầu tiên.
+- [x] PR 2: Vite/TypeScript, entry cô lập, asset pipeline và kiểm tra module mới song song gate legacy.
 - [ ] PR 3: Contract/model và adapter; bỏ phụ thuộc DOM trong tính subtotal/validation của lát cắt chuyển đổi.
 - [ ] PR 4: Tokens/component nền và POS lịch sử/chi tiết đơn chỉ đọc.
 - [ ] PR 5: Menu editor, draft và option workspace; kiểm chứng không ghi đè dữ liệu ngoài phạm vi.
@@ -137,4 +142,4 @@ Chưa chốt lịch tuần: cần biết nhân lực, lịch release và số th
 - Test lỗi: mất mạng khi submit, response về trễ, reconnect, tab sleep/resume, WASM chưa tải, menu đổi trong lúc đang chọn, chuyển tenant, payment redirect, reload với draft.
 - Test release: tab cũ tải chunk sau deploy, rollback entry, đường dẫn domain/LIFF/query cũ và phiên đang thanh toán. Chỉ phát hành khi không có sai lệch nghiệp vụ còn chưa giải thích.
 
-Tài liệu này chỉ là khảo sát và thiết kế; chưa thay đổi frontend, chưa chạy test thực thi và chưa deploy.
+PR 1 và PR 2 đã được triển khai trên nhánh `staging` (baseline/contract/sync tests, Vite + React 19 + TypeScript strict và sandbox cô lập); legacy POS vẫn phục vụ chính thức trong khi chờ PR 3+.

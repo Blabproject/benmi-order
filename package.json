@@ -41,7 +41,10 @@
     "test:item-notes": "node --test tests/test_order_item_note_dedup.cjs",
     "test:order-details": "node --experimental-sqlite --test tests/test_order_detail_snapshots.cjs tests/test_order_detail_groups.cjs",
     "test:order-detail-layout": "node --test tests/test_order_detail_groups_browser.cjs",
-    "build": "npm run check && node scripts/build-metadata.cjs",
+    "typecheck:frontend": "tsc --noEmit -p tsconfig.frontend.json && tsc --noEmit -p tsconfig.node.json",
+    "test:frontend:unit": "vitest run --config vitest.config.mts",
+    "build:frontend": "vite build --config vite.config.mts",
+    "build": "npm run check && npm run typecheck:frontend && node scripts/build-metadata.cjs && npm run build:frontend",
     "build:wasm": "cd benmi-pricing-rs/crates/pricing-wasm && wasm-pack build --target web --out-dir ../../../wasm/pricing-engine --release --no-gitignore",
     "test:wasm": "node tests/test_pricing_wasm.cjs",
     "check:cache-busters": "node scripts/check-cache-busters.mjs",
@@ -63,10 +66,22 @@
   "author": "Benmi Team",
   "license": "ISC",
   "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
     "acorn": "8.19.0",
-    "playwright": "1.64.1"
+    "jsdom": "^31.0.0",
+    "playwright": "1.64.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
   },
   "dependencies": {
-    "qrcode-generator": "^2.0.4"
+    "qrcode-generator": "^2.0.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   }
 }
