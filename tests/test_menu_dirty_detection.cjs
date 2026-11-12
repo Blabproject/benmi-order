@@ -477,7 +477,8 @@ test('resuming an option clears stale expiry fields so a later menu save cannot 
 for (const failure of ['offline', 'http', 'non-json']) {
   test(`${failure}: failed stock writes preserve state and selections for retry`, async () => {
     const app = stockFixture();const before = JSON.stringify(app.saved());
-    app.choose('out_of_stock', 'multiple_days', '2026-11-12');
+    const date = app.control('oos-until-date').min;
+    app.choose('out_of_stock', 'multiple_days', date);
     app.sandbox.fetch = async () => {
       if (failure === 'offline') throw new Error('Offline');
       return { ok: false, json: async () => { if (failure === 'non-json') throw new Error('HTML error');return { error: 'Unavailable' }; } };
@@ -486,7 +487,7 @@ for (const failure of ['offline', 'http', 'non-json']) {
     assert.equal(app.target().isOos, false);assert.equal(JSON.stringify(app.saved()), before);
     assert.equal(app.getIsMenuDirty(), false);assert.equal(app.control('stockModal').style.display, 'flex');
     assert.equal(app.control('stock-duration-select').value, 'multiple_days');
-    assert.equal(app.control('oos-until-date').value, '2026-11-12');
+    assert.equal(app.control('oos-until-date').value, date);
     assert.equal(app.control('btn-stock-save').disabled, false);
     assert.equal(app.control('stock-drawer-error').hidden, false);
     assert.equal(app.control('stock-drawer-error').textContent, 'stockSaveError');
@@ -517,8 +518,10 @@ test('pending stock save prevents duplicate requests, dismissal, target changes 
 });
 
 test('all existing stock durations preserve the API payload and missing dates prevent writes', async () => {
-  for (const [duration, date] of [['today', ''], ['indefinite', ''], ['multiple_days', '2026-11-12']]) {
-    const app = stockFixture();app.choose('out_of_stock', duration, date);
+  for (const duration of ['today', 'indefinite', 'multiple_days']) {
+    const app = stockFixture();
+    const date = duration === 'multiple_days' ? app.control('oos-until-date').min : '';
+    app.choose('out_of_stock', duration, date);
     await app.sandbox.saveStockStatus();
     assert.equal(app.requests[0].body.duration, duration);
     assert.equal(app.requests[0].body.until_date, date ? date + 'T04:00:00+07:00' : null);
