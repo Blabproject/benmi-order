@@ -436,7 +436,7 @@ function completeOrderFromReview(btn) {
   if (!reviewingOrder) return;
   const isDineIn = typeof isOrderDineIn === "function" ? isOrderDineIn(reviewingOrder) : reviewingOrder.diningOption === "dine_in";
   const targetStatus = isDineIn ? "PAID" : "PICKED_UP";
-  updateStatus(reviewingOrder.key, targetStatus, {}, btn).then(() => closeModal());
+  updateStatus(reviewingOrder.key, targetStatus, {}, btn).then(saved => { if (saved) closeModal(); });
 }
 window.completeOrderFromReview = completeOrderFromReview;
 
@@ -721,7 +721,7 @@ async function confirmAction(type, btn) {
     note = checked.join(",");
   }
 
-  await updateStatus(key, status, { reason, note }, btn);
+  if (!await updateStatus(key, status, { reason, note }, btn)) return;
 
   const nextKey = typeof getRemainingNewOrderKey === "function" ? getRemainingNewOrderKey(key) : null;
   if (nextKey && typeof openReview === "function") {

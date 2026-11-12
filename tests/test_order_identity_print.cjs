@@ -40,7 +40,7 @@ assert(!printedText.join('').includes('CustomerAlice'));assert(printedText.join(
  await service.handleAcceptedOrder(later);assert.deepEqual(ids,[later.key]);
  let release, calls=0;
  const concurrent={...order,key:'concurrent-order',legacyKey:'concurrent-display'};
- service.printDualStation=async()=>{calls++;await new Promise(resolve=>{release=resolve;});};
+ service.printDualStation=async()=>{calls++;await new Promise(resolve=>{release=resolve;});return {success:true};};
  const printing=service.handleAcceptedOrder(concurrent);
  await service.handleAcceptedOrder(concurrent);assert.equal(calls,1);
  release();await printing;await service.handleAcceptedOrder(concurrent);assert.equal(calls,1);

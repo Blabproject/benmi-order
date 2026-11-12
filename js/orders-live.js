@@ -504,7 +504,7 @@ function renderListLeft(orders) {
     if (isNew) {
       rightActions = `<button type="button" class="btn tile-action-btn btn-action-review" onclick="event.stopPropagation(); openReview('${escapeHtml(order.key)}')">${POS_SVG.eye}<span>${t('btnReview')}</span></button>`;
     } else if (order.status === "ACCEPTED") {
-      rightActions = `<button type="button" class="btn tile-action-btn btn-action-ready" onclick="event.stopPropagation(); updateStatus('${escapeHtml(order.key)}','DONE', {}, this)">${(typeof POS_SVG !== 'undefined' && POS_SVG.checkCircle) || POS_SVG.check}<span>${t('btnReady')}</span></button>`;
+      rightActions = `<button type="button" class="btn tile-action-btn btn-action-ready" ${processingKeys.has(order.key) ? 'disabled aria-busy="true"' : ''} onclick="event.stopPropagation(); updateStatus('${escapeHtml(order.key)}','DONE', {}, this)">${(typeof POS_SVG !== 'undefined' && POS_SVG.checkCircle) || POS_SVG.check}<span>${t('btnReady')}</span></button>`;
     } else {
       rightActions = `<button type="button" class="btn tile-action-btn btn-action-waiting" disabled><span>${t('btnWaitingReply')}</span></button>`;
     }
@@ -1647,9 +1647,10 @@ window.extractCustomizationsFromLines = extractCustomizationsFromLines;
 window.renderCustomizationsHtml = renderCustomizationsHtml;
 
 async function updateStatus(key, status, extra = {}, btn = null) {
-  if (!key) return;
-  if (processingKeys.has(key)) return;
+  if (!key || processingKeys.has(key)) return false;
   processingKeys.add(key);
+  const controller = new AbortController();
+  const deadline = setTimeout(() => controller.abort(), 10000);
 
   const oldText = btn ? btn.innerText : "";
   if (btn) {
@@ -1664,15 +1665,16 @@ async function updateStatus(key, status, extra = {}, btn = null) {
     const token = staff ? null : savedToken;
     const endpoint = staff ? `/api/staff/orders/${encodeURIComponent(key)}/status` : '/api/update';
     const response = await fetch(`${WORKER_BASE}${endpoint}?tenant_id=${getTenantIdFromUrl()}`, {
+      signal: controller.signal,
       method: staff ? 'PATCH' : 'POST',
       headers: { 'Content-Type':'application/json', ...(token ? {Authorization:`Bearer ${token}`} : {}) },
       body: JSON.stringify({key,status,...extra,...(staff ? {expectedRevision:order.revision} : {})})
     });
     if (response.status === 409 && staff) {
       delete localOverrides[key];
-      await fetchOrders();
+      void fetchOrders().catch(console.error);
       alert(t('staffStatusConflict'));
-      return;
+      return false;
     }
     if (!response.ok) throw new Error(`update failed: ${response.status}`);
 
@@ -1682,7 +1684,11 @@ async function updateStatus(key, status, extra = {}, btn = null) {
 
     if (status === "ACCEPTED" && order && !staff && typeof PrinterService !== "undefined") {
       try {
-        await PrinterService.handleAcceptedOrder({ ...order, status });
+        // The server has committed acceptance. Printing has its own queue and must
+        // never retain the status lock, even if an older native bridge hangs.
+        void Promise.resolve(PrinterService.handleAcceptedOrder({ ...order, status })).catch(printError => {
+          console.error('[Orders] Auto-print after acceptance failed:', printError);
+        });
       } catch (printError) {
         // Acceptance has succeeded even when printing fails.
         console.error("[Orders] Auto-print after acceptance failed:", printError);
@@ -1690,23 +1696,34 @@ async function updateStatus(key, status, extra = {}, btn = null) {
     }
 
     // Keep in sync with server
-    await fetchOrders();
+    void fetchOrders().catch(console.error);
+    return true;
   } catch (e) {
     console.error(e);
-    alert(t("processFail"));
+    if (e.name === 'AbortError') {
+      // A lost response does not prove the write failed. Refresh, never replay
+      // the mutation or print automatically on the basis of a timeout.
+      void fetchOrders().catch(console.error);
+      alert(t('orderStatusUncertain'));
+    } else {
+      alert(t("processFail"));
+    }
+    return false;
   } finally {
+    clearTimeout(deadline);
     processingKeys.delete(key);
     if (btn) {
       btn.disabled = false;
       btn.innerText = oldText;
     }
+    renderAll();
   }
 }
 
 async function reviewAccept(btn) {
   if (!reviewingOrder?.key) return;
   const handledKey = reviewingOrder.key;
-  await updateStatus(handledKey, "ACCEPTED", {}, btn);
+  if (!await updateStatus(handledKey, "ACCEPTED", {}, btn)) return;
   if (typeof updateNewAlert === "function") updateNewAlert();
 
   const nextKey = getRemainingNewOrderKey(handledKey);
@@ -1719,7 +1736,7 @@ async function reviewAccept(btn) {
 
 async function markReadyFromReview(btn) {
   if (!reviewingOrder?.key) return;
-  await updateStatus(reviewingOrder.key, "DONE", {}, btn);
+  if (!await updateStatus(reviewingOrder.key, "DONE", {}, btn)) return;
   finishReviewFlow();
 }
 
@@ -1727,7 +1744,7 @@ async function reviewForceCancel(btn) {
   if (!reviewingOrder?.key) return;
   if (!confirm(t("confirmForceCancel"))) return;
   const handledKey = reviewingOrder.key;
-  await updateStatus(handledKey, "FORCE_REJECT", {}, btn);
+  if (!await updateStatus(handledKey, "FORCE_REJECT", {}, btn)) return;
 
   const nextKey = getRemainingNewOrderKey(handledKey);
   if (nextKey && typeof openReview === "function") {

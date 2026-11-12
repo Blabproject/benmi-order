@@ -13705,3 +13705,12 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
   }
 }
 
+
+/* Persistent per-part print results; status actions remain independent. */
+.printer-reports { padding: 12px; color: inherit; }
+.printer-reports[hidden] { display: none; }
+.printer-report + .printer-report { margin-top: 16px; }
+.printer-report strong { display: block; margin-bottom: 8px; }
+.printer-report-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; flex-wrap: wrap; }
+.printer-report-row > span { flex: 1 1 180px; overflow-wrap: anywhere; }
+.printer-report-row > .btn { min-height: 48px; min-width: 48px; white-space: normal; }

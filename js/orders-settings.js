@@ -1712,6 +1712,7 @@ function updatePrintModeCardStyles(isAuto) {
 
 function updatePrintActionAvailability() {
   if (typeof PrinterService === 'undefined') return;
+  PrinterService.renderPrintReports();
   const capabilities = PrinterService.getPrintCapabilities();
   const disabledBillTitle = (typeof t === 'function' && t('printDisabledBill')) || '請先啟用並設定 Bill 印表機';
   const disabledStickersTitle = (typeof t === 'function' && t('printDisabledStickers')) || '請先啟用並設定貼紙印表機';
@@ -1730,8 +1731,8 @@ function updatePrintActionAvailability() {
         ? disabledStickersTitle
         : disabledFullTitle;
 
-    control.disabled = !enabled;
-    control.setAttribute('aria-disabled', String(!enabled));
+    control.disabled = !enabled || PrinterService.isPrinterBusy();
+    control.setAttribute('aria-disabled', String(control.disabled));
     control.classList.toggle('is-printer-disabled', !enabled);
     if (!enabled) control.setAttribute('title', disabledTitle);
     else if (control.dataset.printActionTitle) control.setAttribute('title', control.dataset.printActionTitle);

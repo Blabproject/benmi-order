@@ -8,8 +8,8 @@ android {
         applicationId = (env == 'dev-local' || env == 'dev') ? "com.benmi.pos.dev" : (env == 'pilot' ? "com.benmi.pos.pilot" : "com.benmi.pos")
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 29
-        versionName "1.1.1"
+        versionCode 30
+        versionName "1.1.2"
         manifestPlaceholders = [posAppLabel: (env == 'dev-local' || env == 'dev') ? 'Blab POS Dev' : (env == 'pilot' ? 'Blab POS Pilot' : 'Blab POS')]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
