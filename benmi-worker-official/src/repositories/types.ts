@@ -10,6 +10,7 @@ export interface TenantConfigRow extends OrderDomainRow {
   store_address?: string | null;
   announcement?: string | null;
   store_notice?: string | null;
+  ai_settings?: string | null;
   operating_hours?: string | null;
   delivery_policy?: string | null;
   allow_scheduled_pickup?: number | boolean | null;
@@ -68,6 +69,8 @@ export interface UpdateTenantConfigInput {
   announcement?: string | null;
   /** Serialized StoreNotice JSON; '' clears the notice. */
   storeNotice?: string | null;
+  aiSettings?: string;
+  aiOrderRedirectEnabled?: boolean;
   features?: string | string[] | null;
   autoOpenBeforeMinutes?: number | null;
   prepTimeMinutes?: number | null;

@@ -1,3 +1,5 @@
+import type { AISettings } from '../modules/ai-settings';
+
 export interface QuickReply {
   triggers: string[];
   reply: string;
@@ -17,6 +19,7 @@ export interface TenantContext {
   openrouterApiKey: string | null;
   openrouterModel: string;
   aiOrderRedirectEnabled: boolean;
+  aiSettings?: AISettings;
   // Branding
   brandName: string;
   brandSubtitle?: string | null;

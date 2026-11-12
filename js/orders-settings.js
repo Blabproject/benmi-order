@@ -2132,6 +2132,7 @@ const SETTINGS_SECTIONS = [
   { id: "setting-card-payment", tocId: "toc-item-payment" },
   { id: "setting-card-hours", tocId: "toc-item-hours" },
   { id: "setting-card-store-info", tocId: "toc-item-store-info" },
+  { id: "setting-card-ai", tocId: "toc-item-ai" },
   { id: "setting-card-language", tocId: "toc-item-language" },
   { id: "setting-card-display", tocId: "toc-item-display" },
   { id: "setting-card-dinein", tocId: "toc-item-dinein" },
@@ -2239,6 +2240,7 @@ function switchSettingTab(cardId) {
     card.classList.remove("active");
   });
   targetCard.classList.add("active");
+  if (targetId === "setting-card-ai" && typeof loadAISettings === "function") loadAISettings();
 
   const tableTools = document.getElementById("settings-table-tools");
   if (tableTools) tableTools.hidden = targetId !== "setting-card-tables";
