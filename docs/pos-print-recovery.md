@@ -31,3 +31,9 @@ The queue coordinates Benmi only. Uber is an independent device/application; the
 Pilot APK: `artifacts/pos-print-recovery-20261112/Blab-POS-Pilot-1.1.2.apk`, application ID `com.benmi.pos.pilot`, version code 30. It bundles the changed web files and can be installed beside the existing POS. It has separate settings/storage and needs its printer configuration. It uses the production backend; use designated test orders.
 
 Physical acceptance still required: print Uber first, Benmi first, and both at once; then repeat with a long receipt, multiple stickers, printer power-off/reconnection and a WebView restart. Check that order buttons work during each case, paper is complete, completed parts do not print again automatically, and uncertain parts remain visible for staff review. No device was connected to ADB during implementation.
+
+## Universal 1.1.2 APK
+
+`apps/android-pos/benmi-pos-universal-v1.1.2.apk` is the production multi-tenant shell (`com.benmi.pos`, version code 30). It loads `https://pos.blabfood.app`; deploying the POS web changes is a separate step. The APK contains the native Bluetooth deadline changes and uses the project's existing debug-build workflow. Package, version, signature, bundled assets and the absence of architecture-specific native libraries were checked; see `artifacts/pos-print-recovery-20261112/universal-verification.json`.
+
+The local signing certificate differs from `benmi-pos-universal-v1.1.apk` in the repository. This new APK cannot update that specific older APK in place. The app installed at the store has not been inspected, so its compatibility is unknown. A matching installed certificate is required to update while preserving app data; the old signing key was not found locally. Keep the installed store app rather than uninstalling it to bypass a signature mismatch.
