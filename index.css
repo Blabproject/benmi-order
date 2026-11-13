@@ -2583,20 +2583,93 @@ input[type="checkbox"] {
     flex-shrink: 0;
 }
 
+.cart-item-block {
+    padding: 5px 0;
+}
+
+.cart-item-block + .cart-item-block {
+    border-top: 1px dashed #f1f5f9;
+}
+
+.cart-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.cart-item-title {
+    font-weight: 800;
+    color: #111;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.cart-item-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.cart-item-price {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
 .cart-portion-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 8px;
-    margin: 0 0 6px 10px;
+    gap: 6px;
+    margin: 4px 0 0 8px;
     font-size: 13px;
-    line-height: 1.45;
+    line-height: 1.4;
     color: #475569;
 }
 
-.cart-portion-detail {
+.cart-portion-edit-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    min-height: 24px;
+    padding: 2px 4px;
+    margin: -2px -4px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    justify-self: start;
+    max-width: 100%;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.cart-portion-edit-btn:hover,
+.cart-portion-edit-btn:active {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.cart-portion-edit-text {
     min-width: 0;
     overflow-wrap: anywhere;
+}
+
+.cart-portion-edit-icon {
+    flex-shrink: 0;
+    color: #94a3b8;
+    transition: color 0.15s ease;
+}
+
+.cart-portion-edit-btn:hover .cart-portion-edit-icon {
+    color: #475569;
 }
 
 .cart-portion-actions {
@@ -2628,6 +2701,15 @@ input[type="checkbox"] {
     transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
+.cart-portion-action--icon {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    min-height: 26px;
+    padding: 0;
+    border-radius: 7px;
+}
+
 .cart-portion-action:hover,
 .cart-portion-action:active {
     background: #f1f5f9;
@@ -2654,7 +2736,8 @@ input[type="checkbox"] {
     }
 }
 
-.cart-portion-action:focus-visible {
+.cart-portion-action:focus-visible,
+.cart-portion-edit-btn:focus-visible {
     outline: 2px solid var(--primary, #059669);
     outline-offset: 2px;
 }

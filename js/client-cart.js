@@ -636,14 +636,13 @@ function updateTotal() {
 
     if (customSummaries.length > 0) {
         summaryHTML += `
-            <div style="margin-bottom: 14px; padding: 10px 14px; background: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5e1; font-size: 13.5px; color: #475569; line-height: 1.6;">
-                <div style="font-weight: 800; color: #0f172a; margin-bottom: 4px; font-size: 14px; display: flex; align-items: center; gap: 6px;">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+            <div style="margin-bottom: 8px; padding: 8px 12px; background: #f8fafc; border-radius: 10px; border: 1px dashed #cbd5e1; font-size: 13px; color: #475569; line-height: 1.5;">
+                <div style="font-weight: 800; color: #0f172a; margin-bottom: 2px; font-size: 13.5px; display: flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
                     <span>客製化設定</span>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 2px;">${customSummaries.join('')}</div>
             </div>
-            <div style="border-bottom: 1px dashed #e2e8f0; margin-bottom: 12px;"></div>
         `;
     }
 
@@ -797,15 +796,6 @@ function updateTotal() {
                     </div>
                 `;
             } else {
-                summaryHTML += `
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <div style="font-weight:800; color: #111; display:flex; align-items:center; flex-wrap:wrap;">
-                            <span>${qty}x ${displayName}</span>
-                        </div>
-                        <div style="font-weight:700;">$${lineTotal}</div>
-                    </div>
-                `;
-
                 if (hasBundleGroups && window.bundleCartData && window.bundleCartData[key]) {
                     const portions = window.bundleCartData[key].slice(0, qty);
                     portions.forEach((p, pIdx) => {
@@ -850,27 +840,100 @@ function updateTotal() {
                     });
                 }
 
+                let drinkStr = '';
                 if (!bootstrapData?.unifiedMenu && catSlug === 'combo') {
                     let drinks = cDrinkData[itemName] || [];
                     let drinkCounts = {};
                     drinks.slice(0, qty).forEach(d => { drinkCounts[d] = (drinkCounts[d] || 0) + 1; });
-                    let drinkStr = Object.entries(drinkCounts).map(([n, c]) => `${n} x${c}`).join('、');
-                    if (drinkStr) summaryHTML += `<div style="font-size:13px; color:#6b7280; margin-left:10px; margin-bottom:6px;">↳ 飲料：${drinkStr}</div>`;
+                    drinkStr = Object.entries(drinkCounts).map(([n, c]) => `${n} x${c}`).join('、');
                 }
 
+                const portionGroups = [];
+                const portionGroupMap = new Map();
                 for (let index = 0; index < qty; index++) {
-                    const label = cartIsVietnamese ? `Phần ${index + 1}` : (zhNumbers[index] || `第 ${index + 1} 份`);
-                    const detail = portionDetails[index];
-                    const contextLabel = escapeCartText(`${displayName}, ${label}`);
-                    portionsHTML += `<div class="cart-portion-row">
-                        <span class="cart-portion-detail">${label}${detail ? ': ' + escapeCartText(detail) : ''}</span>
-                        <span class="cart-portion-actions" data-category="${escapeCartText(catSlug)}" data-item="${escapeCartText(itemName)}" data-portion="${index}">
-                            <button type="button" class="cart-portion-action" aria-label="${cartIsVietnamese ? 'Điều chỉnh' : '調整'} ${contextLabel}" onclick="editCartPortion(this.parentElement.dataset.category, this.parentElement.dataset.item, Number(this.parentElement.dataset.portion))">${cartIsVietnamese ? 'Điều chỉnh' : '調整'}</button>
-                            <button type="button" class="cart-portion-action cart-portion-action--remove" aria-label="${cartIsVietnamese ? 'Xóa' : '移除'} ${contextLabel}" onclick="removeCartPortion(this.parentElement.dataset.category, this.parentElement.dataset.item, Number(this.parentElement.dataset.portion))">${cartIsVietnamese ? 'Xóa' : '移除'}</button>
-                        </span>
-                    </div>`;
+                    const detailText = (portionDetails[index] || '').trim();
+                    if (!portionGroupMap.has(detailText)) {
+                        const group = { detail: detailText, indices: [] };
+                        portionGroupMap.set(detailText, group);
+                        portionGroups.push(group);
+                    }
+                    portionGroupMap.get(detailText).indices.push(index);
                 }
-                summaryHTML += portionsHTML;
+
+                const pencilIconSvg = `<svg class="cart-portion-edit-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path><path d="m15 5 4 4"></path></svg>`;
+                const removeIconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+                const safeCatSlug = escapeCartText(catSlug);
+                const safeItemName = escapeCartText(itemName);
+                const safeDisplayName = escapeCartText(displayName);
+
+                if (qty === 1 && portionGroups.length === 1 && !portionGroups[0].detail && !drinkStr) {
+                    const editLabel = cartIsVietnamese ? `Điều chỉnh ${safeDisplayName}` : `調整 ${safeDisplayName}`;
+                    const removeLabel = cartIsVietnamese ? `Xóa ${safeDisplayName}` : `移除 ${safeDisplayName}`;
+                    summaryHTML += `
+                        <div class="cart-item-block">
+                            <div class="cart-item-header">
+                                <div class="cart-item-title">
+                                    <span>${qty}x ${displayName}</span>
+                                </div>
+                                <div class="cart-item-right" data-category="${safeCatSlug}" data-item="${safeItemName}" data-portion="0">
+                                    <span class="cart-item-price">$${lineTotal}</span>
+                                    <span class="cart-portion-actions">
+                                        <button type="button" class="cart-portion-action cart-portion-action--icon" aria-label="${editLabel}" onclick="const d=this.closest('[data-portion]').dataset;editCartPortion(d.category,d.item,Number(d.portion))">${pencilIconSvg}</button>
+                                        <button type="button" class="cart-portion-action cart-portion-action--icon cart-portion-action--remove" aria-label="${removeLabel}" onclick="const d=this.closest('[data-portion]').dataset;removeCartPortion(d.category,d.item,Number(d.portion))">${removeIconSvg}</button>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    portionGroups.forEach(group => {
+                        const firstIndex = group.indices[0];
+                        let groupLabel = '';
+                        if (qty > 1) {
+                            if (group.indices.length === qty) {
+                                groupLabel = cartIsVietnamese ? `Tất cả ${qty} phần` : `共 ${qty} 份`;
+                            } else if (group.indices.length === 1) {
+                                groupLabel = cartIsVietnamese ? `Phần ${firstIndex + 1}` : (zhNumbers[firstIndex] || `第 ${firstIndex + 1} 份`);
+                            } else {
+                                groupLabel = cartIsVietnamese
+                                    ? `Phần ${group.indices.map(idx => idx + 1).join(', ')}`
+                                    : `第 ${group.indices.map(idx => idx + 1).join('、')} 份`;
+                            }
+                        }
+
+                        const detailHtml = groupLabel && group.detail
+                            ? `${groupLabel}：${escapeCartText(group.detail)}`
+                            : (group.detail ? escapeCartText(group.detail) : groupLabel);
+                        const contextLabel = groupLabel ? `${safeDisplayName}, ${escapeCartText(groupLabel)}` : safeDisplayName;
+                        const editLabel = cartIsVietnamese ? `Điều chỉnh ${contextLabel}` : `調整 ${contextLabel}`;
+                        const removeLabel = group.indices.length > 1
+                            ? (cartIsVietnamese ? `Xóa 1 phần ${safeDisplayName}` : `移除 1 份 ${safeDisplayName}`)
+                            : (cartIsVietnamese ? `Xóa ${contextLabel}` : `移除 ${contextLabel}`);
+
+                        portionsHTML += `<div class="cart-portion-row" data-category="${safeCatSlug}" data-item="${safeItemName}" data-portion="${firstIndex}">
+                            <button type="button" class="cart-portion-edit-btn" aria-label="${editLabel}" onclick="const d=this.closest('[data-portion]').dataset;editCartPortion(d.category,d.item,Number(d.portion))">
+                                <span class="cart-portion-edit-text">${detailHtml}</span>
+                                ${pencilIconSvg}
+                            </button>
+                            <span class="cart-portion-actions">
+                                <button type="button" class="cart-portion-action cart-portion-action--icon cart-portion-action--remove" aria-label="${removeLabel}" onclick="const d=this.closest('[data-portion]').dataset;removeCartPortion(d.category,d.item,Number(d.portion))">${removeIconSvg}</button>
+                            </span>
+                        </div>`;
+                    });
+
+                    summaryHTML += `
+                        <div class="cart-item-block">
+                            <div class="cart-item-header">
+                                <div class="cart-item-title">
+                                    <span>${qty}x ${displayName}</span>
+                                </div>
+                                <div class="cart-item-price">$${lineTotal}</div>
+                            </div>
+                            ${drinkStr ? `<div style="font-size:13px; color:#6b7280; margin-left:8px; margin-top:3px;">↳ 飲料：${drinkStr}</div>` : ''}
+                            ${portionsHTML}
+                        </div>
+                    `;
+                }
                 total += lineTotal;
             }
         });
