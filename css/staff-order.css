@@ -869,8 +869,49 @@ html.staff-order-mode #staff-access-error {
 }
 
 @media (max-width: 699px) {
+  html.staff-order-mode {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html.staff-order-mode body {
+    height: auto;
+    min-height: 100%;
+    overflow: visible;
+    overscroll-behavior-y: contain;
+  }
+
   html.staff-order-mode #page-body-content {
+    height: auto;
+    min-height: 100%;
+    overflow: visible;
     padding-bottom: calc(128px + env(safe-area-inset-bottom, 0px));
+  }
+
+  html.staff-order-mode .container.main-order-layout {
+    flex: 0 0 auto;
+    height: auto;
+    overflow: visible;
+  }
+
+  html.staff-order-mode .menu-catalog-col,
+  html.staff-order-mode .catalog-sections-wrapper {
+    flex: 0 0 auto;
+    height: auto;
+    overflow: visible;
+  }
+
+  html.staff-order-mode .checkout-sidebar-col,
+  html.staff-order-mode #sec-checkout.checkout-sidebar-card,
+  html.staff-order-mode #cart-summary {
+    flex: 0 0 auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   html.staff-order-mode .staff-table-chips {

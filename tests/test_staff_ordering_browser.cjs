@@ -137,6 +137,19 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  orders=await f.DB.prepare("SELECT * FROM orders WHERE tenant_id='a'").all();assert.equal(orders.results.length,2);
  await page.setViewportSize({width:390,height:844});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ {
+  const mobileCart=await page.locator('#cart-summary').boundingBox();
+  assert(mobileCart&&mobileCart.height>=40,`Mobile standalone #cart-summary must not collapse: ${JSON.stringify(mobileCart)}`);
+  await page.locator('#staff-note-toggle').scrollIntoViewIfNeeded();
+  const scrollMetrics=await page.evaluate(()=>({
+   scrollTop:document.scrollingElement.scrollTop,
+   scrollHeight:document.scrollingElement.scrollHeight,
+   clientHeight:document.scrollingElement.clientHeight,
+   noteBottom:document.getElementById('staff-note-toggle').getBoundingClientRect().bottom,
+   submitTop:document.querySelector('.desktop-sidebar-submit-wrap').getBoundingClientRect().top
+  }));
+  assert(scrollMetrics.noteBottom<=scrollMetrics.submitTop+1,`Mobile standalone order content overlaps submit footer: ${JSON.stringify(scrollMetrics)}`);
+ }
  fs.mkdirSync('artifacts/staff-liff-local',{recursive:true});
  await page.screenshot({path:`artifacts/staff-liff-local/${name}-mobile.png`,fullPage:true});
  await page.evaluate(()=>{localStorage.setItem('staff_order_lang','zh-TW');setCustomerDiningOption('dine_in');});
@@ -255,6 +268,27 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
   assert.equal(await staffFrame.locator('#staff-bar-legend').isVisible(),false);
   const submitBox=await staffFrame.locator('#btn-desktop-submit').boundingBox();
   assert(submitBox.y+submitBox.height<=viewport.height+1,`Embedded staff submit outside ${JSON.stringify({viewport,submitBox})}`);
+  if(viewport.width===390){
+   const frameMetrics=await page.evaluate(()=>{
+    const ifr=document.getElementById('staff-order-iframe');
+    const doc=ifr.contentDocument;
+    const win=ifr.contentWindow;
+    win.scrollTo(0,doc.scrollingElement.scrollHeight);
+    return {
+     cartHeight:doc.getElementById('cart-summary').getBoundingClientRect().height,
+     scrollHeight:doc.scrollingElement.scrollHeight,
+     clientHeight:doc.scrollingElement.clientHeight,
+     scrollTop:doc.scrollingElement.scrollTop,
+     noteBottom:doc.getElementById('staff-note-toggle').getBoundingClientRect().bottom,
+     submitTop:doc.querySelector('.desktop-sidebar-submit-wrap').getBoundingClientRect().top
+    };
+   });
+   assert(frameMetrics.cartHeight>=40,`Embedded mobile #cart-summary collapsed: ${JSON.stringify(frameMetrics)}`);
+   if(frameMetrics.scrollHeight>frameMetrics.clientHeight){
+    assert(frameMetrics.scrollTop>0,`Embedded mobile staff frame did not scroll: ${JSON.stringify(frameMetrics)}`);
+   }
+   assert(frameMetrics.noteBottom<=frameMetrics.submitTop+1,`Embedded mobile order content overlaps submit footer: ${JSON.stringify(frameMetrics)}`);
+  }
   await page.screenshot({path:`artifacts/staff-order-review-20261108/${name}-pos-${viewport.width}-summary.png`});
  }
  assert.deepEqual(errors,[]);
