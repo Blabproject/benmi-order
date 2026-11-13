@@ -2586,11 +2586,11 @@ input[type="checkbox"] {
 .cart-portion-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start;
-    gap: 12px;
-    margin: 0 0 10px 10px;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 6px 10px;
     font-size: 13px;
-    line-height: 1.5;
+    line-height: 1.45;
     color: #475569;
 }
 
@@ -2602,32 +2602,56 @@ input[type="checkbox"] {
 .cart-portion-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     white-space: nowrap;
 }
 
 .cart-portion-action {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    min-width: 48px;
-    min-height: 48px;
+    min-width: 24px;
+    min-height: 26px;
     box-sizing: border-box;
-    padding: 8px;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    background: #fff;
-    color: #334155;
+    padding: 4px 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: #f8fafc;
+    color: #475569;
     font: inherit;
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1.1;
     cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.cart-portion-action:hover,
+.cart-portion-action:active {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
 }
 
 .cart-portion-action--remove {
     color: #dc2626;
+    background: #fff5f5;
+    border-color: #fecaca;
+}
+
+.cart-portion-action--remove:hover,
+.cart-portion-action--remove:active {
+    background: #fee2e2;
+    border-color: #fca5a5;
+}
+
+@media (pointer: coarse) {
+    .cart-portion-action::after {
+        content: "";
+        position: absolute;
+        inset: -3px;
+    }
 }
 
 .cart-portion-action:focus-visible {
