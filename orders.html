@@ -9,7 +9,7 @@
 
   <script src="/js/order-code.js?v=20261109_order_code_v1"></script>
   <script src="js/orders-display.js?v=20261007_dev_main_sync_v1"></script>
-  <link rel="stylesheet" href="css/orders.css?v=20261112_print_recovery_v1" />
+  <link rel="stylesheet" href="css/orders.css?v=20261113_revert_hours_v1" />
   <link rel="stylesheet" href="css/orders-stock.css?v=20261107_stock_drawer_v1" />
   <link rel="stylesheet" href="css/orders-menu.css?v=20261102_menu_mobile_v5" />
     <script>
@@ -962,37 +962,17 @@
 
             <!-- Operating Hours Setting -->
             <div class="settings-card" id="setting-card-hours">
-              <div class="hours-card-header">
-                <div>
-                  <div class="help-title-row">
-                    <div style="font-weight: 1100; font-size: var(--pos-text-body);" id="i18n-hours-title">營業時間設定</div>
-                    <details class="menu-help"><summary aria-labelledby="i18n-hours-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 3v1"/></svg></summary><div class="menu-help-text" id="i18n-hours-sub">設定每日營業時段與公休日</div></details>
-                  </div>
-                  <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600; margin-top: 2px;" id="i18n-hours-select-hint">點選日期以查看營業時段</div>
+              <div
+                style="padding: 16px 20px; background: #f3f4f6; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                <div class="help-title-row">
+                  <div style="font-weight: 1100; font-size: var(--pos-text-body);" id="i18n-hours-title">營業時間設定</div>
+                  <details class="menu-help"><summary aria-labelledby="i18n-hours-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 3v1"/></svg></summary><div class="menu-help-text" id="i18n-hours-sub">設定每日營業時段與公休日</div></details>
                 </div>
-                <div class="hours-card-header-actions" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                  <div class="hours-view-switch" role="tablist">
-                    <button type="button" class="hours-view-btn active" id="btn-hours-view-timeline" onclick="switchHoursView('timeline')">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                      <span id="i18n-hours-tab-timeline">時間圖</span>
-                    </button>
-                    <button type="button" class="hours-view-btn" id="btn-hours-view-list" onclick="switchHoursView('list')">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-                      <span id="i18n-hours-tab-list">清單</span>
-                    </button>
-                  </div>
-                  <button class="btn btn-primary" style="padding: 10px 20px; font-size: var(--pos-text-body); border-radius: 8px; font-weight: 900;"
-                    onclick="saveOperatingHours()" id="btn-save-hours">儲存設定</button>
-                </div>
+                <button class="btn btn-primary" style="padding: 10px 20px; font-size: var(--pos-text-body); border-radius: 8px;"
+                  onclick="saveOperatingHours()" id="btn-save-hours">儲存設定</button>
               </div>
-              <div style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
-                <!-- Weekly Overview (Timeline or List) -->
-                <div id="hours-settings-list">
-                  <!-- Dynamically rendered by JS -->
-                </div>
-
-                <!-- Day Detail & Overnight Shift Editor -->
-                <div id="hours-day-editor-container">
+              <div style="padding: 20px;">
+                <div id="hours-settings-list" style="display: flex; flex-direction: column; gap: 12px;">
                   <!-- Dynamically rendered by JS -->
                 </div>
               </div>
@@ -3394,7 +3374,7 @@
   </section>
 
   <!-- Benmi POS Modular Architecture Scripts -->
-  <script src="js/orders-i18n.js?v=20261112_print_recovery_v1"></script>
+  <script src="js/orders-i18n.js?v=20261113_revert_hours_v1"></script>
   <script src="js/orders-core.js?v=20261111_staff_table_sync_v1"></script>
   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
@@ -3406,7 +3386,7 @@
   <script src="js/orders-reports.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/qrcode.min.js?v=20261107_table_qr_v1"></script>
   <script src="js/store-notice-format.js?v=20261111_store_notice_v1"></script>
-  <script src="js/orders-settings.js?v=20261112_print_recovery_v1"></script>
+  <script src="js/orders-settings.js?v=20261113_revert_hours_v1"></script>
   <script src="js/orders-ai-settings.js?v=20261112_ai_settings_v1"></script>
   <script src="js/orders-menu-model.js?v=20261104_menu_model_v1"></script>
   <script src="js/orders-menu.js?v=20261109_menu_image_delete_v2"></script>
