@@ -219,6 +219,23 @@ window.StaffOrder = (() => {
     return Array.isArray(mods) && mods.length > 0;
   }
 
+  function openItemCustomizeFromTile(catSlug, itemName) {
+    const key = `${catSlug}_${itemName}`;
+    if (typeof isItemOutOfStock === 'function' && isItemOutOfStock(key)) return;
+    if (typeof checkDesktopAuthGuard === 'function' && !checkDesktopAuthGuard()) return;
+    const resolveFn = typeof resolveCatalogItem === 'function' ? resolveCatalogItem : (window.resolveCatalogItem || (() => null));
+    const itemInfo = resolveFn(key);
+    const bundleRule = itemInfo?.bundleRule || itemInfo?.targetItem?.bundleRule;
+    const cartObj = window.cart || (typeof cart !== 'undefined' ? cart : {}) || {};
+    const qty = Number(cartObj[key] || 0);
+    const targetIndex = qty > 0 ? qty - 1 : 0;
+    if (bundleRule?.groups?.length && typeof window.openBundleBuilderModal === 'function') {
+      window.openBundleBuilderModal(catSlug, itemName, targetIndex);
+    } else if (typeof window.openItemCustomizeModal === 'function') {
+      window.openItemCustomizeModal(catSlug, itemName, targetIndex);
+    }
+  }
+
   function syncTileBadges() {
     const bData = window.bootstrapData || (typeof bootstrapData !== 'undefined' ? bootstrapData : null);
     const cartObj = window.cart || (typeof cart !== 'undefined' ? cart : {}) || {};
@@ -254,9 +271,10 @@ window.StaffOrder = (() => {
         }
 
         const footer = card.querySelector('.card-footer');
+        const hasRequiredOpts = !item.isOutOfStock && itemHasRequiredOptions(cat.slug, item.name);
         if (footer && !item.isOutOfStock) {
           let reqBadge = footer.querySelector('.staff-tile-req');
-          if (itemHasRequiredOptions(cat.slug, item.name)) {
+          if (hasRequiredOpts) {
             if (!reqBadge) {
               reqBadge = document.createElement('span');
               reqBadge.className = 'staff-tile-req';
@@ -266,6 +284,28 @@ window.StaffOrder = (() => {
           } else if (reqBadge) {
             reqBadge.remove();
           }
+        }
+
+        const hasOptionalOpts = !item.isOutOfStock && itemHasAnyOptions(cat.slug, item.name) && !hasRequiredOpts;
+        let optBtn = card.querySelector('.staff-tile-opt-btn');
+        if (hasOptionalOpts) {
+          if (!optBtn) {
+            optBtn = document.createElement('button');
+            optBtn.type = 'button';
+            optBtn.className = 'staff-tile-opt-btn';
+            optBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg><span class="staff-tile-opt-label"></span>`;
+            optBtn.addEventListener('click', event => {
+              event.stopPropagation();
+              openItemCustomizeFromTile(cat.slug, item.name);
+            });
+            card.appendChild(optBtn);
+          }
+          const label = text('選項', 'Tùy chọn');
+          const labelEl = optBtn.querySelector('.staff-tile-opt-label');
+          if (labelEl) labelEl.textContent = label;
+          optBtn.setAttribute('aria-label', `${label} - ${item.name}`);
+        } else if (optBtn) {
+          optBtn.remove();
         }
       });
     });
@@ -693,7 +733,7 @@ window.StaffOrder = (() => {
       };
 
       window.handleItemCardClick = function (catSlug, itemName, event) {
-        if (event && (event.target.closest('.qty-control') || event.target.closest('.btn-qty'))) return;
+        if (event && (event.target.closest('.qty-control') || event.target.closest('.btn-qty') || event.target.closest('.staff-tile-opt-btn'))) return;
         const key = `${catSlug}_${itemName}`;
         if (typeof isItemOutOfStock === 'function' && isItemOutOfStock(key)) return;
         updateQty(catSlug, itemName, 1);

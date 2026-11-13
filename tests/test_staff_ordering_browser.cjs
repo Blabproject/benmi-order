@@ -14,13 +14,17 @@ const {chromium,webkit}=require('playwright');
 for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: shared LIFF staff creates, retries, appends and takes away`,async t=>{
  const f=await fixture(t);
  await f.apply("UPDATE tenant_config SET features='[\"dine_in\"]',allow_dine_in=1,allow_scheduled_pickup=0 WHERE tenant_id='a';");
- await f.apply(`UPDATE menu_items SET badge_text='推薦',max_per_order=12 WHERE id='meal-a';
- INSERT INTO menu_items(id,tenant_id,category_id,name,price,badge_text,out_of_stock_until)
- VALUES('sold-a','a','food-a','雞腿肉',70,'熱銷','2099-01-01T00:00:00Z');`);
+ await f.apply(`UPDATE menu_items SET badge_text='推薦',max_per_order=12,sort_order=0 WHERE id='meal-a';
+ INSERT INTO menu_items(id,tenant_id,category_id,name,price,badge_text,sort_order,out_of_stock_until)
+ VALUES('sold-a','a','food-a','雞腿肉',70,'熱銷',1,'2099-01-01T00:00:00Z'),
+ ('opt-a','a','food-a','Cơm',60,NULL,2,NULL);`);
  await f.apply(`INSERT INTO modifier_groups(id,tenant_id,name,selection_type,is_required,min_selection,max_selection,scope)
- VALUES('sauce-a','a','Sauce','single',1,1,1,'item');
- INSERT INTO modifier_options(id,tenant_id,group_id,name,price,is_default) VALUES('sauce-choice','a','sauce-a','Sauce choice',10,0);
- INSERT INTO item_modifier_links(tenant_id,item_id,group_id) VALUES('a','meal-a','sauce-a');`);
+ VALUES('sauce-a','a','Sauce','single',1,1,1,'item'),
+ ('opt-group-a','a','Lượng cơm','single',0,0,1,'item');
+ INSERT INTO modifier_options(id,tenant_id,group_id,name,price,is_default) VALUES
+ ('sauce-choice','a','sauce-a','Sauce choice',10,0),
+ ('rice-less','a','opt-group-a','Ít cơm',0,0);
+ INSERT INTO item_modifier_links(tenant_id,item_id,group_id) VALUES('a','meal-a','sauce-a'),('a','opt-a','opt-group-a');`);
  await f.apply(`INSERT INTO modifier_groups(id,tenant_id,name,selection_type,is_required,min_selection,max_selection,scope)
  VALUES('order-flavor','a','Khẩu vị','single',0,0,1,'order'),('order-extra','a','Dùng kèm','multiple',0,0,2,'order');
  INSERT INTO modifier_options(id,tenant_id,group_id,name,price,is_default) VALUES
@@ -216,6 +220,24 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  await page.evaluate(()=>localStorage.setItem('staff_order_lang','vi'));
  await page.goto(`http://127.0.0.1:${server.address().port}/staff-order.html?tenant_id=a&env=dev`);
  await page.waitForFunction(()=>window.StaffOrder?.ready());
+ assert.equal(await page.locator('#item-food-Meal .staff-tile-opt-btn').count(),0);
+ assert.equal(await page.locator('#item-food-Cơm .staff-tile-req').count(),0);
+ assert.equal(await page.locator('#item-food-Cơm .staff-tile-opt-btn').isVisible(),true);
+ assert.match(await page.locator('#item-food-Cơm .staff-tile-opt-btn').innerText(),/Tùy chọn/);
+ await page.locator('#item-food-Cơm .staff-tile-opt-btn').click();
+ assert.equal(await page.locator('#unified-option-modal').isVisible(),true);
+ assert.equal(await page.evaluate(()=>cart.food_Cơm||0),0);
+ await page.locator('#unified-option-modal [data-choose]').first().click();
+ await page.locator('#unified-option-modal [data-confirm]').click();
+ assert.equal(await page.locator('#unified-option-modal').isVisible(),false);
+ assert.equal(await page.evaluate(()=>cart.food_Cơm),1);
+ assert.equal(await page.locator('#item-food-Cơm .staff-tile-qty').innerText(),'×1');
+ await page.locator('#item-food-Cơm .card-main').click();
+ assert.equal(await page.locator('#unified-option-modal').isVisible(),false);
+ assert.equal(await page.evaluate(()=>cart.food_Cơm),2);
+ await page.locator('#item-food-Cơm .staff-tile-opt-btn').click();
+ assert.equal(await page.locator('#unified-option-modal').isVisible(),true);
+ await page.locator('#unified-option-modal [data-close]').click();
  assert.equal(await page.evaluate(()=>window.currentDiningOption),'takeaway');
  assert.equal(await page.locator('#dinein-table-input-group').isVisible(),false);
  assert.equal(await page.locator('#dining-option-wrapper').isVisible(),false);
