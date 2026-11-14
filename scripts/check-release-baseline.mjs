@@ -1,7 +1,8 @@
 import { menuSuites, testOutcome } from './menu-qa/suites.mjs';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -10,6 +11,17 @@ if (Number(process.versions.node.split('.')[0]) !== 24) {
   console.error('Release baseline requires Node.js 24. Run nvm use before retrying.');
   process.exit(1);
 }
+
+function resolveConcurrency() {
+  if (process.argv.includes('--serial')) return 1;
+  const arg = process.argv.find(item => item.startsWith('--concurrency='));
+  const raw = arg ? Number(arg.split('=')[1]) : Number(process.env.RELEASE_CONCURRENCY || 0);
+  if (Number.isInteger(raw) && raw > 0) return raw;
+  const cpuCount = typeof os.availableParallelism === 'function' ? os.availableParallelism() : os.cpus().length;
+  return Math.max(1, Math.min(4, cpuCount || 4));
+}
+
+const concurrency = resolveConcurrency();
 const directory = path.join(root, 'artifacts/release-baseline', new Date().toISOString().replace(/[:.]/g, '-'));
 mkdirSync(directory, { recursive: true });
 const git = (...args) => {
@@ -21,6 +33,7 @@ const report = {
   startedAt: new Date().toISOString(),
   node: process.version,
   platform: `${process.platform}-${process.arch}`,
+  concurrency,
   commit: git('rev-parse', 'HEAD'),
   branch: git('branch', '--show-current'),
   workingTree: git('status', '--short', '--untracked-files=all'),
@@ -79,7 +92,96 @@ const suites = [
   ['pos-detail-scroll', ['tests/test_order_detail_mobile_scroll.cjs']]
 ];
 
-for (const [name, rawArgs, overrides = {}] of [...(menuOnly ? suites.slice(0, 4) : suites), ...menuSuites]) {
+// Phase 1 builds dist/ and runs static/type checks before Phase 2 browser suites read dist/.vite/manifest.json.
+const PHASE_1_SUITE_NAMES = new Set([
+  'frontend-static',
+  'worker-types',
+  'cloudflare-config',
+  'frontend-modern-types',
+  'frontend-modern-node-types',
+  'frontend-vite-dist',
+]);
+
+// Phase 3 runs Miniflare/workerd suites sequentially with zero CPU contention so local workerd loopback sockets stay reliable.
+const PHASE_3_SOLO_NAMES = new Set([
+  'menu-runtime',
+  'menu-full-pages-chromium',
+  'menu-full-pages-webkit',
+]);
+
+// Start heavy suites first in Phase 2 to minimize tail latency across workers.
+const HEAVY_SUITE_PRIORITY = new Map([
+  ['staff-runtime', 1],
+  ['staff-browser', 2],
+  ['menu-full-pages-webkit', 3],
+  ['menu-full-pages-chromium', 4],
+  ['menu-components-webkit', 5],
+  ['menu-components-chromium', 6],
+  ['pos-tablet-layout-webkit', 7],
+  ['pos-tablet-layout-chromium', 8],
+  ['linepay-browser', 9],
+  ['menu-runtime', 10],
+  ['menu-static-contracts', 11],
+  ['pos-display-webkit', 12],
+  ['pos-display-chromium', 13],
+]);
+
+const MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
+const SUITE_TIMEOUT_MS = 300_000;
+
+function runSuiteAsync(args, env) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, args, {
+      cwd: root,
+      env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    const stdoutChunks = [];
+    const stderrChunks = [];
+    let totalBytes = 0;
+    let settled = false;
+    let runtimeError = null;
+
+    const finish = (status, signal) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve({
+        status,
+        signal,
+        error: runtimeError,
+        stdout: Buffer.concat(stdoutChunks).toString('utf8'),
+        stderr: Buffer.concat(stderrChunks).toString('utf8'),
+      });
+    };
+
+    const appendChunk = (target, chunk) => {
+      totalBytes += chunk.length;
+      if (totalBytes <= MAX_OUTPUT_BYTES) {
+        target.push(chunk);
+        return;
+      }
+      runtimeError = new Error(`Suite output exceeded ${MAX_OUTPUT_BYTES} bytes`);
+      child.kill('SIGKILL');
+    };
+
+    child.stdout.on('data', chunk => appendChunk(stdoutChunks, chunk));
+    child.stderr.on('data', chunk => appendChunk(stderrChunks, chunk));
+    child.on('error', err => {
+      runtimeError = err;
+      finish(null, null);
+    });
+    child.on('close', (code, signal) => finish(code, signal));
+
+    const timer = setTimeout(() => {
+      runtimeError = new Error(`Suite timed out after ${SUITE_TIMEOUT_MS}ms`);
+      child.kill('SIGKILL');
+    }, SUITE_TIMEOUT_MS);
+  });
+}
+
+async function executeSuite([name, rawArgs, overrides = {}]) {
   const args = rawArgs.includes('--test') ? ['--test-reporter=tap', ...rawArgs] : rawArgs;
   console.log(`Running ${name}...`);
   const started = Date.now();
@@ -92,20 +194,68 @@ for (const [name, rawArgs, overrides = {}] of [...(menuOnly ? suites.slice(0, 4)
   env.POS_DISPLAY_SCREENSHOT_DIR = path.join(directory, name);
   env.POS_LIVE_SCREENSHOT_DIR = path.join(directory, name);
   env.MENU_QA_ARTIFACT_DIR = path.join(directory, name);
-  const result = spawnSync(process.execPath, args, {
-    cwd: root, env, encoding: 'utf8', timeout: 300_000, killSignal: 'SIGKILL', maxBuffer: 16 * 1024 * 1024
-  });
+
+  const result = await runSuiteAsync(args, env);
   const log = `${result.stdout || ''}${result.stderr || ''}${result.error ? `\n${result.error.message}\n` : ''}`;
   writeFileSync(path.join(directory, `${name}.log`), log);
   const status = testOutcome(result, log, args.includes('--test'));
-  report.suites.push({ name, command: ['node', ...args], environment: overrides, status, exitCode: result.status, signal: result.signal, elapsedMs: Date.now() - started, log: `${name}.log`, inputHashes: Object.fromEntries(args.filter(file => !file.startsWith('-') && existsSync(path.join(root, file)) && statSync(path.join(root, file)).isFile()).map(file => [file, createHash('sha256').update(readFileSync(path.join(root, file))).digest('hex')])) });
-  console.log(`${status === 'passed' ? 'PASS' : 'FAIL'} ${name} (${Date.now() - started} ms)`);
+  const entry = {
+    name,
+    command: ['node', ...args],
+    environment: overrides,
+    status,
+    exitCode: result.status,
+    signal: result.signal,
+    elapsedMs: Date.now() - started,
+    log: `${name}.log`,
+    inputHashes: Object.fromEntries(
+      args
+        .filter(file => !file.startsWith('-') && existsSync(path.join(root, file)) && statSync(path.join(root, file)).isFile())
+        .map(file => [file, createHash('sha256').update(readFileSync(path.join(root, file))).digest('hex')])
+    ),
+  };
+  report.suites.push(entry);
+  console.log(`${status === 'passed' ? 'PASS' : 'FAIL'} ${name} (${entry.elapsedMs} ms)`);
   if (status !== 'passed') console.error(log.slice(-6000));
   // Save after every suite so partial runs still leave reviewable evidence.
   writeFileSync(path.join(directory, 'summary.json'), `${JSON.stringify(report, null, 2)}\n`);
 }
+
+async function runPool(items, limit) {
+  if (items.length === 0) return;
+  let nextIndex = 0;
+  const workerCount = Math.min(limit, items.length);
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (nextIndex < items.length) {
+        const current = items[nextIndex];
+        nextIndex += 1;
+        await executeSuite(current);
+      }
+    })
+  );
+}
+
+const selectedSuites = [...(menuOnly ? suites.slice(0, 4) : suites), ...menuSuites];
+const orderMap = new Map(selectedSuites.map(([name], index) => [name, index]));
+const phase1Suites = selectedSuites.filter(([name]) => PHASE_1_SUITE_NAMES.has(name));
+const phase2Suites = selectedSuites
+  .filter(([name]) => !PHASE_1_SUITE_NAMES.has(name) && !PHASE_3_SOLO_NAMES.has(name))
+  .sort((a, b) => (HEAVY_SUITE_PRIORITY.get(a[0]) ?? 100) - (HEAVY_SUITE_PRIORITY.get(b[0]) ?? 100));
+const phase3Suites = selectedSuites.filter(([name]) => PHASE_3_SOLO_NAMES.has(name));
+
+const wallStart = Date.now();
+console.log(
+  `Release baseline starting ${selectedSuites.length} suites (concurrency=${concurrency}, phase1=${phase1Suites.length}, phase2=${phase2Suites.length}, phase3=${phase3Suites.length})...`
+);
+await runPool(phase1Suites, concurrency);
+await runPool(phase2Suites, concurrency);
+await runPool(phase3Suites, 1);
+
+report.suites.sort((a, b) => (orderMap.get(a.name) ?? 0) - (orderMap.get(b.name) ?? 0));
 report.finishedAt = new Date().toISOString();
+report.elapsedMs = Date.now() - wallStart;
 report.status = report.suites.every(suite => suite.status === 'passed') ? 'passed' : 'failed';
 writeFileSync(path.join(directory, 'summary.json'), `${JSON.stringify(report, null, 2)}\n`);
-console.log(`Release baseline ${report.status}: ${report.suites.filter(suite => suite.status === 'passed').length}/${report.suites.length}. Evidence: ${directory}`);
+console.log(`Release baseline ${report.status}: ${report.suites.filter(suite => suite.status === 'passed').length}/${report.suites.length} in ${(report.elapsedMs / 1000).toFixed(1)}s. Evidence: ${directory}`);
 process.exitCode = report.status === 'passed' ? 0 : 1;
