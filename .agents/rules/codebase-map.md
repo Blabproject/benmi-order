@@ -72,14 +72,16 @@ Thứ tự load trong `orders.html` (từ dòng ~2788):
    - Thao tác nhận đơn, báo hết món, đổi giờ hẹn, hoàn tất đơn.
 7. [`frontend/apps/pos/PosHistoryPanel.tsx`](file:///Users/duccao/Documents/benmi-order/frontend/apps/pos/PosHistoryPanel.tsx), [`history-bridge.tsx`](file:///Users/duccao/Documents/benmi-order/frontend/apps/pos/history-bridge.tsx), [`history-store.ts`](file:///Users/duccao/Documents/benmi-order/frontend/apps/pos/history-store.ts), [`history-model.ts`](file:///Users/duccao/Documents/benmi-order/frontend/shared/contracts/history-model.ts), [`order-formatters.ts`](file:///Users/duccao/Documents/benmi-order/frontend/shared/contracts/order-formatters.ts):
    - Tab **Lịch sử đơn hàng (30 ngày)** (React 19 + TypeScript strict + Vite): `fetchHistoryOrders()`, `renderHistory()`, `matchesHistorySearch()`, `formatPosShortItems()`.
-8. [`js/orders-menu-model.js`](../../js/orders-menu-model.js) (~328 dòng - Browser & CommonJS):
+8. [`frontend/apps/pos/PosReportsPanel.tsx`](file:///Users/duccao/Documents/benmi-order/frontend/apps/pos/PosReportsPanel.tsx), [`reports-bridge.tsx`](file:///Users/duccao/Documents/benmi-order/frontend/apps/pos/reports-bridge.tsx), [`reports-store.ts`](file:///Users/duccao/Documents/benmi-order/frontend/apps/pos/reports-store.ts), [`reports-model.ts`](file:///Users/duccao/Documents/benmi-order/frontend/shared/contracts/reports-model.ts):
+   - Tab **Báo cáo doanh thu & phân tích món bán** (React 19 + TypeScript strict + Vite): `selectReportRange()`, `refreshReportData()`, `fetchReportData()`, `renderReports()`.
+9. [`js/orders-menu-model.js`](../../js/orders-menu-model.js) (~328 dòng - Browser & CommonJS):
    - **`MenuEditorModel`**: `canonicalMenuSnapshot(data)`, `serializeMenuData(categories, dependencies)`, `getMenuDeletions(before, after, dependencies)`; logic dữ liệu không đọc DOM hay state toàn cục.
    - Snapshot và tính danh sách xóa không sửa đầu vào. Serializer giữ cập nhật ID/liên kết trên bản nháp; nhận callback tenant, UUID, thông báo lỗi và danh mục dùng chung từ caller.
-9. [`js/orders-menu.js`](file:///Users/duccao/Documents/benmi-order/js/orders-menu.js) (~5,617 dòng) & [`js/orders-option-groups.js`](file:///Users/duccao/Documents/benmi-order/js/orders-option-groups.js) (~1,770 dòng):
+10. [`js/orders-menu.js`](file:///Users/duccao/Documents/benmi-order/js/orders-menu.js) (~5,617 dòng) & [`js/orders-option-groups.js`](file:///Users/duccao/Documents/benmi-order/js/orders-option-groups.js) (~1,770 dòng):
    - Tab **Quản lý Thực đơn & Nhóm Tùy chọn (Unified Option Groups)** ngay trên POS.
    - `orders-menu.js` giữ wrapper dữ liệu, đồng bộ DOM, state và gọi API; các test VM nạp model trước editor bằng `loadMenuEditor(context)`.
-10. [`js/orders-modals.js`](file:///Users/duccao/Documents/benmi-order/js/orders-modals.js), [`js/orders-reports.js`](file:///Users/duccao/Documents/benmi-order/js/orders-reports.js), [`js/orders-settings.js`](file:///Users/duccao/Documents/benmi-order/js/orders-settings.js):
-   - Đặt đơn tại quầy (Staff Ordering), Báo cáo doanh thu, Cài đặt quán & máy in.
+11. [`js/orders-modals.js`](file:///Users/duccao/Documents/benmi-order/js/orders-modals.js), [`js/orders-settings.js`](file:///Users/duccao/Documents/benmi-order/js/orders-settings.js):
+   - Đặt đơn tại quầy (Staff Ordering), Cài đặt quán & máy in.
 
 ---
 

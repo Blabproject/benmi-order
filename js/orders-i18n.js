@@ -2687,32 +2687,6 @@ function applyLanguageToDOM() {
     updatePageMainTitle(activeTab);
   }
 
-  // View Reports Elements
-  const repTitle = document.getElementById("i18n-reports-title");
-  if (repTitle) repTitle.innerText = dict.reportsTitle;
-  const repSub = document.getElementById("i18n-reports-sub");
-  if (repSub) repSub.innerText = dict.reportsSub;
-  const rngToday = document.getElementById("i18n-range-today");
-  if (rngToday) rngToday.innerText = dict.rangeToday;
-  const rng7d = document.getElementById("i18n-range-7d");
-  if (rng7d) rng7d.innerText = dict.range7d;
-  const rng30d = document.getElementById("i18n-range-30d");
-  if (rng30d) rng30d.innerText = dict.range30d;
-  const kpiTopItem = document.getElementById("i18n-kpi-top-item");
-  if (kpiTopItem) kpiTopItem.innerText = dict.kpiTopItem;
-  const kpiTotalSold = document.getElementById("i18n-kpi-total-sold");
-  if (kpiTotalSold) kpiTotalSold.innerText = dict.kpiTotalSold;
-  const kpiTotalRev = document.getElementById("i18n-kpi-total-revenue");
-  if (kpiTotalRev) kpiTotalRev.innerText = dict.kpiTotalRevenue;
-  const kpiTotalOrders = document.getElementById("i18n-kpi-total-orders");
-  if (kpiTotalOrders) kpiTotalOrders.innerText = dict.kpiTotalOrders;
-  const revSub = document.getElementById("i18n-revenue-sub");
-  if (revSub) revSub.innerText = dict.revenueSub;
-  const compOrdersSub = document.getElementById("i18n-completed-orders-sub");
-  if (compOrdersSub) compOrdersSub.innerText = dict.completedOrdersSub;
-  const repTblTitle = document.getElementById("i18n-table-title");
-  if (repTblTitle) repTblTitle.innerText = dict.tableTitle;
-
   // View Live Headers
   const leftTitle = document.getElementById("i18n-left-title");
   if (leftTitle) leftTitle.innerText = dict.panelLeftTitle;
@@ -3168,8 +3142,6 @@ function applyLanguageToDOM() {
   if (repLkD) repLkD.innerText = dict.reportsLockedDesc;
   const btnUpRep = document.getElementById("i18n-btn-contact-upgrade-rep");
   if (btnUpRep) btnUpRep.innerText = dict.btnContactUpgrade;
-  const btnBackSet = document.getElementById("i18n-btn-back-settings");
-  if (btnBackSet) btnBackSet.innerText = dict.btnBackToSettings;
 
   const ordMT = document.getElementById("i18n-ordermode-title");
   if (ordMT) ordMT.innerText = dict.orderModeTitle;

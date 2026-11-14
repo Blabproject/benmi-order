@@ -178,3 +178,48 @@ export function MessageSquareIcon({ size = 16, ...props }: IconProps & { size?: 
     </StrokeIcon>
   );
 }
+
+/** Refresh circular arrows icon (Lucide MIT). */
+export function RefreshCwIcon({ size = 16, ...props }: IconProps & { size?: number }) {
+  return (
+    <StrokeIcon size={size} {...props}>
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+      <path d="M8 16H3v5" />
+    </StrokeIcon>
+  );
+}
+
+/** Left navigation arrow icon (Lucide MIT). */
+export function ArrowLeftIcon({ size = 16, ...props }: IconProps & { size?: number }) {
+  return (
+    <StrokeIcon size={size} {...props}>
+      <path d="m12 19-7-7 7-7" />
+      <path d="M19 12H5" />
+    </StrokeIcon>
+  );
+}
+
+/** Analytics bar chart icon (Lucide MIT). */
+export function BarChart3Icon({ size = 24, ...props }: IconProps & { size?: number }) {
+  return (
+    <StrokeIcon size={size} {...props}>
+      <path d="M3 3v18h18" />
+      <path d="M18 17V9" />
+      <path d="M13 17V5" />
+      <path d="M8 17v-3" />
+    </StrokeIcon>
+  );
+}
+
+/** Alert warning triangle icon (Lucide MIT). */
+export function AlertTriangleIcon({ size = 24, ...props }: IconProps & { size?: number }) {
+  return (
+    <StrokeIcon size={size} {...props}>
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
+    </StrokeIcon>
+  );
+}

@@ -52,6 +52,7 @@ const suites = [
   ['frontend-vite-dist', ['--test', 'tests/test_frontend_build_dist.mjs']],
   ['history-dto-contract', ['--test', 'tests/test_history_dto_contract.cjs']],
   ['pos-history-baseline', ['--test', 'tests/test_pos_history_slice_baseline.cjs']],
+  ['pos-reports-slice', ['--test', 'tests/test_pos_reports_slice_browser.cjs']],
   ['staff-table-sync', ['--test', 'tests/test_staff_table_sync_browser.cjs']],
   ['staff-print', ['--test', 'tests/test_staff_print.cjs', 'tests/test_staff_pos.cjs']],
   ['staff-capability-schema', ['--test', 'tests/test_staff_capability_schema.cjs']],

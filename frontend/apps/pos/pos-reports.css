@@ -1,0 +1,381 @@
+/* Scoped styling inside legacy #view-reports mount */
+.pos-reports-mount {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 18px 16px 60px;
+  min-width: 0;
+}
+
+#pos-reports-react-root.blab-modern-root {
+  background: transparent;
+}
+
+#pos-reports-react-root .reports-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+#pos-reports-react-root .reports-title {
+  font-size: var(--pos-text-title, 20px);
+  font-weight: 900;
+  color: var(--text, #1e293b);
+  margin: 0 0 4px;
+}
+
+#pos-reports-react-root .reports-subtitle {
+  font-size: var(--pos-text-meta, 13px);
+  color: var(--blab-text-muted);
+  margin: 0;
+}
+
+#pos-reports-react-root .reports-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#pos-reports-react-root .report-range-group {
+  display: inline-flex;
+  background: #e2e8f0;
+  padding: 4px;
+  border-radius: 12px;
+  gap: 4px;
+}
+
+#pos-reports-react-root .report-range-btn {
+  border: none;
+  min-height: var(--blab-touch-min);
+  padding: 0 16px;
+  border-radius: 9px;
+  font-size: var(--pos-text-meta, 13px);
+  font-weight: 700;
+  background: transparent;
+  color: var(--text, #1e293b);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+#pos-reports-react-root .report-range-btn.active {
+  background: var(--blab-primary);
+  color: var(--blab-primary-contrast);
+  font-weight: 900;
+}
+
+#pos-reports-react-root .reports-action-btn {
+  min-height: var(--blab-touch-min);
+  min-width: var(--blab-touch-min);
+  padding: 0 14px;
+  border-radius: var(--blab-radius-md);
+  border: 1.5px solid #cbd5e1;
+  background: var(--blab-surface);
+  color: #475569;
+  font-weight: 800;
+  font-size: var(--pos-text-meta, 13px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+#pos-reports-react-root .reports-action-btn.icon-only {
+  padding: 0;
+}
+
+#pos-reports-react-root .reports-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+#pos-reports-react-root .reports-kpi-card {
+  background: var(--blab-surface);
+  border: 1.5px solid var(--blab-border);
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  min-width: 0;
+}
+
+#pos-reports-react-root .reports-kpi-label {
+  font-size: var(--pos-text-meta, 13px);
+  font-weight: 800;
+  color: var(--blab-text-muted);
+  margin-bottom: 6px;
+}
+
+#pos-reports-react-root .reports-kpi-value {
+  font-size: var(--pos-text-total, 22px);
+  font-weight: 1000;
+  color: #1e293b;
+}
+
+#pos-reports-react-root .reports-kpi-value.top-item {
+  font-size: var(--pos-text-title, 20px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#pos-reports-react-root .reports-kpi-value.sold {
+  color: #0284c7;
+}
+
+#pos-reports-react-root .reports-kpi-value.revenue {
+  color: #16a34a;
+}
+
+#pos-reports-react-root .reports-kpi-value.orders {
+  color: #7c3aed;
+}
+
+#pos-reports-react-root .reports-kpi-sub {
+  font-size: var(--pos-text-meta, 13px);
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+#pos-reports-react-root .reports-kpi-sub.top-sales {
+  color: #10b981;
+  font-weight: 700;
+}
+
+#pos-reports-react-root .reports-card {
+  background: var(--blab-surface);
+  border: 1.5px solid var(--blab-border);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+#pos-reports-react-root .reports-card-header {
+  padding: 16px 20px;
+  border-bottom: 1.5px solid var(--blab-surface-muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+#pos-reports-react-root .reports-card-title {
+  font-size: var(--pos-text-body, 15px);
+  font-weight: 900;
+  color: #1e293b;
+}
+
+#pos-reports-react-root .reports-item-count {
+  font-size: var(--pos-text-meta, 13px);
+  color: var(--blab-text-muted);
+  font-weight: 700;
+}
+
+#pos-reports-react-root .reports-table-scroll {
+  overflow-x: auto;
+}
+
+#pos-reports-react-root .reports-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: var(--pos-text-body, 14px);
+}
+
+#pos-reports-react-root .reports-table thead tr {
+  background: var(--blab-bg);
+  border-bottom: 1.5px solid var(--blab-border);
+  color: #475569;
+  font-size: var(--pos-text-meta, 13px);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+#pos-reports-react-root .reports-table th,
+#pos-reports-react-root .reports-table td {
+  padding: 14px 16px;
+}
+
+#pos-reports-react-root .reports-table tbody tr {
+  border-bottom: 1px solid var(--blab-surface-muted);
+  transition: background-color 0.15s ease;
+}
+
+#pos-reports-react-root .reports-table tbody tr:hover {
+  background: var(--blab-bg);
+}
+
+#pos-reports-react-root .reports-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-weight: 900;
+  font-size: var(--pos-text-meta, 13px);
+  color: #64748b;
+}
+
+#pos-reports-react-root .reports-rank-badge.rank-1 {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+#pos-reports-react-root .reports-rank-badge.rank-2 {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+#pos-reports-react-root .reports-rank-badge.rank-3 {
+  background: #ffedd5;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+#pos-reports-react-root .reports-item-name {
+  font-weight: 900;
+  font-size: var(--pos-text-body, 15px);
+  color: var(--blab-text);
+}
+
+#pos-reports-react-root .reports-item-appearances {
+  font-size: var(--pos-text-meta, 13px);
+  color: var(--blab-text-muted);
+  margin-top: 2px;
+}
+
+#pos-reports-react-root .reports-category-pill {
+  background: #e0e7ff;
+  color: #4338ca;
+  font-size: var(--pos-text-meta, 13px);
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+#pos-reports-react-root .reports-qty-value {
+  font-weight: 900;
+  font-size: var(--pos-text-body, 15px);
+  color: #0284c7;
+}
+
+#pos-reports-react-root .reports-qty-unit {
+  font-size: var(--pos-text-meta, 13px);
+  color: var(--blab-text-muted);
+  margin-left: 3px;
+}
+
+#pos-reports-react-root .reports-sales-value {
+  text-align: right;
+  font-weight: 900;
+  font-size: var(--pos-text-body, 15px);
+  color: #16a34a;
+}
+
+#pos-reports-react-root .reports-ratio-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#pos-reports-react-root .reports-ratio-track {
+  flex: 1;
+  background: #e2e8f0;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+#pos-reports-react-root .reports-ratio-fill {
+  background: var(--blab-primary);
+  height: 100%;
+  border-radius: 4px;
+}
+
+#pos-reports-react-root .reports-ratio-label {
+  font-size: var(--pos-text-meta, 13px);
+  font-weight: 800;
+  color: #475569;
+  width: 44px;
+  text-align: right;
+}
+
+#pos-reports-react-root .reports-options-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+#pos-reports-react-root .reports-option-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--blab-surface-muted);
+  color: #334155;
+  font-size: var(--pos-text-meta, 13px);
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--blab-border);
+}
+
+#pos-reports-react-root .reports-option-count {
+  color: var(--blab-primary);
+  font-weight: 900;
+}
+
+#pos-reports-react-root .reports-state-box {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--blab-text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+#pos-reports-react-root .reports-state-box.error {
+  color: #dc2626;
+}
+
+#pos-reports-react-root .reports-state-title {
+  font-weight: 800;
+  font-size: var(--pos-text-body, 15px);
+  color: #475569;
+}
+
+#pos-reports-react-root .reports-state-box.error .reports-state-title {
+  color: #dc2626;
+}
+
+#pos-reports-react-root .reports-state-sub {
+  font-size: var(--pos-text-meta, 13px);
+  color: #94a3b8;
+}
+
+#pos-reports-react-root .reports-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e2e8f0;
+  border-top-color: var(--blab-primary);
+  border-radius: 50%;
+  animation: pos-reports-spin 0.8s linear infinite;
+}
+
+@keyframes pos-reports-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

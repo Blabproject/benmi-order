@@ -1,6 +1,6 @@
 # PDP: Frontend Modernization — Migrate
 
-Ngày: 2026-11-11. Trạng thái: Đã chốt 3 quyết định nền tảng; hoàn thành PR 1–4 trên nhánh `staging` (tách mới từ `main`), triển khai tab History & Order Detail chỉ đọc bằng React + TypeScript + Vite thay thế `js/orders-history.js` trong bản build `dist/orders.html`.
+Ngày: 2026-11-11 (cập nhật 2026-11-14). Trạng thái: Đã chốt 3 quyết định nền tảng; hoàn thành PR 1–4 và phát hành lên `staging`/`main` (`db69bdd1`), triển khai tab History & Order Detail chỉ đọc bằng React + TypeScript + Vite thay thế `js/orders-history.js` trong `dist/orders.html`. Bước tiếp theo chuyển theo **đợt Quick Win (QW1–QW5)** ít rủi ro trước khi chạm cụm lớn PR 5–7.
 
 ### Quyết định đã chốt (2026-11-11)
 1. **UI Runtime**: **React + Vite + TypeScript (`strict`)**. Ưu tiên hệ sinh thái chuẩn, ít rủi ro tương thích; phần Customer LIFF tách chunk riêng và đo hiệu năng thật trước khi mở rộng.
@@ -92,10 +92,11 @@ Rust/WASM vẫn là lõi tính giá. Adapter giữ hành vi fallback hiện tạ
 
 1. Đo baseline và khóa contract bằng fixture/test cho các luồng thật: tùy chọn, combo, sửa/gọi thêm, thanh toán, in.
 2. Thêm Vite/TypeScript và entry thử nghiệm; giữ trang legacy hoạt động. Tách model/API wrapper trước.
-3. Chuyển một phần POS có ranh giới rõ, ít side effect — bắt đầu bằng lịch sử/chi tiết đơn dạng chỉ đọc. Kiểm chứng CSS, i18n, focus và build.
-4. Chuyển menu editor dựa trên MenuEditorModel; sau đó mới chuyển live orders và side effect cảnh báo/in. Bảo đảm chỉ một luồng subscription/print đang sở hữu session.
-5. Chuyển customer theo lát cắt hoàn chỉnh: catalog/options, cart, checkout. Pilot qua cấu hình tenant trên dev rồi staging; không hardcode tenant ID.
-6. Mở rộng production sau khi qua release gate và quan sát pilot. Gỡ bridge và code legacy theo consumer, cập nhật Graphify sau mỗi đợt code.
+3. Chuyển một phần POS có ranh giới rõ, ít side effect — bắt đầu bằng lịch sử/chi tiết đơn dạng chỉ đọc (PR 4). Kiểm chứng CSS, i18n, focus và build.
+4. Thực hiện **đợt Quick Win (QW1–QW5)** cho các màn hình phụ ít rủi ro và lớp tiện ích thuần dùng chung (`Reports`, `AI Settings`, `Payment Result`, `Payment Workspace`, pure shared helpers) để mở rộng vùng TypeScript/React và dọn nợ i18n/icon trước khi đụng các cụm nhiều side-effect.
+5. Chuyển menu editor dựa trên MenuEditorModel (PR 5); sau đó mới chuyển live orders và side effect cảnh báo/in (PR 6). Bảo đảm chỉ một luồng subscription/print đang sở hữu session.
+6. Chuyển customer theo lát cắt hoàn chỉnh: catalog/options, cart, checkout (PR 7). Pilot qua cấu hình tenant trên dev rồi staging; không hardcode tenant ID.
+7. Mở rộng production sau khi qua release gate và quan sát pilot (PR 8). Gỡ bridge và code legacy theo consumer, cập nhật Graphify sau mỗi đợt code.
 
 Mỗi release có khả năng chọn entry cũ/mới qua cấu hình, pin phiên đang hoạt động vào một phiên bản. Hai UI cùng dùng API tương thích; không gửi kép mutation để so sánh. Shadow comparison chỉ chạy phép tính thuần hoặc đọc.
 
@@ -125,7 +126,16 @@ React hỗ trợ thêm từng phần vào ứng dụng hiện hữu; Vite hỗ t
 - [x] PR 1: Baseline, fixture và bản đồ dependency cho lát cắt đầu tiên.
 - [x] PR 2: Vite/TypeScript, entry cô lập, asset pipeline và kiểm tra module mới song song gate legacy.
 - [x] PR 3: Contract/model và adapter; bỏ phụ thuộc DOM trong tính subtotal/validation của lát cắt chuyển đổi.
-- [x] PR 4: Tokens/component nền và POS lịch sử/chi tiết đơn chỉ đọc.
+- [x] PR 4: Tokens/component nền và POS lịch sử/chi tiết đơn chỉ đọc (`PosHistoryPanel.tsx` + `history-bridge.tsx` thay `js/orders-history.js`).
+
+### Đợt Quick Win (giữa PR 4 và PR 5 — ít rủi ro, tách module độc lập)
+- [x] QW1: Tab Báo cáo POS chỉ đọc (`PosReportsPanel.tsx` + `reports-bridge.tsx` thay `js/orders-reports.js`, dùng SVG chuẩn thương mại & đủ i18n `zh-TW`/`vi`).
+- [ ] QW2: Panel Cài đặt AI trong POS (`js/orders-ai-settings.js` -> React + TypeScript, đối chiếu `tests/test_ai_settings_browser.cjs`).
+- [ ] QW3: Trang kết quả thanh toán (`payment-result.html` + `js/payment-result.js` -> entry Vite + React + TypeScript, đối chiếu `tests/test_payment_result_browser.cjs`).
+- [ ] QW4: Workspace đối soát thanh toán POS (`js/orders-payments.js` -> React + TypeScript, đối chiếu `tests/test_payment_workspace_browser.cjs`).
+- [ ] QW5: Tách pure shared utilities (`order-code.js`, `store-notice-format.js`, `order-legacy-adapter.js`, `line-order-presentation.js`, typed WASM adapter) vào `frontend/shared/`.
+
+### Các cụm lõi tiếp theo
 - [ ] PR 5: Menu editor, draft và option workspace; kiểm chứng không ghi đè dữ liệu ngoài phạm vi.
 - [ ] PR 6: Live orders, reconnect, cảnh báo và printer integration.
 - [ ] PR 7: Customer catalog/options/cart/checkout qua từng release nhỏ.
@@ -142,4 +152,4 @@ Chưa chốt lịch tuần: cần biết nhân lực, lịch release và số th
 - Test lỗi: mất mạng khi submit, response về trễ, reconnect, tab sleep/resume, WASM chưa tải, menu đổi trong lúc đang chọn, chuyển tenant, payment redirect, reload với draft.
 - Test release: tab cũ tải chunk sau deploy, rollback entry, đường dẫn domain/LIFF/query cũ và phiên đang thanh toán. Chỉ phát hành khi không có sai lệch nghiệp vụ còn chưa giải thích.
 
-PR 1–4 đã được triển khai trên nhánh `staging` (baseline/contract/sync tests, Vite + React 19 + TypeScript strict, shared order formatters/i18n/store, và `PosHistoryPanel` + `history-bridge.tsx` thay thế `js/orders-history.js` trong `orders.html` qua `dist/`); các tab POS khác (`live`, `menu`, `settings`, `reports`, `payments`) vẫn dùng module JS hiện hành trong khi chờ PR 5+ và kiểm chứng thực tế trên staging.
+PR 1–4 đã được triển khai và phát hành lên `staging`/`main` (`db69bdd1`). QW1 chuyển tiếp tab Báo cáo POS (`#view-reports`) sang `PosReportsPanel.tsx` + `reports-bridge.tsx` thay `js/orders-reports.js`, mở đường cho QW2–QW5 trước khi bước vào PR 5 (`orders-menu.js`).

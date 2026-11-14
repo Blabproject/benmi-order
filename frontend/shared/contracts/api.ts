@@ -186,3 +186,26 @@ export interface StaffTablesResponseDto {
   ok?: boolean;
   tables: StaffTableDto[];
 }
+
+export type ReportRange = 'today' | '7d' | '30d';
+
+export interface ItemAnalyticsRowDto {
+  itemName: string;
+  categoryName: string;
+  totalQuantity: number;
+  totalSales: number;
+  orderAppearances: number;
+  optionsBreakdown?: Record<string, number>;
+}
+
+export interface ItemAnalyticsSummaryDto {
+  tenantId: string;
+  range: ReportRange | string;
+  startDate: string;
+  endDate: string;
+  totalItemsSold: number;
+  totalRevenue: number;
+  totalOrders: number;
+  topItem: ItemAnalyticsRowDto | null;
+  items: ItemAnalyticsRowDto[];
+}

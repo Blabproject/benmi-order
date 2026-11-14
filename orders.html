@@ -497,65 +497,8 @@
       <div id="payment-detail-actions" class="payment-actions"></div>
     </dialog>
 
-    <div class="content" id="view-reports" style="display:none; max-width:1240px; margin:0 auto; padding:18px 16px 60px;">
-      <!-- Header with Time Range Selector -->
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
-        <div>
-          <h2 style="font-size:var(--pos-text-title); font-weight:900; color:var(--text, #1e293b); margin:0 0 4px;" id="i18n-reports-title">餐點銷量與營收分析</h2>
-          <p style="font-size:var(--pos-text-meta); color:var(--muted, #64748b); margin:0;" id="i18n-reports-sub">即時統計門市各品項銷售數據與加料偏好</p>
-        </div>
-
-        <div style="display:flex; align-items:center; gap:8px;">
-          <div class="report-range-group" style="display:flex; background:#e2e8f0; padding:4px; border-radius:12px; gap:4px;">
-            <button type="button" class="report-range-btn active" data-range="today" onclick="selectReportRange('today')" id="i18n-range-today" style="border:none; padding:7px 14px; border-radius:8px; font-size:var(--pos-text-meta); font-weight:900; background:var(--primary, #00b900); color:#fff; cursor:pointer;">今天</button>
-            <button type="button" class="report-range-btn" data-range="7d" onclick="selectReportRange('7d')" id="i18n-range-7d" style="border:none; padding:7px 14px; border-radius:8px; font-size:var(--pos-text-meta); font-weight:600; background:transparent; color:var(--text, #1e293b); cursor:pointer;">近 7 天</button>
-            <button type="button" class="report-range-btn" data-range="30d" onclick="selectReportRange('30d')" id="i18n-range-30d" style="border:none; padding:7px 14px; border-radius:8px; font-size:var(--pos-text-meta); font-weight:600; background:transparent; color:var(--text, #1e293b); cursor:pointer;">近 30 天</button>
-          </div>
-          <button type="button" class="btn btn-ghost" onclick="refreshReportData()" style="padding:8px 12px; border-radius:10px; border:1px solid #cbd5e1; background:#fff; cursor:pointer;" title="Refresh">
-            <span>🔄</span>
-          </button>
-          <button type="button" class="btn btn-ghost" style="border:1.5px solid #cbd5e1; background:#fff; color:#475569; font-weight:800; padding:7px 14px; border-radius:10px; font-size:var(--pos-text-meta); cursor:pointer;" onclick="openSettings()" id="i18n-btn-back-settings">← 返回設定</button>
-        </div>
-      </div>
-
-      <!-- KPI Summary Cards -->
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:24px;">
-        <div class="kpi-card" style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:18px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-          <div style="font-size:var(--pos-text-meta); font-weight:800; color:#64748b; margin-bottom:6px;" id="i18n-kpi-top-item">熱銷第一名</div>
-          <div style="font-size:var(--pos-text-title); font-weight:1000; color:#1e293b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" id="kpi-top-item-name">-</div>
-          <div style="font-size:var(--pos-text-meta); color:#10b981; font-weight:700; margin-top:4px;" id="kpi-top-item-sales">-</div>
-        </div>
-
-        <div class="kpi-card" style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:18px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-          <div style="font-size:var(--pos-text-meta); font-weight:800; color:#64748b; margin-bottom:6px;" id="i18n-kpi-total-sold">總銷售份數</div>
-          <div style="font-size:var(--pos-text-total); font-weight:1000; color:#0284c7;" id="kpi-total-sold">0</div>
-          <div style="font-size:var(--pos-text-meta); color:#94a3b8; margin-top:4px;" id="kpi-date-range">-</div>
-        </div>
-
-        <div class="kpi-card" style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:18px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-          <div style="font-size:var(--pos-text-meta); font-weight:800; color:#64748b; margin-bottom:6px;" id="i18n-kpi-total-revenue">餐點總營收</div>
-          <div style="font-size:var(--pos-text-total); font-weight:1000; color:#16a34a;" id="kpi-total-revenue">$0</div>
-          <div style="font-size:var(--pos-text-meta); color:#94a3b8; margin-top:4px;" id="i18n-revenue-sub">餐點銷售總額</div>
-        </div>
-
-        <div class="kpi-card" style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:18px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-          <div style="font-size:var(--pos-text-meta); font-weight:800; color:#64748b; margin-bottom:6px;" id="i18n-kpi-total-orders">成交訂單數</div>
-          <div style="font-size:var(--pos-text-total); font-weight:1000; color:#7c3aed;" id="kpi-total-orders">0</div>
-          <div style="font-size:var(--pos-text-meta); color:#94a3b8; margin-top:4px;" id="i18n-completed-orders-sub">已完成 / 已結帳</div>
-        </div>
-      </div>
-
-      <!-- Item Sales Table Container -->
-      <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:18px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.03);">
-        <div style="padding:16px 20px; border-bottom:1.5px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:var(--pos-text-body); font-weight:900; color:#1e293b;" id="i18n-table-title">品項銷售明細排行榜</span>
-          <span style="font-size:var(--pos-text-meta); color:#64748b; font-weight:700;" id="reports-item-count">0 品項</span>
-        </div>
-
-        <div id="reports-table-container" style="overflow-x:auto;">
-          <!-- Dynamically Rendered Table -->
-        </div>
-      </div>
+    <div class="content" id="view-reports" style="display:none;">
+      <div id="pos-reports-react-root" class="pos-reports-mount blab-modern-root"></div>
     </div>
 
     <!-- Settings Panel -->
@@ -3336,7 +3279,7 @@
   </section>
 
   <!-- Benmi POS Modular Architecture Scripts -->
-  <script src="js/orders-i18n.js?v=20261113_revert_hours_v1"></script>
+  <script src="js/orders-i18n.js?v=20261114_react_reports_v1"></script>
   <script src="js/orders-core.js?v=20261112_react_history_v1"></script>
   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
@@ -3344,7 +3287,6 @@
   <script src="js/printer-service.js?v=20261112_print_recovery_v1"></script>
   <script src="js/orders-live.js?v=20261114_staging_main_sync_v1"></script>
   <script src="js/orders-modals.js?v=20261112_print_recovery_v1"></script>
-  <script src="js/orders-reports.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/qrcode.min.js?v=20261107_table_qr_v1"></script>
   <script src="js/store-notice-format.js?v=20261111_store_notice_v1"></script>
   <script src="js/orders-settings.js?v=20261113_revert_hours_v1"></script>
@@ -3394,6 +3336,7 @@
   </script>
 <script src="/js/orders-payments.js?v=20261109_order_code_v1"></script>
 <script type="module" src="/frontend/apps/pos/history-bridge.tsx"></script>
+<script type="module" src="/frontend/apps/pos/reports-bridge.tsx"></script>
 </body>
 
 </html>
