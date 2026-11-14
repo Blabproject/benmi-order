@@ -5,9 +5,17 @@ const path = require('node:path');
 const { chromium, webkit } = require('playwright');
 const { fixture } = require('./helpers/ai-settings.cjs');
 const root = path.resolve(__dirname, '..');
+const distRoot = path.join(root, 'dist');
+
+function ensureDistBuilt() {
+  if (!fs.existsSync(path.join(distRoot, '.vite/manifest.json')) || !fs.existsSync(path.join(distRoot, 'orders.html'))) {
+    require('node:child_process').execFileSync(process.execPath, [path.join(root, 'node_modules/vite/bin/vite.js'), 'build', '--config', 'vite.config.mts'], { cwd: root, stdio: 'inherit' });
+  }
+}
 
 for (const [name, engine] of Object.entries({ chromium, webkit })) {
   test(`${name}: AI settings save, restore failures, retain switches and explain behavior in both languages`, async t => {
+    ensureDistBuilt();
     const f = fixture(); t.after(() => f.db.close());
     const browser = await engine.launch({ headless: true }); t.after(() => browser.close());
     const page = await browser.newPage({ viewport: { width: 1024, height: 768 }, hasTouch: true });
@@ -17,8 +25,8 @@ for (const [name, engine] of Object.entries({ chromium, webkit })) {
     page.on('pageerror', error => errors.push(error.message));
     await page.route('**/*', async route => {
       const request = route.request(), url = new URL(request.url());
-      if (url.pathname === '/orders.html') return route.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(root, 'orders.html'), 'utf8').replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '') });
-      if (/^\/(js|css)\/[\w.-]+$/.test(url.pathname)) return route.fulfill({ contentType: url.pathname.endsWith('.css') ? 'text/css' : 'application/javascript', body: fs.readFileSync(path.join(root, url.pathname.slice(1)), 'utf8') });
+      if (url.pathname === '/orders.html') return route.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(distRoot, 'orders.html'), 'utf8').replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '') });
+      if (/^\/(js|css|assets)\/[\w.-]+$/.test(url.pathname)) return route.fulfill({ contentType: url.pathname.endsWith('.css') ? 'text/css' : url.pathname.endsWith('.png') ? 'image/png' : 'application/javascript', headers: { 'Access-Control-Allow-Origin': '*' }, body: fs.readFileSync(path.join(distRoot, url.pathname.slice(1))) });
       if (url.pathname === '/api/config') {
         if ((request.method() === 'POST' && failSave) || (request.method() === 'GET' && failLoad)) return route.fulfill({ status: 503, json: { error: 'Offline' } });
         const body = request.method() === 'POST' ? request.postDataJSON() : null;
