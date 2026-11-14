@@ -15,7 +15,6 @@ const LEGACY_ROOT_FILES = [
   'index.html',
   'marketplace.html',
   'staff-order.html',
-  'payment-result.html',
   'landing.html',
   'benmi_logo.png',
   'blab_icon.png',
@@ -72,7 +71,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         'pos-sandbox': path.resolve(rootDir, 'frontend/apps/pos/sandbox.html'),
-        orders: path.resolve(rootDir, 'orders.html')
+        orders: path.resolve(rootDir, 'orders.html'),
+        'payment-result': path.resolve(rootDir, 'payment-result.html')
       }
     }
   }

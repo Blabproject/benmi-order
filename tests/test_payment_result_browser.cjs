@@ -5,6 +5,12 @@ const fs=require('node:fs');
 const path=require('node:path');
 const id='11111111-1111-4111-8111-111111111111';
 const root=path.resolve(__dirname,'..');
+const distRoot=path.join(root,'dist');
+function ensureDistBuilt(){
+ if(!fs.existsSync(path.join(distRoot,'.vite/manifest.json'))||!fs.existsSync(path.join(distRoot,'payment-result.html'))){
+  require('node:child_process').execFileSync(process.execPath,[path.join(root,'node_modules/vite/bin/vite.js'),'build','--config','vite.config.mts'],{cwd:root,stdio:'inherit'});
+ }
+}
 const draft={cart:{meal:1},customizeData:{},comboDrinkData:{},bundleCartData:{}};
 const receipt={schemaVersion:1,total:100,rounds:[{roundNumber:1,groups:[],note:'',items:[{lineId:'meal',itemId:'meal',name:'Meal',quantity:1,unitPrice:100,subtotal:100,portions:[{portionIndex:0,groups:[],note:''}],note:''}]}]};
 const paid={id,status:'PAID',paidAt:123,amount:100,displayKey:'A001',orderStatus:'NEW',pickupTime:'2026-11-01 12:00',receipt,merchant:{brandName:'Store <safe>',locale:'vi'},menuUrl:'https://fixture.test/?tenant_id=a'};
@@ -18,6 +24,7 @@ window.isSubmitting=false;window.updateTotal=()=>{};window.DetailCheckout={compl
 document.getElementById('add').onclick=()=>{cart.meal=(cart.meal||0)+1;LinePayCheckout.onCartChange();};
 </script><script src="/js/order-code.js"></script><script src="/js/client-checkout.js"></script><script src="/js/payment-session.js"></script><script src="/js/payment-view.js"></script><script src="/js/payment-actions.js"></script><script src="/js/client-payments.js"></script></body></html>`;
 async function fixture(browser,options={}){
+ ensureDistBuilt();
  const context=await browser.newContext({viewport:{width:390,height:844},...options.device}),calls=[],errors=[];
  const model={data:paid,...options};
  await context.addInitScript(({id,draft,options})=>{
@@ -44,8 +51,19 @@ async function fixture(browser,options={}){
   if(url.hostname==='sandbox-web-pay.line.me')return route.fulfill({contentType:'text/html',body:'<h1>Provider sandbox</h1>'});
   if(url.hostname!=='fixture.test')return route.abort();
   if(url.pathname==='/')return route.fulfill({contentType:'text/html',body:menu});
-  const file=url.pathname==='/payment-result'?'payment-result.html':url.pathname.slice(1);
-  if(!/^(?:js\/[^/]+\.js|css\/[^/]+\.css|index\.css|line-pay-logo\.png|payment-result\.html)$/.test(file))return route.abort();
+  if(url.pathname==='/payment-result'){
+   return route.fulfill({contentType:'text/html',body:fs.readFileSync(path.join(distRoot,'payment-result.html'),'utf8')});
+  }
+  if(/^\/assets\/[\w.-]+$/.test(url.pathname)){
+   const assetRel=url.pathname.slice(1);
+   return route.fulfill({
+    contentType:assetRel.endsWith('.css')?'text/css':assetRel.endsWith('.png')?'image/png':'application/javascript',
+    headers:{'Access-Control-Allow-Origin':'*'},
+    body:fs.readFileSync(path.join(distRoot,assetRel),assetRel.endsWith('.png')?null:'utf8')
+   });
+  }
+  const file=url.pathname.slice(1);
+  if(!/^(?:js\/[^/]+\.js|css\/[^/]+\.css|index\.css|line-pay-logo\.png)$/.test(file))return route.abort();
   return route.fulfill({contentType:file.endsWith('.png')?'image/png':file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html',body:fs.readFileSync(path.join(root,file),file.endsWith('.png')?null:'utf8')});
  });
  const page=await context.newPage();page.setDefaultTimeout(5000);page.on('pageerror',error=>errors.push(error.message));

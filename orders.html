@@ -9,7 +9,7 @@
 
   <script src="/js/order-code.js?v=20261109_order_code_v1"></script>
   <script src="js/orders-display.js?v=20261007_dev_main_sync_v1"></script>
-  <link rel="stylesheet" href="css/orders.css?v=20261113_revert_hours_v1" />
+  <link rel="stylesheet" href="css/orders.css?v=20261114_qw2_ai_react_v1" />
   <link rel="stylesheet" href="css/orders-stock.css?v=20261107_stock_drawer_v1" />
   <link rel="stylesheet" href="css/orders-menu.css?v=20261102_menu_mobile_v5" />
     <script>
@@ -996,66 +996,7 @@
 
             <!-- Language Setting -->
             <div class="settings-card" id="setting-card-ai">
-              <div class="ai-settings-heading"><h2 data-ai-i18n="aiTitle">AI 設定</h2><p data-ai-i18n="aiIntro">集中管理 LINE 自動回覆，包含關鍵字規則與 AI 判斷。</p></div>
-              <div class="ai-settings-body">
-                <div class="ai-master-panel">                  <label class="ai-switch-row" for="ai-setting-enabled">
-                    <span class="ai-switch-copy"><strong id="ai-label-enabled" data-ai-i18n="aiMaster">自動回覆顧客訊息</strong><span id="ai-hint-enabled" data-ai-i18n="aiMasterHint">關閉後，以下所有對話自動回覆都會暫停；各項選擇會保留。</span></span>
-                    <input type="checkbox" role="switch" id="ai-setting-enabled" data-ai-setting="enabled" aria-labelledby="ai-label-enabled" aria-describedby="ai-hint-enabled" onchange="changeAISetting(this)" disabled>
-                    <span class="ai-switch-track" aria-hidden="true"></span>
-                  </label>
-                  <p id="ai-settings-summary"></p>
-                </div>
-                <div class="ai-settings-feedback"><span id="ai-settings-status" role="status" aria-live="polite" aria-atomic="true"></span><button type="button" class="btn btn-ghost" id="ai-settings-retry" onclick="loadAISettings()" data-ai-i18n="aiRetry" hidden>重新載入</button></div>
-                <details class="ai-guide">
-                  <summary data-ai-i18n="aiGuide">自動回覆如何運作？</summary>
-                  <div class="ai-guide-body"><p data-ai-i18n="aiGuideIntro">先開啟總開關，再選擇允許的回覆行為；若符合已關閉的項目，系統會保持安靜，由人員回覆。</p>
-                    <ol class="ai-guide-flow"><li><span aria-hidden="true">01</span><strong data-ai-i18n="aiStepMessage">收到顧客訊息</strong></li><li><span aria-hidden="true">02</span><strong data-ai-i18n="aiStepCheck">檢查總開關與對應行為</strong></li><li><span aria-hidden="true">03</span><strong data-ai-i18n="aiStepReply">允許才自動回覆</strong></li></ol>
-                    <div class="ai-guide-examples"><div class="ai-guide-example"><h3 data-ai-i18n="aiExampleOn">地址回覆：開啟</h3><p class="ai-chat-question" data-ai-i18n="aiExampleQuestion">請問門市在哪裡？</p><p class="ai-chat-answer" data-ai-i18n="aiExampleAnswer">回覆門市已設定的地址</p></div><div class="ai-guide-example ai-guide-example-off"><h3 data-ai-i18n="aiExampleOff">地址回覆：關閉</h3><p class="ai-chat-question" data-ai-i18n="aiExampleQuestion">請問門市在哪裡？</p><p class="ai-chat-answer" data-ai-i18n="aiExampleSilent">不自動回覆，由人員接手</p></div></div>
-                    <p class="ai-section-hint" data-ai-i18n="aiExampleHint">以上為示意。關閉地址回覆後，即使訊息符合自訂關鍵字，也不會改由其他自動回覆處理。</p>
-                  </div>
-                </details>
-                <fieldset id="ai-behaviors" class="ai-behaviors" disabled>
-                  <legend data-ai-i18n="aiBehaviors">回覆行為</legend>
-                  <p class="ai-section-hint" data-ai-i18n="aiBehaviorsHint">依門市需求，選擇系統可以自動回覆的內容。</p>                  <label class="ai-switch-row" for="ai-setting-address">
-                    <span class="ai-switch-copy"><strong id="ai-label-address" data-ai-i18n="aiAddress">門市地址</strong><span id="ai-hint-address" data-ai-i18n="aiAddressHint">顧客詢問地址或位置時，回覆門市資料中的地址。</span></span>
-                    <input type="checkbox" role="switch" id="ai-setting-address" data-ai-setting="address" aria-labelledby="ai-label-address" aria-describedby="ai-hint-address" onchange="changeAISetting(this)" disabled>
-                    <span class="ai-switch-track" aria-hidden="true"></span>
-                  </label>
-                  <label class="ai-switch-row" for="ai-setting-hours">
-                    <span class="ai-switch-copy"><strong id="ai-label-hours" data-ai-i18n="aiHours">營業時間</strong><span id="ai-hint-hours" data-ai-i18n="aiHoursHint">顧客詢問幾點開門或打烊時，回覆已設定的營業時間。</span></span>
-                    <input type="checkbox" role="switch" id="ai-setting-hours" data-ai-setting="hours" aria-labelledby="ai-label-hours" aria-describedby="ai-hint-hours" onchange="changeAISetting(this)" disabled>
-                    <span class="ai-switch-track" aria-hidden="true"></span>
-                  </label>
-                  <label class="ai-switch-row" for="ai-setting-delivery">
-                    <span class="ai-switch-copy"><strong id="ai-label-delivery" data-ai-i18n="aiDelivery">外送資訊</strong><span id="ai-hint-delivery" data-ai-i18n="aiDeliveryHint">顧客詢問外送或運費時，回覆門市的外送政策。</span></span>
-                    <input type="checkbox" role="switch" id="ai-setting-delivery" data-ai-setting="delivery" aria-labelledby="ai-label-delivery" aria-describedby="ai-hint-delivery" onchange="changeAISetting(this)" disabled>
-                    <span class="ai-switch-track" aria-hidden="true"></span>
-                  </label>
-                  <label class="ai-switch-row" for="ai-setting-customReplies">
-                    <span class="ai-switch-copy"><strong id="ai-label-customReplies" data-ai-i18n="aiCustom">自訂關鍵字回覆</strong><span id="ai-hint-customReplies" data-ai-i18n="aiCustomHint">使用門市已設定的關鍵字與回覆內容。此處僅控制啟用狀態。</span></span>
-                    <input type="checkbox" role="switch" id="ai-setting-customReplies" data-ai-setting="customReplies" aria-labelledby="ai-label-customReplies" aria-describedby="ai-hint-customReplies" onchange="changeAISetting(this)" disabled>
-                    <span class="ai-switch-track" aria-hidden="true"></span>
-                  </label>
-                  <label class="ai-switch-row" for="ai-setting-orderRedirect">
-                    <span class="ai-switch-copy"><strong id="ai-label-orderRedirect" data-ai-i18n="aiRedirect">引導線上點餐</strong><span id="ai-hint-orderRedirect" data-ai-i18n="aiRedirectHint">AI 判斷顧客想點餐時，傳送線上點餐連結，包含先前對話草稿。</span></span>
-                    <input type="checkbox" role="switch" id="ai-setting-orderRedirect" data-ai-setting="orderRedirect" aria-labelledby="ai-label-orderRedirect" aria-describedby="ai-hint-orderRedirect" onchange="changeAISetting(this)" disabled>
-                    <span class="ai-switch-track" aria-hidden="true"></span>
-                  </label>
-                  <label class="ai-switch-row" for="ai-setting-orderStatus">
-                    <span class="ai-switch-copy"><strong id="ai-label-orderStatus" data-ai-i18n="aiOrderStatus">文字查詢訂單進度</strong><span id="ai-hint-orderStatus" data-ai-i18n="aiOrderStatusHint">顧客以文字詢問進度時，自動回覆目前訂單狀態。</span></span>
-                    <input type="checkbox" role="switch" id="ai-setting-orderStatus" data-ai-setting="orderStatus" aria-labelledby="ai-label-orderStatus" aria-describedby="ai-hint-orderStatus" onchange="changeAISetting(this)" disabled>
-                    <span class="ai-switch-track" aria-hidden="true"></span>
-                  </label>
-                  <label class="ai-switch-row" for="ai-setting-pendingOrderReplies">
-                    <span class="ai-switch-copy"><strong id="ai-label-pendingOrderReplies" data-ai-i18n="aiPending">處理改單與取消的文字回覆</strong><span id="ai-hint-pendingOrderReplies" data-ai-i18n="aiPendingHint">依規則或 AI 解讀顧客對改單、改時間或取消的回應。關閉後由人員接手，系統不會依文字自動更新訂單。</span></span>
-                    <input type="checkbox" role="switch" id="ai-setting-pendingOrderReplies" data-ai-setting="pendingOrderReplies" aria-labelledby="ai-label-pendingOrderReplies" aria-describedby="ai-hint-pendingOrderReplies" onchange="changeAISetting(this)" disabled>
-                    <span class="ai-switch-track" aria-hidden="true"></span>
-                  </label>
-
-                </fieldset>
-                <p class="ai-section-hint" data-ai-i18n="aiDataHint">地址與營業時間取自「門市資訊」與「營業時間設定」。調整回覆開關不會修改這些資料。</p>
-                <aside class="ai-scope"><h3 data-ai-i18n="aiScopeTitle">訂單通知與按鈕操作</h3><p data-ai-i18n="aiScopeHint">這裡控制的是對話自動回覆。點餐成功、加點、修改訂單的收據與門市主動發出的訂單通知仍會送出；顧客點選 LINE 訂單卡片按鈕，也會照常處理。</p></aside>
-              </div>
+              <div id="pos-ai-settings-react-root" class="pos-ai-settings-mount blab-modern-root"></div>
             </div>
 
             <div class="settings-card" id="setting-card-language">
@@ -3290,7 +3231,6 @@
   <script src="js/qrcode.min.js?v=20261107_table_qr_v1"></script>
   <script src="js/store-notice-format.js?v=20261111_store_notice_v1"></script>
   <script src="js/orders-settings.js?v=20261113_revert_hours_v1"></script>
-  <script src="js/orders-ai-settings.js?v=20261112_ai_settings_v1"></script>
   <script src="js/orders-menu-model.js?v=20261104_menu_model_v1"></script>
   <script src="js/orders-menu.js?v=20261114_deadcode_cleanup_v1"></script>
   <script src="js/orders-bundle-wizard.js?v=20261007_dev_main_sync_v1"></script>
@@ -3337,6 +3277,7 @@
 <script src="/js/orders-payments.js?v=20261109_order_code_v1"></script>
 <script type="module" src="/frontend/apps/pos/history-bridge.tsx"></script>
 <script type="module" src="/frontend/apps/pos/reports-bridge.tsx"></script>
+<script type="module" src="/frontend/apps/pos/ai-settings-bridge.tsx"></script>
 </body>
 
 </html>

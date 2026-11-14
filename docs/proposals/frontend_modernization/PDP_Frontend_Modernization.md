@@ -130,8 +130,8 @@ React hỗ trợ thêm từng phần vào ứng dụng hiện hữu; Vite hỗ t
 
 ### Đợt Quick Win (giữa PR 4 và PR 5 — ít rủi ro, tách module độc lập)
 - [x] QW1: Tab Báo cáo POS chỉ đọc (`PosReportsPanel.tsx` + `reports-bridge.tsx` thay `js/orders-reports.js`, dùng SVG chuẩn thương mại & đủ i18n `zh-TW`/`vi`).
-- [ ] QW2: Panel Cài đặt AI trong POS (`js/orders-ai-settings.js` -> React + TypeScript, đối chiếu `tests/test_ai_settings_browser.cjs`).
-- [ ] QW3: Trang kết quả thanh toán (`payment-result.html` + `js/payment-result.js` -> entry Vite + React + TypeScript, đối chiếu `tests/test_payment_result_browser.cjs`).
+- [x] QW2: Panel Cài đặt AI trong POS (`PosAiSettingsPanel.tsx` + `ai-settings-bridge.tsx` thay `js/orders-ai-settings.js`, đối chiếu `tests/test_ai_settings_browser.cjs`).
+- [x] QW3: Trang kết quả thanh toán (`PaymentResultApp.tsx` + `payment-result-client.ts` thay `js/payment-result.js` + `css/payment-result.css` qua entry Vite `payment-result.html`, đối chiếu `tests/test_payment_result_browser.cjs`).
 - [ ] QW4: Workspace đối soát thanh toán POS (`js/orders-payments.js` -> React + TypeScript, đối chiếu `tests/test_payment_workspace_browser.cjs`).
 - [ ] QW5: Tách pure shared utilities (`order-code.js`, `store-notice-format.js`, `order-legacy-adapter.js`, `line-order-presentation.js`, typed WASM adapter) vào `frontend/shared/`.
 
@@ -152,4 +152,4 @@ Chưa chốt lịch tuần: cần biết nhân lực, lịch release và số th
 - Test lỗi: mất mạng khi submit, response về trễ, reconnect, tab sleep/resume, WASM chưa tải, menu đổi trong lúc đang chọn, chuyển tenant, payment redirect, reload với draft.
 - Test release: tab cũ tải chunk sau deploy, rollback entry, đường dẫn domain/LIFF/query cũ và phiên đang thanh toán. Chỉ phát hành khi không có sai lệch nghiệp vụ còn chưa giải thích.
 
-PR 1–4 đã được triển khai và phát hành lên `staging`/`main` (`db69bdd1`). QW1 chuyển tiếp tab Báo cáo POS (`#view-reports`) sang `PosReportsPanel.tsx` + `reports-bridge.tsx` thay `js/orders-reports.js`, mở đường cho QW2–QW5 trước khi bước vào PR 5 (`orders-menu.js`).
+PR 1–4 đã được triển khai và phát hành lên `staging`/`main` (`db69bdd1`). QW1, QW2 và QW3 đã hoàn tất (`PosReportsPanel.tsx`, `PosAiSettingsPanel.tsx`, `PaymentResultApp.tsx`), tiếp theo là QW4 (`orders-payments.js`) và QW5 trước khi bước vào PR 5 (`orders-menu.js`).

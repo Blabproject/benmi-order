@@ -63,6 +63,12 @@ test('Vite dist/ bundle coexists with legacy pages and serves POS React sandbox 
     Array.isArray(ordersEntry?.css) && ordersEntry.css.some(c => c.startsWith('assets/orders-')),
     JSON.stringify(ordersEntry)
   );
+  const paymentResultEntry = manifest['payment-result.html'];
+  assert.ok(paymentResultEntry?.file?.startsWith('assets/payment-result-'), JSON.stringify(manifest));
+  assert.ok(
+    Array.isArray(paymentResultEntry?.css) && paymentResultEntry.css.some(c => c.startsWith('assets/payment-result-')),
+    JSON.stringify(paymentResultEntry)
+  );
   assert.equal(fs.existsSync(path.join(distDir, entry.file)), true);
   assert.ok(entry.css?.[0]?.startsWith('assets/pos-sandbox-'));
   assert.equal(fs.existsSync(path.join(distDir, entry.css[0])), true);
@@ -142,6 +148,10 @@ test('Vite dist/ bundle coexists with legacy pages and serves POS React sandbox 
   await page.waitForFunction(() => typeof switchTab === 'function' && typeof window.fetchHistoryOrders === 'function');
   await page.evaluate(() => switchTab('history'));
   await page.waitForSelector('#pos-history-react-root #history-search-input');
+  await page.goto(`${baseUrl}/payment-result.html?tenant_id=demo&payment_id=11111111-1111-4111-8111-111111111111`, {
+    waitUntil: 'domcontentloaded'
+  });
+  await page.waitForSelector('#payment-result[data-state]');
   await page.goto(`${baseUrl}/index.html?tenant=demo&env=dev`, { waitUntil: 'domcontentloaded' });
 
   assert.deepEqual(failedLocalRequests, [], `Broken local assets in dist/: ${failedLocalRequests.join(', ')}`);

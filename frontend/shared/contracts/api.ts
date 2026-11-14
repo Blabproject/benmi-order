@@ -147,6 +147,23 @@ export interface StoreNoticeDto {
   version: string;
 }
 
+export type AiSettingKey =
+  | 'enabled'
+  | 'address'
+  | 'hours'
+  | 'delivery'
+  | 'customReplies'
+  | 'orderRedirect'
+  | 'orderStatus'
+  | 'pendingOrderReplies';
+
+export type AiSettingsDto = Record<AiSettingKey, boolean>;
+
+export interface SaveAiSettingsResponseDto {
+  success: boolean;
+  aiSettings?: AiSettingsDto;
+}
+
 export interface TenantPublicConfigDto {
   tenantId: string;
   liffId: string | null;
@@ -164,6 +181,7 @@ export interface TenantPublicConfigDto {
   storeAddress: string | null;
   announcement: string | null;
   storeNotice: StoreNoticeDto | null;
+  aiSettings?: AiSettingsDto;
 }
 
 export interface StaffTableDto {
