@@ -2,6 +2,39 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 const ts = require("../../benmi-worker-official/node_modules/typescript");
 const { DatabaseSync } = require("node:sqlite");
+
+let cachedOptionGroupsScript = null;
+const cachedSqlFiles = new Map();
+let cachedAllMigrationNames = null;
+
+function readCachedSql(file) {
+  let sql = cachedSqlFiles.get(file);
+  if (sql === undefined) {
+    sql = fs.readFileSync("benmi-worker-official/migrations/" + file, "utf8");
+    cachedSqlFiles.set(file, sql);
+  }
+  return sql;
+}
+
+function getOptionGroupsScript() {
+  if (!cachedOptionGroupsScript) {
+    const source = fs.readFileSync(
+      "benmi-worker-official/src/modules/option-groups.ts",
+      "utf8",
+    );
+    const transpiled = ts.transpileModule(source, {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2022,
+      },
+    }).outputText;
+    cachedOptionGroupsScript = new vm.Script(transpiled, {
+      filename: "option-groups.ts",
+    });
+  }
+  return cachedOptionGroupsScript;
+}
+
 function moduleFor(db) {
   const deleted = [];
   const api = {
@@ -85,19 +118,7 @@ function moduleFor(db) {
                 new URL(request.url).searchParams.get("tenant_id"),
             },
   });
-  const source = fs.readFileSync(
-    "benmi-worker-official/src/modules/option-groups.ts",
-    "utf8",
-  );
-  vm.runInContext(
-    ts.transpileModule(source, {
-      compilerOptions: {
-        module: ts.ModuleKind.CommonJS,
-        target: ts.ScriptTarget.ES2022,
-      },
-    }).outputText,
-    context,
-  );
+  getOptionGroupsScript().runInContext(context);
   return {
     api: exports,
     env,
@@ -128,9 +149,7 @@ function fixture() {
     "0066_optional_migrated_option_groups.sql",
     "0070_add_modifier_group_auto_popup.sql",
   ])
-    db.exec(
-      fs.readFileSync("benmi-worker-official/migrations/" + file, "utf8"),
-    );
+    db.exec(readCachedSql(file));
   for (const tenant of ["a", "b"]) {
     db.prepare(
       "INSERT INTO menu_categories(id,tenant_id,name,category_type) VALUES (?,?,?,?)",
@@ -149,14 +168,14 @@ function fixture() {
 function schemaTrueFixture() {
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys=ON;");
-  const files = fs
-    .readdirSync("benmi-worker-official/migrations")
-    .filter((f) => f.endsWith(".sql"))
-    .sort();
-  for (const file of files) {
-    db.exec(
-      fs.readFileSync("benmi-worker-official/migrations/" + file, "utf8"),
-    );
+  if (!cachedAllMigrationNames) {
+    cachedAllMigrationNames = fs
+      .readdirSync("benmi-worker-official/migrations")
+      .filter((f) => f.endsWith(".sql"))
+      .sort();
+  }
+  for (const file of cachedAllMigrationNames) {
+    db.exec(readCachedSql(file));
   }
   return { db, ...moduleFor(db) };
 }

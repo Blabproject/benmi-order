@@ -109,6 +109,25 @@ const PHASE_3_ISOLATED_NAMES = new Set([
   'menu-full-pages-webkit',
 ]);
 
+// Suites that launch Playwright browsers or Miniflare sandboxes share a heavy-slot budget so GPU/CPU threads aren't thrashed.
+const HEAVY_SUITES = new Set([
+  'staff-browser',
+  'staff-runtime',
+  'pos-tablet-layout-webkit',
+  'pos-tablet-layout-chromium',
+  'pos-display-webkit',
+  'pos-display-chromium',
+  'linepay-browser',
+  'menu-components-webkit',
+  'menu-components-chromium',
+  'payment-workspace-browser',
+  'pos-live-mobile',
+  'pos-detail-scroll',
+  'staff-table-sync',
+  'pos-reports-slice',
+  'ai-settings',
+]);
+
 // Start heavy suites/shards first in Phase 2 to minimize worker tail latency.
 const HEAVY_SUITE_PRIORITY = new Map([
   ['staff-browser', 1],
@@ -122,8 +141,12 @@ const HEAVY_SUITE_PRIORITY = new Map([
   ['menu-components-chromium', 9],
   ['payment-workspace-browser', 10],
   ['pos-live-mobile', 11],
-  ['frontend-modern-unit', 12],
-  ['menu-static-contracts', 13],
+  ['pos-reports-slice', 12],
+  ['staff-table-sync', 13],
+  ['ai-settings', 14],
+  ['pos-detail-scroll', 15],
+  ['frontend-modern-unit', 16],
+  ['menu-static-contracts', 17],
 ]);
 
 const MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
@@ -287,24 +310,41 @@ function createSuiteAggregator() {
   return { initSuite, runTask };
 }
 
-async function runPhase(suiteDefs, limit, aggregator, enableFileSharding) {
+async function runPhase(suiteDefs, limit, aggregator, enableFileSharding, maxHeavy = limit) {
   if (suiteDefs.length === 0) return;
   const tasks = [];
   for (const def of suiteDefs) {
     const { suiteMeta, tasks: suiteTasks } = buildShardsForSuite(def, enableFileSharding);
     aggregator.initSuite(suiteMeta);
-    tasks.push(...suiteTasks);
+    for (const task of suiteTasks) {
+      tasks.push({ ...task, isHeavy: HEAVY_SUITES.has(task.suiteName) });
+    }
   }
   tasks.sort((a, b) => a.priority - b.priority);
 
-  let nextIndex = 0;
+  let activeHeavy = 0;
+  const takeNextTask = () => {
+    const idx = tasks.findIndex(task => !task.isHeavy || activeHeavy < maxHeavy);
+    if (idx === -1) return null;
+    const [task] = tasks.splice(idx, 1);
+    if (task.isHeavy) activeHeavy += 1;
+    return task;
+  };
+
   const workerCount = Math.min(limit, tasks.length);
   await Promise.all(
     Array.from({ length: workerCount }, async () => {
-      while (nextIndex < tasks.length) {
-        const task = tasks[nextIndex];
-        nextIndex += 1;
-        await aggregator.runTask(task);
+      while (tasks.length > 0) {
+        const task = takeNextTask();
+        if (!task) {
+          await new Promise(resolve => setTimeout(resolve, 40));
+          continue;
+        }
+        try {
+          await aggregator.runTask(task);
+        } finally {
+          if (task.isHeavy) activeHeavy -= 1;
+        }
       }
     })
   );
@@ -318,12 +358,13 @@ const phase3Suites = selectedSuites.filter(([name]) => PHASE_3_ISOLATED_NAMES.ha
 
 const aggregator = createSuiteAggregator();
 const wallStart = Date.now();
+const phase2HeavyLimit = Math.max(1, Math.min(4, Math.ceil(concurrency * 0.6)));
 const phase3Concurrency = Math.min(2, concurrency);
 console.log(
-  `Release baseline starting ${selectedSuites.length} suites (concurrency=${concurrency}, phase1=${phase1Suites.length}, phase2=${phase2Suites.length} [file-sharded], phase3=${phase3Suites.length} [concurrency=${phase3Concurrency}])...`
+  `Release baseline starting ${selectedSuites.length} suites (concurrency=${concurrency}, phase1=${phase1Suites.length}, phase2=${phase2Suites.length} [file-sharded, heavyLimit=${phase2HeavyLimit}], phase3=${phase3Suites.length} [concurrency=${phase3Concurrency}])...`
 );
 await runPhase(phase1Suites, concurrency, aggregator, false);
-await runPhase(phase2Suites, concurrency, aggregator, true);
+await runPhase(phase2Suites, concurrency, aggregator, true, phase2HeavyLimit);
 await runPhase(phase3Suites, phase3Concurrency, aggregator, false);
 
 report.suites.sort((a, b) => (orderMap.get(a.name) ?? 0) - (orderMap.get(b.name) ?? 0));

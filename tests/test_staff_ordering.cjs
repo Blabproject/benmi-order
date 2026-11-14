@@ -1,20 +1,18 @@
 // Real local D1; all rows are synthetic. Never calls a remote API.
-const {test} = require('node:test');
+const {test, suite} = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const {execFileSync} = require('node:child_process');
 const ts = require('../benmi-worker-official/node_modules/typescript');
 require.extensions['.ts'] = (mod,file) => mod._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{
   compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,file);
-const {Miniflare,convertV4MiniflareOptions} = require('../benmi-worker-official/node_modules/miniflare');
-const {schemaTrueFixture} = require('./helpers/option-groups.cjs');
 const {handleStaffRoute,verifyStaffSession} = require('../benmi-worker-official/src/modules/staff.ts');
-const {STAFF_CAPABILITIES} = require('../benmi-worker-official/src/modules/staff-access.ts');
 const {updateOrder,getOrders} = require('../benmi-worker-official/src/modules/orders.ts');
 const {writeDetailedOrder} = require('../benmi-worker-official/src/modules/order-detail-write.ts');
 const {handleAuthChange} = require('../benmi-worker-official/src/modules/auth.ts');
 const {readDetail} = require('../benmi-worker-official/src/modules/order-detail.ts');
 const {fixture} = require('./helpers/staff-ordering.cjs');
+
+suite('staff ordering integration suite', { concurrency: 4 }, () => {
 
 test('default capabilities, schema readiness and tenant boundaries fail closed',async t=>{
   const f=await fixture(t);
@@ -182,4 +180,5 @@ test('non-dine-in and no-scheduled-pickup tenant supports staff takeaway orders 
   const saved = await f.DB.prepare('SELECT dining_option,table_id,pickup_time,customer_name,note FROM orders WHERE key=?').bind(asapOrder.key).first();
   assert.match(saved.pickup_time,/^\d{2}:\d{2}$/);
   assert.deepEqual({dining_option:saved.dining_option,table_id:saved.table_id,customer_name:saved.customer_name,note:saved.note},{dining_option:'takeaway',table_id:null,customer_name:'Khách lẻ',note:'Lấy ngay'});
+});
 });

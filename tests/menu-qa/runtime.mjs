@@ -12,14 +12,27 @@ export const tenant = 'jiangjiejie';
 export const devWorker = 'https://platform-worker-dev.thuanmnc.workers.dev';
 const quote = value => `"${value.replaceAll('"', '""')}"`;
 
-export async function startRuntime({ upgrade = false } = {}) {
-  const bundle = await build({ entryPoints: [path.join(root, 'benmi-worker-official/src/index.ts')], bundle: true,
-    write: false, format: 'esm', platform: 'browser', target: 'es2022' });
-  const mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: bundle.outputFiles[0].text, compatibilityDate: '2026-03-28',
-    d1Databases: ['DB'], kvNamespaces: ['ORDER_STATE'], bindings: {
-      UNIFIED_MENU_ENABLED: 'true', ORDER_DETAIL_READS: 'true', ORDER_DETAIL_WRITES: 'true',
-      LINE_RUNTIME_ENABLED: 'false', BUILD_ENVIRONMENT: 'local', BUILD_COMMIT: 'local', BUILD_DIRTY: 'true',
-    }, outboundService: () => new Response('External services disabled in menu QA', { status: 503 }) }));
+let cachedBundleTextPromise = null;
+const cachedMigrationTemplates = new Map();
+
+function getWorkerBundleText() {
+  if (!cachedBundleTextPromise) {
+    cachedBundleTextPromise = build({
+      entryPoints: [path.join(root, 'benmi-worker-official/src/index.ts')],
+      bundle: true,
+      write: false,
+      format: 'esm',
+      platform: 'browser',
+      target: 'es2022',
+    }).then(bundle => bundle.outputFiles[0].text);
+  }
+  return cachedBundleTextPromise;
+}
+
+function getMigrationTemplate(upgrade) {
+  const key = Boolean(upgrade);
+  if (cachedMigrationTemplates.has(key)) return cachedMigrationTemplates.get(key);
+
   const source = new DatabaseSync(':memory:');
   const migrations = readdirSync(path.join(root, 'benmi-worker-official/migrations')).filter(f => f.endsWith('.sql')).sort();
   const applied = [];
@@ -28,33 +41,91 @@ export async function startRuntime({ upgrade = false } = {}) {
     for (const name of migrations) {
       const file = `benmi-worker-official/migrations/${name}`;
       let sql = readFileSync(path.join(root, file), 'utf8'), origin = 'working-tree';
-      if (upgrade) {
-        try { sql = execFileSync('git', ['show', `HEAD:${file}`], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); origin = 'HEAD'; }
-        catch { /* A new migration is the forward upgrade; historical files are never replayed. */ }
+      if (key) {
+        try {
+          sql = execFileSync('git', ['show', `HEAD:${file}`], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+          origin = 'HEAD';
+        } catch {
+          /* A new migration is the forward upgrade; historical files are never replayed. */
+        }
       }
       source.exec(sql);
       applied.push({ name, origin });
     }
-    const db = await mf.getD1Database('DB');
     const schema = source.prepare("SELECT type,name,sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY rowid").all();
-    for (const row of schema.filter(r => r.type === 'table')) await db.prepare(row.sql).run();
-    const inserts = [];
+    const tableSqls = schema.filter(r => r.type === 'table').map(r => r.sql);
+    const otherSqls = schema.filter(r => r.type !== 'table').map(r => r.sql);
+    const seedBatches = [];
     for (const row of schema.filter(r => r.type === 'table')) {
-      for (const record of source.prepare(`SELECT * FROM ${quote(row.name)}`).all()) {
-        inserts.push(db.prepare(`INSERT INTO ${quote(row.name)} (${Object.keys(record).map(quote).join(',')}) VALUES (${Object.keys(record).map(() => '?').join(',')})`).bind(...Object.values(record)));
+      const rows = source.prepare(`SELECT * FROM ${quote(row.name)}`).all();
+      if (rows.length === 0) continue;
+      const cols = Object.keys(rows[0]);
+      const colList = cols.map(quote).join(',');
+      const rowPlaceholder = `(${cols.map(() => '?').join(',')})`;
+      const chunkSize = Math.max(1, Math.min(25, Math.floor(90 / cols.length)));
+      for (let i = 0; i < rows.length; i += chunkSize) {
+        const slice = rows.slice(i, i + chunkSize);
+        const sql = `INSERT INTO ${quote(row.name)} (${colList}) VALUES ${slice.map(() => rowPlaceholder).join(',')}`;
+        const params = slice.flatMap(record => Object.values(record));
+        seedBatches.push({ sql, params });
       }
     }
-    // One transaction defers cross-table references until every seeded row is present.
-    await db.batch([db.prepare('PRAGMA defer_foreign_keys=ON'), ...inserts]);
-    for (const row of schema.filter(r => r.type !== 'table')) await db.prepare(row.sql).run();
+    const template = { tableSqls, otherSqls, seedBatches, applied };
+    cachedMigrationTemplates.set(key, template);
+    return template;
+  } finally {
+    source.close();
+  }
+}
+
+export async function startRuntime({ upgrade = false } = {}) {
+  const [scriptText, template] = await Promise.all([
+    getWorkerBundleText(),
+    Promise.resolve(getMigrationTemplate(upgrade)),
+  ]);
+  const mf = new Miniflare(convertV4MiniflareOptions({
+    modules: true,
+    script: scriptText,
+    compatibilityDate: '2026-03-28',
+    d1Databases: ['DB'],
+    kvNamespaces: ['ORDER_STATE'],
+    bindings: {
+      UNIFIED_MENU_ENABLED: 'true',
+      ORDER_DETAIL_READS: 'true',
+      ORDER_DETAIL_WRITES: 'true',
+      LINE_RUNTIME_ENABLED: 'false',
+      BUILD_ENVIRONMENT: 'local',
+      BUILD_COMMIT: 'local',
+      BUILD_DIRTY: 'true',
+    },
+    outboundService: () => new Response('External services disabled in menu QA', { status: 503 })
+  }));
+  try {
+    const db = await mf.getD1Database('DB');
+    if (template.tableSqls.length) await db.batch(template.tableSqls.map(sql => db.prepare(sql)));
+    if (template.seedBatches.length) {
+      await db.batch([
+        db.prepare('PRAGMA defer_foreign_keys=ON'),
+        ...template.seedBatches.map(({ sql, params }) => db.prepare(sql).bind(...params)),
+      ]);
+    }
+    if (template.otherSqls.length) await db.batch(template.otherSqls.map(sql => db.prepare(sql)));
     const check = await db.prepare('PRAGMA foreign_key_check').all();
     if (check.results.length) throw new Error(`Invalid QA fixture foreign keys: ${JSON.stringify(check.results)}`);
     const url = String(await mf.ready).replace(/\/$/, '');
-    return { mf, db, kv: await mf.getKVNamespace('ORDER_STATE'), url, migrations: applied,
+    return {
+      mf,
+      db,
+      kv: await mf.getKVNamespace('ORDER_STATE'),
+      url,
+      migrations: template.applied,
       request: (endpoint, init) => mf.dispatchFetch(`${devWorker}${endpoint}${endpoint.includes('?') ? '&' : '?'}tenant_id=${tenant}`, init),
-      close: () => mf.dispose() };
-  } catch (error) { await mf.dispose(); throw error; }
-  finally { source.close(); }
+      close: () => mf.dispose(),
+    };
+  } catch (error) {
+    await mf.dispose();
+    throw error;
+  }
 }
 
 export async function startPages() {

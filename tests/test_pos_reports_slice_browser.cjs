@@ -10,10 +10,12 @@ const root = process.cwd();
 const distRoot = path.join(root, 'dist');
 
 function buildDist() {
-  execFileSync(process.execPath, [path.join(root, 'node_modules/vite/bin/vite.js'), 'build', '--config', 'vite.config.mts'], {
-    cwd: root,
-    stdio: 'inherit'
-  });
+  if (!fs.existsSync(path.join(distRoot, '.vite/manifest.json')) || !fs.existsSync(path.join(distRoot, 'orders.html'))) {
+    execFileSync(process.execPath, [path.join(root, 'node_modules/vite/bin/vite.js'), 'build', '--config', 'vite.config.mts'], {
+      cwd: root,
+      stdio: 'inherit'
+    });
+  }
 }
 
 const MIME_TYPES = {
