@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.benmi.pos.BoundedPrinterIoTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-12T13:45:07.206Z" hostname="Ducs-MacBook-Air.local" time="0.602">
+  <properties/>
+  <testcase name="completedOperationIsNeverClosedByItsOldTimer" classname="com.benmi.pos.BoundedPrinterIoTest" time="0.108"/>
+  <testcase name="returningAfterCancellationStillReportsFailure" classname="com.benmi.pos.BoundedPrinterIoTest" time="0.035"/>
+  <testcase name="blockedIoClosesActualConnectionBeforeReturning" classname="com.benmi.pos.BoundedPrinterIoTest" time="0.037"/>
+  <testcase name="longReceiptUsesProgressDeadlinesInsteadOfTotalDuration" classname="com.benmi.pos.BoundedPrinterIoTest" time="0.421"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

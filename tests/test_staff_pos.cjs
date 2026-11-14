@@ -3,7 +3,7 @@ const source=fs.readFileSync('js/orders-live.js','utf8');
 const action=source.slice(source.indexOf('async function updateStatus('),source.indexOf('async function reviewAccept('));
 function fixture(sourceType,status=200) {
  const requests=[],alerts=[];let refreshed=0;
- const context={console,WORKER_BASE:'https://dev.test',latestOrders:[{key:'order',source:sourceType,revision:7}],processingKeys:new Set(),
+ const context={console,AbortController,setTimeout,clearTimeout,WORKER_BASE:'https://dev.test',latestOrders:[{key:'order',source:sourceType,revision:7}],processingKeys:new Set(),
   localOverrides:{},t:k=>k,alert:message=>alerts.push(message),getTenantIdFromUrl:()=> 'tenant-a',
   getStaffSessionToken:()=>assert.fail('Staff actions must not prompt for a PIN'),renderAll:()=>{},fetchOrders:async()=>{refreshed++;},
   fetch:async(url,request)=>{requests.push({url,...request,body:JSON.parse(request.body)});return {ok:status===200,status};}};

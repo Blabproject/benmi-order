@@ -32,6 +32,8 @@ function fixture(t) {
     CREATE TABLE menu_catalog_revisions(tenant_id TEXT PRIMARY KEY, revision INTEGER DEFAULT 0);
     CREATE TABLE menu_bundle_rules(tenant_id TEXT, parent_item_id TEXT, schema_version INTEGER, config_json TEXT, is_active INTEGER);`);
   for (const file of ['0055_expand_order_identity.sql', '0056_add_order_modified_tracking.sql', '0065_line_order_receipts.sql']) db.exec(fs.readFileSync('benmi-worker-official/migrations/' + file, 'utf8'));
+  db.exec(`CREATE TABLE tenant_config(tenant_id TEXT PRIMARY KEY,is_active INTEGER DEFAULT 1,ai_settings TEXT DEFAULT '{}',ai_order_redirect_enabled INTEGER DEFAULT 1);
+    INSERT INTO tenant_config(tenant_id) VALUES ('tenant-a');`);
   const DB = {
     prepare(sql) {
       const build = params => ({

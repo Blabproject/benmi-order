@@ -36,8 +36,8 @@ async function check(name, fn) { await fn(); passed++; console.log(`PASS ${name}
  const env = { DB, ORDER_STATE: { get: async key => key.endsWith(':config_cache') ? JSON.stringify(tenant(key.split(':')[1])) : null, put: async()=>{}, delete:async()=>{} } };
  const apply = async sql => DB.batch(statements(sql).map(s=>DB.prepare(s)));
  await apply(`CREATE TABLE tenants(id TEXT PRIMARY KEY); INSERT INTO tenants VALUES ('a'),('b');
- CREATE TABLE tenant_config(tenant_id TEXT PRIMARY KEY REFERENCES tenants(id));
- INSERT INTO tenant_config VALUES ('a'),('b');`);
+ CREATE TABLE tenant_config(tenant_id TEXT PRIMARY KEY REFERENCES tenants(id),is_active INTEGER DEFAULT 1);
+ INSERT INTO tenant_config(tenant_id) VALUES ('a'),('b');`);
  for (const file of [
    '0005_create_orders_table.sql',
    '0032_create_order_items.sql',

@@ -19,7 +19,7 @@ function fixture({ autoPrint = true, responseStatus = 200, beforeAccept = async 
     window: { location: { search: '?tenant=print-test' } },
     document: { getElementById: () => null },
     console: { log() {}, warn() {}, error() {} },
-    URLSearchParams, setTimeout, clearTimeout,
+    URLSearchParams, AbortController, setTimeout, clearTimeout,
     localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) },
     WORKER_BASE: 'https://example.invalid', getTenantIdFromUrl: () => 'print-test',
     lastOrdersETag: '', latestOrders: [], knownOrderKeys: new Set(), knownOrderRounds: new Map(),
@@ -41,7 +41,7 @@ function fixture({ autoPrint = true, responseStatus = 200, beforeAccept = async 
   vm.runInContext(printer, context);
   const service = context.PrinterService = context.window.PrinterService;
   service.saveSettings({ autoPrintNewOrders: autoPrint });
-  service.printDualStation = async ticket => { jobs.push({ key: ticket.key, status: ticket.status, confirmed }); };
+  service.printDualStation = async ticket => { jobs.push({ key: ticket.key, status: ticket.status, confirmed }); return {success:true}; };
   vm.runInContext(`let isFetchingOrders = false;\n${refresh}\n${update}`, context);
   return { context, service, jobs, alerts };
 }
@@ -65,6 +65,7 @@ test('customer printing waits for successful staff confirmation and does not rep
   assert.equal(jobs.length, 0);
   release();
   await accepting;
+  await new Promise(setImmediate);
   assert.deepEqual(jobs, [{ key: 'customer-order', status: 'ACCEPTED', confirmed: true }]);
   assert.equal(service.isOrderAlreadyPrinted('customer-order'), true);
   await context.fetchOrders();
@@ -97,8 +98,45 @@ test('printer failures do not undo or report a failed acceptance', async () => {
   service.printDualStation = async () => { throw new Error('offline'); };
   await context.fetchOrders();
   await context.updateStatus('customer-order', 'ACCEPTED');
+  await new Promise(setImmediate);
   assert.equal(context.localOverrides['customer-order'].status, 'ACCEPTED');
   assert.equal(context.latestOrders[0].status, 'ACCEPTED');
   assert.deepEqual(alerts, []);
-  assert.equal(service.isOrderAlreadyPrinted('customer-order'), true);
+  assert.equal(service.isOrderAlreadyPrinted('customer-order'), false);
+});
+
+test('a never-settling print cannot block marking the accepted order ready', async () => {
+  const { context, service, alerts } = fixture();
+  service.printDualStation = () => new Promise(() => {});
+  await context.fetchOrders();
+  assert.equal(await context.updateStatus('customer-order', 'ACCEPTED'), true);
+  assert.equal(context.processingKeys.size, 0);
+  assert.equal(await context.updateStatus('customer-order', 'DONE'), true);
+  assert.equal(context.localOverrides['customer-order'].status, 'DONE');
+  assert.equal(context.processingKeys.size, 0);
+  assert.deepEqual(alerts, []);
+});
+
+test('status response timeout releases the lock and refreshes without replaying or printing', async () => {
+  const { context, jobs, alerts } = fixture();
+  let abort, writes = 0;
+  context.setTimeout = callback => { abort = callback; return 1; };
+  context.clearTimeout = () => {};
+  context.fetch = async (_url, request) => {
+    if (request.method === 'POST') {
+      writes++;
+      return new Promise((_resolve, reject) => request.signal.addEventListener('abort', () =>
+        reject(Object.assign(new Error('aborted'), { name: 'AbortError' }))));
+    }
+    return { status: 304 };
+  };
+  context.latestOrders = [{ key: 'customer-order', source: 'line', status: 'NEW' }];
+  const action = context.updateStatus('customer-order', 'ACCEPTED');
+  assert.equal(await context.updateStatus('customer-order', 'ACCEPTED'), false);
+  abort();
+  assert.equal(await action, false);
+  assert.equal(context.processingKeys.size, 0);
+  assert.equal(writes, 1);
+  assert.equal(jobs.length, 0);
+  assert.deepEqual(alerts, ['orderStatusUncertain']);
 });

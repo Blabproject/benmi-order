@@ -1,0 +1,19 @@
+{
+  "apk": "apps/android-pos/benmi-pos-universal-v1.1.2.apk",
+  "sourceCommit": "33d945caa36c0941988ceb3ce7e3646e6d026f96",
+  "versionName": "1.1.2",
+  "versionCode": 30,
+  "applicationId": "com.benmi.pos",
+  "webUrl": "https://pos.blabfood.app",
+  "variant": "debug, matching the existing build workflow",
+  "nativeLibraryAbis": [],
+  "universal": true,
+  "sha256": "6dc7c6882e9c6ed1b2f03c0baca87bae4d4b1868ba6a023eb96260665a3bd390",
+  "signatureVerified": true,
+  "signerCertificateSha256": "6a444da1ca02c5d054a159e9acdb934992acf01e1ce460fa99cdb6365b1b4c42",
+  "repositoryUniversalV1_1SignerCertificateSha256": "221321e0ec00f173ba4f7e12ad91522f6345db4ddc7bbe85199a845dfebd134a",
+  "canUpdateRepositoryUniversalV1_1InPlace": false,
+  "installedStoreApkSignature": "unknown; no ADB device connected",
+  "compatibilityNote": "In-place update requires the installed app to use the same signing key. The repository Universal v1.1 has a different key; the old private key was not available locally. Do not uninstall the store app to bypass this mismatch.",
+  "webDeployment": "Production POS web deployment is separate from this APK build."
+}

@@ -6,6 +6,7 @@ import { invalidateBootstrapCache, parseOperatingHours } from './bootstrap';
 import { invalidateMarketplaceCache } from './marketplace';
 import { customerOrderConfig } from '../utils/order-domain';
 import { createTenantRepository } from '../repositories/tenant.repository';
+import { parseAISettings, validAISettingsPatch } from './ai-settings';
 
 export async function getConfig(
   request: Request,
@@ -66,6 +67,7 @@ export async function getConfig(
 
   return json({
     tenantId,
+    aiSettings: parseAISettings(domainRow.ai_settings, domainRow.ai_order_redirect_enabled),
     liffId: domainRow.liff_id || null,
     ...orderConfig,
     operatingHours,
@@ -128,6 +130,18 @@ export async function updateConfig(
     }
     const tenantRepo = createTenantRepository(env.DB, env.ORDER_STATE, env);
 
+    let aiSettings: string | undefined;
+    let aiOrderRedirectEnabled: boolean | undefined;
+    if (payload.aiSettings !== undefined) {
+      if (!validAISettingsPatch(payload.aiSettings)) return json({ error: 'INVALID_AI_SETTINGS' }, 400);
+      const current = await tenantRepo.getTenantConfigRow(tenantId);
+      if (!current) return json({ error: 'Tenant not found' }, 404);
+      // Persist only changed keys; JSON patch in D1 preserves switches changed by another POS.
+      const { orderRedirect, ...settingsPatch } = payload.aiSettings;
+      aiSettings = JSON.stringify(settingsPatch);
+      aiOrderRedirectEnabled = orderRedirect;
+    }
+
     const hasDineInFeature = tenantCtx ? tenantHasFeature(tenantCtx, 'dine_in') : true;
     let allowDineInVal = payload.allowDineIn !== undefined ? payload.allowDineIn : null;
     if (allowDineInVal && !hasDineInFeature) {
@@ -156,6 +170,8 @@ export async function updateConfig(
       storeAddress: payload.storeAddress,
       announcement: payload.announcement,
       storeNotice,
+      aiSettings,
+      aiOrderRedirectEnabled,
       features: payload.features,
       brandName
     });
@@ -163,6 +179,10 @@ export async function updateConfig(
     await invalidateBootstrapCache(tenantId, env);
     await invalidateMarketplaceCache(env);
 
+    if (aiSettings) {
+      const current = await tenantRepo.getTenantConfigRow(tenantId);
+      return json({ success: true, aiSettings: parseAISettings(current?.ai_settings, current?.ai_order_redirect_enabled) });
+    }
     return json({ success: true });
   } catch (e: any) {
     if (e instanceof HttpError) return json({ error: e.message }, e.status);

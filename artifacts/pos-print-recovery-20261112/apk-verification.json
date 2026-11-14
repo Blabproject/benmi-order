@@ -1,0 +1,27 @@
+{
+  "apk": "artifacts/pos-print-recovery-20261112/Blab-POS-Pilot-1.1.2.apk",
+  "applicationId": "com.benmi.pos.pilot",
+  "versionName": "1.1.2",
+  "versionCode": 30,
+  "sha256": "fa73d730e877ed5315ecd865c1df9ddc71236dd4a0ccb8c4cb2cd01577eee157",
+  "bundledSourcesVerified": [
+    "orders.html",
+    "css/orders.css",
+    "js/printer-service.js",
+    "js/orders-live.js",
+    "js/orders-i18n.js",
+    "js/orders-modals.js",
+    "js/orders-settings.js"
+  ],
+  "validation": {
+    "finalPosReliabilityTests": 16,
+    "nativeIoTests": 4,
+    "frontendStatic": "pass",
+    "cacheBusters": "pass",
+    "releaseBaselineSuitesPassed": 36,
+    "finalReleaseBaselineSuitesPassed": 36,
+    "finalReleaseBaselineEvidence": "artifacts/release-baseline/2026-11-12T13-40-51-180Z"
+  },
+  "physicalPrinterTest": "pending: no ADB device connected",
+  "deployment": "local branch codex/pos-bluetooth-recovery; production not changed"
+}

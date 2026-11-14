@@ -54,6 +54,10 @@
       this.isNative = this.checkIsNative();
       this._printQueue = Promise.resolve();
       this._inFlightOrderKeys = new Set();
+      this._orderPrintQueue = Promise.resolve();
+      this._queuedOrderKeys = new Set();
+      this._pendingBatches = 0;
+      this._recoveredReportTenants = new Set();
       this.isPrinting = false;
       this.activeJobsCount = 0;
       console.log(`[PrinterService] Initialized. Native Bridge: ${this.isNative ? 'ACTIVE ✅' : 'BROWSER FALLBACK 🌐'}`);
@@ -63,21 +67,10 @@
       this.activeJobsCount = (this.activeJobsCount || 0) + 1;
       this._setPrintingState(true);
 
-      const queuedPromise = this._printQueue.then(async () => {
-        try {
-          return await taskFn();
-        } finally {
-          this.activeJobsCount = Math.max(0, (this.activeJobsCount || 1) - 1);
-          if (this.activeJobsCount === 0) {
-            this._setPrintingState(false);
-          }
-        }
-      }).catch(err => {
+      // Release the counter exactly once, including when taskFn rejects.
+      const queuedPromise = this._printQueue.then(taskFn).finally(() => {
         this.activeJobsCount = Math.max(0, (this.activeJobsCount || 1) - 1);
-        if (this.activeJobsCount === 0) {
-          this._setPrintingState(false);
-        }
-        throw err;
+        if (this.activeJobsCount === 0 && !this._pendingBatches) this._setPrintingState(false);
       });
 
       this._printQueue = queuedPromise.catch(() => {});
@@ -88,7 +81,7 @@
       const wasBusy = this.isPrinting;
       this.isPrinting = busy;
       if (typeof window !== 'undefined') {
-        if (typeof document !== 'undefined') {
+        if (typeof document !== 'undefined' && document.querySelectorAll) {
           const printControls = document.querySelectorAll('[data-print-action], #btn-review-quick-print');
           printControls.forEach(el => {
             el.classList.toggle('is-printing', busy);
@@ -107,7 +100,7 @@
             window.updatePrintActionAvailability();
           }
         }
-        if (wasBusy !== busy) {
+        if (wasBusy !== busy && typeof window.dispatchEvent === 'function' && typeof CustomEvent !== 'undefined') {
           window.dispatchEvent(new CustomEvent('pos-printer-state-change', {
             detail: { isPrinting: busy, activeJobsCount: this.activeJobsCount }
           }));
@@ -116,7 +109,7 @@
     }
 
     isPrinterBusy() {
-      return !!(this.isPrinting || (this.activeJobsCount > 0));
+      return !!(this.isPrinting || this._pendingBatches || (this.activeJobsCount > 0));
     }
 
     checkIsNative() {
@@ -246,6 +239,164 @@
       return capabilities.bill && capabilities.stickers;
     }
 
+    printText(key, params = {}) {
+      return typeof t === 'function' ? t(key, params) : key;
+    }
+
+    isPrintPartComplete(state) {
+      return state === 'sent' || state === 'verified';
+    }
+
+    getPrintReports() {
+      const tenant = this.getTenantId();
+      const storageKey = `pos_print_reports_${tenant}`;
+      try {
+        const reports = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        if (!Array.isArray(reports)) return [];
+        if (!this._recoveredReportTenants.has(tenant)) {
+          this._recoveredReportTenants.add(tenant);
+          // Never silently replay work after a WebView restart. The printer may
+          // already have received paper even if the old call never returned.
+          for (const report of reports) {
+            for (const entry of Object.values(report.stations || {})) {
+              if (entry.state === 'sending') entry.state = 'uncertain';
+              else if (entry.state === 'queued') entry.state = 'failed';
+            }
+          }
+          localStorage.setItem(storageKey, JSON.stringify(reports));
+        }
+        return reports;
+      } catch (error) {
+        console.warn('[PrinterService] Cannot read print reports:', error);
+        return [];
+      }
+    }
+
+    savePrintReport(order, patch = {}) {
+      const reports = this.getPrintReports();
+      const index = reports.findIndex(report => report.key === order.key);
+      const previous = index < 0 ? {} : reports.splice(index, 1)[0];
+      const report = { ...previous, key: order.key, displayKey: order.displayKey || previous.displayKey || order.key,
+        updatedAt: Date.now(), ...patch, stations: { ...previous.stations, ...patch.stations } };
+      reports.push(report);
+      try {
+        localStorage.setItem(`pos_print_reports_${this.getTenantId()}`, JSON.stringify(reports.slice(-100)));
+      } catch (error) { console.warn('[PrinterService] Cannot save print report:', error); }
+      this.renderPrintReports();
+      return report;
+    }
+
+    renderPrintReports() {
+      if (typeof document === 'undefined' || !document.querySelectorAll || !document.createElement) return;
+      const reports = this.getPrintReports();
+      document.querySelectorAll('[data-printer-reports]').forEach(container => {
+        const current = typeof reviewingOrder !== 'undefined' ? reviewingOrder?.key : null;
+        const visible = reports.filter(report => container.dataset.printerReports === 'current'
+          ? report.key === current
+          : Object.values(report.stations || {}).some(entry => !this.isPrintPartComplete(entry.state))).slice(-10).reverse();
+        container.replaceChildren();
+        container.hidden = visible.length === 0;
+        for (const report of visible) {
+          const group = document.createElement('div');
+          group.className = 'printer-report';
+          const title = document.createElement('strong');
+          title.textContent = this.printText('printReportOrder', { code: typeof OrderCode !== 'undefined' ? OrderCode.format(report.displayKey) : report.displayKey });
+          group.append(title);
+          for (const [station, entry] of Object.entries(report.stations || {})) {
+            const row = document.createElement('div');
+            row.className = 'printer-report-row';
+            const label = document.createElement('span');
+            const name = this.printText(station === 'cashier' ? 'printStationBill' : 'printStationStickers');
+            label.textContent = `${name}: ${this.printText('printState_' + entry.state)}`;
+            row.append(label);
+            if (entry.state === 'failed' || entry.state === 'uncertain') {
+              const button = document.createElement('button');
+              button.type = 'button'; button.className = 'btn';
+              button.disabled = this._queuedOrderKeys.has(report.key);
+              button.textContent = this.printText('printRetryPart');
+              button.onclick = () => {
+                if (!this.resolveOrder(report.key)) {
+                  this.notifyToast(this.printText('printOrderUnavailable'), 'warning'); return;
+                }
+                if (typeof confirm === 'function' && !confirm(this.printText('printRetryConfirm', { part: name }))) return;
+                void this.printManual(report.key, station);
+              };
+              row.append(button);
+              const verified = document.createElement('button');
+              verified.type = 'button'; verified.className = 'btn';
+              verified.disabled = this._queuedOrderKeys.has(report.key);
+              verified.textContent = this.printText('printVerifyPart');
+              verified.onclick = () => {
+                if (typeof confirm === 'function' && !confirm(this.printText('printVerifyConfirm', { part: name }))) return;
+                this.savePrintReport(report, { stations: { [station]: { state: 'verified' } } });
+                if (this.isOrderAlreadyPrinted(report.key)) this.markOrderAsPrinted(report.key);
+              };
+              row.append(verified);
+            }
+            group.append(row);
+          }
+          container.append(group);
+        }
+      });
+    }
+
+    async dispatchStations(order, stations, settings) {
+      // Queue whole batches, not just individual bitmaps, so two orders cannot
+      // interleave their bill and stickers. Uber runs outside this queue.
+      if (this._queuedOrderKeys.has(order.key)) return { success: false, reason: 'BUSY' };
+      this._queuedOrderKeys.add(order.key);
+      this._pendingBatches++;
+      this._setPrintingState(true);
+      this.savePrintReport(order, {
+        attempted: true,
+        requiredStations: ['cashier', 'kitchen'].filter(station => this.isStationConfigured(station, settings[station])),
+        stations: Object.fromEntries(stations.map(station => [station, { state: 'queued' }]))
+      });
+      const job = this._orderPrintQueue.then(async () => {
+        const results = [];
+        for (const station of stations) {
+          this.savePrintReport(order, { stations: { [station]: { state: 'sending' } } });
+          try {
+            const result = station === 'cashier'
+              ? await this.printCashierReceipt(order, settings[station])
+              : await this.printKitchenTicket(order, settings[station]);
+            this.savePrintReport(order, { stations: { [station]: { state: 'sent' } } });
+            results.push({ station, result });
+          } catch (error) {
+            const unsent = String(error?.code || '').startsWith('BLUETOOTH_CONNECT_') && !error.completedCount;
+            this.savePrintReport(order, { stations: { [station]: { state: unsent ? 'failed' : 'uncertain' } } });
+            results.push({ station, error });
+            console.error('[PrinterService] Station failed:', { orderKey: order.key, station, error });
+          }
+        }
+        const report = this.getPrintReports().find(entry => entry.key === order.key);
+        const required = ['cashier', 'kitchen'].filter(station => this.isStationConfigured(station, settings[station]));
+        if (required.length && required.every(station => this.isPrintPartComplete(report?.stations[station]?.state))) {
+          this.markOrderAsPrinted(order.key);
+          if (order.legacyKey) this.markOrderAsPrinted(order.legacyKey);
+        }
+        return { success: results.every(entry => !entry.error), results };
+      }).finally(() => {
+        this._queuedOrderKeys.delete(order.key);
+        this._pendingBatches--;
+        if (!this._pendingBatches && !this.activeJobsCount) this._setPrintingState(false);
+        this.renderPrintReports();
+      });
+      this._orderPrintQueue = job.catch(() => {});
+      return job;
+    }
+
+    notifyPrintResult(outcome) {
+      if (!outcome?.results?.length) return;
+      const summary = outcome.results.map(entry => this.printText('printPartResult', {
+        part: this.printText(entry.station === 'cashier' ? 'printStationBill' : 'printStationStickers'),
+        state: this.printText(entry.error
+          ? (String(entry.error.code || '').startsWith('BLUETOOTH_CONNECT_') && !entry.error.completedCount ? 'printState_failed' : 'printState_uncertain')
+          : 'printState_sent')
+      })).join('; ');
+      this.notifyToast(summary, outcome.success ? 'success' : 'warning');
+    }
+
     // --- 2. DEDUPLICATION SET (Prevent duplicate auto-printing) ---
     getPrintedOrders() {
       const tenantId = this.getTenantId();
@@ -260,6 +411,11 @@
 
     isOrderAlreadyPrinted(orderKey) {
       if (!orderKey) return false;
+      const report = this.getPrintReports().find(entry => entry.key === orderKey);
+      if (report && Object.keys(report.stations || {}).length) {
+        const required = report.requiredStations || Object.keys(report.stations);
+        return required.length > 0 && required.every(station => this.isPrintPartComplete(report.stations[station]?.state));
+      }
       const printedList = this.getPrintedOrders();
       return printedList.includes(orderKey);
     }
@@ -309,6 +465,7 @@
 
       const key = order.key;
       const legacyKey = order.legacyKey;
+      if (this.getPrintReports().some(report => report.key === key && (report.autoAttempted || report.attempted))) return;
       this._inFlightOrderKeys ||= new Set();
       if (this.isOrderAlreadyPrinted(key) || (legacyKey && this.isOrderAlreadyPrinted(legacyKey))) return;
       if (this._inFlightOrderKeys.has(key) || (legacyKey && this._inFlightOrderKeys.has(legacyKey))) return;
@@ -316,15 +473,18 @@
       this._inFlightOrderKeys.add(key);
       if (legacyKey) this._inFlightOrderKeys.add(legacyKey);
 
+      this.savePrintReport(order, { autoAttempted: true });
       console.log(`[PrinterService] Auto-printing accepted order #${key}...`);
       try {
-        await this.printDualStation(order);
+        const outcome = await this.printDualStation(order);
+        if (outcome?.success) {
+          this.markOrderAsPrinted(key);
+          if (legacyKey) this.markOrderAsPrinted(legacyKey);
+        }
+        this.notifyPrintResult(outcome);
       } catch (err) {
         console.error(`[PrinterService] Auto-print failed for #${key}:`, err);
       } finally {
-        // A failed/offline station may have printed partially. Staff can manually reprint.
-        this.markOrderAsPrinted(key);
-        if (legacyKey) this.markOrderAsPrinted(legacyKey);
         this._inFlightOrderKeys.delete(key);
         if (legacyKey) this._inFlightOrderKeys.delete(legacyKey);
       }
@@ -376,97 +536,20 @@
     // --- 4. PRINT DISPATCHERS ---
     async printDualStation(order) {
       const settings = this.getSettings();
-      const results = [];
-      const isCashierConfigured = this.isStationConfigured('cashier', settings.cashier);
-      const isKitchenConfigured = this.isStationConfigured('kitchen', settings.kitchen);
-
-      // Native printer bridges are not reliably re-entrant. Keep the order deterministic:
-      // bill first, then every sticker for the order.
-      if (isCashierConfigured) {
-        try {
-          results.push({ station: 'cashier', result: await this.printCashierReceipt(order, settings.cashier) });
-        } catch (error) {
-          results.push({ station: 'cashier', error });
-          console.error(`[PrinterService] Cashier print failed for #${order.key}:`, error);
-        }
-      }
-      if (isKitchenConfigured) {
-        try {
-          results.push({ station: 'kitchen', result: await this.printKitchenTicket(order, settings.kitchen) });
-        } catch (error) {
-          results.push({ station: 'kitchen', error });
-          console.error(`[PrinterService] Sticker print failed for #${order.key}:`, error);
-        }
-      }
-
-      if (results.length === 0) {
-        console.warn('[PrinterService] No printer stations are enabled in settings.');
-        return { success: false, reason: 'NO_PRINTERS_ENABLED' };
-      }
-      return { success: results.every(entry => !entry.error), results };
+      const stations = ['cashier', 'kitchen'].filter(station => this.isStationConfigured(station, settings[station]));
+      if (!stations.length) return { success: false, reason: 'NO_PRINTERS_ENABLED' };
+      return this.dispatchStations(order, stations, settings);
     }
 
     async printManual(orderKey, stationTarget = 'all') {
       const order = this.resolveOrder(orderKey);
-      if (!order) {
-        if (typeof showToast === 'function') showToast(`❌ 找不到訂單 ${OrderCode.format(orderKey)}`);
-        return;
-      }
-
+      if (!order) { this.notifyToast(this.printText('printOrderUnavailable'), 'warning'); return; }
       const settings = this.getSettings();
-      const tasks = [];
-      const canPrintBill = this.isStationConfigured('cashier', settings.cashier);
-      const canPrintStickers = this.isStationConfigured('kitchen', settings.kitchen);
-
-      if ((stationTarget === 'all' || stationTarget === 'cashier') && canPrintBill) {
-        tasks.push({ station: 'cashier', run: () => this.printCashierReceipt(order, settings.cashier) });
-      }
-      if ((stationTarget === 'all' || stationTarget === 'kitchen') && canPrintStickers) {
-        tasks.push({ station: 'kitchen', run: () => this.printKitchenTicket(order, settings.kitchen) });
-      }
-
-      if (tasks.length === 0) {
-        this.notifyToast('⚠️ 請先在設定中啟用印表機', 'warning');
-        return;
-      }
-
-      if (this.isPrinterBusy()) {
-        const queueNotice = (typeof t === 'function' && t('printerBusyQueued')) || '⏳ 已加入列印排程，將依序出單...';
-        this.notifyToast(queueNotice, 'info');
-      }
-
-      const results = [];
-      try {
-        this.notifyToast(`🖨️ 正在列印訂單 ${OrderCode.format(order.displayKey || orderKey)}...`, 'info');
-        // Keep manual full-order reprints in the same bill -> stickers order as autoprint,
-        // while isolating per-station errors so an unconfigured/offline station does not block the other.
-        for (const task of tasks) {
-          try {
-            const res = await task.run();
-            results.push({ station: task.station, result: res });
-          } catch (stationErr) {
-            console.error(`[PrinterService] Manual print failed on station [${task.station}]:`, stationErr);
-            results.push({ station: task.station, error: stationErr });
-          }
-        }
-        const succeeded = results.filter(r => !r.error);
-        const failed = results.filter(r => r.error);
-        if (succeeded.length > 0) {
-          this.markOrderAsPrinted(orderKey);
-        }
-        if (failed.length === 0) {
-          this.notifyToast(`✅ 訂單 ${OrderCode.format(order.displayKey || orderKey)} 列印完成！`, 'success');
-        } else if (succeeded.length > 0) {
-          const firstErr = failed[0].error;
-          this.notifyToast(`⚠️ 部分列印完成 (另一台印表機連線失敗: ${firstErr?.message || firstErr})`, 'warning');
-        } else {
-          const firstErr = failed[0].error;
-          this.notifyToast(`❌ 列印失敗: ${firstErr?.message || firstErr}`, 'error');
-        }
-      } catch (err) {
-        console.error('[PrinterService] Manual print failed:', err);
-        this.notifyToast(`❌ 列印失敗: ${err.message || err}`, 'error');
-      }
+      const stations = ['cashier', 'kitchen'].filter(station =>
+        (stationTarget === 'all' || stationTarget === station) && this.isStationConfigured(station, settings[station]));
+      if (!stations.length) { this.notifyToast(this.printText('printDisabledFull'), 'warning'); return; }
+      this.notifyToast(this.printText('printerBusyQueued'), 'info');
+      this.notifyPrintResult(await this.dispatchStations(order, stations, settings));
     }
 
     async printFullOrder(orderKey) {
@@ -826,7 +909,9 @@
           for (let idx = 0; idx < items.length; idx++) {
             const it = items[idx];
             const png = this.drawItemStickerToCanvas(it, order, idx + 1, items.length, dim.widthMm, dim.heightMm, dim.dpi);
-            results.push(await this.transmitReceiptBitmap(png, config, `Kitchen Sticker ${OrderCode.format(order.displayKey || order.key)} (${idx + 1}/${items.length})`));
+            try {
+              results.push(await this.transmitReceiptBitmap(png, config, `Kitchen Sticker ${OrderCode.format(order.displayKey || order.key)} (${idx + 1}/${items.length})`));
+            } catch (error) { error.completedCount = results.length; throw error; }
           }
           return results;
         } else {
@@ -1294,19 +1379,12 @@
               dpi: dim.dpi,
               xOffsetMm: dim.xOffsetMm,
               yOffsetMm: dim.yOffsetMm,
-              timeoutMs: 8000
+              connectTimeoutMs: 8000,
+              writeIdleTimeoutMs: 10000
             };
-            let res;
-            try {
-              res = await plugin.printBluetooth(btPayload);
-            } catch (btErr) {
-              if (String(btErr?.message || btErr).includes('BLUETOOTH_CONNECT') && typeof plugin.getPairedBluetoothDevices === 'function') {
-                await this.getPairedBluetoothDevices();
-                res = await plugin.printBluetooth(btPayload);
-              } else {
-                throw btErr;
-              }
-            }
+            // Native owns cancellation and bounded retries before the first
+            // byte. Racing the promise here would leave an old job transmitting.
+            const res = await plugin.printBluetooth(btPayload);
             console.log(`[PrinterService] ✅ Native Bluetooth print success for [${logTitle}]:`, res);
             return res;
           } else {

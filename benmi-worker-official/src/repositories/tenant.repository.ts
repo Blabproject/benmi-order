@@ -4,6 +4,7 @@ import { normalizeStoreStatus, getTaiwanDateStr, parseStoreNotice } from '../typ
 import type { CustomerOrderDomain, OrderDomainRow } from '../utils/order-domain';
 import { resolveSecret } from '../utils/secrets';
 import { tenantIsDeleted } from '../utils/tenant-lifecycle';
+import { parseAISettings } from '../modules/ai-settings';
 import type {
   TenantRepository,
   TenantConfigRow,
@@ -108,6 +109,7 @@ export function createTenantRepository(
               aiOrderRedirectEnabled: row.ai_order_redirect_enabled === undefined || row.ai_order_redirect_enabled === null
                 ? true
                 : Boolean(row.ai_order_redirect_enabled),
+              aiSettings: parseAISettings(row.ai_settings, row.ai_order_redirect_enabled),
               brandName: row.brand_name || tenantId,
               brandSubtitle: row.brand_subtitle || null,
               brandColor: row.brand_color || '#00b900',
@@ -207,7 +209,7 @@ export function createTenantRepository(
     async getTenantConfigRow(tenantId: string): Promise<TenantConfigRow | null> {
       if (!db) return null;
       return db.prepare(
-        "SELECT operating_hours, allow_scheduled_pickup, allow_dine_in, store_status, liff_id, logo_url, store_address, announcement, store_notice, features, payment_methods, customer_order_domain, legacy_liff_endpoint_url, prep_time_minutes, auto_open_before_minutes FROM tenant_config WHERE tenant_id = ? AND is_active = 1"
+        "SELECT * FROM tenant_config WHERE tenant_id = ? AND is_active = 1"
       ).bind(tenantId).first<TenantConfigRow>();
     },
 
@@ -252,10 +254,12 @@ export function createTenantRepository(
         ? (typeof input.paymentMethods === 'string' ? input.paymentMethods : JSON.stringify(input.paymentMethods))
         : null;
       const brandName = input.brandName || (tenantId === 'benmi' ? 'Benmi 越式法國麵包' : tenantId);
+      const hasAISettings = input.aiSettings !== undefined;
+      const aiBindings = hasAISettings ? [input.aiSettings!, input.aiOrderRedirectEnabled === undefined ? null : (input.aiOrderRedirectEnabled ? 1 : 0)] : [];
 
       await db.prepare(`
-        INSERT INTO tenant_config (tenant_id, brand_name, operating_hours, allow_scheduled_pickup, allow_dine_in, store_status, liff_id, logo_url, store_address, announcement, store_notice, features, prep_time_minutes, payment_methods, auto_open_before_minutes, updated_at)
-        VALUES (?, ?, ?, COALESCE(?, 1), COALESCE(?, 1), COALESCE(?, 'open'), ?, ?, ?, ?, ?, COALESCE(?, '[]'), COALESCE(?, 5), COALESCE(?, '["line_pay"]'), COALESCE(?, 60), CURRENT_TIMESTAMP)
+        INSERT INTO tenant_config (tenant_id, brand_name, operating_hours, allow_scheduled_pickup, allow_dine_in, store_status, liff_id, logo_url, store_address, announcement, store_notice, features, prep_time_minutes, payment_methods, auto_open_before_minutes, ${hasAISettings ? 'ai_settings, ai_order_redirect_enabled,' : ''} updated_at)
+        VALUES (?, ?, ?, COALESCE(?, 1), COALESCE(?, 1), COALESCE(?, 'open'), ?, ?, ?, ?, ?, COALESCE(?, '[]'), COALESCE(?, 5), COALESCE(?, '["line_pay"]'), COALESCE(?, 60), ${hasAISettings ? '?, COALESCE(?, 1),' : ''} CURRENT_TIMESTAMP)
         ON CONFLICT(tenant_id) DO UPDATE SET
           operating_hours = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.operating_hours END,
           allow_scheduled_pickup = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.allow_scheduled_pickup END,
@@ -270,6 +274,8 @@ export function createTenantRepository(
           prep_time_minutes = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.prep_time_minutes END,
           payment_methods = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.payment_methods END,
           auto_open_before_minutes = CASE WHEN ? IS NOT NULL THEN ? ELSE tenant_config.auto_open_before_minutes END,
+          ${hasAISettings ? `ai_settings = json_patch(CASE WHEN json_valid(tenant_config.ai_settings) THEN tenant_config.ai_settings ELSE '{}' END, excluded.ai_settings),
+          ai_order_redirect_enabled = ${input.aiOrderRedirectEnabled === undefined ? 'tenant_config.ai_order_redirect_enabled' : 'excluded.ai_order_redirect_enabled'},` : ''}
           updated_at = CURRENT_TIMESTAMP
       `).bind(
         tenantId,
@@ -287,6 +293,7 @@ export function createTenantRepository(
         prepTimeVal,
         paymentMethodsVal,
         autoOpenBeforeMinutesVal,
+        ...aiBindings,
         opHoursStr, opHoursStr,
         allowPickupInt, allowPickupInt,
         allowDineInInt, allowDineInInt,

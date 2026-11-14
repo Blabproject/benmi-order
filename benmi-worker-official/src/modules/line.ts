@@ -12,6 +12,8 @@ import { callAI, FewShotExample } from '../integrations/groq';
 import { syncToGoogleSheets } from '../integrations/googleSheets';
 import { getTenantId, getMenuData, formatMenuForPrompt } from './menu';
 import { formatOperatingHoursForDisplay } from './bootstrap';
+import { aiReplyEnabled, parseAISettings, type AISettingKey } from './ai-settings';
+import { createTenantRepository } from '../repositories/tenant.repository';
 
 export {
   buildOrderFlexMessage,
@@ -205,8 +207,8 @@ export async function replyWithLiffRedirect(
   tenantCtx?: TenantContext | null
 ): Promise<boolean> {
   const brand = tenantCtx?.brandName || "Bot";
-  if (tenantCtx?.aiOrderRedirectEnabled === false) {
-    console.log(`[${brand}] AI order redirect disabled for tenant=${tenantCtx.tenantId}`);
+  if (!aiReplyEnabled(tenantCtx, 'orderRedirect')) {
+    console.log(`[${brand}] AI order redirect disabled for tenant=${tenantCtx?.tenantId}`);
     return false;
   }
 
@@ -357,9 +359,28 @@ export async function replyWithLiffRedirect(
   }
 }
 
+const QUICK_REPLY_TRIGGERS = {
+  hours: ["營業時間", "幾點開", "開到幾點", "幾點關", "幾點打烊", "有開嗎", "營業到幾點", "什麼時候開", "giờ mở cửa", "thời gian mở cửa", "mở cửa mấy giờ", "mấy giờ mở", "mấy giờ đóng", "có mở cửa", "opening hours", "operating hours", "business hours"],
+  address: ["地址", "在哪", "位置", "在哪裡", "在哪裏", "địa chỉ", "ở đâu", "vị trí", "địa điểm", "address", "location"],
+  delivery: ["外送嗎", "外送", "送外賣", "有外送", "可以外送", "外送服務", "giao hàng", "ship", "có ship không", "phí ship", "delivery"]
+};
+
+export function quickReplyBehaviors(text: string, tenantCtx?: TenantContext | null): Exclude<AISettingKey, 'enabled'>[] {
+  const lower = String(text || '').trim().toLowerCase();
+  const matches: Exclude<AISettingKey, 'enabled'>[] = [];
+  for (const key of ['hours', 'address', 'delivery'] as const) {
+    if (QUICK_REPLY_TRIGGERS[key].some(trigger => lower.includes(trigger))) matches.push(key);
+  }
+  if (tenantCtx?.quickReplies?.some(qr => Array.isArray(qr.triggers) && qr.triggers.some(trigger => trigger && lower.includes(trigger.toLowerCase())))) {
+    matches.push('customReplies');
+  }
+  return matches;
+}
+
 export function handleQuickReply(text: string, tenantCtx?: TenantContext | null): string | null {
   const msg = String(text || "").trim();
   if (!msg) return null;
+  if (!parseAISettings(tenantCtx?.aiSettings).enabled || quickReplyBehaviors(msg, tenantCtx).some(key => !aiReplyEnabled(tenantCtx, key))) return null;
 
   const lowerMsg = msg.toLowerCase();
 
@@ -381,11 +402,7 @@ export function handleQuickReply(text: string, tenantCtx?: TenantContext | null)
   const isVi = isViTrigger || tenantCtx?.locale === 'vi';
 
   // 2. Business / Operating Hours
-  const hoursTriggers = [
-    "營業時間", "幾點開", "開到幾點", "幾點關", "幾點打烊", "有開嗎", "營業到幾點", "什麼時候開",
-    "giờ mở cửa", "thời gian mở cửa", "mở cửa mấy giờ", "mấy giờ mở", "mấy giờ đóng", "có mở cửa",
-    "opening hours", "operating hours", "business hours"
-  ];
+  const hoursTriggers = QUICK_REPLY_TRIGGERS.hours;
   if (hoursTriggers.some(k => lowerMsg.includes(k))) {
     const formatted = formatOperatingHoursForDisplay(
       tenantCtx?.operatingHours,
@@ -396,11 +413,7 @@ export function handleQuickReply(text: string, tenantCtx?: TenantContext | null)
   }
 
   // 3. Address
-  const addressTriggers = [
-    "地址", "在哪", "位置", "在哪裡", "在哪裏",
-    "địa chỉ", "ở đâu", "vị trí", "địa điểm",
-    "address", "location"
-  ];
+  const addressTriggers = QUICK_REPLY_TRIGGERS.address;
   if (addressTriggers.some(k => lowerMsg.includes(k))) {
     if (tenantCtx?.storeAddress) {
       return tenantCtx.storeAddress;
@@ -412,11 +425,7 @@ export function handleQuickReply(text: string, tenantCtx?: TenantContext | null)
   }
 
   // 4. Delivery Policy
-  const deliveryTriggers = [
-    "外送嗎", "外送", "送外賣", "有外送", "可以外送", "外送服務",
-    "giao hàng", "ship", "có ship không", "phí ship",
-    "delivery"
-  ];
+  const deliveryTriggers = QUICK_REPLY_TRIGGERS.delivery;
   if (deliveryTriggers.some(k => lowerMsg.includes(k))) {
     if (tenantCtx?.deliveryPolicy) {
       return normalizeLineText(tenantCtx.deliveryPolicy);
@@ -466,6 +475,20 @@ export async function handleLineWebhook(
   const events = Array.isArray(body.events) ? body.events : [];
   const tenantId = tenantCtx?.tenantId || getTenantId(request);
   const brandName = tenantCtx?.brandName || tenantId;
+
+  // Read the current policy from D1 so a stale tenant KV context cannot undo a POS switch.
+  try {
+    const row = await createTenantRepository(env.DB).getTenantConfigRow(tenantId);
+    if (!row) return Response.json({ error: 'TENANT_CONFIG_UNAVAILABLE' }, { status: 503 });
+    tenantCtx = {
+      ...tenantCtx,
+      tenantId,
+      aiOrderRedirectEnabled: row.ai_order_redirect_enabled !== 0 && row.ai_order_redirect_enabled !== false,
+      aiSettings: parseAISettings(row.ai_settings, row.ai_order_redirect_enabled)
+    } as TenantContext;
+  } catch {
+    return Response.json({ error: 'AI_SETTINGS_UNAVAILABLE' }, { status: 503 });
+  }
 
   for (const event of events) {
     if (!event) continue;
@@ -689,6 +712,7 @@ export async function handleLineWebhook(
       (lowerText.includes("進度") || lowerText.includes("tiến độ") || lowerText.includes("check progress")) &&
       !userText.includes("訂單編號：")
     ) {
+      if (!aiReplyEnabled(tenantCtx, 'orderStatus')) continue;
       let orderKey = "";
       const match = userText.match(/(?:\d{4}-[DT]\d{3,4}|[A-Z0-9]{1,4}\d{4}-[A-Z0-9]{4}|[A-Z0-9]+\d{4}-\d{4}-\d{4}|BD\d+-\d+-\d+)/i);
       if (match) {
@@ -1088,11 +1112,15 @@ export async function handleLineWebhook(
       continue;
     }
 
+    // Consume disabled FAQ matches before drafts or AI can reinterpret them.
+    if (!parseAISettings(tenantCtx?.aiSettings).enabled) continue;
+    if (quickReplyBehaviors(userText, tenantCtx).some(key => !aiReplyEnabled(tenantCtx, key))) continue;
+
     // 0.5) If no pending action exists, a stale draft may be classified for LIFF redirect.
     // Pending actions must win so a change/reject response can never enter the generic order flow.
     const pendingMapBeforeDraft = await getPendingMap(env, tenantId, userId);
     const hasPendingAction = Object.keys(pendingMapBeforeDraft).length > 0;
-    const draftRaw = tenantCtx?.aiOrderRedirectEnabled === false || hasPendingAction
+    const draftRaw = !aiReplyEnabled(tenantCtx, 'orderRedirect') || hasPendingAction
       ? null
       : await env.ORDER_STATE.get(draftKey);
     if (draftRaw) {
@@ -1139,6 +1167,7 @@ export async function handleLineWebhook(
     const pKeys = Object.keys(pMap).sort((a, b) => (pMap[b].createdAt || 0) - (pMap[a].createdAt || 0));
 
     if (pKeys.length > 0) {
+      if (!aiReplyEnabled(tenantCtx, 'pendingOrderReplies')) continue;
       const orderKey = pKeys[0];
       const pending = pMap[orderKey];
       const questionText = pending?.questionText || "";
@@ -1355,7 +1384,7 @@ export async function handleLineWebhook(
     }
 
     // 3) AI fallback - Detect ordering intent and redirect to LIFF
-    if (tenantCtx?.aiOrderRedirectEnabled === false) {
+    if (!aiReplyEnabled(tenantCtx, 'orderRedirect')) {
       continue;
     }
 

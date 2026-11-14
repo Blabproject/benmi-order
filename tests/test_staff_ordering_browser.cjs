@@ -14,13 +14,17 @@ const {chromium,webkit}=require('playwright');
 for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: shared LIFF staff creates, retries, appends and takes away`,async t=>{
  const f=await fixture(t);
  await f.apply("UPDATE tenant_config SET features='[\"dine_in\"]',allow_dine_in=1,allow_scheduled_pickup=0 WHERE tenant_id='a';");
- await f.apply(`UPDATE menu_items SET badge_text='推薦',max_per_order=12 WHERE id='meal-a';
- INSERT INTO menu_items(id,tenant_id,category_id,name,price,badge_text,out_of_stock_until)
- VALUES('sold-a','a','food-a','雞腿肉',70,'熱銷','2099-01-01T00:00:00Z');`);
+ await f.apply(`UPDATE menu_items SET badge_text='推薦',max_per_order=12,sort_order=0 WHERE id='meal-a';
+ INSERT INTO menu_items(id,tenant_id,category_id,name,price,badge_text,sort_order,out_of_stock_until)
+ VALUES('sold-a','a','food-a','雞腿肉',70,'熱銷',1,'2099-01-01T00:00:00Z'),
+ ('opt-a','a','food-a','Cơm',60,NULL,2,NULL);`);
  await f.apply(`INSERT INTO modifier_groups(id,tenant_id,name,selection_type,is_required,min_selection,max_selection,scope)
- VALUES('sauce-a','a','Sauce','single',1,1,1,'item');
- INSERT INTO modifier_options(id,tenant_id,group_id,name,price,is_default) VALUES('sauce-choice','a','sauce-a','Sauce choice',10,0);
- INSERT INTO item_modifier_links(tenant_id,item_id,group_id) VALUES('a','meal-a','sauce-a');`);
+ VALUES('sauce-a','a','Sauce','single',1,1,1,'item'),
+ ('opt-group-a','a','Lượng cơm','single',0,0,1,'item');
+ INSERT INTO modifier_options(id,tenant_id,group_id,name,price,is_default) VALUES
+ ('sauce-choice','a','sauce-a','Sauce choice',10,0),
+ ('rice-less','a','opt-group-a','Ít cơm',0,0);
+ INSERT INTO item_modifier_links(tenant_id,item_id,group_id) VALUES('a','meal-a','sauce-a'),('a','opt-a','opt-group-a');`);
  await f.apply(`INSERT INTO modifier_groups(id,tenant_id,name,selection_type,is_required,min_selection,max_selection,scope)
  VALUES('order-flavor','a','Khẩu vị','single',0,0,1,'order'),('order-extra','a','Dùng kèm','multiple',0,0,2,'order');
  INSERT INTO modifier_options(id,tenant_id,group_id,name,price,is_default) VALUES
@@ -143,6 +147,19 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  orders=await f.DB.prepare("SELECT * FROM orders WHERE tenant_id='a'").all();assert.equal(orders.results.length,2);
  await page.setViewportSize({width:390,height:844});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ {
+  const mobileCart=await page.locator('#cart-summary').boundingBox();
+  assert(mobileCart&&mobileCart.height>=40,`Mobile standalone #cart-summary must not collapse: ${JSON.stringify(mobileCart)}`);
+  await page.locator('#staff-note-toggle').scrollIntoViewIfNeeded();
+  const scrollMetrics=await page.evaluate(()=>({
+   scrollTop:document.scrollingElement.scrollTop,
+   scrollHeight:document.scrollingElement.scrollHeight,
+   clientHeight:document.scrollingElement.clientHeight,
+   noteBottom:document.getElementById('staff-note-toggle').getBoundingClientRect().bottom,
+   submitTop:document.querySelector('.desktop-sidebar-submit-wrap').getBoundingClientRect().top
+  }));
+  assert(scrollMetrics.noteBottom<=scrollMetrics.submitTop+1,`Mobile standalone order content overlaps submit footer: ${JSON.stringify(scrollMetrics)}`);
+ }
  fs.mkdirSync('artifacts/staff-liff-local',{recursive:true});
  await page.screenshot({path:`artifacts/staff-liff-local/${name}-mobile.png`,fullPage:true});
  await page.evaluate(()=>{localStorage.setItem('staff_order_lang','zh-TW');setCustomerDiningOption('dine_in');});
@@ -209,6 +226,24 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  await page.evaluate(()=>localStorage.setItem('staff_order_lang','vi'));
  await page.goto(`http://127.0.0.1:${server.address().port}/staff-order.html?tenant_id=a&env=dev`);
  await page.waitForFunction(()=>window.StaffOrder?.ready());
+ assert.equal(await page.locator('#item-food-Meal .staff-tile-opt-btn').count(),0);
+ assert.equal(await page.locator('#item-food-Cơm .staff-tile-req').count(),0);
+ assert.equal(await page.locator('#item-food-Cơm .staff-tile-opt-btn').isVisible(),true);
+ assert.match(await page.locator('#item-food-Cơm .staff-tile-opt-btn').innerText(),/Tùy chọn/);
+ await page.locator('#item-food-Cơm .staff-tile-opt-btn').click();
+ assert.equal(await page.locator('#unified-option-modal').isVisible(),true);
+ assert.equal(await page.evaluate(()=>cart.food_Cơm||0),0);
+ await page.locator('#unified-option-modal [data-choose]').first().click();
+ await page.locator('#unified-option-modal [data-confirm]').click();
+ assert.equal(await page.locator('#unified-option-modal').isVisible(),false);
+ assert.equal(await page.evaluate(()=>cart.food_Cơm),1);
+ assert.equal(await page.locator('#item-food-Cơm .staff-tile-qty').innerText(),'×1');
+ await page.locator('#item-food-Cơm .card-main').click();
+ assert.equal(await page.locator('#unified-option-modal').isVisible(),false);
+ assert.equal(await page.evaluate(()=>cart.food_Cơm),2);
+ await page.locator('#item-food-Cơm .staff-tile-opt-btn').click();
+ assert.equal(await page.locator('#unified-option-modal').isVisible(),true);
+ await page.locator('#unified-option-modal [data-close]').click();
  assert.equal(await page.evaluate(()=>window.currentDiningOption),'takeaway');
  assert.equal(await page.locator('#dinein-table-input-group').isVisible(),false);
  assert.equal(await page.locator('#dining-option-wrapper').isVisible(),false);
@@ -261,6 +296,27 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
   assert.equal(await staffFrame.locator('#staff-bar-legend').isVisible(),false);
   const submitBox=await staffFrame.locator('#btn-desktop-submit').boundingBox();
   assert(submitBox.y+submitBox.height<=viewport.height+1,`Embedded staff submit outside ${JSON.stringify({viewport,submitBox})}`);
+  if(viewport.width===390){
+   const frameMetrics=await page.evaluate(()=>{
+    const ifr=document.getElementById('staff-order-iframe');
+    const doc=ifr.contentDocument;
+    const win=ifr.contentWindow;
+    win.scrollTo(0,doc.scrollingElement.scrollHeight);
+    return {
+     cartHeight:doc.getElementById('cart-summary').getBoundingClientRect().height,
+     scrollHeight:doc.scrollingElement.scrollHeight,
+     clientHeight:doc.scrollingElement.clientHeight,
+     scrollTop:doc.scrollingElement.scrollTop,
+     noteBottom:doc.getElementById('staff-note-toggle').getBoundingClientRect().bottom,
+     submitTop:doc.querySelector('.desktop-sidebar-submit-wrap').getBoundingClientRect().top
+    };
+   });
+   assert(frameMetrics.cartHeight>=40,`Embedded mobile #cart-summary collapsed: ${JSON.stringify(frameMetrics)}`);
+   if(frameMetrics.scrollHeight>frameMetrics.clientHeight){
+    assert(frameMetrics.scrollTop>0,`Embedded mobile staff frame did not scroll: ${JSON.stringify(frameMetrics)}`);
+   }
+   assert(frameMetrics.noteBottom<=frameMetrics.submitTop+1,`Embedded mobile order content overlaps submit footer: ${JSON.stringify(frameMetrics)}`);
+  }
   await page.screenshot({path:`artifacts/staff-order-review-20261108/${name}-pos-${viewport.width}-summary.png`});
  }
  assert.deepEqual(errors,[]);

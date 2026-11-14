@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * ThermalPrinterPlugin
@@ -388,8 +389,38 @@ public class ThermalPrinterPlugin extends Plugin {
      * - paperWidth: int (80 or 58, default: 80)
      * - autoCut: boolean (default: true)
      */
+    private BluetoothSocket connectBluetooth(BluetoothDevice device, int timeoutMs) throws Exception {
+        Exception lastError = null;
+        // Two bounded attempts, with a short handover gap. Neither sends print
+        // bytes, so a retry here cannot duplicate a receipt already transmitted.
+        for (int attempt = 0; attempt < 2; attempt++) {
+            BluetoothSocket candidate = null;
+            try {
+                if (attempt == 0) candidate = device.createRfcommSocketToServiceRecord(SPP_UUID);
+                else {
+                    Thread.sleep(750);
+                    candidate = (BluetoothSocket) device.getClass().getMethod("createRfcommSocket", int.class).invoke(device, 1);
+                }
+                if (candidate == null) throw new Exception("No RFCOMM socket");
+                final BluetoothSocket connection = candidate;
+                BoundedPrinterIo.run(connection, timeoutMs, connection::connect);
+                return candidate;
+            } catch (Exception error) {
+                lastError = error;
+                if (candidate != null) { try { candidate.close(); } catch (Exception ignored) { } }
+            }
+        }
+        throw new Exception("Bluetooth connection unavailable after two attempts", lastError);
+    }
+
+    private int boundedTimeout(Integer value, int fallback) {
+        return value == null ? fallback : Math.max(1000, Math.min(15000, value));
+    }
+
     @PluginMethod
     public void printBluetooth(PluginCall call) {
+        final int connectTimeoutMs = boundedTimeout(call.getInt("connectTimeoutMs"), 8000);
+        final int writeTimeoutMs = boundedTimeout(call.getInt("writeIdleTimeoutMs"), 10000);
         String macAddress = call.getString("macAddress");
         String base64Image = call.getString("base64Image");
         String base64Data = call.getString("data");
@@ -414,9 +445,15 @@ public class ThermalPrinterPlugin extends Plugin {
         }
 
         executor.execute(() -> {
-            BT_PRINT_LOCK.lock();
             BluetoothSocket socket = null;
+            boolean locked = false;
+            boolean sending = false;
             try {
+                locked = BT_PRINT_LOCK.tryLock(15, TimeUnit.SECONDS);
+                if (!locked) {
+                    call.reject("Printer queue busy; no data sent", "BLUETOOTH_CONNECT_BUSY");
+                    return;
+                }
                 BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
                 if (adapter == null || !adapter.isEnabled()) {
                     call.reject("Bluetooth adapter is not available or disabled.");
@@ -465,22 +502,8 @@ public class ThermalPrinterPlugin extends Plugin {
                     printBytes = Base64.decode(base64Data, Base64.DEFAULT);
                 }
 
-                // Connect to SPP Socket (Standard UUID or reflection fallback)
-                try {
-                    socket = device.createRfcommSocketToServiceRecord(SPP_UUID);
-                    socket.connect();
-                } catch (Exception e1) {
-                    try {
-                        socket = (BluetoothSocket) device.getClass().getMethod("createRfcommSocket", new Class[]{int.class}).invoke(device, 1);
-                        if (socket != null) {
-                            socket.connect();
-                        } else {
-                            throw e1;
-                        }
-                    } catch (Exception e2) {
-                        throw new Exception("Bluetooth RFCOMM connection failed to " + macAddress + " (" + e1.getMessage() + ")");
-                    }
-                }
+                socket = connectBluetooth(device, connectTimeoutMs);
+                final BluetoothSocket connection = socket;
 
                 // 1. Warm-up delay: Allow Bluetooth SPP UART bridge on thermal printer (e.g. BK3231/CSR on Xprinter)
                 // to settle baud rate and establish reliable serial handshake before transmitting first bytes
@@ -491,8 +514,11 @@ public class ThermalPrinterPlugin extends Plugin {
                 // 2. Buffer sanitization: Send CAN (0x18) to clear any lingering corrupted bytes
                 // and ESC @ (0x1B, 0x40) to guarantee clean printer initialization
                 if (!"tspl".equalsIgnoreCase(protocol)) {
-                    outputStream.write(new byte[]{0x18, 0x1B, 0x40});
-                    outputStream.flush();
+                    sending = true;
+                    BoundedPrinterIo.run(connection, writeTimeoutMs, () -> {
+                        outputStream.write(new byte[]{0x18, 0x1B, 0x40});
+                        outputStream.flush();
+                    });
                     try { Thread.sleep(50); } catch (InterruptedException ignored) {}
                 }
 
@@ -502,13 +528,17 @@ public class ThermalPrinterPlugin extends Plugin {
                 final int chunkSize = 512;
                 for (int i = 0; i < printBytes.length; i += chunkSize) {
                     int len = Math.min(chunkSize, printBytes.length - i);
-                    outputStream.write(printBytes, i, len);
-                    outputStream.flush();
+                    final int offset = i;
+                    sending = true;
+                    BoundedPrinterIo.run(connection, writeTimeoutMs, () -> {
+                        outputStream.write(printBytes, offset, len);
+                        outputStream.flush();
+                    });
                     if (i + chunkSize < printBytes.length) {
                         try { Thread.sleep(35); } catch (InterruptedException ignored) {}
                     }
                 }
-                outputStream.flush();
+                BoundedPrinterIo.run(connection, writeTimeoutMs, outputStream::flush);
 
                 // 4. Drain wait: Wait for mechanical printhead to complete burning and paper feeding
                 // before closing the RFCOMM connection to avoid truncating printhead buffer.
@@ -524,12 +554,13 @@ public class ThermalPrinterPlugin extends Plugin {
                 ret.put("bytesWritten", printBytes.length);
                 call.resolve(ret);
             } catch (Exception e) {
-                call.reject("Bluetooth print failed to " + macAddress + " - " + e.getMessage(), e);
+                call.reject("Bluetooth print failed to " + macAddress + " - " + e.getMessage(),
+                    sending ? "BLUETOOTH_SEND_UNCERTAIN" : "BLUETOOTH_CONNECT_FAILED", e);
             } finally {
                 if (socket != null) {
                     try { socket.close(); } catch (Exception ignored) {}
                 }
-                BT_PRINT_LOCK.unlock();
+                if (locked) BT_PRINT_LOCK.unlock();
             }
         });
     }
@@ -546,9 +577,11 @@ public class ThermalPrinterPlugin extends Plugin {
         }
 
         executor.execute(() -> {
-            BT_PRINT_LOCK.lock();
             BluetoothSocket socket = null;
+            boolean locked = false;
             try {
+                locked = BT_PRINT_LOCK.tryLock(15, TimeUnit.SECONDS);
+                if (!locked) { call.reject("Printer queue busy", "BLUETOOTH_CONNECT_BUSY"); return; }
                 BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
                 if (adapter == null || !adapter.isEnabled()) {
                     call.reject("Bluetooth is disabled or not available.");
@@ -565,21 +598,7 @@ public class ThermalPrinterPlugin extends Plugin {
                 adapter.cancelDiscovery();
                 BluetoothDevice device = adapter.getRemoteDevice(macAddress.trim().toUpperCase());
 
-                try {
-                    socket = device.createRfcommSocketToServiceRecord(SPP_UUID);
-                    socket.connect();
-                } catch (Exception e1) {
-                    try {
-                        socket = (BluetoothSocket) device.getClass().getMethod("createRfcommSocket", new Class[]{int.class}).invoke(device, 1);
-                        if (socket != null) {
-                            socket.connect();
-                        } else {
-                            throw e1;
-                        }
-                    } catch (Exception e2) {
-                        throw new Exception("Bluetooth RFCOMM connection failed: " + e1.getMessage());
-                    }
-                }
+                socket = connectBluetooth(device, 8000);
 
                 JSObject ret = new JSObject();
                 ret.put("success", true);
@@ -592,7 +611,7 @@ public class ThermalPrinterPlugin extends Plugin {
                 if (socket != null) {
                     try { socket.close(); } catch (Exception ignored) {}
                 }
-                BT_PRINT_LOCK.unlock();
+                if (locked) BT_PRINT_LOCK.unlock();
             }
         });
     }
