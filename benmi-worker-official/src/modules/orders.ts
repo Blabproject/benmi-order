@@ -565,7 +565,8 @@ export async function createOrder(
       ctx,
       tenantCtx,
       isDesktopOrder,
-      clientCustomizations
+      clientCustomizations,
+      (data as any).customer_locale || (data as any).customerLocale
     );
   }
 
@@ -616,7 +617,7 @@ export async function createOrder(
     try {
       receipt = await prepareOrderReceipt(env, tenantId, order.key, order.userId, 'create',
         `[${tenantCtx?.brandName || "Benmi"}] 訂單明細 ${OrderCode.format(order.displayKey || order.key)}`,
-        buildOrderFlexMessage(order, tenantCtx, rawItems, data.customizations));
+        buildOrderFlexMessage(order, tenantCtx, rawItems, data.customizations, (data as any).customer_locale || (data as any).customerLocale));
       if (rawItems.length > 0 && env.DB) {
         let tableId: string | null = null;
         if (order.tableNumber && env.DB) {
@@ -712,7 +713,8 @@ export async function executeAppendOrderInternal(
   ctx?: ExecutionContext,
   tenantCtx?: TenantContext | null,
   isDesktop?: boolean,
-  customizations: any[] = []
+  customizations: any[] = [],
+  customerLocale?: string | null
 ): Promise<Response> {
   const resolvedParentKey = await resolveOrderKey(env, tenantId, parentKey);
   if (!resolvedParentKey) return json({ error: 'Order not found', code: 'ORDER_NOT_FOUND' }, 404);
@@ -852,7 +854,7 @@ export async function executeAppendOrderInternal(
 
   const receipt = await prepareOrderReceipt(env, tenantId, parentKey, updatedOrder.userId, 'append',
     `[${tenantCtx?.brandName || "Benmi"}] 現場加點確認 (第 ${nextRound} 輪)`,
-    buildAppendConfirmationFlexMessage(updatedOrder, appendedContent, appendedTotal, nextRound, tenantCtx, rawItems));
+    buildAppendConfirmationFlexMessage(updatedOrder, appendedContent, appendedTotal, nextRound, tenantCtx, rawItems, customerLocale));
 
   // 6. Persist to D1: Luôn chuyển trạng thái về NEW khi gọi thêm món để POS hiển thị ở cột Mới và phát chuông báo
   if (rawItems.length > 0) {
@@ -985,7 +987,8 @@ export async function appendOrder(
       ctx,
       tenantCtx,
       isDesktop,
-      Array.isArray((payload as any).customizations) ? (payload as any).customizations : []
+      Array.isArray((payload as any).customizations) ? (payload as any).customizations : [],
+      (payload as any).customer_locale || (payload as any).customerLocale
     );
   } catch (e: any) {
     console.error("[appendOrder] Error:", e);

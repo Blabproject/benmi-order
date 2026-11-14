@@ -14,11 +14,65 @@
           "'": "&#39;",
         })[c],
     );
-  const vi = () =>
-    (typeof currentLocale !== "undefined"
-      ? currentLocale
-      : document.documentElement.lang) === "vi";
-  const msg = (zh, vn) => (vi() ? vn : zh);
+  const _UOC_VI_FALLBACKS = {
+    bundle_included: "Có sẵn trong món",
+    uoc_pick_exact: "Chọn {min}",
+    uoc_pick_range: "Chọn {min}–{max}",
+    sold_out: "Hết món",
+    uoc_not_customized: "Chưa tùy chọn",
+    uoc_complete_required: "Chọn mục bắt buộc",
+    customize_btn: "Tùy chỉnh",
+    uoc_min_subtotal_not_met: "Chưa đạt tối thiểu",
+    uoc_decrease: "Giảm",
+    uoc_increase: "Tăng",
+    uoc_select: "Chọn",
+    uoc_unavailable: "Không còn khả dụng",
+    uoc_remove: "Xóa",
+    uoc_selected_prefix: "Đã chọn",
+    uoc_empty_options: "Không có lựa chọn",
+    btn_back: "Quay lại",
+    portion_add_new: "+ Thêm phần mới",
+    portion_n: "Phần {n}",
+    wizard_steps_aria: "Chọn bước",
+    loading_options: "Đang tải tùy chọn…",
+    copy_prev_choice: "Sao chép lựa chọn của phần trước",
+    individual_note: "Ghi chú riêng",
+    note_short_placeholder: "Khẩu vị / ghi chú",
+    btn_done: "Xong",
+    btn_next: "Tiếp",
+    confirm_with_price: "Xác nhận · ${price}",
+    btn_close: "Đóng",
+    opt_err_check_required_oos: "Vui lòng kiểm tra mục bắt buộc và lựa chọn đã hết",
+  };
+  const activeLang = () =>
+    window.currentClientLocale ||
+    (typeof currentLocale !== "undefined" ? currentLocale : "") ||
+    window.currentLocale ||
+    document.documentElement.lang ||
+    "zh-TW";
+  const msg = (zh, vn) => (activeLang() === "vi" ? vn : zh);
+  const t = (key, vars, zhFallback, viFallback) => {
+    if (typeof window.ct === "function") return window.ct(key, vars);
+    let tpl = activeLang() === "vi"
+      ? (viFallback !== undefined ? viFallback : (_UOC_VI_FALLBACKS[key] || zhFallback))
+      : zhFallback;
+    if (typeof tpl === "string" && vars && typeof vars === "object") {
+      tpl = tpl.replace(/\{([a-zA-Z0-9_]+)\}/g, (_, k) => (vars[k] !== undefined && vars[k] !== null ? String(vars[k]) : ""));
+    }
+    return tpl;
+  };
+  const loc = (entity, field, fallback) =>
+    typeof window.locText === "function"
+      ? window.locText(entity, field, fallback)
+      : fallback !== undefined
+        ? fallback
+        : entity?.[field] || "";
+  const locSub = (opt, sub) =>
+    typeof window.locSubOptionText === "function"
+      ? window.locSubOptionText(opt, sub)
+      : typeof sub === "object"
+        ? sub.name || ""
+        : String(sub || "");
   const options = (g) => g.eligibleItems || g.options || [];
   const minimum = (g) =>
     g.included
@@ -237,12 +291,13 @@
   const copy = (value) => JSON.parse(JSON.stringify(value));
   const priceLabel = (value) => `+$${Number(value || 0)}`;
   function groupHint(g) {
-    if (g.included) return msg("已包含", "Có sẵn trong món");
+    if (g.included) return t("bundle_included", null, "已包含");
     return minimum(g) === maximum(g)
-      ? msg(`選擇 ${minimum(g)} 樣`, `Chọn ${minimum(g)}`)
-      : msg(
+      ? t("uoc_pick_exact", { min: minimum(g) }, `選擇 ${minimum(g)} 樣`)
+      : t(
+          "uoc_pick_range",
+          { min: minimum(g), max: maximum(g) },
           `選擇 ${minimum(g)}–${maximum(g)} 樣`,
-          `Chọn ${minimum(g)}–${maximum(g)}`,
         );
   }
   function child(path) {
@@ -263,7 +318,8 @@
           (value) => (value.id || value.name) === (sub.id || sub.name || sub),
         );
         const unavailable = sub.isOutOfStock || sub.isOos;
-        return `<label class="modifier-checkbox-chip ${chosen ? "active" : ""}"><input type="checkbox" data-sub="${path}" data-index="${index}" ${unavailable && !chosen ? "disabled" : ""} ${chosen ? "checked" : ""}><span class="uoc-sub-label"><span class="uoc-sub-name">${esc(sub.name || sub)}${unavailable ? ` · ${esc(msg("已售完", "Hết món"))}` : ""}</span>${Number(sub.price) ? ` <small class="uoc-sub-price">${priceLabel(sub.price)}</small>` : ""}</span></label>`;
+        const subDisplayName = locSub(option, sub);
+        return `<label class="modifier-checkbox-chip ${chosen ? "active" : ""}"><input type="checkbox" data-sub="${path}" data-index="${index}" ${unavailable && !chosen ? "disabled" : ""} ${chosen ? "checked" : ""}><span class="uoc-sub-label"><span class="uoc-sub-name">${esc(subDisplayName)}${unavailable ? ` · ${esc(t("sold_out", null, "已售完"))}` : ""}</span>${Number(sub.price) ? ` <small class="uoc-sub-price">${priceLabel(sub.price)}</small>` : ""}</span></label>`;
       })
       .join("")}</div>`;
   }
@@ -322,18 +378,27 @@
     const chips = simpleGroup(g),
       total = selection.items.length;
     const inlineChildren = chips && options(g).some(o => (o.subOptions || []).length > 0);
-    const title = `<div class="modifier-group-title"><span>${esc(g.name)}</span><span class="${minimum(g) ? "modifier-required-badge" : "modifier-optional-badge"}">${esc(groupHint(g))}</span></div>`;
+    const groupDisplayName = loc(g, "name", g.name);
+    const title = `<div class="modifier-group-title"><span>${esc(groupDisplayName)}</span><span class="${minimum(g) ? "modifier-required-badge" : "modifier-optional-badge"}">${esc(groupHint(g))}</span></div>`;
     const details = (o, item, si) => {
       const path = `${key}.${si}`,
-        label = `${item.name}${g.allowRepeats || g.included ? ` · ${si + 1}` : ""}`;
+        oDisplayName = loc(o, "name", item.name),
+        label = `${oDisplayName}${g.allowRepeats || g.included ? ` · ${si + 1}` : ""}`;
       const subs = (o.subOptions || []).length
         ? `<div class="uoc-inline-subs" role="group" aria-label="${esc(label)}">${inlineChildren ? '' : `<strong>${esc(label)}</strong>`}${drawSubs(o, item, path)}</div>`
         : "";
       if (!(o.optionGroups || []).length) return subs;
       const names = (item.groups || [])
-        .flatMap((group) => group.items.map((choice) => choice.name))
+        .flatMap((group, gi2) => {
+          const childDef = (o.optionGroups || [])[gi2];
+          const childOpts = childDef ? options(childDef) : [];
+          return group.items.map((choice) => {
+            const matchedOpt = childOpts.find(co => co.id === (choice.optionId || choice.itemId));
+            return matchedOpt ? loc(matchedOpt, "name", choice.name) : choice.name;
+          });
+        })
         .join("、");
-      return `${subs}<div class="bundle-v2-detail"><div><strong>${esc(label)}</strong><small class="bundle-v2-mod-labels">${esc(names || msg("尚未自訂", "Chưa tùy chỉnh"))}</small>${invalid(o.optionGroups, item.groups) ? `<small class="bundle-v2-mod-pending">${esc(msg("請完成必選項目", "Cần chọn đủ"))}</small>` : ""}</div><button type="button" class="bundle-v2-mod-btn" data-child="${path}">${esc(msg("自訂", "Tùy chỉnh"))}</button></div>`;
+      return `${subs}<div class="bundle-v2-detail"><div><strong>${esc(label)}</strong><small class="bundle-v2-mod-labels">${esc(names || t("uoc_not_customized", null, "尚未自訂"))}</small>${invalid(o.optionGroups, item.groups) ? `<small class="bundle-v2-mod-pending">${esc(t("uoc_complete_required", null, "請完成必選項目"))}</small>` : ""}</div><button type="button" class="bundle-v2-mod-btn" data-child="${path}">${esc(t("customize_btn", null, "客製化"))}</button></div>`;
     };
     const rows = options(g)
       .map((o, oi) => {
@@ -350,14 +415,15 @@
             (!g.allowRepeats && chosen);
         const warning = blocked
           ? o.isOutOfStock
-            ? msg("已售完", "Hết món")
+            ? t("sold_out", null, "已售完")
             : (o.eligibilityRules || []).find(
                 (r) => Number(r.min_order_subtotal) > merchandiseSubtotal(),
               )?.error_message ||
-              msg("未達最低餐點金額", "Chưa đạt giá trị món tối thiểu")
+              t("uoc_min_subtotal_not_met", null, "未達最低餐點金額")
           : "";
+        const optDisplayName = loc(o, "name", o.name);
         if (chips) {
-          const choice = `<button type="button" class="${maximum(g) === 1 ? "modifier-pill" : "modifier-checkbox-chip"} ${chosen ? "active" : ""}" data-choose="${key}" data-option="${oi}" aria-pressed="${Boolean(chosen)}" ${blocked || (full && !chosen && maximum(g) !== 1) ? "disabled" : ""}><span class="uoc-choice-name">${esc(o.name)}</span>${Number(o.price) ? `<small class="uoc-choice-price">${priceLabel(o.price)}</small>` : ""}${warning ? `<small class="uoc-choice-warning">${esc(warning)}</small>` : ""}</button>`;
+          const choice = `<button type="button" class="${maximum(g) === 1 ? "modifier-pill" : "modifier-checkbox-chip"} ${chosen ? "active" : ""}" data-choose="${key}" data-option="${oi}" aria-pressed="${Boolean(chosen)}" ${blocked || (full && !chosen && maximum(g) !== 1) ? "disabled" : ""}><span class="uoc-choice-name">${esc(optDisplayName)}</span>${Number(o.price) ? `<small class="uoc-choice-price">${priceLabel(o.price)}</small>` : ""}${warning ? `<small class="uoc-choice-warning">${esc(warning)}</small>` : ""}</button>`;
           return inlineChildren
             ? `<div class="uoc-option-entry">${choice}${selected.map(({ item, si }) => details(o, item, si)).join("")}</div>`
             : choice;
@@ -366,18 +432,18 @@
         const image = context.images.get(imageSrc)?.state === "ready"
           ? `<img class="uoc-item-image" src="${esc(imageSrc)}" alt="" width="48" height="48">`
           : "";
-        return `<div class="uoc-option-entry"><div class="bundle-item-card ${chosen ? "selected" : ""} ${blocked ? "sold-out" : ""}"><div class="bundle-item-info">${image}<div><span>${esc(o.name)}</span><small>${priceLabel(o.price)}${warning ? ` · ${esc(warning)}` : ""}</small></div></div><div class="bundle-stepper">${g.included ? `<span class="bundle-v2-badge-fixed">×${chosen}</span>` : chosen ? `<button type="button" class="bundle-btn-minus" data-minus="${key}" data-option="${oi}" aria-label="${esc(msg("減少", "Giảm") + " " + o.name)}">−</button><span class="bundle-qty-val">${chosen}</span><button type="button" class="bundle-btn-plus" data-add="${key}" data-option="${oi}" ${addDisabled ? "disabled" : ""} aria-label="${esc(msg("增加", "Tăng") + " " + o.name)}">+</button>` : `<button type="button" class="bundle-btn-add" data-add="${key}" data-option="${oi}" ${addDisabled ? "disabled" : ""} aria-label="${esc(msg("選擇", "Chọn") + " " + o.name)}">+</button>`}</div></div>${selected.map(({ item, si }) => details(o, item, si)).join("")}</div>`;
+        return `<div class="uoc-option-entry"><div class="bundle-item-card ${chosen ? "selected" : ""} ${blocked ? "sold-out" : ""}"><div class="bundle-item-info">${image}<div><span>${esc(optDisplayName)}</span><small>${priceLabel(o.price)}${warning ? ` · ${esc(warning)}` : ""}</small></div></div><div class="bundle-stepper">${g.included ? `<span class="bundle-v2-badge-fixed">×${chosen}</span>` : chosen ? `<button type="button" class="bundle-btn-minus" data-minus="${key}" data-option="${oi}" aria-label="${esc(t("uoc_decrease", null, "減少") + " " + optDisplayName)}">−</button><span class="bundle-qty-val">${chosen}</span><button type="button" class="bundle-btn-plus" data-add="${key}" data-option="${oi}" ${addDisabled ? "disabled" : ""} aria-label="${esc(t("uoc_increase", null, "增加") + " " + optDisplayName)}">+</button>` : `<button type="button" class="bundle-btn-add" data-add="${key}" data-option="${oi}" ${addDisabled ? "disabled" : ""} aria-label="${esc(t("uoc_select", null, "選擇") + " " + optDisplayName)}">+</button>`}</div></div>${selected.map(({ item, si }) => details(o, item, si)).join("")}</div>`;
       })
       .join("");
     const detachedDetails = selection.items
       .map((item, si) => {
         const o = options(g).find((o) => o.id === item.optionId);
         if (!o)
-          return `<div class="bundle-v2-detail"><span>${esc(item.name)} · ${esc(msg("已無法選擇", "Không còn khả dụng"))}</span><button type="button" data-remove="${key}" data-index="${si}" ${g.included ? "disabled" : ""}>${esc(msg("移除", "Gỡ"))}</button></div>`;
+          return `<div class="bundle-v2-detail"><span>${esc(item.name)} · ${esc(t("uoc_unavailable", null, "已無法選擇"))}</span><button type="button" data-remove="${key}" data-index="${si}" ${g.included ? "disabled" : ""}>${esc(t("uoc_remove", null, "移除"))}</button></div>`;
         return chips && !inlineChildren ? details(o, item, si) : "";
       })
       .join("");
-    return `<section class="uoc-group" data-group="${key}">${title}${!chips ? `<p class="uoc-count">${esc(msg("已選", "Đã chọn"))} ${total}/${maximum(g)}</p>` : ""}<div class="${chips ? (maximum(g) === 1 ? "modifier-pills-row" : "modifier-checkbox-grid") : "uoc-items"}${inlineChildren ? " uoc-inline-choices" : ""}">${rows || `<p>${esc(msg("目前沒有可選項目", "Chưa có lựa chọn"))}</p>`}</div>${detachedDetails}</section>`;
+    return `<section class="uoc-group" data-group="${key}">${title}${!chips ? `<p class="uoc-count">${esc(t("uoc_selected_prefix", null, "已選"))} ${total}/${maximum(g)}</p>` : ""}<div class="${chips ? (maximum(g) === 1 ? "modifier-pills-row" : "modifier-checkbox-grid") : "uoc-items"}${inlineChildren ? " uoc-inline-choices" : ""}">${rows || `<p>${esc(t("uoc_empty_options", null, "目前沒有可選項目"))}</p>`}</div>${detachedDetails}</section>`;
   }
   function root() {
     let el = document.getElementById("unified-option-modal");
@@ -609,32 +675,32 @@
     el.querySelector(".uoc-panel").className =
       `uoc-panel ${context.mode === "chips" ? "popup-box" : "bundle-modal-sheet"}`;
     el.querySelector("h2").textContent = nested
-      ? nested.item.name
-      : context.name;
+      ? loc(nested.option, "name", nested.item.name)
+      : loc(context.targetItem || context, "name", context.name);
     const back = el.querySelector("[data-back]");
     back.hidden = !nested;
-    back.textContent = msg("返回", "Quay lại");
+    back.textContent = t("btn_back", null, "返回");
     const qty = Number(cart[context.key] || 0);
     const portions = el.querySelector(".uoc-portion-tabs");
     portions.hidden = Boolean(nested) || !qty;
     portions.innerHTML = Array.from(
       { length: qty + 1 },
       (_, index) =>
-        `<button type="button" class="portion-tab-btn ${index === context.index ? "active" : ""}" data-portion="${index}" aria-pressed="${index === context.index}">${esc(index === qty ? msg("＋ 新增一份", "+ Thêm một phần") : msg(`第 ${index + 1} 份`, `Phần ${index + 1}`))}</button>`,
+        `<button type="button" class="portion-tab-btn ${index === context.index ? "active" : ""}" data-portion="${index}" aria-pressed="${index === context.index}">${esc(index === qty ? t("portion_add_new", null, "＋ 新增一份") : t("portion_n", { n: index + 1 }, `第 ${index + 1} 份`))}</button>`,
     ).join("");
     nav.hidden =
       Boolean(nested) ||
       context.mode === "chips" ||
       context.rule.groups.length < 2;
-    nav.setAttribute("aria-label", msg("選擇步驟", "Các bước lựa chọn"));
+    nav.setAttribute("aria-label", t("wizard_steps_aria", null, "選擇步驟"));
     nav.innerHTML = context.rule.groups
       .map(
         (g, gi) =>
-          `<button type="button" class="bundle-v2-nav ${gi === context.step ? "active" : ""}" data-step="${gi}" aria-current="${gi === context.step ? "step" : "false"}">${!invalid([g], [context.groups[gi]]) ? "✓ " : ""}${esc(g.name)}</button>`,
+          `<button type="button" class="bundle-v2-nav ${gi === context.step ? "active" : ""}" data-step="${gi}" aria-current="${gi === context.step ? "step" : "false"}">${!invalid([g], [context.groups[gi]]) ? "✓ " : ""}${esc(loc(g, "name", g.name))}</button>`,
       )
       .join("");
     body.setAttribute("aria-busy", String(loading));
-    const loadingText = msg("載入選項中…", "Đang tải tùy chọn…");
+    const loadingText = t("loading_options", null, "載入選項中…");
     el.querySelector(".uoc-image-status").textContent = loading ? loadingText : "";
     if (loading) {
       body.innerHTML = `<div class="uoc-image-loading" aria-hidden="true"><span class="uoc-image-spinner"></span><span>${esc(loadingText)}</span></div>`;
@@ -653,7 +719,7 @@
     } else {
       body.innerHTML =
         (context.index > 0
-          ? `<button type="button" class="bundle-v2-copy btn-copy-prev-custom" data-copy>${esc(msg("複製上一份的選擇", "Sao chép lựa chọn phần trước"))}</button>`
+          ? `<button type="button" class="bundle-v2-copy btn-copy-prev-custom" data-copy>${esc(t("copy_prev_choice", null, "複製上一份的選擇"))}</button>`
           : "") +
         context.rule.groups
           .map((g, gi) =>
@@ -662,21 +728,25 @@
               : "",
           )
           .join("") +
-        `<label class="uoc-note"><span>${esc(msg("個別備註", "Ghi chú riêng"))}</span><textarea data-note maxlength="50" rows="2">${esc(context.note)}</textarea></label>`;
+        `<label class="uoc-note"><span>${esc(t("individual_note", null, "個別備註"))}</span><textarea data-note maxlength="50" rows="2" placeholder="${esc(t("note_short_placeholder", null, "口味 / 備註"))}">${esc(context.note)}</textarea></label>`;
     }
     body.scrollTop = scroll;
     const b = el.querySelector("[data-confirm]");
     b.disabled = loading;
     b.textContent = nested
-      ? msg("完成", "Xong")
+      ? t("btn_done", null, "完成")
       : context.mode === "wizard" &&
           context.step < context.rule.groups.length - 1
-        ? msg("下一步", "Tiếp theo")
-        : `${msg("確認", "Xác nhận")} · $${Number(context.price) + extra(context.groups)}`;
+        ? t("btn_next", null, "下一步")
+        : t(
+            "confirm_with_price",
+            { price: Number(context.price) + extra(context.groups) },
+            `確認 · $${Number(context.price) + extra(context.groups)}`,
+          );
     el.querySelector('[role="alert"]').textContent = context.error || "";
     el.querySelector("[data-close]").setAttribute(
       "aria-label",
-      msg("關閉", "Đóng"),
+      t("btn_close", null, "關閉"),
     );
     nav.scrollLeft = navScroll;
     const target = focus && (!reset || restoreFocus) ? el.querySelector(focus) : null;
@@ -766,9 +836,10 @@
     if (view) {
       const nested = child(view.path);
       if (invalid(nested.option.optionGroups || [], nested.item.groups)) {
-        context.error = msg(
+        context.error = t(
+          "opt_err_check_required_oos",
+          null,
           "請檢查必選項目與已售完的選項",
-          "Vui lòng kiểm tra lựa chọn bắt buộc và lựa chọn đã hết món",
         );
         return render();
       }
@@ -790,9 +861,10 @@
       context.step = context.rule.groups.findIndex((g, gi) =>
         invalid([g], [context.groups[gi]]),
       );
-      context.error = msg(
+      context.error = t(
+        "opt_err_check_required_oos",
+        null,
         "請檢查必選項目與已售完的選項",
-        "Vui lòng kiểm tra lựa chọn bắt buộc và lựa chọn đã hết món",
       );
       return render(true);
     }
@@ -835,6 +907,7 @@
         key,
         cat,
         name,
+        targetItem: info.targetItem || null,
         rule,
         index,
         price: info.targetItem?.price ?? info.price ?? 0,
@@ -870,6 +943,9 @@
     },
     valid(rule, portion) {
       return !invalid(rule.groups, portion?.groups);
+    },
+    refresh() {
+      if (context) render(false);
     },
   };
 })();

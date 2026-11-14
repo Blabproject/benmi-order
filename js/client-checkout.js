@@ -6,6 +6,195 @@
 var cart = window.cart;
 var customizeData = window.customizeData;
 
+const _CO_VI_FALLBACKS = {
+    btn_submit_order: 'Xác nhận đặt món',
+    btn_submit_append: 'Xác nhận gọi thêm',
+    btn_order_submitted: 'Đã gửi đơn',
+    btn_append_submitted: 'Đã gửi gọi thêm',
+    btn_edit_updated: 'Đã cập nhật đơn',
+    btn_store_paused: 'Quán tạm dừng nhận đơn',
+    btn_sold_out: 'Đã hết món',
+    btn_edit_loading: 'Đang tải đơn...',
+    btn_edit_failed: 'Tải đơn thất bại, hãy tải lại',
+    alert_oos_partial_title: 'Món đã hết hàng',
+    alert_oos_partial_body: 'Các món đã hết hàng sau vừa được gỡ khỏi giỏ hàng:',
+    alert_oos_partial_footer: 'Tổng tiền đã được tính lại, vui lòng kiểm tra và gửi lại đơn.',
+    alert_oos_all_body: 'Rất tiếc, các món bạn chọn đều đã hết:',
+    alert_oos_all_footer: 'Vui lòng quay lại thực đơn để chọn món khác!',
+    alert_append_oos_partial_body: 'Các món gọi thêm sau đã hết hàng và được gỡ bỏ:',
+    alert_append_oos_partial_footer: 'Tổng tiền đã cập nhật, vui lòng xác nhận gọi thêm lại.',
+    alert_append_oos_all_body: 'Các món gọi thêm của bạn đã hết hàng:',
+    alert_edit_oos_all_body: 'Các món thay thế bạn chọn đã hết hàng:',
+    alert_edit_oos_partial_footer: 'Tổng tiền đã cập nhật, vui lòng xác nhận lại.',
+    alert_store_paused: 'Quán tạm ngưng nhận đơn. Vui lòng thử lại sau!',
+    alert_cart_empty: 'Vui lòng chọn món thêm vào giỏ hàng trước.',
+    alert_cart_all_oos: 'Các món trong giỏ hàng đã hết. Vui lòng chọn món khác.',
+    alert_select_required_global: 'Vui lòng chọn "{title}" (bắt buộc)',
+    alert_select_required_item: 'Vui lòng chọn "{mod}" cho {item} (Phần {n}).',
+    threshold_subtotal_min_alert: '{title}: Tổng tiền món phải đạt tối thiểu ${min}. Vui lòng điều chỉnh giỏ hàng.',
+    alert_max_per_order: '"{item}" giới hạn {max} phần/đơn (đang chọn {qty}).',
+    alert_enter_table: 'Vui lòng nhập số bàn để nhân viên phục vụ!',
+    confirm_closed_title: 'Quán đang ngoài giờ mở cửa',
+    confirm_closed_dinein: 'Quán mở lại vào <b>{day} {time}</b>.<br>Bạn có chắc muốn đặt trước đơn ăn tại bàn ngay bây giờ?',
+    confirm_closed_pickup: 'Quán mở lại vào <b>{day} {time}</b>.<br>Bạn có chắc muốn đặt trước đơn ngay bây giờ?',
+    alert_select_pickup_time: 'Vui lòng chọn giờ lấy món dự kiến.',
+    alert_time_past: 'Giờ lấy món không được sớm hơn hiện tại.',
+    alert_time_closed: 'Giờ lấy đã chọn nằm ngoài giờ mở cửa. Vui lòng chọn giờ khác!',
+    alert_busy_min_time: 'Quán đang đông, giờ lấy sớm nhất là {time} (sau ít nhất 1 giờ).',
+    alert_linepay_new_takeaway_only: 'LINE Pay chỉ hỗ trợ đơn mang về mới.',
+    alert_bootstrap_incomplete: 'Chưa tải được thực đơn đầy đủ. Giỏ hàng đã được giữ lại; vui lòng thử lại.',
+    alert_options_changed_review: 'Tùy chọn trong giỏ hàng đã được cập nhật theo thực đơn. Vui lòng kiểm tra và gửi lại đơn.',
+    alert_line_login_failed: 'Đăng nhập LINE thất bại, vui lòng thử lại',
+    alert_append_success_title: 'Đã gửi món gọi thêm!',
+    alert_append_success_body: 'Bếp đã nhận được món gọi thêm của bạn!<br>Tổng gọi thêm: ${total}',
+    alert_edit_success_title: 'Đã cập nhật đơn hàng!',
+    alert_edit_no_delta: 'Không chênh lệch ($0)',
+    alert_edit_delta_add: 'Cần bù thêm ${delta}',
+    alert_edit_delta_refund: 'Quán hoàn lại ${delta}',
+    alert_edit_success_body: 'Quán đã nhận đơn cập nhật của bạn!<br><strong>Tổng mới: ${total}</strong> ({deltaMsg})<br>Vui lòng xem chi tiết và tiến độ trong LINE.',
+    alert_order_success_title: 'Đặt món thành công!',
+    alert_order_success_body: 'Quán đã nhận được đơn của bạn. Vui lòng kiểm tra xác nhận và tiến độ trên LINE.',
+    err_linepay_generic: 'Vui lòng kiểm tra lại thanh toán LINE Pay',
+    err_unconfirmed_retry: 'Chưa xác nhận được kết quả. Giỏ hàng được giữ lại; vui lòng thử gửi lại.',
+    err_timeout: 'Hết thời gian kết nối, vui lòng bấm gửi lại',
+    err_submit_failed: 'Gửi đơn thất bại',
+    err_submit_retry_box: 'Gửi đơn thất bại:<br><br><span style="color:#ef4444; font-weight:700;">{error}</span><br><br>Vui lòng kiểm tra mạng và thử lại.',
+    portion_suffix: ' (Phần {n})',
+    item_category_fallback: 'Món',
+    hours_tomorrow_short: 'Ngày mai',
+    hours_today_prefix: 'Hôm nay',
+};
+
+function _coT(key, vars, fallback) {
+    if (typeof window !== 'undefined' && typeof window.ct === 'function') {
+        return window.ct(key, vars);
+    }
+    if (typeof ct === 'function') return ct(key, vars);
+    let tpl = _coCustomerLocale() === 'vi' && _CO_VI_FALLBACKS[key]
+        ? _CO_VI_FALLBACKS[key]
+        : (fallback !== undefined ? fallback : key);
+    if (typeof tpl === 'string' && vars && typeof vars === 'object') {
+        tpl = tpl.replace(/\{([a-zA-Z0-9_]+)\}/g, (_, k) => (vars[k] !== undefined && vars[k] !== null ? String(vars[k]) : ''));
+    }
+    return tpl;
+}
+
+function _coLocText(entity, field, fallback) {
+    if (typeof window !== 'undefined' && typeof window.locText === 'function') {
+        return window.locText(entity, field, fallback);
+    }
+    if (typeof locText === 'function') return locText(entity, field, fallback);
+    return fallback !== undefined ? fallback : '';
+}
+
+function _coCustomerLocale() {
+    return (typeof window !== 'undefined' && (window.currentClientLocale || window.currentLocale))
+        || (typeof currentLocale !== 'undefined' ? currentLocale : '')
+        || (typeof document !== 'undefined' && document.documentElement && document.documentElement.lang)
+        || 'zh-TW';
+}
+
+function _coLocalizeCatalogName(canonicalName) {
+    if (typeof bootstrapData !== 'undefined' && bootstrapData && Array.isArray(bootstrapData.catalog)) {
+        for (var i = 0; i < bootstrapData.catalog.length; i++) {
+            var cat = bootstrapData.catalog[i];
+            var items = cat && cat.items;
+            if (!Array.isArray(items)) continue;
+            for (var j = 0; j < items.length; j++) {
+                if (items[j] && items[j].name === canonicalName) {
+                    return _coLocText(items[j], 'name', canonicalName);
+                }
+            }
+        }
+    }
+    return canonicalName;
+}
+
+function _coEscapeHtml(str) {
+    return String(str || '').replace(/[&<>"']/g, function (char) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char];
+    });
+}
+
+function _coSuccessAlertHtml(title, bodyHtml) {
+    return `
+        <div style="margin-bottom: 16px;">
+            <div style="width: 60px; height: 60px; margin: 0 auto; background: #ecfdf5; border: 2px solid #a7f3d0; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+        </div>
+        <div style="font-size: 19px; font-weight: 900; color: #111827; margin-bottom: 6px;">${title}</div>
+        <div style="font-size: 14.5px; line-height: 1.5; color: #4b5563;">${bodyHtml}</div>
+    `;
+}
+
+function _coHandleOutOfStockResponse(outOfStockNames, mode, skipCatalogSync) {
+    var names = Array.isArray(outOfStockNames) ? outOfStockNames : [];
+    if (!skipCatalogSync) {
+        try {
+            if (typeof bootstrapData !== 'undefined' && bootstrapData && bootstrapData.catalog && names.length) {
+                bootstrapData.catalog.forEach(function (c) {
+                    (c.items || []).forEach(function (it) {
+                        if (names.indexOf(it.name) !== -1) it.isOutOfStock = true;
+                    });
+                });
+            }
+        } catch (e) {}
+        try {
+            if (typeof updateDynamicStockAndPrices === 'function') updateDynamicStockAndPrices();
+            if (typeof renderDynamicCatalog === 'function') renderDynamicCatalog();
+            if (typeof updateTotal === 'function') updateTotal();
+        } catch (e) {}
+    }
+
+    var itemListHtml = names.map(function (name) {
+        var displayName = mode === 'pre' ? name : _coLocalizeCatalogName(name);
+        return '• 【' + _coEscapeHtml(displayName) + '】';
+    }).join('<br>');
+    var hasRemaining = typeof hasAvailableCartItems === 'function' ? hasAvailableCartItems() : false;
+
+    var partialBodyKey = mode === 'append' ? 'alert_append_oos_partial_body' : 'alert_oos_partial_body';
+    var partialFooterKey = mode === 'append'
+        ? 'alert_append_oos_partial_footer'
+        : (mode === 'edit' ? 'alert_edit_oos_partial_footer' : 'alert_oos_partial_footer');
+    var allBodyKey = mode === 'append'
+        ? 'alert_append_oos_all_body'
+        : (mode === 'edit' ? 'alert_edit_oos_all_body' : 'alert_oos_all_body');
+
+    var title = _coT('alert_oos_partial_title', null, '售完品項');
+    var bodyText = hasRemaining
+        ? _coT(partialBodyKey, null, '抱歉，以下餐點目前已售完，已自動自購物車移除：')
+        : _coT(allBodyKey, null, '抱歉，您選購的餐點目前已全數售完：');
+    var footerText = hasRemaining
+        ? _coT(partialFooterKey, null, '金額已重新計算，請確認後再次點擊送出訂單。')
+        : _coT('alert_oos_all_footer', null, '請回到菜單選擇其他餐點，敬請見諒！');
+
+    if (hasRemaining) {
+        var retryLabel = mode === 'append'
+            ? _coT('btn_submit_append', null, '確認加點')
+            : _coT('btn_submit_order', null, '確認下單');
+        setAllSubmitButtonsState(false, retryLabel, { cursor: 'pointer', opacity: '1' });
+    } else {
+        setAllSubmitButtonsState(true, _coT('btn_sold_out', null, '餐點已售完'), { cursor: 'not-allowed', opacity: '0.6' });
+    }
+
+    return customAlert(
+        '<div style="font-size: 16px; font-weight: 900; color: #dc2626; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">' +
+        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>' +
+        '<span>' + title + '</span>' +
+        '</div>' +
+        '<div style="font-size: 14px; color: #374151; line-height: 1.6; text-align: left; margin: 12px 0;">' +
+        bodyText + '<br>' +
+        '<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 12px; margin-top: 8px; color: #b91c1c; font-weight: 700;">' +
+        itemListHtml +
+        '</div>' +
+        '</div>' +
+        '<div style="font-size: 13px; color: #6b7280;">' + footerText + '</div>'
+    );
+}
+
 async function reportLiffSendFailure(details) {
     try {
         const response = await fetch(`${WORKER_BASE}/api/line/client-error?tenant_id=${encodeURIComponent(details.tenantId)}`, {
@@ -147,7 +336,7 @@ function hasAvailableCartItems() {
             if (typeof isItemOutOfStock === 'function' && isItemOutOfStock(key)) continue;
             let dName = key;
             try {
-                const itemInfo = resolveCatalogItem(key);
+                const itemInfo = _coResolveCatalogItem(key);
                 dName = itemInfo?.displayName || itemInfo?.origName || key;
             } catch(e) {}
             const origName = (typeof parseCartKey === 'function') ? parseCartKey(key).itemName : key;
@@ -236,7 +425,9 @@ function initAppendModeIfPresent() {
         if (bannerEl) {
             bannerEl.style.display = 'flex';
             const tableEl = document.getElementById('append-mode-table');
-            if (tableEl) tableEl.innerText = paramTableNumber ? `桌號 ${paramTableNumber}` : '現場內用';
+            if (tableEl) tableEl.innerText = paramTableNumber
+                ? _coT('table_prefix', { table: paramTableNumber }, `桌號 ${paramTableNumber}`)
+                : _coT('dinein_onsite_label', null, '現場內用');
             const keyEl = document.getElementById('append-mode-key');
             if (keyEl) keyEl.innerText = OrderCode.format(window.parentOrderDisplayKey);
         }
@@ -262,7 +453,7 @@ function initAppendModeIfPresent() {
         // Update submit button text
         const submitBtn = document.getElementById('btn-submit');
         if (submitBtn) {
-            submitBtn.innerText = '確認加點';
+            submitBtn.innerText = _coT('btn_submit_append', null, '確認加點');
         }
     }
 }
@@ -328,7 +519,7 @@ async function initTableQrModeIfPresent() {
                 if (bannerEl) {
                     bannerEl.style.display = 'flex';
                     const tableEl = document.getElementById('append-mode-table');
-                    if (tableEl) tableEl.innerText = `桌號 ${paramTable}`;
+                    if (tableEl) tableEl.innerText = _coT('table_prefix', { table: paramTable }, `桌號 ${paramTable}`);
                     const keyEl = document.getElementById('append-mode-key');
                     if (keyEl) keyEl.innerText = OrderCode.format(window.parentOrderDisplayKey);
                 }
@@ -339,7 +530,7 @@ async function initTableQrModeIfPresent() {
                 if (tableGroup) tableGroup.style.display = 'none';
 
                 const submitBtn = document.getElementById('btn-submit');
-                if (submitBtn) submitBtn.innerText = '確認加點';
+                if (submitBtn) submitBtn.innerText = _coT('btn_submit_append', null, '確認加點');
             } else {
                 // Table has no active order -> fresh table order!
                 window.isAppendMode = false;
@@ -495,14 +686,14 @@ async function initEditOrderModeIfPresent() {
                 if (banner && rounds.length > 1) {
                     const select = document.createElement('select');
                     select.style.minHeight = '48px';
-                    select.setAttribute('aria-label', document.documentElement.lang === 'vi' ? 'Đợt cần sửa' : '選擇修改輪次');
+                    select.setAttribute('aria-label', _coT('edit_round_select_aria', null, '選擇修改輪次'));
                     rounds.forEach(r => {
                         const option = document.createElement('option'); option.value = String(r.roundNumber);
-                        option.textContent = document.documentElement.lang === 'vi' ? `Đợt ${r.roundNumber}` : `第 ${r.roundNumber} 輪`;
+                        option.textContent = _coT('edit_round_label', { n: r.roundNumber }, `第 ${r.roundNumber} 輪`);
                         option.selected = r === selectedRound; select.appendChild(option);
                     });
                     select.addEventListener('change', () => {
-                        if (!confirm(document.documentElement.lang === 'vi' ? 'Chuyển đợt và bỏ bản nháp đang chỉnh?' : '切換輪次並放棄目前修改？')) { select.value = String(selectedRound.roundNumber); return; }
+                        if (!confirm(_coT('edit_round_switch_confirm', null, '切換輪次並放棄目前修改？'))) { select.value = String(selectedRound.roundNumber); return; }
                         const url = new URL(location.href); url.searchParams.set('round', select.value); location.href = url.href;
                     });
                     banner.appendChild(select);
@@ -762,6 +953,12 @@ function calcAsapPickupTime(twNow) {
     const targetMin = nowMin + bufferMin;
     const shifts = getStoreOperatingShifts(twNow);
 
+    const describeAsapPickup = (timeStr) => isBusy
+        ? _coT('pickup_eta_busy', { min: bufferMin, time: timeStr }, `門市繁忙：最快約 ${bufferMin} 分鐘後可取餐 (${timeStr})`)
+        : (bufferMin > 0
+            ? _coT('pickup_eta_minutes', { min: bufferMin, time: timeStr }, `預計約 ${bufferMin} 分鐘後可取餐 (${timeStr})`)
+            : _coT('pickup_eta_now', { time: timeStr }, `即刻取餐 (${timeStr})`));
+
     for (const shift of shifts) {
         const { sMin, eMin, isOvernight } = parseShiftMinutes(shift);
 
@@ -773,7 +970,7 @@ function calcAsapPickupTime(twNow) {
             const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
             return {
                 timeStr,
-                desc: `開店首批取餐 (約 ${timeStr})`,
+                desc: _coT('pickup_open_first', { time: timeStr }, `開店首批取餐 (約 ${timeStr})`),
                 isBusy
             };
         }
@@ -783,12 +980,9 @@ function calcAsapPickupTime(twNow) {
             const h = Math.floor(targetMin / 60) % 24;
             const m = targetMin % 60;
             const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-            const desc = isBusy
-                ? `門市繁忙：最快約 ${bufferMin} 分鐘後可取餐 (${timeStr})`
-                : (bufferMin > 0 ? `預計約 ${bufferMin} 分鐘後可取餐 (${timeStr})` : `即刻取餐 (${timeStr})`);
             return {
                 timeStr,
-                desc,
+                desc: describeAsapPickup(timeStr),
                 isBusy
             };
         }
@@ -798,12 +992,9 @@ function calcAsapPickupTime(twNow) {
             const h = Math.floor(targetMin / 60) % 24;
             const m = targetMin % 60;
             const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-            const desc = isBusy
-                ? `門市繁忙：最快約 ${bufferMin} 分鐘後可取餐 (${timeStr})`
-                : (bufferMin > 0 ? `預計約 ${bufferMin} 分鐘後可取餐 (${timeStr})` : `即刻取餐 (${timeStr})`);
             return {
                 timeStr,
-                desc,
+                desc: describeAsapPickup(timeStr),
                 isBusy
             };
         }
@@ -814,12 +1005,9 @@ function calcAsapPickupTime(twNow) {
         const h = Math.floor(targetMin / 60) % 24;
         const m = targetMin % 60;
         const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-        const desc = isBusy
-            ? `門市繁忙：最快約 ${bufferMin} 分鐘後可取餐 (${timeStr})`
-            : (bufferMin > 0 ? `預計約 ${bufferMin} 分鐘後可取餐 (${timeStr})` : `即刻取餐 (${timeStr})`);
         return {
             timeStr,
-            desc,
+            desc: describeAsapPickup(timeStr),
             isBusy
         };
     }
@@ -896,8 +1084,8 @@ function syncPickupTimeDisplay() {
     const timeVal = timeEl ? timeEl.value : '';
 
     if (!dateVal || !timeVal) {
-        primaryLabel.textContent = '請選擇預計取餐時間';
-        secondaryLabel.textContent = '點擊選擇取餐日期與時段';
+        primaryLabel.textContent = _coT('pickup_select_prompt_primary', null, '請選擇預計取餐時間');
+        secondaryLabel.textContent = _coT('pickup_select_prompt_secondary', null, '點擊選擇取餐日期與時段');
         return;
     }
 
@@ -911,11 +1099,12 @@ function syncPickupTimeDisplay() {
     const dateFormatted = `${m}/${d}`;
 
     if (dateVal === todayStr) {
-        dayLabel = `今日 (${dateFormatted})`;
+        dayLabel = `${_coT('hours_today_prefix', null, '今日')} (${dateFormatted})`;
     } else if (dateVal === tomorrowStr) {
-        dayLabel = `明日 (${dateFormatted})`;
+        dayLabel = `${_coT('hours_tomorrow_short', null, '明日')} (${dateFormatted})`;
     } else {
-        const daysName = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
+        const dictDays = typeof ct === 'function' ? ct('days_short') : null;
+        const daysName = Array.isArray(dictDays) ? dictDays : ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
         const dObj = new Date(y, m - 1, d, 12, 0, 0);
         dayLabel = `${daysName[dObj.getDay()]} (${dateFormatted})`;
     }
@@ -925,11 +1114,13 @@ function syncPickupTimeDisplay() {
         const prepMin = (cfg && typeof cfg.prepTimeMinutes === 'number')
             ? cfg.prepTimeMinutes
             : (cfg && cfg.prepTimeMinutes !== undefined ? Number(cfg.prepTimeMinutes) : 5);
-        primaryLabel.textContent = `最快取餐 (約 ${timeVal})`;
-        secondaryLabel.textContent = (prepMin > 0) ? `${dayLabel} · 備餐約 ${prepMin} 分鐘` : `${dayLabel} · 店家即刻備餐`;
+        primaryLabel.textContent = _coT('pickup_asap_primary', { time: timeVal }, `最快取餐 (約 ${timeVal})`);
+        secondaryLabel.textContent = (prepMin > 0)
+            ? _coT('pickup_asap_sec_prep', { day: dayLabel, min: prepMin }, `${dayLabel} · 備餐約 ${prepMin} 分鐘`)
+            : _coT('pickup_asap_sec_now', { day: dayLabel }, `${dayLabel} · 店家即刻備餐`);
     } else {
-        primaryLabel.textContent = `${timeVal} 取餐`;
-        secondaryLabel.textContent = `${dayLabel} · 預約時段`;
+        primaryLabel.textContent = _coT('pickup_slot_primary', { time: timeVal }, `${timeVal} 取餐`);
+        secondaryLabel.textContent = _coT('pickup_slot_sec', { day: dayLabel }, `${dayLabel} · 預約時段`);
     }
 }
 
@@ -1143,16 +1334,17 @@ function renderPickupDateTabs() {
     if (!container) return;
 
     const twNow = (typeof getTaiwanDate === 'function') ? getTaiwanDate() : new Date();
-    const daysName = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
+    const dictDays = typeof ct === 'function' ? ct('days_short') : null;
+    const daysName = Array.isArray(dictDays) ? dictDays : ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
 
     const dates = [];
     for (let offset = 0; offset <= 6; offset++) {
         const dObj = new Date(twNow.getTime() + offset * 86400000);
         const dStr = (typeof formatTaiwanDateTime === 'function') ? formatTaiwanDateTime(dObj).dateStr : dObj.toISOString().slice(0, 10);
         let dayLabel = '';
-        if (offset === 0) dayLabel = '今天';
-        else if (offset === 1) dayLabel = '明天';
-        else if (offset === 2) dayLabel = '後天';
+        if (offset === 0) dayLabel = _coT('hours_today', null, '今天');
+        else if (offset === 1) dayLabel = _coT('hours_tomorrow', null, '明天');
+        else if (offset === 2) dayLabel = _coT('hours_day_after', null, '後天');
         else dayLabel = daysName[dObj.getDay()];
 
         const subLabel = `${dObj.getMonth() + 1}/${dObj.getDate()}`;
@@ -1165,11 +1357,11 @@ function renderPickupDateTabs() {
             const todayAsap = calcAsapPickupTime(twNow);
             const todaySlots = generatePickupSlots(dStr);
             if (!todayAsap && todaySlots.length === 0) {
-                badge = isStoreOff ? '店休' : '已打烊';
+                badge = isStoreOff ? _coT('hours_off', null, '店休') : _coT('hours_shop_closed_short', null, '已打烊');
                 badgeType = isStoreOff ? 'badge-off' : 'badge-closed';
             }
         } else if (isStoreOff) {
-            badge = '店休';
+            badge = _coT('hours_off', null, '店休');
             badgeType = 'badge-off';
         }
 
@@ -1195,7 +1387,7 @@ function renderPickupDateTabs() {
             <div class="pickup-date-tab active" onclick="switchPickupDateTab('${activeDate}')">
                 <div class="pickup-date-tab-main">${cLabel}</div>
                 <div class="pickup-date-tab-sub">${cSub}</div>
-                <span class="pickup-date-tab-badge" style="background:#e0f2fe;color:#0284c7;">預約</span>
+                <span class="pickup-date-tab-badge" style="background:#e0f2fe;color:#0284c7;">${_coT('hours_reserved_badge', null, '預約')}</span>
             </div>
         `;
     }
@@ -1213,7 +1405,7 @@ function renderPickupDateTabs() {
     }).join('');
 
     const moreTabHtml = `
-        <div class="pickup-date-tab pickup-date-tab-more" onclick="triggerCustomDatePicker()" role="button" title="選擇更多日期">
+        <div class="pickup-date-tab pickup-date-tab-more" onclick="triggerCustomDatePicker()" role="button" title="${_coEscapeHtml(_coT('pickup_more_title', null, '選擇更多日期'))}">
             <div class="pickup-date-tab-main">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -1221,9 +1413,9 @@ function renderPickupDateTabs() {
                     <line x1="8" y1="2" x2="8" y2="6"></line>
                     <line x1="3" y1="10" x2="21" y2="10"></line>
                 </svg>
-                <span>更多</span>
+                <span>${_coT('pickup_more_label', null, '更多')}</span>
             </div>
-            <div class="pickup-date-tab-sub">日曆</div>
+            <div class="pickup-date-tab-sub">${_coT('pickup_more_sub', null, '日曆')}</div>
         </div>
     `;
 
@@ -1296,11 +1488,13 @@ function renderPickupModalBodyForDate(dateStr) {
             slotsGrid.style.display = 'none';
             slotsEmpty.style.display = 'block';
             if (isToday) {
-                slotsEmpty.textContent = (shifts.length === 0) ? '本日為門市公休日 (店休)' : '本日營業時間已結束，請選擇明日或其他日期';
+                slotsEmpty.textContent = (shifts.length === 0)
+                    ? _coT('pickup_slots_empty_off', null, '本日為門市公休日 (店休)')
+                    : _coT('pickup_slots_empty_today_closed', null, '本日營業時間已結束，請選擇明日或其他日期');
             } else if (shifts.length === 0) {
-                slotsEmpty.textContent = '本日為門市公休日 (店休)';
+                slotsEmpty.textContent = _coT('pickup_slots_empty_off', null, '本日為門市公休日 (店休)');
             } else {
-                slotsEmpty.textContent = '此日期暫無可預約時段';
+                slotsEmpty.textContent = _coT('pickup_slots_empty_none', null, '此日期暫無可預約時段');
             }
         } else {
             slotsGrid.style.display = 'block';
@@ -1319,9 +1513,9 @@ function renderPickupModalBodyForDate(dateStr) {
             const moonIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
 
             const periodGroups = [
-                { id: 'morning', title: '上午 / 午餐', icon: sunIcon, list: morningSlots },
-                { id: 'afternoon', title: '下午茶時段', icon: teaIcon, list: afternoonSlots },
-                { id: 'evening', title: '晚間 / 晚餐', icon: moonIcon, list: eveningSlots }
+                { id: 'morning', title: _coT('pickup_period_morning', null, '上午 / 午餐'), icon: sunIcon, list: morningSlots },
+                { id: 'afternoon', title: _coT('pickup_period_afternoon', null, '下午茶時段'), icon: teaIcon, list: afternoonSlots },
+                { id: 'evening', title: _coT('pickup_period_evening', null, '晚間 / 晚餐'), icon: moonIcon, list: eveningSlots }
             ].filter(g => g.list.length > 0);
 
             slotsGrid.innerHTML = periodGroups.map(g => `
@@ -1331,7 +1525,7 @@ function renderPickupModalBodyForDate(dateStr) {
                             ${g.icon}
                             <span>${g.title}</span>
                         </div>
-                        <span class="pickup-period-count">${g.list.length} 個時段</span>
+                        <span class="pickup-period-count">${_coT('pickup_period_count', { count: g.list.length }, `${g.list.length} 個時段`)}</span>
                     </div>
                     <div class="pickup-slots-grid">
                         ${g.list.map(timeStr => {
@@ -1352,7 +1546,9 @@ function renderPickupModalBodyForDate(dateStr) {
     }
 
     if (confirmBtn) {
-        confirmBtn.textContent = pickupTimePickerState.tempTime ? `確認時間 (${pickupTimePickerState.tempTime})` : '確認時間';
+        confirmBtn.textContent = pickupTimePickerState.tempTime
+            ? _coT('pickup_confirm_btn_time', { time: pickupTimePickerState.tempTime }, `確認時間 (${pickupTimePickerState.tempTime})`)
+            : _coT('pickup_confirm_btn', null, '確認時間');
         confirmBtn.disabled = !pickupTimePickerState.tempTime;
         confirmBtn.style.opacity = pickupTimePickerState.tempTime ? '1' : '0.65';
         confirmBtn.style.cursor = pickupTimePickerState.tempTime ? 'pointer' : 'not-allowed';
@@ -1445,8 +1641,7 @@ function isCheckoutSectionVisible() {
 // 2. Cập nhật trạng thái chữ trên nút cố định ở chân trang
 function updateFooterButtonState() {
     if (!window.isSubmitting && ['paused', 'closed'].includes(getActiveStoreConfig()?.storeStatus) && !window.LinePayCheckout?.blocked()) {
-        const vi = (typeof currentLocale !== 'undefined' ? currentLocale : document.documentElement.lang) === 'vi';
-        setAllSubmitButtonsState(true, vi ? 'Quán tạm dừng nhận đơn' : '店家目前暫停接單');
+        setAllSubmitButtonsState(true, _coT('btn_store_paused', null, '店家目前暫停接單'));
         return;
     }
     const btn = document.getElementById('btn-submit');
@@ -1466,8 +1661,8 @@ function updateFooterButtonState() {
         if (hint) hint.hidden = true;
     }
     if (window.isAppendMode) {
-        const vi = (typeof currentLocale !== 'undefined' ? currentLocale : document.documentElement.lang) === 'vi';
-        for (const button of getAllSubmitButtons()) button.textContent = vi ? 'Xác nhận gọi thêm' : '確認加點';
+        const appendText = _coT('btn_submit_append', null, '確認加點');
+        for (const button of getAllSubmitButtons()) button.textContent = appendText;
         return;
     }
 
@@ -1476,7 +1671,13 @@ function updateFooterButtonState() {
         const isPaused = typeof storeConfig !== 'undefined' && ['paused', 'closed'].includes(storeConfig?.storeStatus);
         const deskBtn = document.getElementById('btn-desktop-submit');
         if (!hasItems || isPaused) {
-            const label = isPaused ? '店家目前暫停接單' : window.editOrderContextFailed ? '訂單載入失敗，請重新整理' : window.editOrderContextLoaded ? '餐點已售完' : '載入訂單中...';
+            const label = isPaused
+                ? _coT('btn_store_paused', null, '店家目前暫停接單')
+                : window.editOrderContextFailed
+                    ? _coT('btn_edit_failed', null, '訂單載入失敗，請重新整理')
+                    : window.editOrderContextLoaded
+                        ? _coT('btn_sold_out', null, '餐點已售完')
+                        : _coT('btn_edit_loading', null, '載入訂單中...');
             btn.innerHTML = `<span>${label}</span>`;
             btn.disabled = true;
             btn.style.opacity = '0.6';
@@ -1497,26 +1698,25 @@ function updateFooterButtonState() {
                 deskBtn.style.opacity = '1';
                 deskBtn.style.cursor = 'pointer';
             }
-            const btnText = '確認下單';
+            const btnText = _coT('btn_submit_order', null, '確認下單');
             btn.innerHTML = `<span>${btnText}</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
             if (deskBtn) deskBtn.innerText = btnText;
             return;
         }
     }
 
-    const vi = (typeof currentLocale !== 'undefined' ? currentLocale : document.documentElement.lang) === 'vi';
     const hasItems = Object.values(window.cart || cart || {}).some(qty => Number(qty) > 0);
     const emptyHint = document.getElementById('checkout-empty-cart-hint');
     if (emptyHint) {
         emptyHint.hidden = hasItems;
-        emptyHint.textContent = vi ? 'Hãy thêm món vào giỏ hàng để tiếp tục.' : '請先將餐點加入購物車。';
+        emptyHint.textContent = _coT('empty_cart_hint', null, '請先將餐點加入購物車。');
     }
-    const checkoutLabel = window.LinePayCheckout?.buttonLabel?.() || (vi ? 'Xác nhận đặt món' : '確認下單');
+    const checkoutLabel = window.LinePayCheckout?.buttonLabel?.() || _coT('btn_submit_order', null, '確認下單');
     for (const button of getAllSubmitButtons()) {
         if (!hasItems) {
             button.dataset.emptyCart = 'true';
             button.disabled = true;
-            button.textContent = vi ? 'Hãy chọn món' : '請先選擇餐點';
+            button.textContent = _coT('btn_select_items_first', null, '請先選擇餐點');
             button.setAttribute('aria-describedby', 'checkout-empty-cart-hint');
         } else {
             if (button.dataset.emptyCart) {
@@ -1525,7 +1725,7 @@ function updateFooterButtonState() {
                 button.removeAttribute('aria-describedby');
             }
             if (!button.disabled) button.textContent = button.id === 'btn-submit' && !isCheckoutSectionVisible()
-                ? (vi ? 'Đến thanh toán' : '前往結帳') : checkoutLabel;
+                ? _coT('btn_go_checkout', null, '前往結帳') : checkoutLabel;
         }
     }
 }
@@ -1537,8 +1737,8 @@ function handleFooterAction() {
         return;
     }
     const hasItem = Object.values(cart || {}).some(q => q > 0);
-    if (!hasItem) return customAlert('請先選擇餐點品項加入購物車');
-    if (!hasAvailableCartItems()) return customAlert('購物車內餐點已全數售完，請重新挑選其他餐點');
+    if (!hasItem) return customAlert(_coT('alert_cart_empty', null, '請先選擇餐點品項加入購物車'));
+    if (!hasAvailableCartItems()) return customAlert(_coT('alert_cart_all_oos', null, '購物車內餐點已全數售完，請重新挑選其他餐點'));
 
     // Bước 1: Nếu chưa ở khu vực thanh toán -> cuộn mượt xuống
     if (!isCheckoutSectionVisible()) {
@@ -1587,18 +1787,19 @@ function highlightMissingPickupTime() {
     if (typeof openPickupTimeModal === 'function') {
         openPickupTimeModal();
     } else {
-        customAlert('請選擇預計取餐時間');
+        customAlert(_coT('alert_select_pickup_time', null, '請選擇預計取餐時間'));
     }
 }
 
 // 5. Xác định ca mở cửa tiếp theo khi quán đang đóng cửa
 function getNextOpeningInfo(twNow) {
     if (!storeConfig || !storeConfig.operatingHours) {
-        return { timeStr: '11:00', dayText: '今日' };
+        return { timeStr: '11:00', dayText: _coT('hours_today_prefix', null, '今日') };
     }
     const currentDay = twNow.getDay();
     const currentHours = twNow.getHours() + twNow.getMinutes() / 60;
-    const daysName = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
+    const dictDays = typeof ct === 'function' ? ct('days_short') : null;
+    const daysName = Array.isArray(dictDays) ? dictDays : ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
 
     // 1. Kiểm tra các ca sau trong cùng ngày
     const todayShifts = storeConfig.operatingHours[currentDay] || [];
@@ -1606,7 +1807,7 @@ function getNextOpeningInfo(twNow) {
         if (!shift || !shift.start) continue;
         const [sH, sM] = shift.start.split(':').map(Number);
         if (sH + sM / 60 > currentHours) {
-            return { timeStr: shift.start, dayText: '今日' };
+            return { timeStr: shift.start, dayText: _coT('hours_today_prefix', null, '今日') };
         }
     }
 
@@ -1615,11 +1816,11 @@ function getNextOpeningInfo(twNow) {
         const nextDay = (currentDay + offset) % 7;
         const shifts = storeConfig.operatingHours[nextDay] || [];
         if (shifts.length > 0 && shifts[0] && shifts[0].start) {
-            const dayLabel = offset === 1 ? '明日' : `${daysName[nextDay]}`;
+            const dayLabel = offset === 1 ? _coT('hours_tomorrow_short', null, '明日') : `${daysName[nextDay]}`;
             return { timeStr: shifts[0].start, dayText: dayLabel };
         }
     }
-    return { timeStr: '11:00', dayText: '開店' };
+    return { timeStr: '11:00', dayText: _coT('hours_open_fallback', null, '開店') };
 }
 
 // 6. Hộp thoại xác nhận tùy biến
@@ -1639,10 +1840,10 @@ function customConfirm(htmlMsg, onConfirm, onCancel = null) {
         <div>${htmlMsg}</div>
         <div style="display: flex; gap: 10px; margin-top: 20px;">
             <button id="custom-confirm-cancel" style="flex: 1; padding: 12px; border-radius: 12px; border: 1.5px solid #e5e7eb; background: #fff; color: #4b5563; font-weight: 800; cursor: pointer;">
-                取消
+                ${_coT('btn_cancel', null, '取消')}
             </button>
             <button id="custom-confirm-ok" style="flex: 1; padding: 12px; border-radius: 12px; border: none; background: var(--primary); color: #fff; font-weight: 900; cursor: pointer;">
-                確認送出
+                ${_coT('confirm_submit', null, '確認送出')}
             </button>
         </div>
     `;
@@ -1709,71 +1910,38 @@ function parseCartKey(key) {
     };
 }
 
-function resolveCatalogItem(key) {
+function _coResolveCatalogItem(key) {
+    if (typeof window !== 'undefined' && typeof window.fetchMenu === 'function') {
+        if (typeof resolveCatalogItem === 'function') return resolveCatalogItem(key);
+        if (typeof window.resolveCatalogItem === 'function') return window.resolveCatalogItem(key);
+    }
     const { catSlug, origName } = parseCartKey(key);
     let targetCat = null;
     let targetItem = null;
-
     if (typeof bootstrapData !== 'undefined' && bootstrapData?.catalog) {
         if (catSlug) {
             targetCat = bootstrapData.catalog.find(c => c.slug === catSlug);
-            if (targetCat?.items) {
-                targetItem = targetCat.items.find(it => it.name === origName || it.id === key);
-            }
+            targetItem = targetCat?.items?.find(it => it.name === origName || it.id === key) || null;
         }
         if (!targetItem) {
             for (const cat of bootstrapData.catalog) {
-                if (cat.items) {
-                    const it = cat.items.find(i => i.name === origName || i.id === key);
-                    if (it) {
-                        targetItem = it;
-                        targetCat = cat;
-                        break;
-                    }
-                }
+                const it = cat.items?.find(i => i.name === origName || i.id === key);
+                if (it) { targetItem = it; targetCat = cat; break; }
             }
         }
     }
-
-    let displayName = origName;
-    if (targetCat) {
-        // Strip emoji icons from category name
-        const rawCatName = targetCat.name || '';
-        const catNameClean = rawCatName.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}]/gu, '').trim();
-        const slug = (targetCat.slug || '').toLowerCase();
-
-        let sizeTag = '';
-        if (slug === 'large' || slug === 'big' || slug === 'l' || /(^|\s|[\(\[\{（【])(大|大份|大碗|大麵包|large|big)($|\s|[\)\]\}）】])/i.test(catNameClean) || catNameClean.startsWith('大')) {
-            sizeTag = ' L';
-        } else if (slug === 'small' || slug === 's' || slug === 'mini' || /(^|\s|[\(\[\{（【])(小|小份|小碗|小麵包|small|mini)($|\s|[\)\]\}）】])/i.test(catNameClean) || catNameClean.startsWith('小')) {
-            sizeTag = ' S';
-        } else if (slug === 'medium' || slug === 'm' || /(^|\s|[\(\[\{（【])(中|中份|中碗|medium)($|\s|[\)\]\}）】])/i.test(catNameClean) || catNameClean.startsWith('中')) {
-            sizeTag = ' M';
-        }
-
-        let nameCount = 0;
-        if (bootstrapData?.catalog) {
-            for (const cat of bootstrapData.catalog) {
-                if (cat.items?.some(it => it.name === origName)) nameCount++;
-            }
-        }
-
-        if (sizeTag && !origName.includes(' L') && !origName.includes(' S') && !origName.includes(' M') && !origName.startsWith('大') && !origName.startsWith('小')) {
-            displayName = `${origName}${sizeTag}`;
-        } else if (nameCount > 1 && catNameClean && !origName.includes(catNameClean)) {
-            const shortClean = catNameClean.split(/[\s\(\[\{（【]/)[0].trim();
-            displayName = `[${shortClean}] ${origName}`;
-        }
-    }
-
+    const localizedBaseName = targetItem ? _coLocText(targetItem, 'name', origName) : origName;
+    const localizedCategoryName = targetCat ? _coLocText(targetCat, 'name', targetCat.name || '') : (catSlug || _coT('item_category_fallback', null, '餐點'));
     return {
         catSlug,
         origName,
-        displayName,
+        displayName: origName,
+        localizedDisplayName: localizedBaseName,
         targetCat,
         targetItem,
         basePrice: Number(targetItem?.price) || 0,
-        categoryName: targetCat?.name || catSlug || "Món",
+        categoryName: targetCat?.name || catSlug || '餐點',
+        localizedCategoryName,
         itemId: targetItem?.id || key,
         bundleRule: targetItem?.bundleRule || null
     };
@@ -1949,7 +2117,7 @@ function formatOrderTextMessage(orderNum, dateInput, timeInput, currentTotal, ma
     if (!presentation) for (let key in cart) {
         if (cart[key] > 0) {
             if (typeof isItemOutOfStock === 'function' && isItemOutOfStock(key)) continue;
-            const itemInfo = resolveCatalogItem(key);
+            const itemInfo = _coResolveCatalogItem(key);
             const { catSlug, origName, displayName, basePrice } = itemInfo;
             if (window.isEditOrderMode && Array.isArray(window.editOrderSoldOutNames)) {
                 if (window.editOrderSoldOutNames.includes(displayName) || window.editOrderSoldOutNames.includes(origName) || window.editOrderSoldOutNames.some(s => s && s.trim() && (displayName.includes(s.trim()) || origName.includes(s.trim())))) {
@@ -2092,7 +2260,7 @@ function formatAppendItemsOnlyText(canonical = false) {
     for (let key in cart) {
         if (cart[key] > 0) {
             if (typeof isItemOutOfStock === 'function' && isItemOutOfStock(key)) continue;
-            const itemInfo = resolveCatalogItem(key);
+            const itemInfo = _coResolveCatalogItem(key);
             const { catSlug, origName, displayName, basePrice } = itemInfo;
             if (window.isEditOrderMode && Array.isArray(window.editOrderSoldOutNames)) {
                 if (window.editOrderSoldOutNames.includes(displayName) || window.editOrderSoldOutNames.includes(origName) || window.editOrderSoldOutNames.some(s => s && s.trim() && (displayName.includes(s.trim()) || origName.includes(s.trim())))) {
@@ -2204,7 +2372,7 @@ function buildStructuredCartItems() {
     for (let key in cart) {
         if (cart[key] > 0) {
             if (typeof isItemOutOfStock === 'function' && isItemOutOfStock(key)) continue;
-            const itemInfo = resolveCatalogItem(key);
+            const itemInfo = _coResolveCatalogItem(key);
             const { catSlug, origName, displayName, basePrice, categoryName, itemId } = itemInfo;
             if (window.isEditOrderMode && Array.isArray(window.editOrderSoldOutNames)) {
                 if (window.editOrderSoldOutNames.includes(displayName) || window.editOrderSoldOutNames.includes(origName) || window.editOrderSoldOutNames.some(s => s && s.trim() && (displayName.includes(s.trim()) || origName.includes(s.trim())))) {
@@ -2394,12 +2562,12 @@ async function submitOrder() {
     }
 
     if (storeConfig && ['paused', 'closed'].includes(storeConfig.storeStatus)) {
-        return customAlert('店家目前暫停接單中，暫時無法下單，敬請見諒！');
+        return customAlert(_coT('alert_store_paused', null, '店家目前暫停接單中，暫時無法下單，敬請見諒！'));
     }
 
     const hasItem = Object.values(cart || {}).some(q => q > 0);
-    if (!hasItem) return customAlert('請先選擇餐點品項加入購物車');
-    if (!hasAvailableCartItems()) return customAlert('購物車內餐點已全數售完，請重新挑選其他餐點');
+    if (!hasItem) return customAlert(_coT('alert_cart_empty', null, '請先選擇餐點品項加入購物車'));
+    if (!hasAvailableCartItems()) return customAlert(_coT('alert_cart_all_oos', null, '購物車內餐點已全數售完，請重新挑選其他餐點'));
 
     // Validate Required Global Customizations (Type 3)
     if (typeof bootstrapData !== 'undefined' && bootstrapData && Array.isArray(bootstrapData.customizations)) {
@@ -2413,8 +2581,9 @@ async function submitOrder() {
                         panel.classList.add('attention-pulse');
                         setTimeout(() => panel.classList.remove('attention-pulse'), 1500);
                     }
-                    const groupTitle = group.title || group.name || '客製選項';
-                    return customAlert(`請選擇【${groupTitle}】（此項為必填）`);
+                    const fallbackTitle = group.title || group.name || _coT('global_flavor_section_title', null, '客製選項');
+                    const groupTitle = _coLocText(group, 'title', '') || _coLocText(group, 'name', fallbackTitle);
+                    return customAlert(_coT('alert_select_required_global', { title: groupTitle }, `請選擇【${groupTitle}】（此項為必填）`));
                 }
             }
         }
@@ -2422,6 +2591,7 @@ async function submitOrder() {
 
     // Validate Required Item Modifiers (Type 2)
     if (typeof getItemModifiers === 'function' && typeof bootstrapData !== 'undefined' && bootstrapData) {
+        const resolveFnReq = typeof resolveCatalogItem === 'function' ? resolveCatalogItem : (window.resolveCatalogItem || (k => ({ origName: k, displayName: k })));
         for (const [key, q] of Object.entries(cart || {})) {
             if (q <= 0) continue;
             const sepIdx = key.indexOf('_');
@@ -2452,7 +2622,10 @@ async function submitOrder() {
                             if (typeof toggleCustomize === 'function') {
                                 toggleCustomize(catSlug, itemName);
                             }
-                            return customAlert(`請為【${itemName}】第 ${i + 1} 份選擇【${reqM.name}】（此項為必選）`);
+                            const resolved = resolveFnReq(key);
+                            const locItemName = resolved?.localizedDisplayName || resolved?.displayName || itemName;
+                            const locModName = _coLocText(reqM, 'name', reqM.name);
+                            return customAlert(_coT('alert_select_required_item', { item: locItemName, n: i + 1, mod: locModName }, `請為【${locItemName}】第 ${i + 1} 份選擇【${locModName}】（此項為必選）`));
                         }
                     }
                 }
@@ -2467,7 +2640,9 @@ async function submitOrder() {
     const foodSubtotal = (Number(document.getElementById('total-price')?.innerText) || 0) - orderAddons;
     const unavailableOption = selectedOrderOptions.find(input => foodSubtotal < (Number(input.getAttribute('data-min-order-amount')) || 0));
     if (unavailableOption) {
-        return customAlert(`${unavailableOption.getAttribute('data-group-title')}：餐點金額需滿 ${unavailableOption.getAttribute('data-min-order-amount')} 元，請調整餐點或選項。`);
+        const grpTitle = unavailableOption.getAttribute('data-group-title');
+        const minAmt = unavailableOption.getAttribute('data-min-order-amount');
+        return customAlert(_coT('threshold_subtotal_min_alert', { title: grpTitle, min: minAmt }, `${grpTitle}：餐點金額需滿 ${minAmt} 元，請調整餐點或選項。`));
     }
 
     // Verify item-level purchase limits (maxPerOrder)
@@ -2479,7 +2654,8 @@ async function submitOrder() {
             const targetItem = itemInfo?.targetItem || itemInfo;
             const maxPerOrder = targetItem?.maxPerOrder || targetItem?.max_per_order;
             if (maxPerOrder && qty > maxPerOrder) {
-                return customAlert(`【${targetItem.name || itemInfo?.displayName || key}】每單限購 ${maxPerOrder} 份，目前已選擇 ${qty} 份，請調整數量後再下單。`);
+                const locItem = itemInfo?.localizedDisplayName || _coLocText(targetItem, 'name', '') || itemInfo?.displayName || key;
+                return customAlert(_coT('alert_max_per_order', { item: locItem, max: maxPerOrder, qty }, `【${locItem}】每單限購 ${maxPerOrder} 份，目前已選擇 ${qty} 份，請調整數量後再下單。`));
             }
         }
     }
@@ -2487,7 +2663,7 @@ async function submitOrder() {
     // In Edit Order Mode, direct execution for order modification
     if (window.isEditOrderMode) {
         if (!hasAvailableCartItems()) {
-            return customAlert('購物車內餐點已全數售完，請重新挑選其他餐點');
+            return customAlert(_coT('alert_cart_all_oos', null, '購物車內餐點已全數售完，請重新挑選其他餐點'));
         }
         return doSubmitOrderExecution('', '');
     }
@@ -2497,6 +2673,21 @@ async function submitOrder() {
     const isScheduledEnabled = !(storeConfig && storeConfig.allowScheduledPickup === false);
     let dateInput = "";
     let timeInput = "";
+
+    const promptClosedPreorder = (dineInMode, dInput, tInput) => {
+        const nextInfo = getNextOpeningInfo(twNow);
+        const bodyKey = dineInMode ? 'confirm_closed_dinein' : 'confirm_closed_pickup';
+        const fallbackBody = dineInMode
+            ? `店家預計於 <b>${_coEscapeHtml(nextInfo.dayText)} ${_coEscapeHtml(nextInfo.timeStr)}</b> 開始接單製作。<br>您確定要現在預先送出內用訂單嗎？`
+            : `店家預計於 <b>${_coEscapeHtml(nextInfo.dayText)} ${_coEscapeHtml(nextInfo.timeStr)}</b> 開始接單製作。<br>您確定要現在預先送出訂單嗎？`;
+        customConfirm(
+            `<div style="font-size: 16px; font-weight: 900; margin-bottom: 8px;">${_coT('confirm_closed_title', null, '店家目前休息中')}</div>` +
+            `<div style="font-size: 14px; color: #4b5563; line-height: 1.5;">` +
+            _coT(bodyKey, { day: _coEscapeHtml(nextInfo.dayText), time: _coEscapeHtml(nextInfo.timeStr) }, fallbackBody) +
+            `</div>`,
+            () => { doSubmitOrderExecution(dInput, tInput); }
+        );
+    };
 
     if (isDineIn) {
         if (!window.isAppendMode) {
@@ -2509,7 +2700,7 @@ async function submitOrder() {
                     tableInput.classList.add('attention-pulse');
                     setTimeout(() => tableInput.classList.remove('attention-pulse'), 1500);
                 }
-                return customAlert('請填寫您的用餐桌號，方便門市人員為您送餐！');
+                return customAlert(_coT('alert_enter_table', null, '請填寫您的用餐桌號，方便門市人員為您送餐！'));
             }
         }
 
@@ -2518,15 +2709,7 @@ async function submitOrder() {
         timeInput = timeStr;
 
         if (!isStoreOpen(twNow)) {
-            const nextInfo = getNextOpeningInfo(twNow);
-            customConfirm(
-                `<div style="font-size: 16px; font-weight: 900; margin-bottom: 8px;">🌙 店家目前休息中</div>` +
-                `<div style="font-size: 14px; color: #4b5563; line-height: 1.5;">` +
-                `店家預計於 <b>${nextInfo.dayText} ${nextInfo.timeStr}</b> 開始接單製作。<br>` +
-                `您確定要現在預先送出內用訂單嗎？` +
-                `</div>`,
-                () => { doSubmitOrderExecution(dateInput, timeInput); }
-            );
+            promptClosedPreorder(true, dateInput, timeInput);
             return;
         }
     } else if (!isScheduledEnabled) {
@@ -2535,15 +2718,7 @@ async function submitOrder() {
         timeInput = timeStr;
 
         if (!isStoreOpen(twNow)) {
-            const nextInfo = getNextOpeningInfo(twNow);
-            customConfirm(
-                `<div style="font-size: 16px; font-weight: 900; margin-bottom: 8px;">🌙 店家目前休息中</div>` +
-                `<div style="font-size: 14px; color: #4b5563; line-height: 1.5;">` +
-                `店家預計於 <b>${nextInfo.dayText} ${nextInfo.timeStr}</b> 開始接單製作。<br>` +
-                `您確定要現在預先送出訂單嗎？` +
-                `</div>`,
-                () => { doSubmitOrderExecution(dateInput, timeInput); }
-            );
+            promptClosedPreorder(false, dateInput, timeInput);
             return;
         }
     } else {
@@ -2576,11 +2751,11 @@ async function submitOrder() {
         const diffMinutes = (selectedDateTime.getTime() - twNow.getTime()) / (1000 * 60);
 
         if (diffMinutes < -5) {
-            return customAlert('取餐時間不能早於當前時間');
+            return customAlert(_coT('alert_time_past', null, '取餐時間不能早於當前時間'));
         }
 
         if (!isPickupTimeValid(selectedDateTime)) {
-            return customAlert('所選的取餐時間非營業時間，請重新選擇！');
+            return customAlert(_coT('alert_time_closed', null, '所選的取餐時間非營業時間，請重新選擇！'));
         }
 
         if (storeConfig && storeConfig.storeStatus === 'busy') {
@@ -2589,7 +2764,7 @@ async function submitOrder() {
                 const minAllowedTime = new Date(twNow.getTime() + 60 * 60000);
                 if (selectedDateTime < minAllowedTime) {
                     const { timeStr: minTimeStr } = formatTaiwanDateTime(minAllowedTime);
-                    return customAlert(`目前門市繁忙，最快可取餐時間為 ${minTimeStr}（需至少 1 小時後）`);
+                    return customAlert(_coT('alert_busy_min_time', { time: minTimeStr }, `目前門市繁忙，最快可取餐時間為 ${minTimeStr}（需至少 1 小時後）`));
                 }
             }
         }
@@ -2611,7 +2786,7 @@ function setAllSubmitButtonsState(disabled, text, options = {}) {
     btns.forEach(btn => {
         btn.disabled = disabled;
         if (text) btn.innerText = text;
-        if(window.LinePayCheckout?.blocked())btn.innerText=typeof currentLocale!=='undefined'&&currentLocale==='vi'?'Xử lý thanh toán đang chờ':'處理待確認付款';
+        if(window.LinePayCheckout?.blocked())btn.innerText=_coT('btn_linepay_pending', null, '處理待確認付款');
         if (options.cursor) btn.style.cursor = options.cursor;
         if (options.opacity) btn.style.opacity = options.opacity;
     });
@@ -2703,11 +2878,11 @@ async function validateCartStockBeforeSubmit() {
                     console.log(`[Validation] Cart key "${key}" matched:`, targetItem ? `${targetItem.name} (isOutOfStock: ${targetItem.isOutOfStock})` : "NOT FOUND");
 
                     if (!targetItem || targetItem.isOutOfStock) {
-                        let displayName = targetItem ? targetItem.name : null;
+                        let displayName = targetItem ? _coLocText(targetItem, 'name', targetItem.name) : null;
                         if (!displayName) {
                             try {
-                                const itemInfo = resolveCatalogItem(key);
-                                displayName = itemInfo?.displayName || key;
+                                const itemInfo = _coResolveCatalogItem(key);
+                                displayName = itemInfo?.localizedDisplayName || itemInfo?.displayName || key;
                             } catch(e) {
                                 displayName = key;
                             }
@@ -2755,11 +2930,11 @@ async function validateCartStockBeforeSubmit() {
 async function doSubmitOrderExecution(dateInput, timeInput) {
     if (window.LinePayCheckout && LinePayCheckout.blocked()) { LinePayCheckout.manage(); return; }
     if (window.LinePayCheckout && LinePayCheckout.selected() && (window.isEditOrderMode || window.isAppendOrderMode)) {
-        customAlert('LINE Pay 僅支援新的外帶訂單。'); return;
+        customAlert(_coT('alert_linepay_new_takeaway_only', null, 'LINE Pay 僅支援新的外帶訂單。')); return;
     }
     let orderSubmittedSuccessfully = false;
     isSubmitting = true;
-    setAllSubmitButtonsState(true, '驗證餐點中...', { cursor: 'not-allowed', opacity: '0.7' });
+    setAllSubmitButtonsState(true, _coT('btn_validating', null, '驗證餐點中...'), { cursor: 'not-allowed', opacity: '0.7' });
 
     const abortController = new AbortController();
     const timeoutId = setTimeout(() => abortController.abort(), 12000);
@@ -2772,56 +2947,20 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
         if (!validation.valid) {
             clearTimeout(timeoutId);
             isSubmitting = false;
-            setAllSubmitButtonsState(false, '確認下單', { cursor: 'pointer', opacity: '1' });
+            setAllSubmitButtonsState(false, _coT('btn_submit_order', null, '確認下單'), { cursor: 'pointer', opacity: '1' });
 
-            const vi = (typeof currentLocale !== 'undefined' ? currentLocale : document.documentElement.lang) === 'vi';
             if (validation.unavailable) {
-                return customAlert(vi ? 'Chưa tải được thực đơn đầy đủ. Giỏ hàng đã được giữ lại; vui lòng thử lại.'
-                    : '尚未取得完整菜單，購物車已保留，請重試。');
+                return customAlert(_coT('alert_bootstrap_incomplete', null, '尚未取得完整菜單，購物車已保留，請重試。'));
             }
             if (validation.optionsChanged) {
-                return customAlert(vi ? 'Tùy chọn trong giỏ hàng đã được cập nhật theo thực đơn. Vui lòng kiểm tra và gửi lại đơn.'
-                    : '購物車選項已依最新菜單更新，請確認後再次送出。');
+                return customAlert(_coT('alert_options_changed_review', null, '購物車選項已依最新菜單更新，請確認後再次送出。'));
             }
             if (validation.paused) {
-                return customAlert('店家目前已暫停接單，暫時無法送出訂單，敬請見諒！');
+                return customAlert(_coT('alert_store_paused', null, '店家目前已暫停接單，暫時無法送出訂單，敬請見諒！'));
             }
 
             if (validation.outOfStockItems && validation.outOfStockItems.length > 0) {
-                const itemListHtml = validation.outOfStockItems.map(name => `• 【${name}】`).join('<br>');
-                const hasRemaining = typeof hasAvailableCartItems === 'function' ? hasAvailableCartItems() : false;
-
-                if (hasRemaining) {
-                    setAllSubmitButtonsState(false, '確認下單', { cursor: 'pointer', opacity: '1' });
-                    return customAlert(
-                        `<div style="font-size: 16px; font-weight: 900; color: #dc2626; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">` +
-                        `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>` +
-                        `<span>售完品項</span>` +
-                        `</div>` +
-                        `<div style="font-size: 14px; color: #374151; line-height: 1.6; text-align: left; margin: 12px 0;">` +
-                        `抱歉，以下餐點目前已售完，已自動自購物車移除：<br>` +
-                        `<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 12px; margin-top: 8px; color: #b91c1c; font-weight: 700;">` +
-                        `${itemListHtml}` +
-                        `</div>` +
-                        `</div>` +
-                        `<div style="font-size: 13px; color: #6b7280;">金額已重新計算，請確認後再次點擊送出訂單。</div>`
-                    );
-                } else {
-                    setAllSubmitButtonsState(true, '餐點已售完', { cursor: 'not-allowed', opacity: '0.6' });
-                    return customAlert(
-                        `<div style="font-size: 16px; font-weight: 900; color: #dc2626; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">` +
-                        `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>` +
-                        `<span>售完品項</span>` +
-                        `</div>` +
-                        `<div style="font-size: 14px; color: #374151; line-height: 1.6; text-align: left; margin: 12px 0;">` +
-                        `抱歉，您選購的餐點目前已全數售完：<br>` +
-                        `<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 12px; margin-top: 8px; color: #b91c1c; font-weight: 700;">` +
-                        `${itemListHtml}` +
-                        `</div>` +
-                        `</div>` +
-                        `<div style="font-size: 13px; color: #6b7280;">請回到菜單選擇其他餐點，敬請見諒！</div>`
-                    );
-                }
+                return _coHandleOutOfStockResponse(validation.outOfStockItems, 'pre', true);
             }
             return;
         }
@@ -2842,12 +2981,12 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
                             if (!valRes.valid) {
                                 clearTimeout(timeoutId);
                                 isSubmitting = false;
-                                setAllSubmitButtonsState(false, '確認下單', { cursor: 'pointer', opacity: '1' });
+                                setAllSubmitButtonsState(false, _coT('btn_submit_order', null, '確認下單'), { cursor: 'pointer', opacity: '1' });
 
                                 const resolveFn = typeof resolveCatalogItem === 'function' ? resolveCatalogItem : (window.resolveCatalogItem || (k => ({ origName: k, displayName: k })));
                                 const itemInfo = resolveFn(key);
-                                const itemName = itemInfo?.displayName || itemInfo?.origName || key;
-                                const portionMsg = qty > 1 ? `（第 ${pIdx + 1} 份）` : '';
+                                const itemName = itemInfo?.localizedDisplayName || itemInfo?.displayName || itemInfo?.origName || key;
+                                const portionMsg = qty > 1 ? _coT('portion_suffix', { n: pIdx + 1 }, `（第 ${pIdx + 1} 份）`) : '';
                                 const alertMsg = `【${itemName}】${portionMsg}：${valRes.message}`;
 
                                 if (typeof customAlert === 'function') customAlert(alertMsg);
@@ -2989,6 +3128,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
                 parent_order_key: window.parentOrderKey,
                 user_id: userId,
                 customer_name: customerName,
+                customer_locale: _coCustomerLocale(),
                 appended_content: rawItemsText,
                 appended_total: currentTotal,
                 table_number: currentTable || undefined,
@@ -3016,52 +3156,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
             if (!res.ok) {
                 const errData = await res.json().catch(() => ({}));
                 if (errData && errData.code === 'ITEMS_OUT_OF_STOCK') {
-                    const outOfStockNames = errData.outOfStockItems || [];
-                    const itemListHtml = outOfStockNames.map(name => `• 【${name}】`).join('<br>');
-                    try {
-                        if (typeof bootstrapData !== 'undefined' && bootstrapData && bootstrapData.catalog && Array.isArray(outOfStockNames)) {
-                            bootstrapData.catalog.forEach(c => (c.items || []).forEach(it => {
-                                if (outOfStockNames.includes(it.name)) it.isOutOfStock = true;
-                            }));
-                        }
-                    } catch(e) {}
-                    try {
-                        if (typeof updateDynamicStockAndPrices === 'function') updateDynamicStockAndPrices();
-                        if (typeof renderDynamicCatalog === 'function') renderDynamicCatalog();
-                        if (typeof updateTotal === 'function') updateTotal();
-                    } catch(e) {}
-                    const hasRemaining = typeof hasAvailableCartItems === 'function' ? hasAvailableCartItems() : false;
-                    if (hasRemaining) {
-                        setAllSubmitButtonsState(false, '確認加點', { cursor: 'pointer', opacity: '1' });
-                        return customAlert(
-                            `<div style="font-size: 16px; font-weight: 900; color: #dc2626; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">` +
-                            `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>` +
-                            `<span>售完品項</span>` +
-                            `</div>` +
-                            `<div style="font-size: 14px; color: #374151; line-height: 1.6; text-align: left; margin: 12px 0;">` +
-                            `抱歉，以下加點餐點目前已售完，已自動自購物車移除：<br>` +
-                            `<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 12px; margin-top: 8px; color: #b91c1c; font-weight: 700;">` +
-                            `${itemListHtml}` +
-                            `</div>` +
-                            `</div>` +
-                            `<div style="font-size: 13px; color: #6b7280;">金額已重新計算，請確認後再次點擊送出加點。</div>`
-                        );
-                    } else {
-                        setAllSubmitButtonsState(true, '餐點已售完', { cursor: 'not-allowed', opacity: '0.6' });
-                        return customAlert(
-                            `<div style="font-size: 16px; font-weight: 900; color: #dc2626; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">` +
-                            `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>` +
-                            `<span>售完品項</span>` +
-                            `</div>` +
-                            `<div style="font-size: 14px; color: #374151; line-height: 1.6; text-align: left; margin: 12px 0;">` +
-                            `抱歉，您加點的餐點目前已全數售完：<br>` +
-                            `<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 12px; margin-top: 8px; color: #b91c1c; font-weight: 700;">` +
-                            `${itemListHtml}` +
-                            `</div>` +
-                            `</div>` +
-                            `<div style="font-size: 13px; color: #6b7280;">請回到菜單選擇其他餐點，敬請見諒！</div>`
-                        );
-                    }
+                    return _coHandleOutOfStockResponse(errData.outOfStockItems || [], 'append', false);
                 }
                 const serverError = new Error(errData.error || `API returned status ${res.status}`);
                 serverError.serverRejected = true;
@@ -3075,7 +3170,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
             window.parentOrderKey = appendResult.key;
             window.parentOrderDisplayKey = appendResult.displayKey || window.parentOrderDisplayKey;
 
-            setAllSubmitButtonsState(true, '加點已送出', { cursor: 'not-allowed', opacity: '0.6' });
+            setAllSubmitButtonsState(true, _coT('btn_append_submitted', null, '加點已送出'), { cursor: 'not-allowed', opacity: '0.6' });
 
             const tablePart = currentTable ? `\n桌號：${currentTable}` : '';
             const notePart = mainNote ? `\n📝 備註：${mainNote}` : '';
@@ -3095,18 +3190,9 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
             } catch(e) {}
             if (typeof updateTotal === 'function') updateTotal();
 
-            const appendSuccessMsg = `您的現場加點已成功送達廚房製作！\n總共加點 $${currentTotal}`;
-            customAlert(`
-                <div style="margin-bottom: 16px;">
-                    <div style="width: 60px; height: 60px; margin: 0 auto; background: #ecfdf5; border: 2px solid #a7f3d0; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                    </div>
-                </div>
-                <div style="font-size: 19px; font-weight: 900; color: #111827; margin-bottom: 6px;">現場加點已送出！</div>
-                <div style="font-size: 14.5px; line-height: 1.5; color: #4b5563;">${appendSuccessMsg}</div>
-            `, () => {
+            const appendSuccessTitle = _coT('alert_append_success_title', null, '現場加點已送出！');
+            const appendSuccessMsg = _coT('alert_append_success_body', { total: currentTotal }, `您的現場加點已成功送達廚房製作！<br>總共加點 $${currentTotal}`);
+            customAlert(_coSuccessAlertHtml(appendSuccessTitle, appendSuccessMsg), () => {
                 if (typeof closeAndExitLiff === 'function') closeAndExitLiff();
             });
 
@@ -3128,6 +3214,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
                 new_total: currentTotal,
                 note: mainNote,
                 tenant_id: tenantId,
+                customer_locale: _coCustomerLocale(),
                 is_desktop: isDesktop,
                 isDesktop: isDesktop,
                 line_delivery_mode: deliveryDiagnostic.deliveryMode
@@ -3148,52 +3235,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
             if (!res.ok) {
                 const errData = await res.json().catch(() => ({}));
                 if (errData && errData.code === 'ITEMS_OUT_OF_STOCK') {
-                    const outOfStockNames = errData.outOfStockItems || [];
-                    const itemListHtml = outOfStockNames.map(name => `• 【${name}】`).join('<br>');
-                    try {
-                        if (typeof bootstrapData !== 'undefined' && bootstrapData && bootstrapData.catalog && Array.isArray(outOfStockNames)) {
-                            bootstrapData.catalog.forEach(c => (c.items || []).forEach(it => {
-                                if (outOfStockNames.includes(it.name)) it.isOutOfStock = true;
-                            }));
-                        }
-                    } catch(e) {}
-                    try {
-                        if (typeof updateDynamicStockAndPrices === 'function') updateDynamicStockAndPrices();
-                        if (typeof renderDynamicCatalog === 'function') renderDynamicCatalog();
-                        if (typeof updateTotal === 'function') updateTotal();
-                    } catch(e) {}
-                    const hasRemaining = typeof hasAvailableCartItems === 'function' ? hasAvailableCartItems() : false;
-                    if (hasRemaining) {
-                        setAllSubmitButtonsState(false, '確認下單', { cursor: 'pointer', opacity: '1' });
-                        return customAlert(
-                            `<div style="font-size: 16px; font-weight: 900; color: #dc2626; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">` +
-                            `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>` +
-                            `<span>售完品項</span>` +
-                            `</div>` +
-                            `<div style="font-size: 14px; color: #374151; line-height: 1.6; text-align: left; margin: 12px 0;">` +
-                            `抱歉，以下餐點目前已售完，已自動自購物車移除：<br>` +
-                            `<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 12px; margin-top: 8px; color: #b91c1c; font-weight: 700;">` +
-                            `${itemListHtml}` +
-                            `</div>` +
-                            `</div>` +
-                            `<div style="font-size: 13px; color: #6b7280;">金額已重新計算，請確認後再次點擊送出。</div>`
-                        );
-                    } else {
-                        setAllSubmitButtonsState(true, '餐點已售完', { cursor: 'not-allowed', opacity: '0.6' });
-                        return customAlert(
-                            `<div style="font-size: 16px; font-weight: 900; color: #dc2626; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">` +
-                            `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>` +
-                            `<span>售完品項</span>` +
-                            `</div>` +
-                            `<div style="font-size: 14px; color: #374151; line-height: 1.6; text-align: left; margin: 12px 0;">` +
-                            `抱歉，您選購的更換餐點目前已全數售完：<br>` +
-                            `<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 12px; margin-top: 8px; color: #b91c1c; font-weight: 700;">` +
-                            `${itemListHtml}` +
-                            `</div>` +
-                            `</div>` +
-                            `<div style="font-size: 13px; color: #6b7280;">請回到菜單選擇其他餐點，敬請見諒！</div>`
-                        );
-                    }
+                    return _coHandleOutOfStockResponse(errData.outOfStockItems || [], 'edit', false);
                 }
                 const serverError = new Error(errData.error || `API returned status ${res.status}`);
                 serverError.serverRejected = true;
@@ -3204,7 +3246,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
             const modifyResult = await res.json();
             orderSubmittedSuccessfully = true;
             if (modifyResult.success && typeof DetailCheckout !== 'undefined') DetailCheckout.completed();
-            setAllSubmitButtonsState(true, '品項已更新', { cursor: 'not-allowed', opacity: '0.6' });
+            setAllSubmitButtonsState(true, _coT('btn_edit_updated', null, '品項已更新'), { cursor: 'not-allowed', opacity: '0.6' });
 
             const rawItemsText = typeof formatAppendItemsOnlyText === 'function' ? formatAppendItemsOnlyText() : '';
             const notePart = mainNote ? `\n📝 備註：${mainNote}` : '';
@@ -3223,25 +3265,13 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
             if (typeof updateTotal === 'function') updateTotal();
 
             const delta = modifyResult.deltaAmount || (currentTotal - (window.editOrderOriginalTotal || 0));
-            let deltaMsg = '無差額 ($0)';
-            if (delta > 0) deltaMsg = `需補差額 $${delta}`;
-            else if (delta < 0) deltaMsg = `店家退還差額 $${Math.abs(delta)}`;
+            let deltaMsg = _coT('alert_edit_no_delta', null, '無差額 ($0)');
+            if (delta > 0) deltaMsg = _coT('alert_edit_delta_add', { delta }, `需補差額 $${delta}`);
+            else if (delta < 0) deltaMsg = _coT('alert_edit_delta_refund', { delta: Math.abs(delta) }, `店家退還差額 $${Math.abs(delta)}`);
 
-            customAlert(`
-                <div style="margin-bottom: 16px;">
-                    <div style="width: 60px; height: 60px; margin: 0 auto; background: #ecfdf5; border: 2px solid #a7f3d0; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                    </div>
-                </div>
-                <div style="font-size: 19px; font-weight: 900; color: #111827; margin-bottom: 6px;">品項更換成功！</div>
-                <div style="font-size: 14.5px; line-height: 1.5; color: #4b5563;">
-                    門市已收到您的更新訂單！<br>
-                    <strong>新總計：$${currentTotal}</strong> (${deltaMsg})<br>
-                    品項已更新，請在 LINE 查看確認與訂單進度。
-                </div>
-            `, () => {
+            const editTitle = _coT('alert_edit_success_title', null, '品項更換成功！');
+            const editBody = _coT('alert_edit_success_body', { total: currentTotal, deltaMsg }, `門市已收到您的更新訂單！<br><strong>新總計：$${currentTotal}</strong> (${deltaMsg})<br>品項已更新，請在 LINE 查看確認與訂單進度。`);
+            customAlert(_coSuccessAlertHtml(editTitle, editBody), () => {
                 if (typeof closeAndExitLiff === 'function') closeAndExitLiff();
             });
 
@@ -3259,6 +3289,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
             uuid: orderUuid,
             userId: userId,
             customer: customerName,
+            customer_locale: _coCustomerLocale(),
             time: `${dateInput} ${timeInput}`,
             dining_option: diningOption,
             table_number: tableNumber || undefined,
@@ -3296,52 +3327,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
         if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
             if (errData && errData.code === 'ITEMS_OUT_OF_STOCK') {
-                const outOfStockNames = errData.outOfStockItems || [];
-                const itemListHtml = outOfStockNames.map(name => `• 【${name}】`).join('<br>');
-                try {
-                    if (typeof bootstrapData !== 'undefined' && bootstrapData && bootstrapData.catalog && Array.isArray(outOfStockNames)) {
-                        bootstrapData.catalog.forEach(c => (c.items || []).forEach(it => {
-                            if (outOfStockNames.includes(it.name)) it.isOutOfStock = true;
-                        }));
-                    }
-                } catch(e) {}
-                try {
-                    if (typeof updateDynamicStockAndPrices === 'function') updateDynamicStockAndPrices();
-                    if (typeof renderDynamicCatalog === 'function') renderDynamicCatalog();
-                    if (typeof updateTotal === 'function') updateTotal();
-                } catch(e) {}
-                const hasRemaining = typeof hasAvailableCartItems === 'function' ? hasAvailableCartItems() : false;
-                if (hasRemaining) {
-                    setAllSubmitButtonsState(false, '確認下單', { cursor: 'pointer', opacity: '1' });
-                    return customAlert(
-                        `<div style="font-size: 16px; font-weight: 900; color: #dc2626; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">` +
-                        `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>` +
-                        `<span>售完品項</span>` +
-                        `</div>` +
-                        `<div style="font-size: 14px; color: #374151; line-height: 1.6; text-align: left; margin: 12px 0;">` +
-                        `抱歉，以下餐點目前已售完，已自動自購物車移除：<br>` +
-                        `<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 12px; margin-top: 8px; color: #b91c1c; font-weight: 700;">` +
-                        `${itemListHtml}` +
-                        `</div>` +
-                        `</div>` +
-                        `<div style="font-size: 13px; color: #6b7280;">金額已重新計算，請確認後再次點擊送出訂單。</div>`
-                    );
-                } else {
-                    setAllSubmitButtonsState(true, '餐點已售完', { cursor: 'not-allowed', opacity: '0.6' });
-                    return customAlert(
-                        `<div style="font-size: 16px; font-weight: 900; color: #dc2626; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">` +
-                        `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>` +
-                        `<span>售完品項</span>` +
-                        `</div>` +
-                        `<div style="font-size: 14px; color: #374151; line-height: 1.6; text-align: left; margin: 12px 0;">` +
-                        `抱歉，您選購的餐點目前已全數售完：<br>` +
-                        `<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 12px; margin-top: 8px; color: #b91c1c; font-weight: 700;">` +
-                        `${itemListHtml}` +
-                        `</div>` +
-                        `</div>` +
-                        `<div style="font-size: 13px; color: #6b7280;">請回到菜單選擇其他餐點，敬請見諒！</div>`
-                    );
-                }
+                return _coHandleOutOfStockResponse(errData.outOfStockItems || [], 'create', false);
             }
             const serverError = new Error(errData.error || `API returned status ${res.status}`);
             serverError.serverRejected = true;
@@ -3357,7 +3343,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
         }
 
         orderSubmittedSuccessfully = true;
-        setAllSubmitButtonsState(true, '訂單已送出', { cursor: 'not-allowed', opacity: '0.6' });
+        setAllSubmitButtonsState(true, _coT('btn_order_submitted', null, '訂單已送出'), { cursor: 'not-allowed', opacity: '0.6' });
 
         // Xóa sạch giỏ hàng khi thành công ngay lập tức để giao diện phản hồi nhanh chóng
         cart = {};
@@ -3369,19 +3355,10 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
         if (window.bundleCartData) window.bundleCartData = {};
         if (typeof updateTotal === 'function') updateTotal();
 
-        const orderSuccessMsg = '店家已收到您的訂單，請在 LINE 查看訂單確認與進度。';
+        const orderSuccessTitle = _coT('alert_order_success_title', null, '訂單已送出成功！');
+        const orderSuccessMsg = _coT('alert_order_success_body', null, '店家已收到您的訂單，請在 LINE 查看訂單確認與進度。');
 
-        customAlert(`
-            <div style="margin-bottom: 16px;">
-                <div style="width: 60px; height: 60px; margin: 0 auto; background: #ecfdf5; border: 2px solid #a7f3d0; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                </div>
-            </div>
-            <div style="font-size: 19px; font-weight: 900; color: #111827; margin-bottom: 6px;">訂單已送出成功！</div>
-            <div style="font-size: 14.5px; line-height: 1.5; color: #4b5563;">${orderSuccessMsg}</div>
-        `, () => {
+        customAlert(_coSuccessAlertHtml(orderSuccessTitle, orderSuccessMsg), () => {
             if (typeof closeAndExitLiff === 'function') closeAndExitLiff();
         });
 
@@ -3395,16 +3372,21 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
     } catch (err) {
         clearTimeout(timeoutId);
         if (window.LinePayCheckout && (LinePayCheckout.selected() || LinePayCheckout.blocked())) {
-            customAlert('LINE Pay: ' + String(err.message || '請重新確認付款 / Vui lòng kiểm tra lại thanh toán').replace(/[<>&]/g, ''));
+            customAlert('LINE Pay: ' + String(err.message || _coT('err_linepay_generic', null, '請重新確認付款')).replace(/[<>&]/g, ''));
             return;
         }
         if (err.serverRejected) {
+            const _rejectLocale = (typeof _coCustomerLocale === 'function' ? _coCustomerLocale() : ((typeof currentLocale !== 'undefined' && currentLocale) || (typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || 'zh-TW'));
+            const _rejectVi = _rejectLocale === 'vi';
+            const _rejectT = (k, zhText, viText) => (typeof _coT === 'function' ? _coT(k, null, _rejectVi ? viText : zhText) : (_rejectVi ? viText : zhText));
+            const _rejectEsc = (s) => (typeof _coEscapeHtml === 'function' ? _coEscapeHtml(s) : String(s || '').replace(/[<>&]/g, ''));
+            const _rejectResolve = (candidate) => (typeof _coResolveCatalogItem === 'function' ? _coResolveCatalogItem(candidate) : (typeof resolveCatalogItem === 'function' ? resolveCatalogItem(candidate) : null));
             const details = err.details || {};
             const code = String(details.code || '');
             const optionError = code.startsWith('OPTION_') || code === 'ORDER_PRICE_CHANGED' || code === 'PRODUCT_UNAVAILABLE' || code === 'MIN_ORDER_SUBTOTAL_NOT_MET';
             if (code.startsWith('BUNDLE_') || optionError) {
                 const affected = buildStructuredCartItems()[Number(details.itemIndex || 0)];
-                let key = affected && Object.keys(cart).find(candidate => resolveCatalogItem(candidate)?.itemId === affected.itemId);
+                let key = affected && Object.keys(cart).find(candidate => _rejectResolve(candidate)?.itemId === affected.itemId);
                 let location = key ? parseCartKey(key) : null;
                 try {
                     const fresh = await fetch(`${WORKER_BASE}/api/tenant/bootstrap?tenant_id=${encodeURIComponent(getTenantIdFromUrl())}&_t=${Date.now()}`, {
@@ -3440,20 +3422,19 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
                 if (typeof reconcileCartOptions === 'function') reconcileCartOptions();
                 // This rejection already asks the customer to review and explicitly retry.
                 window.cartOptionsNeedReview = false;
-                const vi = (typeof currentLocale !== 'undefined' ? currentLocale : document.documentElement.lang) === 'vi';
                 const message = optionError
                     ? code === 'OPTION_PRICE_CHANGED' || code === 'ORDER_PRICE_CHANGED'
-                        ? (vi ? 'Giá món đã thay đổi. Vui lòng xác nhận lại tùy chọn.' : '餐點價格已更新，請重新確認選項。')
+                        ? _rejectT('err_option_price_changed', '餐點價格已更新，請重新確認選項。', 'Giá món đã thay đổi. Vui lòng xác nhận lại tùy chọn.')
                         : code === 'PRODUCT_UNAVAILABLE' || code === 'OPTION_UNAVAILABLE' || code === 'OPTION_SUB_INVALID'
-                            ? (vi ? 'Một món hoặc tùy chọn đã hết hàng. Vui lòng chọn lại.' : '餐點或選項已售完，請重新選擇。')
+                            ? _rejectT('err_option_unavailable', '餐點或選項已售完，請重新選擇。', 'Một món hoặc tùy chọn đã hết hàng. Vui lòng chọn lại.')
                             : code === 'MIN_ORDER_SUBTOTAL_NOT_MET'
-                                ? (vi ? 'Giỏ hàng chưa đạt giá trị tối thiểu cho tùy chọn này. Vui lòng chọn lại.' : '訂單金額未達此選項的最低金額，請重新選擇。')
-                                : (vi ? 'Tùy chọn của món đã thay đổi. Vui lòng xác nhận lại.' : '餐點選項已更新，請重新確認。')
-                    : details.error || '套餐內容已變更，請重新確認';
-                const safeMessage = String(message).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+                                ? _rejectT('err_option_min_subtotal', '訂單金額未達此選項的最低金額，請重新選擇。', 'Giỏ hàng chưa đạt giá trị tối thiểu cho tùy chọn này. Vui lòng chọn lại.')
+                                : _rejectT('err_option_generic', '餐點選項已更新，請重新確認。', 'Tùy chọn của món đã thay đổi. Vui lòng xác nhận lại.')
+                    : _rejectT('err_bundle_changed', details.error || '套餐內容已變更，請重新確認', details.error || 'Nội dung combo đã thay đổi, vui lòng xác nhận lại');
+                const safeMessage = _rejectEsc(message);
                 const expected = details.expectedTotal ?? details.expectedSubtotal;
                 if (typeof updateTotal === 'function') updateTotal();
-                customAlert(`${safeMessage}${expected !== undefined ? `<br>${vi ? 'Số tiền cập nhật' : '更新後金額'}：$${Number(expected)}` : ''}`, () => {
+                customAlert(`${safeMessage}${expected !== undefined ? `<br>${_rejectT('err_updated_amount', '更新後金額', 'Số tiền cập nhật')}：$${Number(expected)}` : ''}`, () => {
                     if (location && (!optionError || (product?.bundleRule && !product.isOutOfStock))) {
                         if (typeof openBundleBuilderModal === 'function') {
                             openBundleBuilderModal(location.catSlug, location.origName, Number(details.portionIndex || 0));
@@ -3462,15 +3443,13 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
                     }
                 });
             } else {
-                const safeMessage = String(err.message || '訂單送出失敗').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+                const safeMessage = _rejectEsc(err.message || _rejectT('err_submit_failed', '訂單送出失敗', 'Gửi đơn thất bại'));
                 customAlert(safeMessage);
             }
             return;
         }
         if (typeof DetailCheckout !== 'undefined' && DetailCheckout.enabled()) {
-            customAlert(document.documentElement.lang === 'vi'
-                ? 'Chưa xác nhận được kết quả. Giỏ hàng được giữ lại; vui lòng thử gửi lại.'
-                : '尚未確認送出結果，購物車已保留，請重試。');
+            customAlert(_coT('err_unconfirmed_retry', null, '尚未確認送出結果，購物車已保留，請重試。'));
             return;
         }
         console.warn("Primary API flow failed, falling back to LINE message flow:", err);
@@ -3508,7 +3487,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
                     });
                 }
                 orderSubmittedSuccessfully = true;
-                setAllSubmitButtonsState(true, window.isAppendMode ? '加點已送出' : '訂單已送出', { cursor: 'not-allowed', opacity: '0.6' });
+                setAllSubmitButtonsState(true, window.isAppendMode ? _coT('btn_append_submitted', null, '加點已送出') : _coT('btn_order_submitted', null, '訂單已送出'), { cursor: 'not-allowed', opacity: '0.6' });
 
                 cart = {};
                 window.cart = cart;
@@ -3524,32 +3503,27 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
                 } catch(e) {}
                 if (typeof updateTotal === 'function') updateTotal();
 
-                customAlert(`
-                    <div style="margin-bottom: 16px;">
-                        <div style="width: 60px; height: 60px; margin: 0 auto; background: #ecfdf5; border: 2px solid #a7f3d0; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        </div>
-                    </div>
-                    <div style="font-size: 19px; font-weight: 900; color: #111827; margin-bottom: 6px;">訂單已送出成功！</div>
-                    <div style="font-size: 14.5px; line-height: 1.5; color: #4b5563;">店家已收到您的訂單，您可以直接在LINE查看訂單狀態 🙏</div>
-                `, () => {
+                customAlert(_coSuccessAlertHtml(
+                    _coT('alert_order_success_title', null, '訂單已送出成功！'),
+                    _coT('alert_order_success_body', null, '店家已收到您的訂單，請在 LINE 查看訂單確認與進度。')
+                ), () => {
                     if (typeof closeAndExitLiff === 'function') closeAndExitLiff();
                 });
             } else {
                 throw err;
             }
         } catch (liffErr) {
-            const errorMsg = (err.name === 'AbortError') ? '連線逾時（網路較慢），請重新點擊送出' : (err.message || '連線逾時');
-            customAlert(`訂單送出失敗：<br><br><span style="color:#ef4444; font-weight:700;">${errorMsg}</span><br><br>請檢查網路後再次點擊確認下單。`);
+            const errorMsg = (err.name === 'AbortError')
+                ? _coT('err_timeout', null, '連線逾時（網路較慢），請重新點擊送出')
+                : _coEscapeHtml(err.message || _coT('err_submit_failed', null, '訂單送出失敗'));
+            customAlert(_coT('err_submit_retry_box', { error: errorMsg }, `訂單送出失敗：<br><br><span style="color:#ef4444; font-weight:700;">${errorMsg}</span><br><br>請檢查網路後再次點擊確認下單。`));
         }
     } finally {
         clearTimeout(timeoutId);
         // Luôn giải phóng khóa nút bấm nếu đơn hàng chưa hoàn tất
         if (!orderSubmittedSuccessfully) {
             isSubmitting = false;
-            setAllSubmitButtonsState(false, '確認下單', { cursor: 'pointer', opacity: '1' });
+            setAllSubmitButtonsState(false, _coT('btn_submit_order', null, '確認下單'), { cursor: 'pointer', opacity: '1' });
         }
     }
 }

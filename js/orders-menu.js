@@ -135,6 +135,12 @@ function updateMenuSaveState() {
   }
   const orderButton = document.getElementById('btn-menu-manage-cats');
   if (orderButton) orderButton.disabled = isMenuSaving || !isMenuLoadedCompletely;
+  const aiTranslateButton = document.getElementById('btn-menu-ai-translate');
+  if (aiTranslateButton) {
+    const canTranslate = getActiveMenuTargetLocales().length > 0;
+    aiTranslateButton.style.display = canTranslate ? '' : 'none';
+    aiTranslateButton.disabled = !canTranslate || isMenuSaving || !isMenuLoadedCompletely || Boolean(window._isMenuAiTranslating);
+  }
   const backButton = document.getElementById('btn-menu-order-back');
   if (backButton) backButton.disabled = isMenuSaving;
 }
@@ -306,6 +312,9 @@ async function loadMenuData() {
         (data.customizations !== undefined && !Array.isArray(data.customizations))) {
       throw new Error('Incomplete menu');
     }
+    if (data.tenant && typeof applyTenantBranding === "function") {
+      applyTenantBranding(data.tenant);
+    }
 
     if (!libraryResponse.ok) throw new Error('Failed to load modifier library');
     const libraryData = await libraryResponse.json();
@@ -344,6 +353,7 @@ async function loadMenuData() {
           allowCustomization: cat.allowCustomization !== undefined ? cat.allowCustomization : (cat.slug !== 'drinks'),
           appliedModifiers: cat.appliedModifiers || (cat.allowCustomization === false ? [] : ['*']),
           sortOrder: Number(cat.sortOrder !== undefined ? cat.sortOrder : (cat.sort_order !== undefined ? cat.sort_order : (cIdx + 1))),
+          ...(cat.i18n && typeof cat.i18n === 'object' && Object.keys(cat.i18n).length > 0 ? { i18n: cat.i18n } : {}),
           items: cat.items.map(it => ({
             id: it.id || null,
             name: it.name,
@@ -355,7 +365,8 @@ async function loadMenuData() {
             bundleRule: it.bundleRule || null,
             itemType: it.itemType || 'standard',
             modifierGroups: Array.isArray(it.modifierGroups) ? it.modifierGroups : [],
-            originalName: it.name
+            originalName: it.name,
+            ...(it.i18n && typeof it.i18n === 'object' && Object.keys(it.i18n).length > 0 ? { i18n: it.i18n } : {})
           }))
         });
       });
@@ -1699,9 +1710,11 @@ function applyMenuItemFilters() {
     else if (menuItemFilterStatus === 'oos') matchesStatus = Boolean(isOos);
 
     if (matchesSearch && matchesStatus) {
+      row.hidden = false;
       row.style.display = '';
       visibleCount++;
     } else {
+      row.hidden = true;
       row.style.display = 'none';
     }
   });
@@ -1799,7 +1812,7 @@ function renderMenuCategoryEditor(index) {
   const ft = document.getElementById('menu-editor-footer');
   if (ft) ft.style.display = 'flex';
 
-  const filterCountAll = document.getElementById('filter-count-all');
+  const filterCountAll = document.getElementById('menu-filter-count-all');
   const filterCountInStock = document.getElementById('filter-count-instock');
   const filterCountOos = document.getElementById('filter-count-oos');
   if (filterCountAll) filterCountAll.textContent = cat.items.length;
@@ -5321,6 +5334,83 @@ window.handleQuickTagClick = handleQuickTagClick;
 
 let itemDetailSnapshotBeforeEdit = null;
 
+function getActiveMenuTargetLocales() {
+  if (typeof isTenantMultilingualEnabled === "function" && !isTenantMultilingualEnabled()) {
+    return [];
+  }
+  if (window.currentTenantI18nEnabled === false) {
+    return [];
+  }
+  if (typeof getTenantAiTargetLocales === "function") {
+    return getTenantAiTargetLocales();
+  }
+  return [];
+}
+
+function formatMenuI18nSectionTitle(locales) {
+  const list = Array.isArray(locales) ? locales : getActiveMenuTargetLocales();
+  const base = t("itemI18nSectionBase") || (currentLang === "vi" ? "Hiển thị đa ngôn ngữ" : "多語系顯示");
+  if (!list.length) return base;
+  const labels = list.map((loc) => t(`localeLabel_${loc}`) || loc.toUpperCase());
+  const sep = currentLang === "vi" ? ", " : " / ";
+  return currentLang === "vi" ? `${base} (${labels.join(sep)})` : `${base}（${labels.join(sep)}）`;
+}
+window.formatMenuI18nSectionTitle = formatMenuI18nSectionTitle;
+
+function updateMenuAiTranslateVisibility() {
+  const btn = document.getElementById("btn-menu-ai-translate");
+  if (btn) {
+    btn.style.display = getActiveMenuTargetLocales().length > 0 ? "" : "none";
+  }
+}
+window.updateMenuAiTranslateVisibility = updateMenuAiTranslateVisibility;
+
+function populateItemDetailI18nInputs(i18n) {
+  const targets = getActiveMenuTargetLocales();
+  const details = document.getElementById('item-detail-i18n-details');
+  if (details) {
+    details.style.display = targets.length > 0 ? '' : 'none';
+    details.querySelectorAll('[data-i18n-locale]').forEach((el) => {
+      el.style.display = targets.includes(el.dataset.i18nLocale) ? '' : 'none';
+    });
+  }
+  const titleEl = document.getElementById('i18n-item-i18n-section-title');
+  if (titleEl) {
+    titleEl.innerText = formatMenuI18nSectionTitle(targets);
+  }
+  const fields = {
+    'item-detail-i18n-en-name': i18n?.en?.name || '',
+    'item-detail-i18n-en-badge': i18n?.en?.badge_text || '',
+    'item-detail-i18n-vi-name': i18n?.vi?.name || '',
+    'item-detail-i18n-vi-badge': i18n?.vi?.badge_text || '',
+  };
+  for (const [id, val] of Object.entries(fields)) {
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+  }
+}
+
+function readItemDetailI18nInputs(existingI18n) {
+  const enNameEl = document.getElementById('item-detail-i18n-en-name');
+  if (!enNameEl) return existingI18n;
+  const targets = getActiveMenuTargetLocales();
+  const enName = enNameEl.value.trim();
+  const enBadge = document.getElementById('item-detail-i18n-en-badge')?.value.trim() || '';
+  const viName = document.getElementById('item-detail-i18n-vi-name')?.value.trim() || '';
+  const viBadge = document.getElementById('item-detail-i18n-vi-badge')?.value.trim() || '';
+  const next = existingI18n ? JSON.parse(JSON.stringify(existingI18n)) : {};
+  const applyLocale = (loc, name, badge) => {
+    const entry = { ...(next[loc] || {}) };
+    if (name) entry.name = name; else delete entry.name;
+    if (badge) entry.badge_text = badge; else delete entry.badge_text;
+    if (Object.keys(entry).length > 0) next[loc] = entry; else delete next[loc];
+  };
+  if (targets.includes('en')) applyLocale('en', enName, enBadge);
+  if (targets.includes('vi')) applyLocale('vi', viName, viBadge);
+  if (Object.keys(next).length === 0) return existingI18n ? {} : undefined;
+  return next;
+}
+
 function autoCommitItemDetailFields() {
   if (activeItemDetailCatIdx === null || activeItemDetailItemIdx === null) return;
   const item = currentMenuData[activeItemDetailCatIdx]?.items?.[activeItemDetailItemIdx];
@@ -5339,6 +5429,9 @@ function autoCommitItemDetailFields() {
     const bVal = badgeInput.value.trim();
     item.badgeText = bVal;
   }
+  const nextI18n = readItemDetailI18nInputs(item.i18n);
+  if (nextI18n !== undefined) item.i18n = nextI18n;
+  else delete item.i18n;
   checkMenuDirty();
 }
 
@@ -5401,6 +5494,7 @@ function openCreateItemModal(cIdx) {
     renderQuickTags("");
     badgeInput.oninput = () => renderQuickTags(badgeInput.value.trim());
   }
+  populateItemDetailI18nInputs(null);
 
   // Advanced Section
   const advSection = document.getElementById("item-detail-advanced-section");
@@ -5502,6 +5596,7 @@ function openItemDetailModal(cIdx, iIdx) {
     renderQuickTags(item.badgeText || "");
     badgeInput.oninput = () => renderQuickTags(badgeInput.value.trim());
   }
+  populateItemDetailI18nInputs(item.i18n || null);
 
   // Advanced Section
   const advSection = document.getElementById("item-detail-advanced-section");
@@ -5600,6 +5695,7 @@ function saveItemDetailModal() {
   if (modal) modal.style.display = "none";
 
   if (isItemDetailCreateMode || activeItemDetailItemIdx === null) {
+    const newItemI18n = readItemDetailI18nInputs(null);
     const newItem = {
       name: nameVal,
       price: isNaN(priceVal) ? 0 : priceVal,
@@ -5608,7 +5704,8 @@ function saveItemDetailModal() {
       isOos: false,
       bundleRule: null,
       itemType: "standard",
-      modifierGroups: []
+      modifierGroups: [],
+      ...(newItemI18n ? { i18n: newItemI18n } : {})
     };
     cat.items.push(newItem);
     const saveCatIdx = activeItemDetailCatIdx;
@@ -5627,6 +5724,9 @@ function saveItemDetailModal() {
       item.price = isNaN(priceVal) ? 0 : priceVal;
       item.badgeText = badgeVal;
       item.isRecommended = isRec;
+      const nextI18n = readItemDetailI18nInputs(item.i18n);
+      if (nextI18n !== undefined) item.i18n = nextI18n;
+      else delete item.i18n;
       const saveCatIdx = activeItemDetailCatIdx;
       isItemDetailCreateMode = false;
       activeItemDetailCatIdx = null;
@@ -5668,6 +5768,7 @@ function transitionToSubEditor(type) {
       if (nameInput) nameInput.focus();
       return;
     }
+    const newItemI18n = readItemDetailI18nInputs(null);
     const newItem = {
       name: nameVal,
       price: isNaN(priceVal) ? 0 : priceVal,
@@ -5676,7 +5777,8 @@ function transitionToSubEditor(type) {
       isOos: false,
       bundleRule: null,
       itemType: "standard",
-      modifierGroups: []
+      modifierGroups: [],
+      ...(newItemI18n ? { i18n: newItemI18n } : {})
     };
     cat.items.push(newItem);
     activeItemDetailItemIdx = cat.items.length - 1;
@@ -5708,3 +5810,165 @@ function transitionToSubEditor(type) {
   }
 }
 window.transitionToSubEditor = transitionToSubEditor;
+
+function setAiTranslateButtonLoading(btn, isLoading, detailsEl) {
+  if (btn) {
+    btn.classList.toggle("is-loading", Boolean(isLoading));
+    btn.setAttribute("aria-busy", isLoading ? "true" : "false");
+    btn.disabled = Boolean(isLoading);
+    const existingSpinner = btn.querySelector(".ai-inline-spinner");
+    if (isLoading && !existingSpinner) {
+      const spinner = document.createElement("span");
+      spinner.className = "ai-inline-spinner";
+      spinner.setAttribute("aria-hidden", "true");
+      btn.insertBefore(spinner, btn.firstChild);
+    } else if (!isLoading && existingSpinner) {
+      existingSpinner.remove();
+    }
+  }
+  if (detailsEl) {
+    detailsEl.classList.toggle("is-ai-loading", Boolean(isLoading));
+  }
+}
+
+async function translateItemDetailWithAI() {
+  const nameInput = document.getElementById("item-detail-name-input");
+  const badgeInput = document.getElementById("item-detail-badge-input");
+  const aiBtn = document.getElementById("btn-item-detail-ai-translate");
+  const aiBtnLabel = document.getElementById("i18n-btn-item-ai-translate");
+  const details = document.getElementById("item-detail-i18n-details");
+  const nameVal = nameInput ? nameInput.value.trim() : "";
+  const badgeVal = badgeInput ? badgeInput.value.trim() : "";
+
+  if (!nameVal) {
+    alert(t("enterItemNameFirst") || t("enterItemName"));
+    if (nameInput) nameInput.focus();
+    return;
+  }
+
+  const tenantId = getTenantIdFromUrl();
+  const targetLocales = getActiveMenuTargetLocales();
+  if (targetLocales.length === 0) {
+    if (typeof showToast === "function") showToast(t("custLangNoneEnabled"), "info");
+    return;
+  }
+  const entryId = `draft_${Date.now()}`;
+  if (details) details.open = true;
+  setAiTranslateButtonLoading(aiBtn, true, details);
+  if (aiBtnLabel) aiBtnLabel.innerText = t("btnItemAiTranslating");
+  try {
+    const res = await fetch(
+      `${WORKER_BASE}/api/menu/ai-translate?tenant_id=${encodeURIComponent(tenantId)}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Tenant-ID": tenantId
+        },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          applyToDatabase: false,
+          targetLocales,
+          entries: [
+            {
+              type: "item",
+              id: entryId,
+              name: nameVal,
+              badge_text: badgeVal
+            }
+          ]
+        })
+      }
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "AI_TRANSLATION_FAILED");
+    const tr = data.byId?.[entryId] || data.translations?.[`item:${entryId}`] || {};
+    const enNameEl = document.getElementById("item-detail-i18n-en-name");
+    const enBadgeEl = document.getElementById("item-detail-i18n-en-badge");
+    const viNameEl = document.getElementById("item-detail-i18n-vi-name");
+    const viBadgeEl = document.getElementById("item-detail-i18n-vi-badge");
+    if (targetLocales.includes("en")) {
+      if (enNameEl && tr.en?.name) enNameEl.value = tr.en.name;
+      if (enBadgeEl && tr.en?.badge_text) enBadgeEl.value = tr.en.badge_text;
+    }
+    if (targetLocales.includes("vi")) {
+      if (viNameEl && tr.vi?.name) viNameEl.value = tr.vi.name;
+      if (viBadgeEl && tr.vi?.badge_text) viBadgeEl.value = tr.vi.badge_text;
+    }
+    if (details) details.open = true;
+  } catch (err) {
+    if (typeof showToast === "function") showToast(t("menuAiTranslateFailed"), "error");
+    else alert(t("menuAiTranslateFailed"));
+  } finally {
+    setAiTranslateButtonLoading(aiBtn, false, details);
+    if (aiBtnLabel) aiBtnLabel.innerText = t("btnItemAiTranslate");
+  }
+}
+window.translateItemDetailWithAI = translateItemDetailWithAI;
+
+async function translateMissingMenuWithAI() {
+  if (!isMenuLoadedCompletely || isMenuSaving || window._isMenuAiTranslating) return;
+  const tenantId = getTenantIdFromUrl();
+  if (!tenantId) return;
+  const targetLocales = getActiveMenuTargetLocales();
+  if (targetLocales.length === 0) {
+    if (typeof showToast === "function") showToast(t("custLangNoneEnabled"), "info");
+    return;
+  }
+
+  window._isMenuAiTranslating = true;
+  const aiBtn = document.getElementById("btn-menu-ai-translate");
+  const aiBtnLabel = document.getElementById("i18n-btn-menu-ai-translate-text");
+  if (aiBtnLabel) aiBtnLabel.innerText = t("btnMenuAiTranslating");
+  updateMenuSaveState();
+  setAiTranslateButtonLoading(aiBtn, true);
+
+  try {
+    if (typeof isMenuDirty !== "undefined" && isMenuDirty) {
+      await saveMenuData(true);
+    }
+    const res = await fetch(
+      `${WORKER_BASE}/api/menu/ai-translate?tenant_id=${encodeURIComponent(tenantId)}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Tenant-ID": tenantId
+        },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          applyToDatabase: true,
+          onlyMissing: true,
+          targetLocales
+        })
+      }
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "AI_TRANSLATION_FAILED");
+    const count = Number(data.translatedCount || data.persistedCount || 0);
+    if (count > 0) {
+      await loadMenuData();
+      if (window.UnifiedMenu && typeof window.UnifiedMenu.load === "function") {
+        await window.UnifiedMenu.load().catch(() => null);
+      }
+      if (typeof showToast === "function") {
+        showToast(t("menuAiTranslateDone", { count }), "success");
+      }
+    } else if (typeof showToast === "function") {
+      showToast(t("menuAiTranslateNothing"), "info");
+    }
+  } catch (err) {
+    if (typeof showToast === "function") {
+      showToast(t("menuAiTranslateFailed"), "error");
+    } else {
+      alert(t("menuAiTranslateFailed"));
+    }
+  } finally {
+    window._isMenuAiTranslating = false;
+    setAiTranslateButtonLoading(aiBtn, false);
+    if (aiBtnLabel) aiBtnLabel.innerText = t("btnMenuAiTranslate");
+    if (aiBtn) aiBtn.disabled = isMenuSaving || !isMenuLoadedCompletely;
+    updateMenuSaveState();
+  }
+}
+window.translateMissingMenuWithAI = translateMissingMenuWithAI;

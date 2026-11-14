@@ -183,6 +183,67 @@ function getTenantIdFromUrl() {
   return "";
 }
 
+function isTenantMultilingualEnabled() {
+  if (window.currentTenantI18nEnabled === true) return true;
+  const feats = Array.isArray(window.currentTenantFeatures) ? window.currentTenantFeatures : [];
+  return feats.includes("multilingual") || feats.includes("i18n");
+}
+
+function normalizeTenantSupportedLocales(rawLocales, primaryLocale) {
+  const primary = (typeof primaryLocale === "string" && primaryLocale.trim()) ? primaryLocale.trim() : "zh-TW";
+  const list = Array.isArray(rawLocales)
+    ? rawLocales.map(x => String(x || "").trim()).filter(Boolean)
+    : [primary];
+  return [...new Set([primary, ...list])];
+}
+
+function setTenantLocaleConfig(locale, supportedLocales, i18nEnabled) {
+  const primary = (typeof locale === "string" && locale.trim())
+    ? locale.trim()
+    : (window.currentTenantLocale || "zh-TW");
+  window.currentTenantLocale = primary;
+  if (typeof i18nEnabled === "boolean") {
+    window.currentTenantI18nEnabled = i18nEnabled;
+  } else if (window.currentTenantI18nEnabled === undefined) {
+    const feats = Array.isArray(window.currentTenantFeatures) ? window.currentTenantFeatures : [];
+    window.currentTenantI18nEnabled = feats.includes("multilingual") || feats.includes("i18n");
+  }
+  window.currentTenantSupportedLocales = isTenantMultilingualEnabled()
+    ? normalizeTenantSupportedLocales(supportedLocales, primary)
+    : [primary];
+  if (typeof renderCustomerSupportedLocalesSetting === "function") {
+    renderCustomerSupportedLocalesSetting();
+  }
+  if (typeof updateMenuAiTranslateVisibility === "function") {
+    updateMenuAiTranslateVisibility();
+  }
+}
+
+function getTenantSupportedLocales() {
+  const primary = window.currentTenantLocale || "zh-TW";
+  if (!isTenantMultilingualEnabled()) {
+    return [primary];
+  }
+  if (Array.isArray(window.currentTenantSupportedLocales) && window.currentTenantSupportedLocales.length > 0) {
+    return normalizeTenantSupportedLocales(window.currentTenantSupportedLocales, primary);
+  }
+  return [primary, "en", "vi"];
+}
+
+function getTenantAiTargetLocales() {
+  if (!isTenantMultilingualEnabled()) {
+    return [];
+  }
+  const primary = window.currentTenantLocale || "zh-TW";
+  return getTenantSupportedLocales().filter(loc => loc !== primary);
+}
+
+window.isTenantMultilingualEnabled = isTenantMultilingualEnabled;
+window.normalizeTenantSupportedLocales = normalizeTenantSupportedLocales;
+window.setTenantLocaleConfig = setTenantLocaleConfig;
+window.getTenantSupportedLocales = getTenantSupportedLocales;
+window.getTenantAiTargetLocales = getTenantAiTargetLocales;
+
 function applyTenantBranding(tenant) {
   if (!tenant) return;
   const brandName = tenant.brandName || tenant.name || "Blab POS";
@@ -207,6 +268,15 @@ function applyTenantBranding(tenant) {
     window.currentTenantFeatures = tenant.features;
   } else {
     window.currentTenantFeatures = [];
+  }
+  if (tenant) {
+    setTenantLocaleConfig(
+      tenant.locale || window.currentTenantLocale || "zh-TW",
+      tenant.supportedLocales,
+      typeof tenant.i18nEnabled === "boolean"
+        ? tenant.i18nEnabled
+        : (Array.isArray(tenant.features) ? (tenant.features.includes("multilingual") || tenant.features.includes("i18n")) : false)
+    );
   }
   document.documentElement.style.setProperty('--primary', '#00b900');
   initMobileBrandInfo();

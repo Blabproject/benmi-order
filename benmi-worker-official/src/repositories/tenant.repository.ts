@@ -41,6 +41,17 @@ export function createTenantRepository(
     }
   }
 
+  async function hasTenantConfigColumn(columnName: string): Promise<boolean> {
+    if (!db) return false;
+    try {
+      const info = await db.prepare('PRAGMA table_info(tenant_config)').all<any>();
+      const rows = Array.isArray(info?.results) ? info.results : [];
+      return rows.some((col: any) => String(col?.name || '').toLowerCase() === columnName.toLowerCase());
+    } catch {
+      return false;
+    }
+  }
+
   return {
     invalidateCache,
 
@@ -128,6 +139,26 @@ export function createTenantRepository(
               quickReplies,
               defaultPassword: row.default_password || '12345678',
               locale: row.locale || 'zh-TW',
+              ...(row.supported_locales !== undefined ? {
+                supportedLocales: (() => {
+                  try {
+                    const p = typeof row.supported_locales === 'string' ? JSON.parse(row.supported_locales) : row.supported_locales;
+                    return Array.isArray(p) && p.length ? p.map(String) : ['zh-TW', 'en'];
+                  } catch {
+                    return ['zh-TW', 'en'];
+                  }
+                })()
+              } : {}),
+              ...(row.i18n_json !== undefined ? {
+                i18n: (() => {
+                  try {
+                    const p = typeof row.i18n_json === 'string' ? JSON.parse(row.i18n_json || '{}') : row.i18n_json;
+                    return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {};
+                  } catch {
+                    return {};
+                  }
+                })()
+              } : {}),
               googleSheetsUrl: row.google_sheets_url || null,
               features: Array.isArray(features) ? features : [],
               orderPrefix: row.order_prefix || null,
@@ -308,6 +339,24 @@ export function createTenantRepository(
         paymentMethodsVal, paymentMethodsVal,
         autoOpenBeforeMinutesVal, autoOpenBeforeMinutesVal
       ).run();
+
+      if (input.supportedLocales !== undefined && await hasTenantConfigColumn('supported_locales')) {
+        const serializedLocales = typeof input.supportedLocales === 'string'
+          ? input.supportedLocales
+          : JSON.stringify(input.supportedLocales || []);
+        await db.prepare(
+          'UPDATE tenant_config SET supported_locales = ?, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = ?'
+        ).bind(serializedLocales, tenantId).run();
+      }
+
+      if (input.i18n !== undefined && await hasTenantConfigColumn('i18n_json')) {
+        const serializedI18n = typeof input.i18n === 'string'
+          ? input.i18n
+          : JSON.stringify(input.i18n || {});
+        await db.prepare(
+          'UPDATE tenant_config SET i18n_json = ?, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = ?'
+        ).bind(serializedI18n, tenantId).run();
+      }
 
       await invalidateCache(tenantId);
     },

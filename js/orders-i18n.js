@@ -4,6 +4,8 @@
 
 const I18N = {
   "zh-TW": {
+    posLoginTitle: '登入門市管理', posLoginHint: '輸入管理 PIN 碼以操作訂單。', posLoginPIN: '管理 PIN 碼', posLoginSubmit: '登入', posLoginCancel: '取消', posLoginFailed: '登入失敗，請確認 PIN 碼後重試。', posLoginLimited: '嘗試次數過多，請稍後再試。',
+
     aiTitle: "AI 設定",
     aiIntro: "集中管理 LINE 自動回覆，包含關鍵字規則與 AI 判斷。",
     aiMaster: "自動回覆顧客訊息",
@@ -250,12 +252,12 @@ const I18N = {
     badgeReady: "已完成",
     badgeWaiting: "等客戶確認",
     badgePicked: "已取餐",
-    badgePaid: "已結帳",
+    badgePaid: "已完成",
     badgeRejected: "已取消",
     btnReview: "查看訂單",
     btnReady: "準備好了",
     btnPickedUp: "已取餐",
-    btnPaid: "已結帳",
+    btnPaid: "結束用餐",
     btnWaitingReply: "等待客戶回覆",
     btnView: "查看",
     defaultCustomer: "顧客",
@@ -319,7 +321,7 @@ const I18N = {
     statusPillAccepted: "製作中",
     statusPillDone: "待取餐",
     statusPillPicked: "已取餐",
-    statusPillPaid: "已結帳",
+    statusPillPaid: "已完成",
     statusPillWaiting: "待客人確認",
     statusPillRejected: "已取消",
     customerNoteLabel: "顧客備註",
@@ -922,6 +924,30 @@ const I18N = {
     imageDeleting: "正在刪除圖片...",
     imageDeleteFail: "刪除圖片失敗：",
     // Stock Modal
+    batchStockSelect: "多選餐點",
+    batchStockDone: "完成選取",
+    batchStockSearch: "搜尋餐點名稱",
+    batchStockAll: "全部",
+    batchStockChooseAll: "選取全部 {count} 個結果",
+    batchStockClear: "取消選取",
+    batchStockCount: "已選取 {count} 道餐點",
+    batchStockPause: "標記售完",
+    batchStockRestore: "恢復供應",
+    batchStockApply: "套用至 {count} 道餐點",
+    batchStockApplyRestore: "恢復供應 {count} 道餐點",
+    batchStockHint: "確認餐點與時限後，按下方按鈕套用。",
+    batchStockRestoreHint: "確認後，所選餐點將恢復供應。",
+    batchStockNew: "請先儲存餐點",
+    batchStockLimit: "每次最多選取 100 道餐點，請縮小篩選範圍。",
+    batchStockRemoved: "已移除 {count} 道不在目前範圍內的餐點。",
+    batchStockSuccess: "已更新 {changed} 道餐點，{unchanged} 道原已符合設定。",
+    batchStockFailed: "無法確認是否已儲存。請檢查連線，再以相同設定重試。",
+    batchStockMissing: "部分餐點已變更或移除，請重新載入菜單後再選取。",
+    batchStockCache: "供應狀態已儲存，顧客菜單更新稍有延遲。",
+    batchStockSaving: "正在更新 {count} 道餐點…",
+    batchStockTime: "恢復供應時間：{time}（UTC+7）",
+    batchStockDetails: "查看所選餐點",
+    batchStockLogin: "請登入管理帳號後重試。",
     stockModalTitle: "供應狀態",
     stockModalItem: "庫存設定：{name}",
     stockLabelStatus: "狀態：",
@@ -994,6 +1020,22 @@ const I18N = {
     tocReports: "銷量與營收報表",
     settingLangTitle: "系統介面語言",
     settingLangSub: "設定 POS 系統的操作與顯示語言",
+    settingCustLangTitle: "顧客菜單與 AI 翻譯語言",
+    settingCustLangSub: "選擇顧客端菜單顯示語言切換，以及 AI 自動翻譯的目標語言",
+    custLangPrimaryTitle: "繁體中文（門市預設主語言）",
+    custLangPrimaryDesc: "菜單編輯主語言，顧客端永遠包含此語言",
+    custLangPrimaryBadge: "主語言",
+    custLangEnTitle: "English（英文菜單）",
+    custLangEnDesc: "開啟後，顧客可切換英文菜單，POS 與 AI 將支援英文翻譯",
+    custLangViTitle: "Tiếng Việt（越南文菜單）",
+    custLangViDesc: "開啟後，顧客可切換越南文菜單，POS 與 AI 將支援越南文翻譯",
+    btnSaveCustLang: "儲存菜單語言設定",
+    custLangNoneEnabled: "目前門市僅使用主語言，未啟用其他翻譯語言。",
+    custLangLockedTitle: "多語系菜單與 AI 翻譯套件（未啟用）",
+    custLangLockedDesc: "可為顧客提供多語系菜單切換，並使用 AI 一鍵翻譯餐點與客製選項。歡迎聯繫 BLAB 團隊升級方案。",
+    localeLabel_en: "英文",
+    localeLabel_vi: "越南文",
+    itemI18nSectionBase: "多語系顯示",
     settingReportsTitle: "銷量與營收報表",
     settingReportsSub: "查看門市餐點銷售統計、營收排行與加料偏好",
     reportsUnlockedName: "即時餐點銷量與營收分析",
@@ -1264,8 +1306,22 @@ const I18N = {
     tablePrinting: "正在傳送列印任務...",
     tablePrintSuccess: "已送出列印任務",
     tablePrintFail: "列印失敗，請檢查印表機連線",
+    btnMenuAiTranslate: "AI 一鍵翻譯缺漏",
+    btnMenuAiTranslating: "AI 翻譯中…",
+    menuAiTranslateDone: "已完成 {count} 項多語系翻譯並寫入菜單。",
+    menuAiTranslateNothing: "目前所有菜單項目皆已完成多語系翻譯。",
+    menuAiTranslateFailed: "AI 自動翻譯失敗，請稍後再試。",
+    itemI18nSectionTitle: "多語系顯示（英文 / 越南文）",
+    itemI18nEnName: "英文名稱 (EN)",
+    itemI18nEnBadge: "英文標籤 (EN)",
+    itemI18nViName: "越南文名稱 (VI)",
+    itemI18nViBadge: "越南文標籤 (VI)",
+    btnItemAiTranslate: "AI 一鍵翻譯",
+    btnItemAiTranslating: "AI 翻譯中…",
   },
   "vi": {
+    posLoginTitle: 'Đăng nhập quản lý quán', posLoginHint: 'Nhập PIN quản lý để thao tác đơn hàng.', posLoginPIN: 'PIN quản lý', posLoginSubmit: 'Đăng nhập', posLoginCancel: 'Hủy', posLoginFailed: 'Đăng nhập thất bại. Kiểm tra PIN và thử lại.', posLoginLimited: 'Đã thử quá nhiều lần. Vui lòng thử lại sau.',
+
     aiTitle: "Cài đặt AI",
     aiIntro: "Quản lý trả lời tự động trên LINE, bao gồm quy tắc từ khóa và nhận diện bằng AI.",
     aiMaster: "Tự động trả lời tin nhắn",
@@ -1512,12 +1568,12 @@ const I18N = {
     badgeReady: "ĐÃ XONG",
     badgeWaiting: "CHỜ KHÁCH",
     badgePicked: "ĐÃ LẤY",
-    badgePaid: "ĐÃ THANH TOÁN",
+    badgePaid: "ĐÃ HOÀN TẤT",
     badgeRejected: "ĐÃ HỦY",
     btnReview: "Xem đơn",
     btnReady: "Đã xong",
     btnPickedUp: "Đã lấy",
-    btnPaid: "Đã thanh toán",
+    btnPaid: "Kết thúc bàn",
     btnWaitingReply: "Chờ khách phản hồi",
     btnView: "Xem",
     defaultCustomer: "Khách",
@@ -1581,7 +1637,7 @@ const I18N = {
     statusPillAccepted: "Đang làm",
     statusPillDone: "Chờ lấy",
     statusPillPicked: "Đã lấy",
-    statusPillPaid: "Đã thanh toán",
+    statusPillPaid: "Đã hoàn tất",
     statusPillWaiting: "Chờ khách xác nhận",
     statusPillRejected: "Đã hủy",
     customerNoteLabel: "Ghi chú từ khách",
@@ -2042,6 +2098,30 @@ const I18N = {
     imageDeleting: "Đang xóa ảnh...",
     imageDeleteFail: "Lỗi xóa ảnh: ",
     // Stock Modal
+    batchStockSelect: "Chọn nhiều",
+    batchStockDone: "Xong",
+    batchStockSearch: "Tìm tên món",
+    batchStockAll: "Tất cả",
+    batchStockChooseAll: "Chọn tất cả {count} kết quả",
+    batchStockClear: "Bỏ chọn",
+    batchStockCount: "Đã chọn {count} món",
+    batchStockPause: "Báo hết hàng",
+    batchStockRestore: "Mở bán lại",
+    batchStockApply: "Áp dụng cho {count} món",
+    batchStockApplyRestore: "Mở bán lại {count} món",
+    batchStockHint: "Kiểm tra món và thời hạn, rồi bấm áp dụng bên dưới.",
+    batchStockRestoreHint: "Các món đã chọn sẽ được mở bán lại sau khi áp dụng.",
+    batchStockNew: "Lưu món trước",
+    batchStockLimit: "Mỗi lần chọn tối đa 100 món. Hãy thu hẹp bộ lọc.",
+    batchStockRemoved: "Đã bỏ chọn {count} món ngoài phạm vi hiện tại.",
+    batchStockSuccess: "Đã cập nhật {changed} món; {unchanged} món đã có cùng thiết lập.",
+    batchStockFailed: "Chưa xác nhận được kết quả lưu. Kiểm tra kết nối rồi thử lại với cùng thiết lập.",
+    batchStockMissing: "Một số món đã thay đổi hoặc bị xóa. Tải lại thực đơn rồi chọn lại.",
+    batchStockCache: "Đã lưu trạng thái. Thực đơn khách cập nhật chậm hơn một chút.",
+    batchStockSaving: "Đang cập nhật {count} món…",
+    batchStockTime: "Mở bán lại lúc {time} (UTC+7)",
+    batchStockDetails: "Xem các món đã chọn",
+    batchStockLogin: "Đăng nhập quản lý rồi thử lại.",
     stockModalTitle: "Trạng thái bán",
     stockModalItem: "Cài đặt kho: {name}",
     stockLabelStatus: "Trạng thái:",
@@ -2114,6 +2194,22 @@ const I18N = {
     tocReports: "Báo cáo doanh thu",
     settingLangTitle: "Ngôn ngữ hiển thị POS",
     settingLangSub: "Cài đặt ngôn ngữ hiển thị và thao tác của hệ thống POS",
+    settingCustLangTitle: "Ngôn ngữ thực đơn khách & AI dịch",
+    settingCustLangSub: "Chọn ngôn ngữ hiển thị cho thực đơn khách và ngôn ngữ đích khi dùng AI dịch",
+    custLangPrimaryTitle: "Tiếng Trung phồn thể (Ngôn ngữ chính của quán)",
+    custLangPrimaryDesc: "Ngôn ngữ gốc của thực đơn, luôn hiển thị cho khách hàng",
+    custLangPrimaryBadge: "Chính",
+    custLangEnTitle: "English (Thực đơn tiếng Anh)",
+    custLangEnDesc: "Khi bật, khách có thể xem thực đơn tiếng Anh và POS hỗ trợ AI dịch tiếng Anh",
+    custLangViTitle: "Tiếng Việt (Thực đơn tiếng Việt)",
+    custLangViDesc: "Khi bật, khách có thể xem thực đơn tiếng Việt và POS hỗ trợ AI dịch tiếng Việt",
+    btnSaveCustLang: "Lưu ngôn ngữ thực đơn",
+    custLangNoneEnabled: "Quán hiện chỉ dùng ngôn ngữ chính, chưa bật ngôn ngữ dịch bổ sung.",
+    custLangLockedTitle: "Gói Thực đơn Đa ngôn ngữ & AI Dịch (Chưa kích hoạt)",
+    custLangLockedDesc: "Cho phép khách chuyển đổi ngôn ngữ thực đơn và dùng AI dịch tự động món ăn, tùy chọn. Liên hệ đội ngũ BLAB để nâng cấp gói.",
+    localeLabel_en: "Tiếng Anh",
+    localeLabel_vi: "Tiếng Việt",
+    itemI18nSectionBase: "Hiển thị đa ngôn ngữ",
     settingReportsTitle: "Báo cáo doanh thu & sản lượng món",
     settingReportsSub: "Xem thống kê bán hàng, doanh thu các món và tùy biến chọn kèm",
     reportsUnlockedName: "Phân tích doanh thu & sản lượng món thời gian thực",
@@ -2526,6 +2622,18 @@ const I18N = {
     tablePrinting: "Đang gửi lệnh in tới máy in...",
     tablePrintSuccess: "Đã gửi lệnh in thành công",
     tablePrintFail: "Lệnh in thất bại, vui lòng kiểm tra kết nối máy in",
+    btnMenuAiTranslate: "AI dịch phần còn thiếu",
+    btnMenuAiTranslating: "AI đang dịch…",
+    menuAiTranslateDone: "Đã dịch tự động {count} mục và lưu vào thực đơn.",
+    menuAiTranslateNothing: "Tất cả mục trong thực đơn đã có đủ bản dịch.",
+    menuAiTranslateFailed: "Dịch tự động bằng AI thất bại, vui lòng thử lại.",
+    itemI18nSectionTitle: "Hiển thị đa ngôn ngữ (Tiếng Anh / Tiếng Việt)",
+    itemI18nEnName: "Tên tiếng Anh (EN)",
+    itemI18nEnBadge: "Nhãn tiếng Anh (EN)",
+    itemI18nViName: "Tên tiếng Việt (VI)",
+    itemI18nViBadge: "Nhãn tiếng Việt (VI)",
+    btnItemAiTranslate: "AI dịch tự động",
+    btnItemAiTranslating: "AI đang dịch…",
   }
 };
 
@@ -3099,6 +3207,24 @@ function applyLanguageToDOM() {
   if (setLangT) setLangT.innerText = dict.settingLangTitle;
   const setLangS = document.getElementById("i18n-setting-lang-sub");
   if (setLangS) setLangS.innerText = dict.settingLangSub;
+  [
+    ["i18n-setting-cust-lang-title", "settingCustLangTitle"],
+    ["i18n-setting-cust-lang-sub", "settingCustLangSub"],
+    ["i18n-cust-lang-primary-title", "custLangPrimaryTitle"],
+    ["i18n-cust-lang-primary-desc", "custLangPrimaryDesc"],
+    ["i18n-cust-lang-primary-badge", "custLangPrimaryBadge"],
+    ["i18n-cust-lang-en-title", "custLangEnTitle"],
+    ["i18n-cust-lang-en-desc", "custLangEnDesc"],
+    ["i18n-cust-lang-vi-title", "custLangViTitle"],
+    ["i18n-cust-lang-vi-desc", "custLangViDesc"],
+    ["i18n-btn-save-cust-lang", "btnSaveCustLang"],
+    ["i18n-cust-lang-locked-title", "custLangLockedTitle"],
+    ["i18n-cust-lang-locked-desc", "custLangLockedDesc"],
+    ["i18n-btn-contact-upgrade-i18n", "btnContactUpgrade"],
+  ].forEach(([elId, key]) => {
+    const el = document.getElementById(elId);
+    if (el && dict[key]) el.innerText = dict[key];
+  });
   const radioZh = document.getElementById("setting-lang-zh");
   const radioVi = document.getElementById("setting-lang-vi");
   const cardZh = document.getElementById("lang-card-zh");
@@ -3904,6 +4030,25 @@ function applyLanguageToDOM() {
   }
   const spanModSave = document.getElementById("i18n-btn-item-mod-save");
   if (spanModSave) spanModSave.innerText = dict.btnItemModSave || dict.btnSave || "完成設定";
+
+  const btnMenuAiTranslateText = document.getElementById("i18n-btn-menu-ai-translate-text");
+  if (btnMenuAiTranslateText) btnMenuAiTranslateText.innerText = dict.btnMenuAiTranslate;
+  const itemI18nSectionTitle = document.getElementById("i18n-item-i18n-section-title");
+  if (itemI18nSectionTitle) {
+    itemI18nSectionTitle.innerText = typeof formatMenuI18nSectionTitle === "function"
+      ? formatMenuI18nSectionTitle()
+      : dict.itemI18nSectionTitle;
+  }
+  const itemEnNameLabel = document.getElementById("i18n-item-en-name-label");
+  if (itemEnNameLabel) itemEnNameLabel.innerText = dict.itemI18nEnName;
+  const itemEnBadgeLabel = document.getElementById("i18n-item-en-badge-label");
+  if (itemEnBadgeLabel) itemEnBadgeLabel.innerText = dict.itemI18nEnBadge;
+  const itemViNameLabel = document.getElementById("i18n-item-vi-name-label");
+  if (itemViNameLabel) itemViNameLabel.innerText = dict.itemI18nViName;
+  const itemViBadgeLabel = document.getElementById("i18n-item-vi-badge-label");
+  if (itemViBadgeLabel) itemViBadgeLabel.innerText = dict.itemI18nViBadge;
+  const btnItemAiTranslate = document.getElementById("i18n-btn-item-ai-translate");
+  if (btnItemAiTranslate) btnItemAiTranslate.innerText = dict.btnItemAiTranslate;
 }
 
 window.I18N = I18N;

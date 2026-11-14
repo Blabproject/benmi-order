@@ -343,6 +343,13 @@ async function loadStoreStatus() {
       if (data.paymentMethods && Array.isArray(data.paymentMethods)) {
         currentPaymentMethods = data.paymentMethods;
       }
+      if (typeof setTenantLocaleConfig === "function") {
+        setTenantLocaleConfig(
+          data.locale || "zh-TW",
+          data.supportedLocales,
+          typeof data.i18nEnabled === "boolean" ? data.i18nEnabled : undefined
+        );
+      }
       storeOperatingHours = ensureParsedOperatingHours(data.operatingHours);
     }
   } catch (e) {
@@ -460,6 +467,13 @@ async function loadOperatingHours() {
         if (annInput) annInput.value = data.announcement || "";
       }
       if (data.storeNotice !== undefined) fillStoreNoticeForm(data.storeNotice);
+      if (typeof setTenantLocaleConfig === "function") {
+        setTenantLocaleConfig(
+          data.locale || "zh-TW",
+          data.supportedLocales,
+          typeof data.i18nEnabled === "boolean" ? data.i18nEnabled : undefined
+        );
+      }
       if (data.logoUrl) {
         currentStoreLogoUrl = data.logoUrl;
         renderStoreLogoUI(data.logoUrl);
@@ -1250,7 +1264,88 @@ function renderLanguageSetting() {
       cardZh.style.background = "#fff";
     }
   }
+  renderCustomerSupportedLocalesSetting();
 }
+
+function toggleCustomerLocaleCheckbox(locale) {
+  const chk = document.getElementById(`setting-cust-locale-${locale}`);
+  const card = document.getElementById(`cust-lang-card-${locale}`);
+  if (!chk || !card) return;
+  if (chk.checked) {
+    card.style.borderColor = "var(--primary)";
+    card.style.background = "rgba(0, 185, 0, 0.05)";
+  } else {
+    card.style.borderColor = "var(--border)";
+    card.style.background = "#fff";
+  }
+}
+
+function renderCustomerSupportedLocalesSetting() {
+  const unlockedBody = document.getElementById("setting-customer-locales-unlocked-body");
+  const lockedBody = document.getElementById("setting-customer-locales-locked-body");
+  const enabled = typeof isTenantMultilingualEnabled === "function" && isTenantMultilingualEnabled();
+  if (!enabled) {
+    if (unlockedBody) unlockedBody.style.display = "none";
+    if (lockedBody) lockedBody.style.display = "flex";
+    return;
+  }
+  if (unlockedBody) unlockedBody.style.display = "flex";
+  if (lockedBody) lockedBody.style.display = "none";
+
+  const active = typeof getTenantSupportedLocales === "function"
+    ? getTenantSupportedLocales()
+    : ["zh-TW"];
+  for (const loc of ["en", "vi"]) {
+    const chk = document.getElementById(`setting-cust-locale-${loc}`);
+    if (chk) chk.checked = active.includes(loc);
+    toggleCustomerLocaleCheckbox(loc);
+  }
+}
+
+async function saveCustomerSupportedLocalesSetting() {
+  if (typeof isTenantMultilingualEnabled === "function" && !isTenantMultilingualEnabled()) return;
+  const tenantId = typeof getTenantIdFromUrl === "function" ? getTenantIdFromUrl() : "";
+  if (!tenantId) return;
+  const primary = window.currentTenantLocale || "zh-TW";
+  const selected = [primary];
+  for (const loc of ["en", "vi"]) {
+    const chk = document.getElementById(`setting-cust-locale-${loc}`);
+    if (chk && chk.checked && !selected.includes(loc)) {
+      selected.push(loc);
+    }
+  }
+  const btn = document.getElementById("btn-save-customer-locales");
+  const label = document.getElementById("i18n-btn-save-cust-lang");
+  const prevText = label ? label.innerText : "";
+  if (btn) btn.disabled = true;
+  if (label) label.innerText = t("saving") || "儲存中...";
+  try {
+    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${encodeURIComponent(tenantId)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ supportedLocales: selected })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `API returned ${res.status}`);
+    if (typeof setTenantLocaleConfig === "function") {
+      setTenantLocaleConfig(primary, data.supportedLocales || selected);
+    }
+    if (typeof showToast === "function") {
+      showToast(t("saveSuccess"), "success");
+    } else {
+      alert(t("saveSuccess"));
+    }
+  } catch (e) {
+    alert(t("saveFail") + (e.message || String(e)));
+  } finally {
+    if (btn) btn.disabled = false;
+    if (label && prevText) label.innerText = prevText;
+  }
+}
+
+window.toggleCustomerLocaleCheckbox = toggleCustomerLocaleCheckbox;
+window.renderCustomerSupportedLocalesSetting = renderCustomerSupportedLocalesSetting;
+window.saveCustomerSupportedLocalesSetting = saveCustomerSupportedLocalesSetting;
 
 function renderReportsSetting() {
   const isFeatureEnabled = Array.isArray(window.currentTenantFeatures)

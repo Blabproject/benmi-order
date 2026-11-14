@@ -212,6 +212,7 @@ function getEffectiveItemModifierGroups(itemOrKey, catSlugOrNull) {
                     id: mg.id || `mg_item_${idx}`,
                     slug: mg.id || `mg_item_${idx}`,
                     name: mg.name,
+                    ...(mg.i18n ? { i18n: mg.i18n } : {}),
                     source: 'item',
                     selectionType: mg.selectionType || mg.selection_type || 'single',
                     isRequired: Boolean(mg.isRequired || mg.is_required),
@@ -220,9 +221,13 @@ function getEffectiveItemModifierGroups(itemOrKey, catSlugOrNull) {
                     options: (mg.options || []).map(opt => ({
                         id: opt.id,
                         name: opt.name,
+                        ...(opt.i18n ? { i18n: opt.i18n } : {}),
                         price: Number(opt.price || 0),
                         isDefault: Boolean(opt.isDefault || opt.is_default),
-                        isOutOfStock: Boolean(opt.isOutOfStock || opt.is_out_of_stock)
+                        isOutOfStock: Boolean(opt.isOutOfStock || opt.is_out_of_stock),
+                        ...(opt.subOptions || opt.sub_options ? { subOptions: opt.subOptions || opt.sub_options } : {}),
+                        ...(opt.minOrderSubtotal != null || opt.min_order_amount != null ? { minOrderSubtotal: opt.minOrderSubtotal ?? opt.min_order_amount } : {}),
+                        ...(opt.ruleErrorMessage ? { ruleErrorMessage: opt.ruleErrorMessage } : {})
                     }))
                 });
             });
@@ -244,6 +249,7 @@ function getEffectiveItemModifierGroups(itemOrKey, catSlugOrNull) {
                             id: gid,
                             slug: gid,
                             name: mg.name,
+                            ...(mg.i18n ? { i18n: mg.i18n } : {}),
                             source: 'category',
                             selectionType: mg.selectionType || mg.selection_type || 'single',
                             isRequired: Boolean(mg.isRequired || mg.is_required),
@@ -252,9 +258,13 @@ function getEffectiveItemModifierGroups(itemOrKey, catSlugOrNull) {
                             options: (mg.options || []).map(opt => ({
                                 id: opt.id,
                                 name: opt.name,
+                                ...(opt.i18n ? { i18n: opt.i18n } : {}),
                                 price: Number(opt.price || 0),
                                 isDefault: Boolean(opt.isDefault || opt.is_default),
-                                isOutOfStock: Boolean(opt.isOutOfStock || opt.is_out_of_stock)
+                                isOutOfStock: Boolean(opt.isOutOfStock || opt.is_out_of_stock),
+                                ...(opt.subOptions || opt.sub_options ? { subOptions: opt.subOptions || opt.sub_options } : {}),
+                                ...(opt.minOrderSubtotal != null || opt.min_order_amount != null ? { minOrderSubtotal: opt.minOrderSubtotal ?? opt.min_order_amount } : {}),
+                                ...(opt.ruleErrorMessage ? { ruleErrorMessage: opt.ruleErrorMessage } : {})
                             }))
                         });
                     }
@@ -278,6 +288,7 @@ function getEffectiveItemModifierGroups(itemOrKey, catSlugOrNull) {
                             id: mId,
                             slug: m.slug || m.id,
                             name: m.name,
+                            ...(m.i18n ? { i18n: m.i18n } : {}),
                             source: 'category',
                             selectionType: m.selectionType || 'single',
                             isRequired: Boolean(m.isRequired),
@@ -286,9 +297,13 @@ function getEffectiveItemModifierGroups(itemOrKey, catSlugOrNull) {
                             options: (m.options || []).map(opt => ({
                                 id: opt.id,
                                 name: opt.name,
+                                ...(opt.i18n ? { i18n: opt.i18n } : {}),
                                 price: Number(opt.price || 0),
                                 isDefault: Boolean(opt.isDefault),
-                                isOutOfStock: Boolean(opt.isOutOfStock)
+                                isOutOfStock: Boolean(opt.isOutOfStock),
+                                ...(opt.subOptions || opt.sub_options ? { subOptions: opt.subOptions || opt.sub_options } : {}),
+                                ...(opt.minOrderSubtotal != null || opt.min_order_amount != null ? { minOrderSubtotal: opt.minOrderSubtotal ?? opt.min_order_amount } : {}),
+                                ...(opt.ruleErrorMessage ? { ruleErrorMessage: opt.ruleErrorMessage } : {})
                             }))
                         });
                     });
@@ -611,84 +626,95 @@ function toggleStoreHours(e) {
         const isHidden = (displayEl.style.display === 'none' || !displayEl.style.display);
         displayEl.style.display = isHidden ? 'block' : 'none';
         if (arrowEl) arrowEl.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
-        if (toggleTextEl) toggleTextEl.innerText = isHidden ? '收合' : '展開';
+        if (toggleTextEl) {
+            toggleTextEl.innerText = isHidden
+                ? (typeof ct === 'function' ? ct('hours_collapse') : '收合')
+                : (typeof ct === 'function' ? ct('hours_expand') : '展開');
+        }
     }
 }
 
 function renderStoreOperatingHours() {
     const displayEl = document.getElementById('store-hours-display');
     const todayPreviewEl = document.getElementById('hours-today-preview');
+    const toggleTextEl = document.getElementById('hours-toggle-text');
     if (!displayEl) return;
-    
+
+    const t = (key, fallback) => (typeof ct === 'function' ? ct(key) : fallback);
+    if (toggleTextEl) {
+        const isShown = (displayEl.style.display === 'block');
+        toggleTextEl.innerText = isShown ? t('hours_collapse', '收合') : t('hours_expand', '展開');
+    }
+
     const twTime = getTaiwanDate();
     const todayIdx = twTime.getDay();
-    
+
     let todayHoursStr = "";
     let isTodayOpen = false;
 
     if (storeConfig && storeConfig.operatingHours) {
         const hrs = storeConfig.operatingHours;
-        const days = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
-        let html = "";
-        
-        const isVi = (typeof currentLang !== 'undefined' && currentLang === 'vi') || (document.documentElement.lang === 'vi');
-        const nextDayLabel = isVi ? 'Hôm sau' : '隔日';
-        const formatShift = (s) => {
-            if (!s || !s.start || !s.end) return "";
-            const [sh, sm] = (s.start || "0:0").split(":").map(Number);
-            const [eh, em] = (s.end || "0:0").split(":").map(Number);
-            const startMins = sh * 60 + (sm || 0);
-            const endMins = eh * 60 + (em || 0);
-            const isOvernight = endMins <= startMins;
-            const nextDayTag = isOvernight
-                ? `<span style="font-size: 11px; background: #eff6ff; color: #2563eb; padding: 1px 5px; border-radius: 4px; font-weight: 800; border: 1px solid #bfdbfe; margin-right: 3px; vertical-align: middle;">${nextDayLabel}</span>`
-                : '';
-            return `${s.start} - ${nextDayTag}${s.end}`;
-        };
+        const hoursInfo = typeof formatLocalizedHours === 'function'
+            ? formatLocalizedHours(hrs)
+            : null;
+        const days = hoursInfo ? hoursInfo.daysName : ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
+        const formatShifts = hoursInfo
+            ? hoursInfo.formatShifts
+            : ((shifts) => shifts.map(s => (s && s.start && s.end) ? `${s.start} - ${s.end}` : '').filter(Boolean).join(', '));
+        const todayTagLabel = t('hours_today_prefix', '今天');
+        const makeTodayTag = (show) => show
+            ? `<span style="font-size: 11px; background: #ecfdf5; color: #059669; padding: 1px 6px; border-radius: 99px; margin-left: 6px; border: 1px solid #a7f3d0;">${todayTagLabel}</span>`
+            : '';
 
-        const getShiftsStr = (dayIdx) => {
-            const shifts = hrs[dayIdx] || [];
-            if (shifts.length === 0) return isVi ? "Nghỉ" : "公休";
-            return shifts.map(formatShift).filter(Boolean).join(", ");
-        };
-
-        const todayShifts = hrs[todayIdx] || [];
+        const todayShifts = hrs[todayIdx] || hrs[String(todayIdx)] || [];
         if (todayShifts.length > 0) {
-            todayHoursStr = todayShifts.map(formatShift).filter(Boolean).join(", ");
+            todayHoursStr = formatShifts(todayShifts);
             isTodayOpen = true;
         } else {
-            todayHoursStr = isVi ? "Hôm nay nghỉ" : "今日公休";
+            todayHoursStr = t('hours_today_off', '今日公休');
             isTodayOpen = false;
         }
-        
-        const monStr = getShiftsStr(1);
-        const tueStr = getShiftsStr(2);
-        const wedStr = getShiftsStr(3);
-        const thuStr = getShiftsStr(4);
-        const friStr = getShiftsStr(5);
-        const satStr = getShiftsStr(6);
-        const sunStr = getShiftsStr(0);
-        
+
+        const getDayStr = (dayIdx) => {
+            const shifts = hrs[dayIdx] || hrs[String(dayIdx)] || [];
+            if (shifts.length === 0) return t('hours_off', '公休');
+            return formatShifts(shifts);
+        };
+
+        const monStr = getDayStr(1);
+        const tueStr = getDayStr(2);
+        const wedStr = getDayStr(3);
+        const thuStr = getDayStr(4);
+        const friStr = getDayStr(5);
+        const satStr = getDayStr(6);
+        const sunStr = getDayStr(0);
+
         const weekdaysEqual = (monStr === tueStr && tueStr === wedStr && wedStr === thuStr && thuStr === friStr);
         const weekendsEqual = (satStr === sunStr);
-        
+
+        let html = "";
         if (weekdaysEqual && weekendsEqual) {
             const isWeekday = (todayIdx >= 1 && todayIdx <= 5);
-            const tagW = isWeekday ? '<span style="font-size: 11px; background: #ecfdf5; color: #059669; padding: 1px 6px; border-radius: 99px; margin-left: 6px; border: 1px solid #a7f3d0;">今天</span>' : '';
-            const tagE = !isWeekday ? '<span style="font-size: 11px; background: #ecfdf5; color: #059669; padding: 1px 6px; border-radius: 99px; margin-left: 6px; border: 1px solid #a7f3d0;">今天</span>' : '';
-            html = `<div ${isWeekday ? 'style="font-weight: 700; color: #059669;"' : ''}>週一~週五&nbsp;&nbsp;${monStr}${tagW}</div>
-                    <div ${!isWeekday ? 'style="font-weight: 700; color: #059669;"' : ''}>週六、週日&nbsp;&nbsp;${satStr}${tagE}</div>`;
+            const activeLocale = (typeof window !== 'undefined' && window.currentClientLocale) || 'zh-TW';
+            const weekdayLabel = `${days[1]}~${days[5]}`;
+            const weekendLabel = activeLocale === 'zh-TW' ? `${days[6]}、${days[0]}` : `${days[6]} / ${days[0]}`;
+            html = `<div ${isWeekday ? 'style="font-weight: 700; color: #059669;"' : ''}>${weekdayLabel}&nbsp;&nbsp;${monStr}${makeTodayTag(isWeekday)}</div>
+                    <div ${!isWeekday ? 'style="font-weight: 700; color: #059669;"' : ''}>${weekendLabel}&nbsp;&nbsp;${satStr}${makeTodayTag(!isWeekday)}</div>`;
         } else {
             for (let i = 1; i <= 7; i++) {
                 const dayIdx = i === 7 ? 0 : i;
                 const isCurrentDay = (dayIdx === todayIdx);
                 const highlightStyle = isCurrentDay ? 'style="font-weight: 700; color: #059669;"' : '';
-                const tag = isCurrentDay ? '<span style="font-size: 11px; background: #ecfdf5; color: #059669; padding: 1px 6px; border-radius: 99px; margin-left: 6px; border: 1px solid #a7f3d0;">今天</span>' : '';
-                html += `<div ${highlightStyle}>${days[dayIdx]}&nbsp;&nbsp;${getShiftsStr(dayIdx)}${tag}</div>`;
+                html += `<div ${highlightStyle}>${days[dayIdx]}&nbsp;&nbsp;${getDayStr(dayIdx)}${makeTodayTag(isCurrentDay)}</div>`;
             }
         }
         displayEl.innerHTML = html;
     } else {
+        const defaultDays = (typeof ct === 'function' ? ct('days_short') : null);
+        const d = Array.isArray(defaultDays) && defaultDays.length === 7 ? defaultDays : ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
+        const activeLocale = (typeof window !== 'undefined' && window.currentClientLocale) || 'zh-TW';
+        const weekdayLabel = `${d[1]}~${d[5]}`;
+        const weekendLabel = activeLocale === 'zh-TW' ? `${d[6]}、${d[0]}` : `${d[6]} / ${d[0]}`;
         if (todayIdx >= 1 && todayIdx <= 5) {
             todayHoursStr = "11:00-21:00";
             isTodayOpen = true;
@@ -696,18 +722,18 @@ function renderStoreOperatingHours() {
             todayHoursStr = "9:00-21:00";
             isTodayOpen = true;
         }
-        displayEl.innerHTML = `<div>週一~週五&nbsp;&nbsp;11:00-21:00</div>
-                               <div>週六、週日&nbsp;&nbsp;9:00-21:00</div>`;
+        displayEl.innerHTML = `<div>${weekdayLabel}&nbsp;&nbsp;11:00-21:00</div>
+                               <div>${weekendLabel}&nbsp;&nbsp;9:00-21:00</div>`;
     }
 
     if (todayPreviewEl) {
         if (isTodayOpen) {
-            todayPreviewEl.innerHTML = `今日 <strong style="color: #111827;">${todayHoursStr}</strong>`;
+            todayPreviewEl.innerHTML = `${t('hours_today', '今日')} <strong style="color: #111827;">${todayHoursStr}</strong>`;
             todayPreviewEl.style.background = '#f0fdf4';
             todayPreviewEl.style.color = '#059669';
             todayPreviewEl.style.borderColor = '#bbf7d0';
         } else {
-            todayPreviewEl.innerHTML = `<strong style="color: #dc2626;">今日公休</strong>`;
+            todayPreviewEl.innerHTML = `<strong style="color: #dc2626;">${t('hours_today_off', '今日公休')}</strong>`;
             todayPreviewEl.style.background = '#fef2f2';
             todayPreviewEl.style.color = '#dc2626';
             todayPreviewEl.style.borderColor = '#fca5a5';
@@ -715,34 +741,52 @@ function renderStoreOperatingHours() {
     }
 }
 
-function applyTenantTheme(tenant) {
+function applyTenantTheme(tenant, skipLocaleInit = false) {
     if (!tenant) return;
     const tenantId = getTenantIdFromUrl();
     if (tenant.id && tenant.id !== tenantId) {
         console.error(`[Tenant] Ignored theme for ${tenant.id} on ${tenantId}`);
         return;
     }
-    try {
-        localStorage.setItem("tenant_branding_" + tenantId, JSON.stringify(tenant));
-        localStorage.setItem("tenant_theme_" + tenantId, JSON.stringify(tenant));
-    } catch(e) {}
+    if (!skipLocaleInit) {
+        try {
+            localStorage.setItem("tenant_branding_" + tenantId, JSON.stringify(tenant));
+            localStorage.setItem("tenant_theme_" + tenantId, JSON.stringify(tenant));
+        } catch(e) {}
+        if (typeof window.initClientLocale === 'function') {
+            window.initClientLocale(tenant);
+        }
+    }
+    if (typeof window.renderClientLanguageSwitcher === 'function') {
+        window.renderClientLanguageSwitcher(tenant);
+    }
+    if (!window.isStaffOrderMode && typeof window.applyClientStaticI18n === 'function') {
+        window.applyClientStaticI18n();
+    }
+
     document.documentElement.style.setProperty('--primary', '#00b900');
     document.documentElement.style.setProperty('--primary-dark', '#009900');
-    document.title = (tenant.brandName || "點餐系統") + " 點餐";
+
+    const localizedBrand = (typeof locText === 'function' ? locText(tenant, 'brandName', tenant.brandName || '') : (tenant.brandName || ''));
+    const fallbackBrand = localizedBrand || (typeof ct === 'function' ? ct('fallback_brand_generic') : '點餐系統');
+    const resolvedTitle = typeof ct === 'function' ? ct('page_store_title', { brand: fallbackBrand }) : `${fallbackBrand} 點餐`;
+    document.title = resolvedTitle;
     const titleEl = document.getElementById('page-title');
-    if (titleEl) titleEl.innerText = (tenant.brandName || "點餐系統") + " 點餐";
+    if (titleEl) titleEl.innerText = resolvedTitle;
 
     const nameEl = document.getElementById('store-name');
-    if (nameEl) nameEl.innerText = tenant.brandName || '';
+    if (nameEl) nameEl.innerText = localizedBrand;
 
+    const localizedSubtitle = typeof locText === 'function' ? locText(tenant, 'brandSubtitle', tenant.brandSubtitle || '') : (tenant.brandSubtitle || '');
     const subEl = document.getElementById('store-subtitle');
-    if (subEl) subEl.innerHTML = tenant.brandSubtitle ? tenant.brandSubtitle.replace(/\n/g, '<br>') : '';
+    if (subEl) subEl.innerHTML = localizedSubtitle ? String(localizedSubtitle).replace(/\n/g, '<br>') : '';
 
+    const localizedAddress = typeof locText === 'function' ? locText(tenant, 'storeAddress', tenant.storeAddress || '') : (tenant.storeAddress || '');
     const addrEl = document.getElementById('store-address');
     const addrRow = document.getElementById('store-address-row');
     if (addrEl) {
-        addrEl.innerText = tenant.storeAddress || '';
-        if (addrRow) addrRow.style.display = tenant.storeAddress ? 'flex' : 'none';
+        addrEl.innerText = localizedAddress || '';
+        if (addrRow) addrRow.style.display = localizedAddress ? 'flex' : 'none';
     }
 
     const logoEl = document.getElementById('store-logo');
@@ -783,17 +827,20 @@ function applyTenantTheme(tenant) {
     window.storeConfig = storeConfig;
     renderStoreOperatingHours();
 
+    const localizedAnnouncement = typeof locText === 'function' ? locText(tenant, 'announcement', tenant.announcement || '') : (tenant.announcement || '');
     const annEl = document.getElementById('store-announcement');
     const annRow = document.getElementById('store-announcement-row');
     if (annEl) {
-        annEl.innerText = tenant.announcement || '';
-        if (annRow) annRow.style.display = tenant.announcement ? 'flex' : 'none';
+        annEl.innerText = localizedAnnouncement || '';
+        if (annRow) annRow.style.display = localizedAnnouncement ? 'flex' : 'none';
     }
     if (tenant && tenant.id) {
         window.__storeNoticeTenantId = tenant.id;
     }
     window.__currentStoreNotice = tenant && tenant.storeNotice ? tenant.storeNotice : null;
-    maybeShowStoreNotice();
+    if (!skipLocaleInit) {
+        maybeShowStoreNotice();
+    }
 }
 
 // --- TIME & TIMEZONE HELPERS ---
@@ -851,7 +898,11 @@ function updateAsapTimeDisplay() {
     const tw = getTaiwanDate();
     const { fullStr } = formatTaiwanDateTime(tw);
     const isBusy = (storeConfig && storeConfig.storeStatus === 'busy');
-    if (timeEl) timeEl.innerText = isBusy ? `${fullStr}（門市繁忙：約 1 小時後完成）` : fullStr;
+    if (timeEl) {
+        timeEl.innerText = isBusy
+            ? (typeof ct === 'function' ? ct('asap_busy_suffix', { time: fullStr }) : `${fullStr}（門市繁忙：約 1 小時後完成）`)
+            : fullStr;
+    }
     if (dineinTimeEl) dineinTimeEl.innerText = fullStr;
 }
 
@@ -885,7 +936,7 @@ function applyPickupConfig() {
 
     if (window.currentDiningOption === 'dine_in') {
         if (secTitle) secTitle.style.display = window.isStaffOrderMode ? 'none' : '';
-        if (secTitleText) secTitleText.innerText = '點餐時間';
+        if (secTitleText) secTitleText.innerText = (typeof ct === 'function' ? ct('order_time_title') : '點餐時間');
         if (pickerGroup) pickerGroup.style.display = 'none';
         if (asapNotice) asapNotice.style.display = 'none';
         if (dineInNotice) dineInNotice.style.display = window.isStaffOrderMode ? 'none' : 'block';
@@ -901,7 +952,7 @@ function applyPickupConfig() {
         }
         if (!window.isStaffOrderMode) updateAsapTimeDisplay();
     } else {
-        if (secTitleText) secTitleText.innerText = '取餐時間';
+        if (secTitleText) secTitleText.innerText = (typeof ct === 'function' ? ct('pickup_time_title') : '取餐時間');
         if (dineInNotice) dineInNotice.style.display = 'none';
         if (tableGroup) tableGroup.style.display = 'none';
         if (storeConfig && storeConfig.allowScheduledPickup === false) {
@@ -1395,7 +1446,7 @@ async function updateDesktopAuthUI() {
             const profile = await liff.getProfile();
             if (profile) {
                 const nameEl = document.getElementById('desktop-user-name');
-                if (nameEl) nameEl.innerText = profile.displayName || '顧客';
+                if (nameEl) nameEl.innerText = profile.displayName || (typeof ct === 'function' ? ct('desktop_guest') : '顧客');
                 const avatarEl = document.getElementById('desktop-user-avatar');
                 const placeholderEl = document.getElementById('desktop-user-placeholder-icon');
                 if (profile.pictureUrl && avatarEl) {
@@ -1568,6 +1619,21 @@ function isStoreOpen(twTime) {
     return false;
 }
 
+function renderWaitingCounterBadge(count) {
+    const badge = document.getElementById("waiting-counter-badge");
+    if (!badge) return;
+    const numericCount = Number(count) || 0;
+    badge.dataset.waitingCount = String(numericCount);
+    if (numericCount > 0) {
+        const aheadLabel = typeof ct === 'function' ? ct('waiting_ahead') : '前方排隊：';
+        const unitLabel = typeof ct === 'function' ? ct('waiting_orders_unit') : ' 單';
+        badge.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>${aheadLabel}<strong style="color: #78350f; font-size: 15px;">${numericCount}</strong>${unitLabel}</span>`;
+        badge.style.display = "inline-flex";
+    } else {
+        badge.style.display = "none";
+    }
+}
+
 function checkStoreStatus() {
     const twTime = getTaiwanDate();
     const isOpen = isStoreOpen(twTime);
@@ -1576,30 +1642,38 @@ function checkStoreStatus() {
     const busyBanner = document.getElementById('store-busy-banner');
     const submitButtons = ['btn-submit', 'btn-desktop-submit'].map(id => document.getElementById(id)).filter(Boolean);
     const storeStatus = resolveStoreStatus(storeConfig);
+    const t = (key, fallback) => (typeof ct === 'function' ? ct(key) : fallback);
+
+    const badge = document.getElementById("waiting-counter-badge");
+    if (badge && badge.dataset.waitingCount) {
+        renderWaitingCounterBadge(Number(badge.dataset.waitingCount));
+    }
 
     if (storeStatus === 'paused' || storeStatus === 'closed') {
         if (statusEl) {
-            statusEl.innerText = storeStatus === 'closed' ? '今日打烊' : '暫停接單';
+            statusEl.innerText = storeStatus === 'closed' ? t('status_today_closed', '今日打烊') : t('status_paused', '暫停接單');
             statusEl.className = 'store-status paused';
         }
         if (pausedBanner) {
             pausedBanner.style.display = 'flex';
-            const pausedText = pausedBanner.querySelector('span');
+            const pausedText = pausedBanner.querySelector('[data-i18n="banner_paused_desc"]') || pausedBanner.querySelector('span');
             if (pausedText) {
-                pausedText.innerText = storeStatus === 'closed' ? '店家今日已打烊，暫不接受新訂單' : '店家目前暫停接單中，暫無法接收新訂單';
+                pausedText.innerText = storeStatus === 'closed'
+                    ? t('banner_closed_desc', '店家今日已打烊，暫不接受新訂單')
+                    : t('banner_paused_desc', '目前門市暫不接受新訂單，敬請見諒！');
             }
         }
         if (busyBanner) busyBanner.style.display = 'none';
         for (const submitBtn of submitButtons) {
             if (window.isSubmitting) continue;
             submitBtn.disabled = true;
-            submitBtn.innerText = storeStatus === 'closed' ? '今日已打烊' : '店家目前暫停接單';
+            submitBtn.innerText = storeStatus === 'closed' ? t('btn_store_closed', '今日已打烊') : t('btn_store_paused', '店家目前暫停接單');
             submitBtn.style.background = '#9ca3af';
             submitBtn.style.cursor = 'not-allowed';
         }
     } else if (storeStatus === 'busy') {
         if (statusEl) {
-            statusEl.innerText = isOpen ? '繁忙中 (+1h)' : '休息中';
+            statusEl.innerText = isOpen ? t('status_busy', '繁忙中 (+1h)') : t('status_closed', '休息中');
             statusEl.className = isOpen ? 'store-status busy' : 'store-status closed';
         }
         if (pausedBanner) pausedBanner.style.display = 'none';
@@ -1607,13 +1681,13 @@ function checkStoreStatus() {
         for (const submitBtn of submitButtons) {
             if (window.isSubmitting) continue;
             submitBtn.disabled = false;
-            submitBtn.innerText = '確認下單';
+            submitBtn.innerText = t('btn_submit_order', '確認下單');
             submitBtn.style.background = '';
             submitBtn.style.cursor = '';
         }
     } else {
         if (statusEl) {
-            statusEl.innerText = isOpen ? '營業中' : '休息中';
+            statusEl.innerText = isOpen ? t('status_open', '營業中') : t('status_closed', '休息中');
             statusEl.className = isOpen ? 'store-status' : 'store-status closed';
         }
         if (pausedBanner) pausedBanner.style.display = 'none';
@@ -1621,7 +1695,7 @@ function checkStoreStatus() {
         for (const submitBtn of submitButtons) {
             if (window.isSubmitting) continue;
             submitBtn.disabled = false;
-            submitBtn.innerText = '確認下單';
+            submitBtn.innerText = t('btn_submit_order', '確認下單');
             submitBtn.style.background = '';
             submitBtn.style.cursor = '';
         }
@@ -1643,16 +1717,7 @@ async function fetchWaitingCounter() {
         if (etag) indexOrdersETag = etag;
 
         const data = await res.json();
-        const badge = document.getElementById("waiting-counter-badge");
-        if (badge) {
-            const count = data.waitingCount || 0;
-            if (count > 0) {
-                badge.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>前方排隊：<strong style="color: #78350f; font-size: 15px;">${count}</strong> 單</span>`;
-                badge.style.display = "inline-flex";
-            } else {
-                badge.style.display = "none";
-            }
-        }
+        renderWaitingCounterBadge(data.waitingCount || 0);
     } catch (e) {
         console.error("Error fetching waiting counter:", e);
     }
@@ -1672,7 +1737,7 @@ async function initApp() {
         const cachedRaw = localStorage.getItem(`tenant_bootstrap_${tenantId}`);
         if (cachedRaw) {
             const parsed = JSON.parse(cachedRaw);
-            if (parsed?.tenant?.id === tenantId && parsed.bootstrapVersion === 3 && parsed.menuComplete === true) {
+            if (parsed?.tenant?.id === tenantId && Number(parsed.bootstrapVersion) >= 3 && parsed.menuComplete === true) {
                 bootstrapData = parsed;
                 window.bootstrapData = parsed;
                 if (typeof buildModifierPriceMap === 'function') {
@@ -1829,7 +1894,7 @@ function openStoreNoticeModal(notice) {
     const bodyText = notice.body ? String(notice.body).trim() : '';
 
     if (titleEl) {
-        titleEl.textContent = titleText || '門市公告';
+        titleEl.textContent = titleText || (typeof ct === 'function' ? ct('notice_modal_title') : '門市公告');
     }
     if (bodyEl) {
         if (bodyText) {

@@ -5,6 +5,74 @@ import { invalidateBootstrapCache } from './bootstrap';
 import { deleteTenantImageFromR2AndD1 } from './image';
 import { pricingRustEnabled, callRustValidateUnifiedItems } from './pricing-engine-client';
 
+type EntityI18nEntry = Record<string, string | Record<string, string> | undefined>;
+type EntityI18nMap = Record<string, EntityI18nEntry>;
+
+function parseI18nJson(raw: unknown): EntityI18nMap {
+	if (!raw) return {};
+	let parsed: unknown = raw;
+	if (typeof raw === 'string') {
+		const trimmed = raw.trim();
+		if (!trimmed || trimmed === '{}') return {};
+		try { parsed = JSON.parse(trimmed); } catch { return {}; }
+	}
+	if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+	const result: EntityI18nMap = {};
+	for (const [locale, rawEntry] of Object.entries(parsed as Record<string, unknown>)) {
+		if (!rawEntry || typeof rawEntry !== 'object' || Array.isArray(rawEntry)) continue;
+		const out: EntityI18nEntry = {};
+		let hasField = false;
+		for (const [k, v] of Object.entries(rawEntry as Record<string, unknown>)) {
+			if (k === 'sub_options' || k === 'subOptions') {
+				if (v && typeof v === 'object' && !Array.isArray(v)) {
+					const subOut: Record<string, string> = {};
+					for (const [sk, sv] of Object.entries(v as Record<string, unknown>)) {
+						if (typeof sv === 'string' && sv.trim() !== '') subOut[sk] = sv.trim();
+					}
+					if (Object.keys(subOut).length > 0) { out.sub_options = subOut; hasField = true; }
+				}
+			} else if (typeof v === 'string' && v.trim() !== '') {
+				out[k] = v.trim();
+				hasField = true;
+			}
+		}
+		if (hasField) result[String(locale).trim()] = out;
+	}
+	return result;
+}
+
+function serializeI18nJson(input: unknown): string {
+	const normalized = parseI18nJson(input);
+	return Object.keys(normalized).length > 0 ? JSON.stringify(normalized) : '{}';
+}
+
+function mergeI18nMaps(base: unknown, patch: unknown): EntityI18nMap {
+	const target = parseI18nJson(base);
+	const incoming = parseI18nJson(patch);
+	for (const [locale, entry] of Object.entries(incoming)) {
+		const existing = target[locale] || {};
+		const mergedSub = (existing.sub_options || entry.sub_options)
+			? { ...((existing.sub_options as Record<string, string>) || {}), ...((entry.sub_options as Record<string, string>) || {}) }
+			: undefined;
+		target[locale] = { ...existing, ...entry, ...(mergedSub ? { sub_options: mergedSub } : {}) };
+	}
+	return target;
+}
+
+async function hasTableColumn(db: D1Database | undefined | null, tableName: string, columnName: string): Promise<boolean> {
+	if (!db || typeof (db as any).prepare !== 'function') return false;
+	const safeTable = tableName.replace(/[^a-zA-Z0-9_]/g, '');
+	try {
+		const stmt: any = db.prepare(`PRAGMA table_info(${safeTable})`);
+		const bound: any = typeof stmt?.bind === 'function' ? stmt.bind() : stmt;
+		const res = typeof bound?.all === 'function' ? await bound.all() : null;
+		const rows = Array.isArray(res?.results) ? res.results : [];
+		return rows.some((r: any) => r?.name === columnName);
+	} catch {
+		return false;
+	}
+}
+
 type Row = Record<string, any>;
 type SubOption = {
 	id?: string;
@@ -27,6 +95,7 @@ export type MenuOption = {
 	subOptions: any[];
 	eligibilityRules: any[];
 	description: string | null;
+	i18n?: EntityI18nMap;
 	[key: string]: any;
 };
 export type OptionGroup = {
@@ -41,6 +110,7 @@ export type OptionGroup = {
 	options: MenuOption[];
 	sources: any[];
 	labels: Record<string, string>;
+	i18n?: EntityI18nMap;
 	revision: number;
 	[key: string]: any;
 };
@@ -78,7 +148,15 @@ export async function loadOptionCatalog(env: Env, tenantId: string): Promise<Opt
 		env.DB.prepare('SELECT revision FROM menu_catalog_revisions WHERE tenant_id=?').bind(tenantId),
 	]);
 	if (results.some((r) => !r.success)) throw new Error('MENU_UNAVAILABLE');
-	const [products, categories, groups, options, links] = results.map((r) => r.results as Row[]);
+	const [rawProducts, rawCategories, groups, options, links] = results.map((r) => r.results as Row[]);
+	const products: Row[] = rawProducts.map((p) => {
+		const pI18n = parseI18nJson(p.i18n_json);
+		return Object.keys(pI18n).length > 0 ? { ...p, i18n: pI18n } : { ...p };
+	});
+	const categories: Row[] = rawCategories.map((c) => {
+		const cI18n = parseI18nJson(c.i18n_json);
+		return Object.keys(cI18n).length > 0 ? { ...c, i18n: cI18n } : { ...c };
+	});
 	const normalized: OptionGroup[] = groups.map((g) => {
 		const metadata = parse(g.source_metadata_json, {});
 		const minSelection = Math.max(Number(g.min_selection || 0), g.is_required ? 1 : 0);
@@ -89,6 +167,7 @@ export async function loadOptionCatalog(env: Env, tenantId: string): Promise<Opt
 		if (!Boolean(g.allow_repeats) && totalOptions > 0 && maxSelection > totalOptions && (!g.max_selection || Number(g.max_selection) >= 99)) {
 			maxSelection = totalOptions;
 		}
+		const groupI18n = parseI18nJson(g.i18n_json);
 		return {
 			id: g.id,
 			name: g.name,
@@ -100,26 +179,31 @@ export async function loadOptionCatalog(env: Env, tenantId: string): Promise<Opt
 			autoPopup,
 			sources: parse(g.sources_json, []),
 			labels: parse(g.labels_json, {}),
+			...(Object.keys(groupI18n).length > 0 ? { i18n: groupI18n } : {}),
 			revision: Number(g.revision || 0),
 			metadata,
 			sortOrder: Number(g.sort_order || 0),
 			options: options
 				.filter((o) => o.group_id === g.id)
-				.map((o) => ({
-					id: o.id,
-					name: o.name,
-					price: Number(o.price),
-					productId: o.product_id || null,
-					quantity: Number(o.included_quantity || 1),
-					isDefault: Boolean(o.is_default),
-					isOutOfStock: oos(o),
-					isLocallyOutOfStock: Boolean(o.is_out_of_stock),
-					metadata: parse(o.source_metadata_json, {}),
-					outOfStockUntil: o.out_of_stock_until || null,
-					subOptions: parse(o.sub_options_json, []),
-					eligibilityRules: parse(o.eligibility_rules_json, []),
-					description: o.description || null,
-				})),
+				.map((o) => {
+					const optI18n = parseI18nJson(o.i18n_json);
+					return {
+						id: o.id,
+						name: o.name,
+						price: Number(o.price),
+						productId: o.product_id || null,
+						quantity: Number(o.included_quantity || 1),
+						isDefault: Boolean(o.is_default),
+						isOutOfStock: oos(o),
+						isLocallyOutOfStock: Boolean(o.is_out_of_stock),
+						metadata: parse(o.source_metadata_json, {}),
+						outOfStockUntil: o.out_of_stock_until || null,
+						subOptions: parse(o.sub_options_json, []),
+						eligibilityRules: parse(o.eligibility_rules_json, []),
+						description: o.description || null,
+						...(Object.keys(optI18n).length > 0 ? { i18n: optI18n } : {}),
+					};
+				}),
 		};
 	});
 	let imageList: string[] | undefined = undefined;
@@ -193,6 +277,7 @@ export function groupOptions(catalog: OptionCatalog, group: OptionGroup): MenuOp
 				subOptions: [],
 				eligibilityRules: [],
 				description: null,
+				i18n: product.i18n || {},
 				fromSource: true,
 			});
 		}
@@ -203,6 +288,7 @@ export function groupOptions(catalog: OptionCatalog, group: OptionGroup): MenuOp
 			...o,
 			name: product?.name || o.name,
 			retailPrice: product?.price,
+			i18n: mergeI18nMaps(product?.i18n, o.i18n),
 			subOptions: (o.subOptions || []).map((sub: string | SubOption) => {
 				if (typeof sub === 'string' || !sub.productId) return sub;
 				const linked = catalog.products.find((p) => p.id === sub.productId);
@@ -211,6 +297,7 @@ export function groupOptions(catalog: OptionCatalog, group: OptionGroup): MenuOp
 					id: sub.id || `product:${sub.productId}`,
 					name: linked?.name || sub.name,
 					retailPrice: linked?.price,
+					i18n: linked?.i18n || (sub as any).i18n || {},
 					isOutOfStock: !linked || oos(linked),
 				};
 			}),
@@ -287,10 +374,12 @@ export function projectOptionRule(catalog: OptionCatalog, productId: string, pat
 			maxQuantity: g.maxSelection,
 			name: g.name,
 			label: g.labels,
+			i18n: g.i18n || {},
 			eligibleItems: g.options.map((o) => ({
 				...o,
 				id: o.id,
 				surcharge: o.price,
+				i18n: o.i18n || {},
 				optionGroups: o.productId ? projectOptionRule(catalog, o.productId, [...path, productId], [...groupPath, g.id])?.groups || [] : [],
 			})),
 			items: g.included ? g.options.map((o) => ({ itemId: o.id, quantity: o.quantity, surcharge: o.price })) : [],
@@ -330,19 +419,23 @@ function normalizeGroup(raw: any, existing?: OptionGroup): OptionGroup {
 			const linkedSubIds = (o.subOptions || []).filter((v: SubOption | string) => typeof v !== 'string' && v.productId).map((v: SubOption) => v.productId);
 			if (new Set(linkedSubIds).size !== linkedSubIds.length) throw new Error('OPTION_SUB_DUPLICATE');
 			// Unknown fields on existing custom options survive updates.
+			const prevOpt = existing?.options.find((old) => old.id === o.id);
 			return {
-				...existing?.options.find((old) => old.id === o.id),
+				...prevOpt,
 				...o,
 				name: String(o.name || '').trim(),
 				price: Number(o.price),
 				productId: o.productId || null,
 				quantity: Number(o.quantity || 1),
 				isDefault: Boolean(o.isDefault),
-				isLocallyOutOfStock: Boolean(o.isLocallyOutOfStock ?? existing?.options.find((old) => old.id === o.id)?.isLocallyOutOfStock),
+				isLocallyOutOfStock: Boolean(o.isLocallyOutOfStock ?? prevOpt?.isLocallyOutOfStock),
 				outOfStockUntil: o.outOfStockUntil || null,
 				subOptions: o.subOptions || [],
 				eligibilityRules: o.eligibilityRules || [],
 				description: o.description || null,
+				i18n: (o.i18n !== undefined || o.i18n_json !== undefined)
+					? parseI18nJson(o.i18n ?? o.i18n_json)
+					: (prevOpt?.i18n || {}),
 			};
 		});
 	const included = Boolean(raw.included);
@@ -361,6 +454,9 @@ function normalizeGroup(raw: any, existing?: OptionGroup): OptionGroup {
 		options,
 		sources: raw.sources || [],
 		labels: raw.labels || {},
+		i18n: (raw.i18n !== undefined || raw.i18n_json !== undefined)
+			? parseI18nJson(raw.i18n ?? raw.i18n_json)
+			: (existing?.i18n || {}),
 		revision: Number(existing?.revision || 0) + 1,
 	};
 }
@@ -488,6 +584,9 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 				)
 					throw new Error('INVALID_GROUP_LINK');
 			}
+			const productI18n = (raw.i18n !== undefined || raw.i18n_json !== undefined)
+				? parseI18nJson(raw.i18n ?? raw.i18n_json)
+				: parseI18nJson(previous?.i18n ?? previous?.i18n_json);
 			const product = {
 				...previous,
 				id,
@@ -498,6 +597,8 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 				badge_text: String(raw.badgeText || ''),
 				is_recommended: raw.isRecommended ? 1 : 0,
 				image_key: typeof raw.imageKey === 'string' ? (raw.imageKey.trim() || null) : (previous?.image_key ?? null),
+				i18n: productI18n,
+				i18n_json: serializeI18nJson(productI18n),
 				menu_revision: Number(previous?.menu_revision || 0) + 1,
 			};
 			const isImageExplicitlyCleared = raw.imageKey === '' || raw.imageKey === null || raw.removedPhoto === true;
@@ -544,9 +645,10 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 			catalog.products = catalog.products.filter((p) => p.id !== id).concat(product);
 			catalog.links = catalog.links.filter((l) => l.itemId !== id).concat(links);
 			validateOptionGraph(catalog);
+			const hasItemI18nCol = await hasTableColumn(env.DB, 'menu_items', 'i18n_json');
 			statements.push(
 				env.DB.prepare(
-					`INSERT INTO menu_items (id,tenant_id,category_id,name,price,badge_text,is_recommended,menu_revision,sort_order,image_key) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET category_id=excluded.category_id,name=excluded.name,price=excluded.price,badge_text=excluded.badge_text,is_recommended=excluded.is_recommended,menu_revision=excluded.menu_revision,image_key=excluded.image_key,updated_at=datetime('now')`,
+					`INSERT INTO menu_items (id,tenant_id,category_id,name,price,badge_text,is_recommended,menu_revision,sort_order,image_key${hasItemI18nCol ? ',i18n_json' : ''}) VALUES (?,?,?,?,?,?,?,?,?,?${hasItemI18nCol ? ',?' : ''}) ON CONFLICT(id) DO UPDATE SET category_id=excluded.category_id,name=excluded.name,price=excluded.price,badge_text=excluded.badge_text,is_recommended=excluded.is_recommended,menu_revision=excluded.menu_revision,image_key=excluded.image_key${hasItemI18nCol ? ',i18n_json=excluded.i18n_json' : ''},updated_at=datetime('now')`,
 				).bind(
 					id,
 					tenantId,
@@ -558,6 +660,7 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 					product.menu_revision,
 					previous?.sort_order ?? catalog.products.length,
 					product.image_key,
+					...(hasItemI18nCol ? [product.i18n_json] : []),
 				),
 			);
 			statements.push(env.DB.prepare('DELETE FROM item_modifier_links WHERE tenant_id=? AND item_id=?').bind(tenantId, id));
@@ -657,9 +760,13 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 			catalog.groups = catalog.groups.filter((g) => g.id !== id).concat(group);
 			catalog.links = catalog.links.filter((l) => l.groupId !== id).concat(newLinks);
 			validateOptionGraph(catalog);
+			const [hasGroupI18nCol, hasOptI18nCol] = await Promise.all([
+				hasTableColumn(env.DB, 'modifier_groups', 'i18n_json'),
+				hasTableColumn(env.DB, 'modifier_options', 'i18n_json'),
+			]);
 			statements.push(
 				env.DB.prepare(
-					`INSERT INTO modifier_groups (id,tenant_id,name,selection_type,is_required,min_selection,max_selection,allow_repeats,included,sources_json,labels_json,revision,scope,auto_popup) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,selection_type=excluded.selection_type,is_required=excluded.is_required,min_selection=excluded.min_selection,max_selection=excluded.max_selection,allow_repeats=excluded.allow_repeats,included=excluded.included,sources_json=excluded.sources_json,labels_json=excluded.labels_json,revision=excluded.revision,scope=excluded.scope,auto_popup=excluded.auto_popup,updated_at=datetime('now')`,
+					`INSERT INTO modifier_groups (id,tenant_id,name,selection_type,is_required,min_selection,max_selection,allow_repeats,included,sources_json,labels_json,revision,scope,auto_popup${hasGroupI18nCol ? ',i18n_json' : ''}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?${hasGroupI18nCol ? ',?' : ''}) ON CONFLICT(id) DO UPDATE SET name=excluded.name,selection_type=excluded.selection_type,is_required=excluded.is_required,min_selection=excluded.min_selection,max_selection=excluded.max_selection,allow_repeats=excluded.allow_repeats,included=excluded.included,sources_json=excluded.sources_json,labels_json=excluded.labels_json,revision=excluded.revision,scope=excluded.scope,auto_popup=excluded.auto_popup${hasGroupI18nCol ? ',i18n_json=excluded.i18n_json' : ''},updated_at=datetime('now')`,
 				).bind(
 					id,
 					tenantId,
@@ -675,13 +782,14 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 					group.revision,
 					group.scope,
 					group.autoPopup ? 1 : 0,
+					...(hasGroupI18nCol ? [serializeI18nJson(group.i18n)] : []),
 				),
 			);
 			statements.push(env.DB.prepare('DELETE FROM modifier_options WHERE tenant_id=? AND group_id=?').bind(tenantId, id));
 			for (const [i, o] of group.options.entries())
 				statements.push(
 					env.DB.prepare(
-						`INSERT INTO modifier_options (id,tenant_id,group_id,name,price,product_id,included_quantity,is_default,sort_order,out_of_stock_until,sub_options_json,eligibility_rules_json,description,is_out_of_stock,source_metadata_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+						`INSERT INTO modifier_options (id,tenant_id,group_id,name,price,product_id,included_quantity,is_default,sort_order,out_of_stock_until,sub_options_json,eligibility_rules_json,description,is_out_of_stock,source_metadata_json${hasOptI18nCol ? ',i18n_json' : ''}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?${hasOptI18nCol ? ',?' : ''})`,
 					).bind(
 						o.id,
 						tenantId,
@@ -698,6 +806,7 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 						o.description,
 						o.isLocallyOutOfStock ? 1 : 0,
 						JSON.stringify(o.metadata || {}),
+						...(hasOptI18nCol ? [serializeI18nJson(o.i18n)] : []),
 					),
 				);
 			statements.push(env.DB.prepare('DELETE FROM item_modifier_links WHERE tenant_id=? AND group_id=?').bind(tenantId, id));
@@ -734,6 +843,7 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 						sub_options: o.subOptions,
 						eligibilityRules: o.eligibilityRules,
 						minOrderSubtotal: o.eligibilityRules?.find((r: any) => r.rule_type === 'min_order_subtotal')?.min_order_subtotal,
+						...(o.i18n && Object.keys(o.i18n).length > 0 ? { i18n: o.i18n } : {}),
 					})),
 				);
 				statements.push(

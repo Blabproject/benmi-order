@@ -89,7 +89,8 @@ const suites = [
   ...['chromium', 'webkit'].map(browser => [`pos-tablet-layout-${browser}`,
     ['--test', 'tests/test_pos_tablet_layout.cjs'], { POS_DISPLAY_BROWSER: browser }]),
   ['pos-live-mobile', ['tests/test_pos_live_mobile.cjs']],
-  ['pos-detail-scroll', ['tests/test_order_detail_mobile_scroll.cjs']]
+  ['pos-detail-scroll', ['tests/test_order_detail_mobile_scroll.cjs']],
+  ['multilingual-menu', ['--experimental-sqlite', '--test', 'tests/multilingual-menu.test.mjs']]
 ];
 
 // Phase 1 builds dist/ and runs static/type checks before Phase 2 browser suites read dist/.vite/manifest.json.

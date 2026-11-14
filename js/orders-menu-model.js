@@ -191,6 +191,9 @@
         __applied_modifiers: cat.appliedModifiers || (cat.allowCustomization === false ? [] : ['*']),
         __sort_order: currentOrder
       };
+      if (cat.i18n && typeof cat.i18n === 'object' && Object.keys(cat.i18n).length > 0) {
+        output[cat.id].__i18n = cat.i18n;
+      }
       cat.items.forEach((item, itemIdx) => {
         if (item.name && item.name.trim() !== "" && item.price !== null) {
           if (Object.prototype.hasOwnProperty.call(output[cat.id], item.name.trim())) {
@@ -204,6 +207,9 @@
             item_type: item.itemType || (item.bundleRule && item.bundleRule.groups && item.bundleRule.groups.length > 0 ? 'bundle' : 'standard'),
             sort_order: item.sortOrder !== undefined ? item.sortOrder : (item.sort_order !== undefined ? item.sort_order : (itemIdx + 1))
           };
+          if (item.i18n && typeof item.i18n === 'object' && Object.keys(item.i18n).length > 0) {
+            serializedItem.i18n = item.i18n;
+          }
           const sharedGroups = [];
           const customCatsSource = Object.prototype.hasOwnProperty.call(dependencies, 'sharedCategories')
             ? (dependencies.sharedCategories === null ? [] : dependencies.sharedCategories)
