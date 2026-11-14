@@ -18,7 +18,7 @@ function resolveConcurrency() {
   const raw = arg ? Number(arg.split('=')[1]) : Number(process.env.RELEASE_CONCURRENCY || 0);
   if (Number.isInteger(raw) && raw > 0) return raw;
   const cpuCount = typeof os.availableParallelism === 'function' ? os.availableParallelism() : os.cpus().length;
-  return Math.max(1, Math.min(4, cpuCount || 4));
+  return Math.max(1, Math.min(6, Math.max(2, (cpuCount || 4) - 1)));
 }
 
 const concurrency = resolveConcurrency();
@@ -102,34 +102,34 @@ const PHASE_1_SUITE_NAMES = new Set([
   'frontend-vite-dist',
 ]);
 
-// Phase 3 runs Miniflare/workerd suites sequentially with zero CPU contention so local workerd loopback sockets stay reliable.
-const PHASE_3_SOLO_NAMES = new Set([
+// Phase 3 runs full-stack Miniflare/workerd suites isolated from heavy Phase 2 browser load so local workerd loopback sockets stay reliable.
+const PHASE_3_ISOLATED_NAMES = new Set([
   'menu-runtime',
   'menu-full-pages-chromium',
   'menu-full-pages-webkit',
 ]);
 
-// Start heavy suites first in Phase 2 to minimize tail latency across workers.
+// Start heavy suites/shards first in Phase 2 to minimize worker tail latency.
 const HEAVY_SUITE_PRIORITY = new Map([
-  ['staff-runtime', 1],
-  ['staff-browser', 2],
-  ['menu-full-pages-webkit', 3],
-  ['menu-full-pages-chromium', 4],
-  ['menu-components-webkit', 5],
-  ['menu-components-chromium', 6],
-  ['pos-tablet-layout-webkit', 7],
-  ['pos-tablet-layout-chromium', 8],
-  ['linepay-browser', 9],
-  ['menu-runtime', 10],
-  ['menu-static-contracts', 11],
-  ['pos-display-webkit', 12],
-  ['pos-display-chromium', 13],
+  ['staff-browser', 1],
+  ['staff-runtime', 2],
+  ['pos-tablet-layout-webkit', 3],
+  ['pos-tablet-layout-chromium', 4],
+  ['pos-display-webkit', 5],
+  ['pos-display-chromium', 6],
+  ['linepay-browser', 7],
+  ['menu-components-webkit', 8],
+  ['menu-components-chromium', 9],
+  ['payment-workspace-browser', 10],
+  ['pos-live-mobile', 11],
+  ['frontend-modern-unit', 12],
+  ['menu-static-contracts', 13],
 ]);
 
 const MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
 const SUITE_TIMEOUT_MS = 300_000;
 
-function runSuiteAsync(args, env) {
+function runProcessAsync(args, env) {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, args, {
       cwd: root,
@@ -181,10 +181,7 @@ function runSuiteAsync(args, env) {
   });
 }
 
-async function executeSuite([name, rawArgs, overrides = {}]) {
-  const args = rawArgs.includes('--test') ? ['--test-reporter=tap', ...rawArgs] : rawArgs;
-  console.log(`Running ${name}...`);
-  const started = Date.now();
+function buildSuiteEnv(name, overrides) {
   const env = { ...process.env, ...overrides, NO_COLOR: '1' };
   // Always use the pinned package/browser in the release gate, even if a local
   // interactive test normally uses an externally supplied Chrome or Playwright.
@@ -194,43 +191,120 @@ async function executeSuite([name, rawArgs, overrides = {}]) {
   env.POS_DISPLAY_SCREENSHOT_DIR = path.join(directory, name);
   env.POS_LIVE_SCREENSHOT_DIR = path.join(directory, name);
   env.MENU_QA_ARTIFACT_DIR = path.join(directory, name);
-
-  const result = await runSuiteAsync(args, env);
-  const log = `${result.stdout || ''}${result.stderr || ''}${result.error ? `\n${result.error.message}\n` : ''}`;
-  writeFileSync(path.join(directory, `${name}.log`), log);
-  const status = testOutcome(result, log, args.includes('--test'));
-  const entry = {
-    name,
-    command: ['node', ...args],
-    environment: overrides,
-    status,
-    exitCode: result.status,
-    signal: result.signal,
-    elapsedMs: Date.now() - started,
-    log: `${name}.log`,
-    inputHashes: Object.fromEntries(
-      args
-        .filter(file => !file.startsWith('-') && existsSync(path.join(root, file)) && statSync(path.join(root, file)).isFile())
-        .map(file => [file, createHash('sha256').update(readFileSync(path.join(root, file))).digest('hex')])
-    ),
-  };
-  report.suites.push(entry);
-  console.log(`${status === 'passed' ? 'PASS' : 'FAIL'} ${name} (${entry.elapsedMs} ms)`);
-  if (status !== 'passed') console.error(log.slice(-6000));
-  // Save after every suite so partial runs still leave reviewable evidence.
-  writeFileSync(path.join(directory, 'summary.json'), `${JSON.stringify(report, null, 2)}\n`);
+  return env;
 }
 
-async function runPool(items, limit) {
-  if (items.length === 0) return;
+function buildShardsForSuite([name, rawArgs, overrides = {}], enableFileSharding) {
+  const isNodeTest = rawArgs.includes('--test');
+  const fullCommand = isNodeTest ? ['--test-reporter=tap', ...rawArgs] : rawArgs;
+  const files = rawArgs.filter(arg => !arg.startsWith('-'));
+  const flags = rawArgs.filter(arg => arg.startsWith('-') && arg !== '--test');
+
+  if (!enableFileSharding || !isNodeTest || files.length <= 1) {
+    return {
+      suiteMeta: { name, fullCommand, overrides, totalShards: 1 },
+      tasks: [{ suiteName: name, shardIndex: 0, args: fullCommand, overrides, priority: HEAVY_SUITE_PRIORITY.get(name) ?? 100 }],
+    };
+  }
+
+  return {
+    suiteMeta: { name, fullCommand, overrides, totalShards: files.length },
+    tasks: files.map((file, shardIndex) => ({
+      suiteName: name,
+      shardIndex,
+      args: ['--test-reporter=tap', '--test', ...flags, file],
+      overrides,
+      priority: HEAVY_SUITE_PRIORITY.get(name) ?? 100,
+    })),
+  };
+}
+
+function createSuiteAggregator() {
+  const stateBySuite = new Map();
+
+  const initSuite = ({ name, fullCommand, overrides, totalShards }) => {
+    stateBySuite.set(name, {
+      name,
+      fullCommand,
+      overrides,
+      totalShards,
+      shards: new Array(totalShards),
+      completed: 0,
+      startedAt: null,
+      loggedStart: false,
+    });
+  };
+
+  const runTask = async (task) => {
+    const suite = stateBySuite.get(task.suiteName);
+    if (!suite.loggedStart) {
+      suite.loggedStart = true;
+      suite.startedAt = Date.now();
+      console.log(`Running ${suite.name}...`);
+    }
+    const env = buildSuiteEnv(suite.name, task.overrides);
+    const result = await runProcessAsync(task.args, env);
+    const log = `${result.stdout || ''}${result.stderr || ''}${result.error ? `\n${result.error.message}\n` : ''}`;
+    const isNodeTest = task.args.includes('--test');
+    const status = testOutcome(result, log, isNodeTest);
+    suite.shards[task.shardIndex] = { result, log, status };
+    suite.completed += 1;
+
+    if (suite.completed < suite.totalShards) return;
+
+    const elapsedMs = Date.now() - suite.startedAt;
+    const combinedLog = suite.totalShards === 1
+      ? suite.shards[0].log
+      : suite.shards.map((s, idx) => `# [shard ${idx + 1}/${suite.totalShards}]\n${s.log}`).join('\n');
+    writeFileSync(path.join(directory, `${suite.name}.log`), combinedLog);
+
+    const passed = suite.shards.every(s => s.status === 'passed');
+    const failedShard = suite.shards.find(s => s.status !== 'passed');
+    const finalStatus = passed ? 'passed' : 'failed';
+    const entry = {
+      name: suite.name,
+      command: ['node', ...suite.fullCommand],
+      environment: suite.overrides,
+      status: finalStatus,
+      exitCode: passed ? 0 : (failedShard?.result.status ?? 1),
+      signal: passed ? null : (failedShard?.result.signal ?? null),
+      elapsedMs,
+      sharded: suite.totalShards > 1 ? suite.totalShards : undefined,
+      log: `${suite.name}.log`,
+      inputHashes: Object.fromEntries(
+        suite.fullCommand
+          .filter(file => !file.startsWith('-') && existsSync(path.join(root, file)) && statSync(path.join(root, file)).isFile())
+          .map(file => [file, createHash('sha256').update(readFileSync(path.join(root, file))).digest('hex')])
+      ),
+    };
+    report.suites.push(entry);
+    console.log(`${finalStatus === 'passed' ? 'PASS' : 'FAIL'} ${suite.name} (${elapsedMs} ms)`);
+    if (finalStatus !== 'passed') console.error(combinedLog.slice(-6000));
+    // Save after every suite so partial runs still leave reviewable evidence.
+    writeFileSync(path.join(directory, 'summary.json'), `${JSON.stringify(report, null, 2)}\n`);
+  };
+
+  return { initSuite, runTask };
+}
+
+async function runPhase(suiteDefs, limit, aggregator, enableFileSharding) {
+  if (suiteDefs.length === 0) return;
+  const tasks = [];
+  for (const def of suiteDefs) {
+    const { suiteMeta, tasks: suiteTasks } = buildShardsForSuite(def, enableFileSharding);
+    aggregator.initSuite(suiteMeta);
+    tasks.push(...suiteTasks);
+  }
+  tasks.sort((a, b) => a.priority - b.priority);
+
   let nextIndex = 0;
-  const workerCount = Math.min(limit, items.length);
+  const workerCount = Math.min(limit, tasks.length);
   await Promise.all(
     Array.from({ length: workerCount }, async () => {
-      while (nextIndex < items.length) {
-        const current = items[nextIndex];
+      while (nextIndex < tasks.length) {
+        const task = tasks[nextIndex];
         nextIndex += 1;
-        await executeSuite(current);
+        await aggregator.runTask(task);
       }
     })
   );
@@ -239,18 +313,18 @@ async function runPool(items, limit) {
 const selectedSuites = [...(menuOnly ? suites.slice(0, 4) : suites), ...menuSuites];
 const orderMap = new Map(selectedSuites.map(([name], index) => [name, index]));
 const phase1Suites = selectedSuites.filter(([name]) => PHASE_1_SUITE_NAMES.has(name));
-const phase2Suites = selectedSuites
-  .filter(([name]) => !PHASE_1_SUITE_NAMES.has(name) && !PHASE_3_SOLO_NAMES.has(name))
-  .sort((a, b) => (HEAVY_SUITE_PRIORITY.get(a[0]) ?? 100) - (HEAVY_SUITE_PRIORITY.get(b[0]) ?? 100));
-const phase3Suites = selectedSuites.filter(([name]) => PHASE_3_SOLO_NAMES.has(name));
+const phase2Suites = selectedSuites.filter(([name]) => !PHASE_1_SUITE_NAMES.has(name) && !PHASE_3_ISOLATED_NAMES.has(name));
+const phase3Suites = selectedSuites.filter(([name]) => PHASE_3_ISOLATED_NAMES.has(name));
 
+const aggregator = createSuiteAggregator();
 const wallStart = Date.now();
+const phase3Concurrency = Math.min(2, concurrency);
 console.log(
-  `Release baseline starting ${selectedSuites.length} suites (concurrency=${concurrency}, phase1=${phase1Suites.length}, phase2=${phase2Suites.length}, phase3=${phase3Suites.length})...`
+  `Release baseline starting ${selectedSuites.length} suites (concurrency=${concurrency}, phase1=${phase1Suites.length}, phase2=${phase2Suites.length} [file-sharded], phase3=${phase3Suites.length} [concurrency=${phase3Concurrency}])...`
 );
-await runPool(phase1Suites, concurrency);
-await runPool(phase2Suites, concurrency);
-await runPool(phase3Suites, 1);
+await runPhase(phase1Suites, concurrency, aggregator, false);
+await runPhase(phase2Suites, concurrency, aggregator, true);
+await runPhase(phase3Suites, phase3Concurrency, aggregator, false);
 
 report.suites.sort((a, b) => (orderMap.get(a.name) ?? 0) - (orderMap.get(b.name) ?? 0));
 report.finishedAt = new Date().toISOString();
