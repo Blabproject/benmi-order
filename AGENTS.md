@@ -93,6 +93,11 @@ graph TD
   - Chỉ deploy lại Rust Worker khi có thay đổi trong thuật toán khuyến mãi mới hoặc thay đổi schema contract.
   - Lệnh kiểm thử WASM: `npm run test:wasm`. Lệnh build WASM: `npm run build:wasm`.
 
+### G. Tư Duy Profile-First & Giải Quyết Triệt Để (Zero Piecemeal Patching)
+- **Đo đạc toàn cục trước khi sửa (Profile First)**: Với các bài toán tối ưu hiệu năng, debug phức tạp hoặc nâng cấp đa tầng, **BẮT BUỘC** đo thời gian/lỗi qua toàn bộ các tầng (orchestrator/runner, test fixtures, subprocess `python3`/`esbuild`/`Miniflare`, I/O D1, tài nguyên phần cứng CPU/RAM) trước khi sửa code — tuyệt đối không chắp vá cuốn chiếu từng lớp bề mặt.
+- **Kiểm tra xung đột tài nguyên trước khi song song hóa**: Khi chạy đồng thời test hoặc tác vụ nặng, phải rà soát trước mọi điểm ghi chung trên đĩa (như `vite build` xóa `dist/`), port mạng cố định, và ngưỡng nghẽn CPU/GPU (`workerd` + Chromium/WebKit) để thiết kế khóa/budget đúng ngay từ đầu.
+- **Xử lý dứt điểm trong một đợt mạch lạc**: Giải quyết đồng thời nút thắt gốc (cache template, bỏ spawn subprocess thừa, gộp batch DB) thay vì vá dần qua nhiều vòng thử-sai.
+
 ---
 
 ## 3. Database & Caching Architecture
