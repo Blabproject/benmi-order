@@ -2617,6 +2617,9 @@ input[type="checkbox"] {
 .cart-item-price {
     font-weight: 700;
     white-space: nowrap;
+    min-width: 48px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
 .cart-portion-row {

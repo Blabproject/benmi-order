@@ -876,11 +876,11 @@ function updateTotal() {
                                     <span>${qty}x ${displayName}</span>
                                 </div>
                                 <div class="cart-item-right" data-category="${safeCatSlug}" data-item="${safeItemName}" data-portion="0">
-                                    <span class="cart-item-price">$${lineTotal}</span>
                                     <span class="cart-portion-actions">
                                         <button type="button" class="cart-portion-action cart-portion-action--icon" aria-label="${editLabel}" onclick="const d=this.closest('[data-portion]').dataset;editCartPortion(d.category,d.item,Number(d.portion))">${pencilIconSvg}</button>
                                         <button type="button" class="cart-portion-action cart-portion-action--icon cart-portion-action--remove" aria-label="${removeLabel}" onclick="const d=this.closest('[data-portion]').dataset;removeCartPortion(d.category,d.item,Number(d.portion))">${removeIconSvg}</button>
                                     </span>
+                                    <span class="cart-item-price">$${lineTotal}</span>
                                 </div>
                             </div>
                         </div>
