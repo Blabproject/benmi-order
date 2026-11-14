@@ -220,7 +220,14 @@ const POS_DICTIONARY = {
     paymentPIN: '管理 PIN 碼',
     paymentReviewHint: '交易待確認，請至付款待處理清單查詢。',
     paymentCheck: '重新查詢',
-    paymentSettingsBtn: '付款方式設定'
+    paymentSettingsBtn: '付款方式設定',
+    menuLoading: '載入菜單中...',
+    confirmSaveMenu: '確定要儲存所有變更嗎？這會直接即時影響顧客端點餐頁面。',
+    menuSaveSuccess: '菜單儲存成功！',
+    menuSaveFail: '儲存失敗：',
+    menuIncompleteReload: '菜單未完整載入，暫時無法儲存。請重新載入後再編輯。',
+    menuDuplicateItem: '同一分類不能有重複的餐點名稱。',
+    menuDiscardConfirm: '您有尚未儲存的菜單變更，確定要捨棄並離開嗎？'
   },
   vi: {
     sandboxBadge: 'Môi trường thử nghiệm POS (Tách biệt)',
@@ -441,7 +448,14 @@ const POS_DICTIONARY = {
     paymentPIN: 'Mã PIN quản lý',
     paymentReviewHint: 'Giao dịch cần xác minh. Xem danh sách thanh toán cần xử lý.',
     paymentCheck: 'Kiểm tra lại',
-    paymentSettingsBtn: 'Thiết lập thanh toán'
+    paymentSettingsBtn: 'Thiết lập thanh toán',
+    menuLoading: 'Đang tải thực đơn...',
+    confirmSaveMenu: 'Bạn có chắc chắn muốn lưu mọi thay đổi không? Thay đổi sẽ cập nhật ngay lập tức lên trang đặt hàng của khách.',
+    menuSaveSuccess: 'Lưu thực đơn thành công!',
+    menuSaveFail: 'Lưu thất bại: ',
+    menuIncompleteReload: 'Thực đơn chưa tải đầy đủ nên chưa thể lưu. Vui lòng tải lại trước khi chỉnh sửa.',
+    menuDuplicateItem: 'Tên món trong cùng một danh mục không được trùng nhau.',
+    menuDiscardConfirm: 'Bạn có thay đổi thực đơn chưa lưu, bạn có chắc chắn muốn hủy bỏ và rời đi không?'
   }
 } as const satisfies Record<PosLocale, Record<string, string>>;
 

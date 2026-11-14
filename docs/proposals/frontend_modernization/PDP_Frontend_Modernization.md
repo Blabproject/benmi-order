@@ -136,7 +136,11 @@ React hỗ trợ thêm từng phần vào ứng dụng hiện hữu; Vite hỗ t
 - [x] QW5: Tách pure shared utilities (`order-formatters.ts`, `store-notice-format.ts`, `order-legacy-adapter.ts`, `line-order-presentation.ts`, `pricing-wasm.ts`) vào `frontend/shared/`.
 
 ### Các cụm lõi tiếp theo
-- [ ] PR 5: Menu editor, draft và option workspace; kiểm chứng không ghi đè dữ liệu ngoài phạm vi.
+- [ ] PR 5: Menu editor, draft và option workspace (chia theo lát cắt 1-owner):
+  - [x] PR 5A: Menu contracts, pure model & reactive store (`menu-model.ts`, `menu-store.ts`, `menu-bridge.tsx`, giữ `orders-menu-model.js` cho VM tests tới bước cắt 5D).
+  - [ ] PR 5B: Drawer nhóm tùy chọn chuẩn mới (`orders-option-groups.js` -> `PosOptionGroupsDrawer.tsx`).
+  - [ ] PR 5C: Các modal/drawer lá trong `orders-menu.js` (Stock & Ảnh món, Bundle/Combo editor, Item Detail & Item Modifiers).
+  - [ ] PR 5D: Workspace `#menu` chính, Categories manager & gỡ `js/orders-menu.js` + `js/orders-menu-model.js`.
 - [ ] PR 6: Live orders, reconnect, cảnh báo và printer integration.
 - [ ] PR 7: Customer catalog/options/cart/checkout qua từng release nhỏ.
 - [ ] PR 8: Pilot, đo lại, mở rộng và gỡ code cũ.
@@ -152,4 +156,4 @@ Chưa chốt lịch tuần: cần biết nhân lực, lịch release và số th
 - Test lỗi: mất mạng khi submit, response về trễ, reconnect, tab sleep/resume, WASM chưa tải, menu đổi trong lúc đang chọn, chuyển tenant, payment redirect, reload với draft.
 - Test release: tab cũ tải chunk sau deploy, rollback entry, đường dẫn domain/LIFF/query cũ và phiên đang thanh toán. Chỉ phát hành khi không có sai lệch nghiệp vụ còn chưa giải thích.
 
-PR 1–4 và toàn bộ Đợt Quick Win (QW1–QW5) đã được hoàn tất (`PosReportsPanel.tsx`, `PosAiSettingsPanel.tsx`, `PaymentResultApp.tsx`, `PosPaymentWorkspace.tsx`, và `frontend/shared/` utilities); bước tiếp theo là PR 5 (`orders-menu.js`).
+PR 1–4, toàn bộ Đợt Quick Win (QW1–QW5) và bước nền PR 5A đã được hoàn tất; bước tiếp theo là PR 5B (`orders-option-groups.js`).
