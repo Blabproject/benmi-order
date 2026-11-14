@@ -97,16 +97,6 @@ function moveMenuItem(cIdx, iIdx, direction) {
   document.getElementById(`menu-item-card-${cIdx}-${target}`)?.focus();
 }
 
-function getBenmiDefaultCategories() {
-  return [
-    { id: "small", label: currentLang === 'vi' ? "Bánh mì nhỏ" : "小麵包" },
-    { id: "large", label: currentLang === 'vi' ? "Bánh mì lớn" : "大麵包" },
-    { id: "combo", label: currentLang === 'vi' ? "Combo kèm đồ uống" : "特惠套餐" },
-    { id: "drinks", label: currentLang === 'vi' ? "Đồ uống" : "單點飲料" },
-    { id: "topping", label: currentLang === 'vi' ? "Topping thêm" : "加料選項" }
-  ];
-}
-
 function updateMenuSaveState() {
   const text = t(isMenuSaving ? "menuSaving" : isMenuDirty ? "btnMenuSave" : "menuSaved");
   for (const [id, labelId] of [['btn-menu-save','btn-menu-save-text'], ['btn-menu-order-save','btn-menu-order-save-text']]) {
@@ -683,29 +673,6 @@ function closeCategoriesManager() {
     if (closeBtn) closeBtn.style.display = "none";
   }
   document.getElementById('btn-menu-manage-cats')?.focus();
-}
-
-function getDragAfterElement(container, y, selector) {
-  const draggableElements = [...container.querySelectorAll(`${selector}:not(.dragging)`)];
-
-  return draggableElements.reduce((closest, child) => {
-    const box = child.getBoundingClientRect();
-    const offset = y - box.top - box.height / 2;
-    if (offset < 0 && offset > closest.offset) {
-      return { offset: offset, element: child };
-    } else {
-      return closest;
-    }
-  }, { offset: Number.NEGATIVE_INFINITY }).element;
-}
-
-function updateCategoryCardIndexes(cardsList) {
-  if (!cardsList) return;
-  const cards = cardsList.querySelectorAll('.cat-mgr-card');
-  cards.forEach((c, i) => {
-    const idxEl = c.querySelector('.cat-mgr-index');
-    if (idxEl) idxEl.innerText = `#${i + 1}`;
-  });
 }
 
 function formatPlusBtnText(text, fallback) {
@@ -2952,10 +2919,6 @@ function removeMenuItemAt(cIdx, iIdx) {
     renderMenuCategoryEditor(cIdx);
     renderMenuCategories();
   }
-}
-
-function addNewMenuItem() {
-  handleSelectCreateType('standard_item');
 }
 
 function syncMenuDataFromDOM() {

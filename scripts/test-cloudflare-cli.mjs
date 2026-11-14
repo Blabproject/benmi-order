@@ -43,7 +43,6 @@ for (const mode of ['dev', 'test', 'production']) {
     expected.IMAGES_BUCKET = { type: 'r2', name: imageBuckets[mode] };
     expected.PRICING_ENGINE = { type: 'worker', worker: 'benmi-pricing-rs' };
     expected.PRICING_RUST_ENABLED = { type: 'text', value: 'true' };
-    expected.PRICING_RUST_TENANTS = { type: 'text', value: '["blab_demo"]' };
     assert.match(worker.env.BUILD_COMMIT.value, /^[a-f0-9]{40}$/);
     assert.equal(worker.env.BUILD_ENVIRONMENT.value, mode === "test" ? "staging" : mode);
     assert.match(worker.env.BUILD_DIRTY.value, /^(true|false)$/);

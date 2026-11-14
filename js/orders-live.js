@@ -379,41 +379,6 @@ function isOrderMetadataText(text) {
   return false;
 }
 
-function getOrderItemsPreview(order) {
-  if (!order) return "";
-  let items = [];
-  if (typeof PrinterService !== "undefined" && typeof PrinterService.parseOrderItems === "function") {
-    try {
-      items = PrinterService.parseOrderItems(order, false) || [];
-    } catch (e) {}
-  }
-  if (!items || items.length === 0) {
-    const rawLines = String(order.content || "").split("\n").map(s => s.trim()).filter(Boolean);
-    for (const line of rawLines) {
-      if (isOrderMetadataText(line)) continue;
-      if (line.startsWith("↳") || line.startsWith("-") || line.startsWith("+") || line.startsWith("•") || line.startsWith("－")) continue;
-      const m = line.match(/^(\d+)\s*(?:份|x|X)\s*(?:x\s*)?(.+)$/) || line.match(/^(.+?)\s*[xX*]\s*(\d+)$/);
-      if (m) {
-        items.push({ name: (m[2] || m[1] || "").replace(/\$[\d,.]+/g, '').trim(), quantity: Number(m[1] || m[2]) || 1 });
-      } else if (!line.startsWith("[") && line.length > 1 && line.length < 30) {
-        items.push({ name: line.replace(/\$[\d,.]+/g, '').trim(), quantity: 1 });
-      }
-    }
-  }
-
-  // Filter out any metadata that might have been parsed as item names
-  items = items.filter(it => it && it.name && !isOrderMetadataText(it.name));
-
-  if (items.length === 0) return "";
-  const maxShown = 2;
-  const shownItems = items.slice(0, maxShown).map(it => `${it.name} x${it.quantity}`);
-  const remaining = items.length - maxShown;
-  if (remaining > 0) {
-    return shownItems.join(" · ") + ` · +${remaining}`;
-  }
-  return shownItems.join(" · ");
-}
-
 function renderEmptyLiveState(type) {
   const isPending = type === 'pending';
   const title = isPending ? t('emptyLivePendingTitle') : t('emptyLiveAcceptedTitle');

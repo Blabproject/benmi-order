@@ -1667,17 +1667,6 @@ function customConfirm(htmlMsg, onConfirm, onCancel = null) {
 }
 
 // 7. Sinh mã đơn hàng chuẩn gọn (10 ký tự: {PREFIX}{MMDD}-{SUFFIX}, ví dụ: B0822-7K9M)
-const ORDER_ID_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
-
-function generateBase32Suffix(length = 4) {
-    let suffix = "";
-    for (let i = 0; i < length; i++) {
-        const idx = Math.floor(Math.random() * ORDER_ID_ALPHABET.length);
-        suffix += ORDER_ID_ALPHABET[idx];
-    }
-    return suffix;
-}
-
 function generateOrderNumber(diningOption = 'takeaway') {
     const now = getTaiwanDate();
     const month = String(now.getMonth() + 1).padStart(2, '0');

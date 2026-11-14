@@ -2,7 +2,7 @@ import { Env } from '../types/env';
 import { json } from '../utils/http';
 import { invalidateBootstrapCache } from './bootstrap';
 import { invalidateMarketplaceCache } from './marketplace';
-import { customerOrderConfig, validateLegacyEndpoint, OrderDomainRow } from '../utils/order-domain';
+import { customerOrderConfig, validateLegacyEndpoint } from '../utils/order-domain';
 import { createTenantRepository } from '../repositories/tenant.repository';
 
 export async function updateOrderDomain(request: Request, env: Env, tenantId: string): Promise<Response> {

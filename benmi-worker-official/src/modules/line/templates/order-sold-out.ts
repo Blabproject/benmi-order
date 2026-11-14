@@ -123,7 +123,7 @@ export function createSoldOutItemFlexBubble(
 export function createOrderModifiedConfirmationFlexBubble(
   orderKey: string,
   total: number = 0,
-  deltaAmount: number = 0,
+  _deltaAmount: number = 0,
   brandName: string = "店家",
   displayKey: string = orderKey,
   items: OrderItemInput[] = []

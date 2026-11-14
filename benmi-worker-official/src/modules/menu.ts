@@ -769,7 +769,6 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
         const custSort = Number(cust.sortOrder ?? cust.sort_order ?? 0);
         const custIsRequired = (cust.isRequired || cust.is_required) ? 1 : 0;
         const optionsList = Array.isArray(cust.options) ? cust.options : [];
-        const optionsJson = JSON.stringify(optionsList);
         const custId = cust.sourceId || cust.id || customIdMap.get(custKey) || `custom_${tenantId}_${custKey}`;
         if (!ownedCustomIds.has(custId) && !ownedGroupIds.has(custId) && !custId.startsWith(`custom_${tenantId}_`)) {
           throw new Error('INVALID_CUSTOMIZATION_ID');

@@ -1,6 +1,5 @@
 import { Env } from '../types/env';
 import { json } from '../utils/http';
-import { getTenantId } from './menu';
 import { resolveTenantContext } from './tenant';
 import { TenantContext, resolveTenantOrderPrefix, tenantHasFeature } from '../types/tenant';
 import { getStoredPassword } from './auth';
@@ -129,7 +128,6 @@ async function dispatchStaffRoute(
 
   // --- 2. POST /api/staff/session (Login via POS PIN) ---
   if (request.method === "POST" && path === "/api/staff/session") {
-    const isStaffEnabled = await checkStaffOrderingEnabled(env, tenantId);
     if (!access.capabilities.session) {
       return json({ ok: false, error: "FEATURE_DISABLED", message: "門市尚未啟用桌邊點餐功能 / Quán chưa kích hoạt tính năng nhận đơn tại bàn" }, 403);
     }

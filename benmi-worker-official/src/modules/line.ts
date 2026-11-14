@@ -3,7 +3,7 @@ import { handleOrderReceiptWebhook, handleOrderReceiptPageWebhook, prepareOrderR
 import { resolveOrderKey, findOrderForCustomer, isOrderId } from './order-identity';
 import { Env } from '../types/env';
 import { TenantContext, resolveTenantOrderPrefix, generateStandardOrderId } from '../types/tenant';
-import { Order, DiningOption, OrderItemInput } from '../types/index';
+import { Order, DiningOption } from '../types/index';
 import { corsHeaders } from '../utils/http';
 import { resolveSecret } from '../utils/secrets';
 import { LineRuntimeError, readVerifiedLineWebhook } from './line-runtime';
@@ -697,7 +697,6 @@ export async function handleLineWebhook(
     if (message.type !== "text") continue;
 
     const userText = message.text || "";
-    const pendingKey = `pending:${userId}`;
     const draftKey = `draft:${userId}`;
 
     if (await handleOrderReceiptWebhook(env, tenantCtx, userId, normalizeLineText(userText), replyToken)) {

@@ -34,7 +34,6 @@ export function buildOrderFlexMessage(
     customizations = DetailView.globalChoices(order.detailSnapshot);
     order = { ...order, note: DetailView.notes(order.detailSnapshot) };
   }
-  const brandColor = tenantCtx?.brandColor || "#059669";
   const isScheduled = tenantCtx?.allowScheduledPickup !== false;
   const isDineIn = order.diningOption === "dine_in" || ((order.content || "").includes("用餐方式：") && (order.content || "").includes("內用")) || (order.content || "").includes("【內用】");
 

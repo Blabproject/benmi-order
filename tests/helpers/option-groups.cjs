@@ -74,7 +74,6 @@ function moduleFor(db) {
           ? {
               pricingRustEnabled: () => false,
               callRustValidateUnifiedItems: async () => ({ valid: true }),
-              callRustValidateCatalogGraph: async () => ({ valid: true }),
             }
         : name.includes("bootstrap")
           ? {

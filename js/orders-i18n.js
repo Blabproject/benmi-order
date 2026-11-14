@@ -2542,12 +2542,6 @@ function t(key, params = {}) {
   return str;
 }
 
-function toggleLangDropdown(e) {
-  if (e) e.stopPropagation();
-  const dd = document.getElementById("lang-dropdown");
-  if (dd) dd.classList.toggle("open");
-}
-
 function selectLanguage(lang) {
   setLanguage(lang);
   const dd = document.getElementById("lang-dropdown");

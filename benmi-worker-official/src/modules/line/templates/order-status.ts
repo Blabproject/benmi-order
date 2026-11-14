@@ -3,7 +3,7 @@ export function createRejectFlexBubble(
   orderKey: string,
   reason: string,
   brandName: string = "店家",
-  brandColor: string = "#DC2626",
+  _brandColor: string = "#DC2626",
   displayKey: string = orderKey
 ): any {
   return {
@@ -90,7 +90,7 @@ export function createRejectFlexBubble(
 export function createTimeChangeFlexBubble(
   orderKey: string,
   newTime: string,
-  brandName: string = "店家",
+  _brandName: string = "店家",
   displayKey: string = orderKey
 ): any {
   const timeDisplay = newTime || "稍後";
@@ -179,8 +179,8 @@ export function createTimeChangeFlexBubble(
 export function createTimeChangeConfirmedFlexBubble(
   orderKey: string,
   newTime: string,
-  liffUrl: string = "https://liff.line.me/",
-  brandName: string = "店家",
+  _liffUrl: string = "https://liff.line.me/",
+  _brandName: string = "店家",
   displayKey: string = orderKey
 ): any {
   const timeDisplay = newTime || "稍後";
@@ -271,10 +271,10 @@ export function createTimeChangeConfirmedFlexBubble(
 
 export function createChangeFlexBubble(
   orderKey: string,
-  reason: string,
+  _reason: string,
   note: string = "",
   brandName: string = "店家",
-  brandColor: string = "#F59E0B",
+  _brandColor: string = "#F59E0B",
   displayKey: string = orderKey
 ): any {
   return createTimeChangeFlexBubble(orderKey, note, brandName, displayKey);

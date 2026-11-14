@@ -96,12 +96,6 @@ async function playNewOrderSound() {
   }
 }
 
-function getTodayDateString() {
-  const now = new Date();
-  const tw = new Date(now.getTime() + 8 * 3600000);
-  return tw.toISOString().split('T')[0];
-}
-
 async function startOrderShift() {
   await unlockSound();
   playAlarmCycle();

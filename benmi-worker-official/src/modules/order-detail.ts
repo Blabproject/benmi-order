@@ -29,7 +29,7 @@ const sameSelections = (a: any[], b: any[]) => JSON.stringify(selectionIdentity(
 export async function buildDetailRound(env: Env, tenant: string, input: any, roundNumber: number,
   previous?: DetailRound, features?: string[]): Promise<DetailRound> {
   const catalog = await loadOptionCatalog(env, tenant);
-  if (pricingRustEnabled(env, tenant, features)) {
+  if (pricingRustEnabled(env, features)) {
     try {
       return await callRustBuildDetailRound(env, catalog, input, roundNumber, previous);
     } catch (err) {
@@ -44,13 +44,11 @@ export async function buildDetailRound(env: Env, tenant: string, input: any, rou
     return old && old.quantity === i.quantity && portions.length === old.portions.length &&
       portions.every((p: any, index: number) => sameSelections(p.groups || [], old.portions[index].groups)) ? old : undefined;
   };
-  const baseSubtotal = input.items.reduce((sum: number, i: any) => {
-    const unchanged = unchangedLine(i);
-    if (unchanged) return sum + unchanged.unitPrice * unchanged.quantity;
+  for (const i of input.items) {
+    if (unchangedLine(i)) continue;
     const p = catalog.products.find(p => p.id === (i.itemId || i.item_id));
-    if (!p || !integer(i.quantity, 1)) return fail('INVALID_ITEM');
-    return sum + Number(p.price) * i.quantity;
-  }, 0);
+    if (!p || !integer(i.quantity, 1)) fail('INVALID_ITEM');
+  }
   const usedLines = new Set<string>();
   const items: DetailLine[] = input.items.map((raw: any) => {
     const unchanged = unchangedLine(raw);

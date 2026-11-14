@@ -3,7 +3,7 @@ import { json } from '../utils/http';
 import { getTenantId } from './menu';
 import { invalidateBootstrapCache } from './bootstrap';
 import { deleteTenantImageFromR2AndD1 } from './image';
-import { pricingRustEnabled, callRustValidateUnifiedItems, callRustValidateCatalogGraph } from './pricing-engine-client';
+import { pricingRustEnabled, callRustValidateUnifiedItems } from './pricing-engine-client';
 
 type Row = Record<string, any>;
 type SubOption = {
@@ -78,7 +78,7 @@ export async function loadOptionCatalog(env: Env, tenantId: string): Promise<Opt
 		env.DB.prepare('SELECT revision FROM menu_catalog_revisions WHERE tenant_id=?').bind(tenantId),
 	]);
 	if (results.some((r) => !r.success)) throw new Error('MENU_UNAVAILABLE');
-	const [products, categories, groups, options, links, categoryLinks] = results.map((r) => r.results as Row[]);
+	const [products, categories, groups, options, links] = results.map((r) => r.results as Row[]);
 	const normalized: OptionGroup[] = groups.map((g) => {
 		const metadata = parse(g.source_metadata_json, {});
 		const minSelection = Math.max(Number(g.min_selection || 0), g.is_required ? 1 : 0);
@@ -926,7 +926,7 @@ export async function validateUnifiedOrderItems(
 		return { valid: true, legacy: [] };
 	}
 	const catalog = await loadOptionCatalog(env, tenantId);
-	if (pricingRustEnabled(env, tenantId, features)) {
+	if (pricingRustEnabled(env, features)) {
 		try {
 			return await callRustValidateUnifiedItems(env, catalog, items);
 		} catch (err) {
