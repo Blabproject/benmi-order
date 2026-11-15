@@ -93,10 +93,17 @@ graph TD
   - Chỉ deploy lại Rust Worker khi có thay đổi trong thuật toán khuyến mãi mới hoặc thay đổi schema contract.
   - Lệnh kiểm thử WASM: `npm run test:wasm`. Lệnh build WASM: `npm run build:wasm`.
 
-### G. Tư Duy Profile-First & Giải Quyết Triệt Để (Zero Piecemeal Patching)
-- **Đo đạc toàn cục trước khi sửa (Profile First)**: Với các bài toán tối ưu hiệu năng, debug phức tạp hoặc nâng cấp đa tầng, **BẮT BUỘC** đo thời gian/lỗi qua toàn bộ các tầng (orchestrator/runner, test fixtures, subprocess `python3`/`esbuild`/`Miniflare`, I/O D1, tài nguyên phần cứng CPU/RAM) trước khi sửa code — tuyệt đối không chắp vá cuốn chiếu từng lớp bề mặt.
-- **Kiểm tra xung đột tài nguyên trước khi song song hóa**: Khi chạy đồng thời test hoặc tác vụ nặng, phải rà soát trước mọi điểm ghi chung trên đĩa (như `vite build` xóa `dist/`), port mạng cố định, và ngưỡng nghẽn CPU/GPU (`workerd` + Chromium/WebKit) để thiết kế khóa/budget đúng ngay từ đầu.
-- **Xử lý dứt điểm trong một đợt mạch lạc**: Giải quyết đồng thời nút thắt gốc (cache template, bỏ spawn subprocess thừa, gộp batch DB) thay vì vá dần qua nhiều vòng thử-sai.
+### G. Tư Duy Thiết Kế Đầu-Cuối & Giải Quyết Từ Gốc (End-to-End Root Architecture, Zero Piecemeal Patching)
+Áp dụng bắt buộc cho **mọi tác vụ phát triển** (tính năng mới, sửa bug, thiết kế API/DB, UI/UX, và tối ưu hiệu năng/test):
+- **Truy vết đủ chu trình trước khi thiết kế hoặc sửa (Map End-to-End Before Editing)**:
+  - Tuyệt đối không vá cuốn chiếu từng lớp bề mặt ("thấy lỗi ở đâu vá đúng ở đó rồi chờ xem hỏng tiếp chỗ nào").
+  - Trước khi viết code hoặc đề xuất giải pháp, phải rà trọn chuỗi **`Caller / UI -> API Contract -> Write Path -> DB Persistence -> Cache / Read Path (POS, LIFF, Staff, WASM, In bill)`** để chỉ ra đúng tầng sai kiến trúc, kể cả khi triệu chứng chỉ hiện ra ở một màn hình.
+- **Sửa đúng đường ghi & thiết kế DB thay vì vá triệu chứng**:
+  - **Tách mutation đơn lẻ khỏi endpoint ghi cấu trúc**: Không đẩy thao tác bật/tắt trạng thái đơn lẻ (`is_out_of_stock`, `status`, `sort_order`...) đi qua endpoint ghi đè toàn bộ thực thể/cấu trúc cha-con; dùng endpoint `UPDATE`/`PATCH` hẹp đúng phạm vi.
+  - **Không `DELETE + INSERT` toàn bộ bảng con khi chỉnh sửa**: Trừ lúc tạo mới hoàn toàn, luôn dùng `INSERT ... ON CONFLICT DO UPDATE` (upsert) kết hợp chỉ `DELETE` các phần tử thực sự bị gỡ, để không mất cột mới, `rowid`, timestamp hay quan hệ phụ.
+  - **Đồng bộ cả Dữ liệu cũ + Cache + Frontend trong một đợt mạch lạc**: Khi sửa lỗi liên quan cấu trúc/trạng thái, xử lý đồng thời cả code ghi, code đọc, migration/backfill cho dữ liệu Production bị hỏng (nếu có), và cache KV/browser cache-busting thay vì chia nhỏ qua nhiều vòng thử-sai.
+- **Đo đạc trước khi tối ưu & song song hóa (Profile-First & Concurrency Safety)**:
+  - Với tác vụ tối ưu hiệu năng hoặc test đa luồng, đo thời gian/lỗi xuyên suốt tất cả các tầng (runner, fixtures, subprocess, DB batch, CPU/RAM) và kiểm tra trước mọi tài nguyên ghi chung (thư mục build như `dist/`, port mạng, ngưỡng tiến trình nặng) trước khi song song hóa.
 
 ---
 
