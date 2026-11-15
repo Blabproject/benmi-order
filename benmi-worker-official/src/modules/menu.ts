@@ -1282,8 +1282,8 @@ export async function getMenuData(env: Env, tenantId: string): Promise<Menu> {
   if (env.DB) {
     try {
       const [categoriesRes, itemsRes] = await env.DB.batch([
-        env.DB.prepare("SELECT id, name, slug FROM menu_categories WHERE tenant_id = ? AND COALESCE(category_type, 'catalog') = 'catalog' ORDER BY sort_order ASC").bind(tenantId),
-        env.DB.prepare("SELECT id, category_id, name, price, description, out_of_stock_until FROM menu_items WHERE tenant_id = ? ORDER BY sort_order ASC").bind(tenantId)
+        env.DB.prepare("SELECT id, name, slug FROM menu_categories WHERE tenant_id = ? AND COALESCE(category_type, 'catalog') = 'catalog' ORDER BY sort_order ASC, rowid ASC").bind(tenantId),
+        env.DB.prepare("SELECT id, category_id, name, price, description, out_of_stock_until FROM menu_items WHERE tenant_id = ? ORDER BY sort_order ASC, rowid ASC").bind(tenantId)
       ]);
 
       const categories = categoriesRes.results as Array<{ id: string; name: string; slug: string }>;

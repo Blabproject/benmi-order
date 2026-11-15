@@ -655,7 +655,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
            FROM modifier_groups g
            LEFT JOIN modifier_options o ON o.group_id = g.id AND o.tenant_id = g.tenant_id
            WHERE g.tenant_id = ? AND g.scope = 'order'
-           ORDER BY g.sort_order ASC, o.sort_order ASC`;
+           ORDER BY g.sort_order ASC, g.rowid ASC, o.sort_order ASC, o.rowid ASC`;
         const orderModifierSql = withModifierI18nColumns(baseOrderModifierSql, hasGroupI18nCol, hasOptI18nCol);
 
         const [catsRes, itemsRes, customRes, orderModRes, tenantMetaRes] = await env.DB.batch([
@@ -672,7 +672,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
                     sort_order${hasCatI18nCol ? ', i18n_json' : ''} 
              FROM menu_categories 
              WHERE tenant_id = ? 
-             ORDER BY sort_order ASC`
+             ORDER BY sort_order ASC, rowid ASC`
           ).bind(tenantId),
           env.DB.prepare(
             `SELECT id, category_id, name, price, description, out_of_stock_until, sort_order,
@@ -682,7 +682,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
                     COALESCE(item_type, 'standard') AS item_type${hasItemI18nCol ? ', i18n_json' : ''}
              FROM menu_items 
              WHERE tenant_id = ? 
-             ORDER BY sort_order ASC`
+             ORDER BY sort_order ASC, rowid ASC`
           ).bind(tenantId),
           isUnified
             ? env.DB.prepare('SELECT 1 WHERE 0')
@@ -695,7 +695,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
                       ORDER BY g.id LIMIT 1), 'order') AS scope
              FROM menu_customizations
              WHERE tenant_id = ?
-             ORDER BY sort_order ASC`
+             ORDER BY sort_order ASC, rowid ASC`
           ).bind(tenantId),
           env.DB.prepare(orderModifierSql).bind(tenantId),
           (hasTenantI18nCol || hasTenantLocalesCol)
@@ -756,7 +756,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
              JOIN modifier_groups g ON g.id = l.group_id AND g.tenant_id = l.tenant_id
              LEFT JOIN modifier_options o ON o.group_id = g.id AND o.tenant_id = g.tenant_id
              WHERE l.tenant_id = ?
-             ORDER BY l.sort_order ASC, g.sort_order ASC, o.sort_order ASC`,
+             ORDER BY l.sort_order ASC, l.rowid ASC, g.sort_order ASC, g.rowid ASC, o.sort_order ASC, o.rowid ASC`,
             hasGroupI18nCol,
             hasOptI18nCol
           );
@@ -774,7 +774,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
              JOIN modifier_groups g ON g.id = l.group_id AND g.tenant_id = l.tenant_id
              LEFT JOIN modifier_options o ON o.group_id = g.id AND o.tenant_id = g.tenant_id
              WHERE l.tenant_id = ?
-             ORDER BY l.sort_order ASC, g.sort_order ASC, o.sort_order ASC`,
+             ORDER BY l.sort_order ASC, l.rowid ASC, g.sort_order ASC, g.rowid ASC, o.sort_order ASC, o.rowid ASC`,
             hasGroupI18nCol,
             hasOptI18nCol
           );

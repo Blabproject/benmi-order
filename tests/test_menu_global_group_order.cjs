@@ -138,6 +138,7 @@ test('transaction failure rolls back aggregate creation, category positions and 
 
 test('catalog version guard rejects concurrent writes before committing the draft order', async () => {
   const f = await setup(), batch = f.env.DB.batch.bind(f.env.DB);
+  const initialUtensilsSort = f.db.prepare("SELECT sort_order FROM modifier_groups WHERE id='a_utensils'").get().sort_order;
   let raced = false;
   f.env.DB.batch = async statements => {
     if (!raced && statements[0].sql.startsWith('INSERT INTO menu_write_guards')) {
@@ -146,11 +147,11 @@ test('catalog version guard rejects concurrent writes before committing the draf
     }
     return batch(statements);
   };
-  const response = await f.update({ __customizations: { sortOrder: 3, groups: [f.groupPayload('a_utensils', 1), f.groupPayload('a_notes', 3)] } });
+  const response = await f.update({ __customizations: { sortOrder: 3, groups: [f.groupPayload('a_utensils', 5), f.groupPayload('a_notes', 3)] } });
   assert.equal(response.status, 409);
   assert.equal((await response.json()).code, 'MENU_CONFLICT');
   assert.equal(f.db.prepare("SELECT count(*) n FROM menu_categories WHERE category_type='order_customization'").get().n, 0);
-  assert.equal(f.db.prepare("SELECT sort_order FROM modifier_groups WHERE id='a_utensils'").get().sort_order, 0);
+  assert.equal(f.db.prepare("SELECT sort_order FROM modifier_groups WHERE id='a_utensils'").get().sort_order, initialUtensilsSort);
   assert.equal(f.db.prepare("SELECT name FROM modifier_groups WHERE id='a_notes'").get().name, 'Concurrent name');
 });
 

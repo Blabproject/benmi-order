@@ -344,7 +344,12 @@
     });
   }
   function productGroups(product) {
-    const direct = product.links || [];
+    const groupOrder = (id) => Number(groupById(id)?.sortOrder ?? 0);
+    const direct = [...(product.links || [])].sort(
+      (a, b) =>
+        (Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0)) ||
+        (groupOrder(a.groupId) - groupOrder(b.groupId)),
+    );
     return direct
       .filter((l) => !l.disabled)
       .map((l) => ({
@@ -1467,7 +1472,10 @@
         for (const id of r.ids) {
           let l = d.links.find((l) => l.groupId === id);
           if (l) l.disabled = false;
-          else d.links.push({ groupId: id, optionIds: null, disabled: false });
+          else {
+            const nextOrder = d.links.reduce((m, x) => Math.max(m, Number(x.sortOrder ?? -1)), -1) + 1;
+            d.links.push({ groupId: id, optionIds: null, disabled: false, sortOrder: nextOrder });
+          }
         }
       }
       if (r.page === "subset") {

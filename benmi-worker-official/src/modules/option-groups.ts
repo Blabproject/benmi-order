@@ -142,9 +142,18 @@ const oos = (row: Row) => Boolean(row.is_out_of_stock || (row.out_of_stock_until
 export const unifiedMenuEnabled = (env: Env) => env.UNIFIED_MENU_ENABLED !== 'false';
 
 export async function loadOptionCatalog(env: Env, tenantId: string): Promise<OptionCatalog> {
-	const tables = ['menu_items', 'menu_categories', 'modifier_groups', 'modifier_options', 'item_modifier_links', 'category_modifier_links'];
+	const tableOrderBy: Array<[string, string]> = [
+		['menu_items', 'sort_order ASC, rowid ASC'],
+		['menu_categories', 'sort_order ASC, rowid ASC'],
+		['modifier_groups', 'sort_order ASC, rowid ASC'],
+		['modifier_options', 'sort_order ASC, rowid ASC'],
+		['item_modifier_links', 'sort_order ASC, rowid ASC'],
+		['category_modifier_links', 'sort_order ASC, rowid ASC'],
+	];
 	const results = await env.DB.batch([
-		...tables.map((table) => env.DB.prepare(`SELECT * FROM ${table} WHERE tenant_id = ? ORDER BY sort_order`).bind(tenantId)),
+		...tableOrderBy.map(([table, orderBy]) =>
+			env.DB.prepare(`SELECT * FROM ${table} WHERE tenant_id = ? ORDER BY ${orderBy}`).bind(tenantId),
+		),
 		env.DB.prepare('SELECT revision FROM menu_catalog_revisions WHERE tenant_id=?').bind(tenantId),
 	]);
 	if (results.some((r) => !r.success)) throw new Error('MENU_UNAVAILABLE');
@@ -246,6 +255,7 @@ export async function loadOptionCatalog(env: Env, tenantId: string): Promise<Opt
 			groupId: l.group_id,
 			optionIds: parse(l.option_ids_json, null),
 			disabled: Boolean(l.is_disabled),
+			sortOrder: Number(l.sort_order ?? 0),
 		})),
 		categoryLinks: [],
 		imageList,
@@ -312,7 +322,11 @@ export function groupOptions(catalog: OptionCatalog, group: OptionGroup): MenuOp
 export function effectiveGroups(catalog: OptionCatalog, productId: string): OptionGroup[] {
 	const product = catalog.products.find((p) => p.id === productId);
 	if (!product) throw new Error('PRODUCT_NOT_FOUND');
-	const direct = catalog.links.filter((l) => l.itemId === productId);
+	const groupSort = (groupId: string) => Number(catalog.groups.find((g) => g.id === groupId)?.sortOrder ?? 0);
+	const direct = catalog.links
+		.filter((l) => l.itemId === productId)
+		.slice()
+		.sort((a, b) => (Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0)) || (groupSort(a.groupId) - groupSort(b.groupId)));
 	return direct
 		.filter((l) => !l.disabled)
 		.map((link) => {
@@ -566,11 +580,12 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 				!Array.isArray(raw.links)
 			)
 				throw new Error('INVALID_PRODUCT');
-			const links = raw.links.map((l: any) => ({
+			const links = raw.links.map((l: any, idx: number) => ({
 				itemId: id,
 				groupId: String(l.groupId),
 				optionIds: Array.isArray(l.optionIds) ? l.optionIds : null,
 				disabled: Boolean(l.disabled),
+				sortOrder: idx,
 			}));
 			if (new Set(links.map((l: any) => l.groupId)).size !== links.length) throw new Error('DUPLICATE_GROUP');
 			for (const link of links) {
@@ -587,6 +602,12 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 			const productI18n = (raw.i18n !== undefined || raw.i18n_json !== undefined)
 				? parseI18nJson(raw.i18n ?? raw.i18n_json)
 				: parseI18nJson(previous?.i18n ?? previous?.i18n_json);
+			const maxCategorySort = catalog.products
+				.filter((p) => p.category_id === raw.categoryId)
+				.reduce((max, p) => Math.max(max, Number(p.sort_order ?? 0)), 0);
+			const productSortOrder = previous?.sort_order !== undefined && previous?.sort_order !== null
+				? Number(previous.sort_order)
+				: maxCategorySort + 1;
 			const product = {
 				...previous,
 				id,
@@ -597,6 +618,7 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 				badge_text: String(raw.badgeText || ''),
 				is_recommended: raw.isRecommended ? 1 : 0,
 				image_key: typeof raw.imageKey === 'string' ? (raw.imageKey.trim() || null) : (previous?.image_key ?? null),
+				sort_order: productSortOrder,
 				i18n: productI18n,
 				i18n_json: serializeI18nJson(productI18n),
 				menu_revision: Number(previous?.menu_revision || 0) + 1,
@@ -642,7 +664,11 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 					}
 				}
 			}
-			catalog.products = catalog.products.filter((p) => p.id !== id).concat(product);
+			const existingProdIdx = catalog.products.findIndex((p) => p.id === id);
+			const nextProducts = [...catalog.products];
+			if (existingProdIdx >= 0) nextProducts[existingProdIdx] = product;
+			else nextProducts.push(product);
+			catalog.products = nextProducts.sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0));
 			catalog.links = catalog.links.filter((l) => l.itemId !== id).concat(links);
 			validateOptionGraph(catalog);
 			const hasItemI18nCol = await hasTableColumn(env.DB, 'menu_items', 'i18n_json');
@@ -658,7 +684,7 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 					product.badge_text,
 					product.is_recommended,
 					product.menu_revision,
-					previous?.sort_order ?? catalog.products.length,
+					productSortOrder,
 					product.image_key,
 					...(hasItemI18nCol ? [product.i18n_json] : []),
 				),
@@ -692,7 +718,12 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 		} else {
 			const existing = catalog.groups.find((g) => g.id === id);
 			if (existing && Number(raw.revision) !== existing.revision) return json({ error: 'MENU_CONFLICT' }, 409);
-			const group = normalizeGroup({ ...raw, id }, existing);
+			const groupSortOrder = existing
+				? Number(existing.sortOrder ?? 0)
+				: (Number.isInteger(Number(raw.sortOrder))
+					? Number(raw.sortOrder)
+					: catalog.groups.reduce((max, g) => Math.max(max, Number(g.sortOrder ?? 0)), 0) + 1);
+			const group: OptionGroup = { ...normalizeGroup({ ...raw, id }, existing), sortOrder: groupSortOrder };
 			for (const source of group.sources)
 				if (
 					source.type === 'category'
@@ -735,13 +766,26 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 			const categoryIds: string[] = [];
 			catalog.categoryLinks = catalog.categoryLinks.filter((l) => l.groupId !== id);
 			const oldLinks = catalog.links.filter((l) => l.groupId === id);
+			const nextSortForNewLink = (itemId: string) => {
+				const itemLinks = catalog.links.filter((l) => l.itemId === itemId);
+				if (itemLinks.length === 0) return 0;
+				return itemLinks.reduce((max, l) => Math.max(max, Number(l.sortOrder ?? 0)), -1) + 1;
+			};
 			const newLinks = oldLinks
 				.filter((l) => l.disabled && !itemIds.includes(l.itemId))
 				.concat(
-					[...new Set<string>(itemIds)].map(
-						(itemId) =>
-							oldLinks.find((l) => l.itemId === itemId && !l.disabled) || { itemId, groupId: id, optionIds: null, disabled: false },
-					),
+					[...new Set<string>(itemIds)].map((itemId) => {
+						const prevActive = oldLinks.find((l) => l.itemId === itemId && !l.disabled);
+						if (prevActive) return prevActive;
+						const prevAny = oldLinks.find((l) => l.itemId === itemId);
+						return {
+							itemId,
+							groupId: id,
+							optionIds: prevAny?.optionIds ?? null,
+							disabled: false,
+							sortOrder: prevAny?.sortOrder ?? nextSortForNewLink(itemId),
+						};
+					}),
 				);
 			if (group.included) group.minSelection = group.maxSelection = groupOptions(catalog, group).reduce((sum, o) => sum + o.quantity, 0);
 			if (group.included && !group.maxSelection) throw new Error(`INSUFFICIENT_OPTIONS:${group.id}`);
@@ -757,7 +801,11 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 			for (const link of newLinks)
 				if (Array.isArray(link.optionIds))
 					link.optionIds = link.optionIds.filter((oid: string) => groupOptions(catalog, group).some((o) => o.id === oid));
-			catalog.groups = catalog.groups.filter((g) => g.id !== id).concat(group);
+			const existingGrpIdx = catalog.groups.findIndex((g) => g.id === id);
+			const nextGroups = [...catalog.groups];
+			if (existingGrpIdx >= 0) nextGroups[existingGrpIdx] = group;
+			else nextGroups.push(group);
+			catalog.groups = nextGroups.sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0));
 			catalog.links = catalog.links.filter((l) => l.groupId !== id).concat(newLinks);
 			validateOptionGraph(catalog);
 			const [hasGroupI18nCol, hasOptI18nCol] = await Promise.all([
@@ -766,7 +814,7 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 			]);
 			statements.push(
 				env.DB.prepare(
-					`INSERT INTO modifier_groups (id,tenant_id,name,selection_type,is_required,min_selection,max_selection,allow_repeats,included,sources_json,labels_json,revision,scope,auto_popup${hasGroupI18nCol ? ',i18n_json' : ''}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?${hasGroupI18nCol ? ',?' : ''}) ON CONFLICT(id) DO UPDATE SET name=excluded.name,selection_type=excluded.selection_type,is_required=excluded.is_required,min_selection=excluded.min_selection,max_selection=excluded.max_selection,allow_repeats=excluded.allow_repeats,included=excluded.included,sources_json=excluded.sources_json,labels_json=excluded.labels_json,revision=excluded.revision,scope=excluded.scope,auto_popup=excluded.auto_popup${hasGroupI18nCol ? ',i18n_json=excluded.i18n_json' : ''},updated_at=datetime('now')`,
+					`INSERT INTO modifier_groups (id,tenant_id,name,selection_type,is_required,min_selection,max_selection,allow_repeats,included,sources_json,labels_json,revision,scope,auto_popup,sort_order${hasGroupI18nCol ? ',i18n_json' : ''}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?${hasGroupI18nCol ? ',?' : ''}) ON CONFLICT(id) DO UPDATE SET name=excluded.name,selection_type=excluded.selection_type,is_required=excluded.is_required,min_selection=excluded.min_selection,max_selection=excluded.max_selection,allow_repeats=excluded.allow_repeats,included=excluded.included,sources_json=excluded.sources_json,labels_json=excluded.labels_json,revision=excluded.revision,scope=excluded.scope,auto_popup=excluded.auto_popup${hasGroupI18nCol ? ',i18n_json=excluded.i18n_json' : ''},updated_at=datetime('now')`,
 				).bind(
 					id,
 					tenantId,
@@ -782,6 +830,7 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 					group.revision,
 					group.scope,
 					group.autoPopup ? 1 : 0,
+					groupSortOrder,
 					...(hasGroupI18nCol ? [serializeI18nJson(group.i18n)] : []),
 				),
 			);
@@ -822,8 +871,8 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 			for (const l of newLinks)
 				statements.push(
 					env.DB.prepare(
-						'INSERT INTO item_modifier_links (tenant_id,item_id,group_id,option_ids_json,is_disabled) VALUES (?,?,?,?,?)',
-					).bind(tenantId, l.itemId, id, l.optionIds === null ? null : JSON.stringify(l.optionIds), l.disabled ? 1 : 0),
+						'INSERT INTO item_modifier_links (tenant_id,item_id,group_id,option_ids_json,is_disabled,sort_order) VALUES (?,?,?,?,?,?)',
+					).bind(tenantId, l.itemId, id, l.optionIds === null ? null : JSON.stringify(l.optionIds), l.disabled ? 1 : 0, Number(l.sortOrder ?? 0)),
 				);
 			// Double-write shadow sync:
 			const legacyCustomId = group.metadata?.source_id || group.metadata?.source_group_id || id;
