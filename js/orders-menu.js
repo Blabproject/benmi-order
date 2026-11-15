@@ -7,6 +7,25 @@ let rawMenuData = null;       // Original object form from API
 let activeCategoryIndex = -1;
 let isMenuDirty = false;
 let savedMenuSnapshot = null;
+if (typeof window !== 'undefined') {
+  Object.defineProperties(window, {
+    currentMenuData: {
+      get: () => currentMenuData,
+      set: (v) => { currentMenuData = v; },
+      configurable: true,
+    },
+    savedMenuSnapshot: {
+      get: () => savedMenuSnapshot,
+      set: (v) => { savedMenuSnapshot = v; },
+      configurable: true,
+    },
+    activeCategoryIndex: {
+      get: () => activeCategoryIndex,
+      set: (v) => { activeCategoryIndex = v; },
+      configurable: true,
+    },
+  });
+}
 let isMenuSaving = false;
 let isStockSaving = false;
 let isMenuLoadedCompletely = false;
@@ -1728,6 +1747,7 @@ function applyMenuItemFilters() {
 window.applyMenuItemFilters = applyMenuItemFilters;
 
 function renderMenuCategoryEditor(index) {
+  if (index === undefined) index = activeCategoryIndex;
   if (isCategoryManagerOpen) return renderCategoriesManagerView();
   if (window.UnifiedMenu?.workspace()) return;
   isCategoryManagerOpen = false;

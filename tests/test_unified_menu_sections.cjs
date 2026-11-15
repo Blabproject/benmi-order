@@ -26,16 +26,25 @@ async function workspace({ lang = 'vi', empty = false } = {}) {
   app.context.UnifiedMenu.sidebar();
   const root = app.doc.getElementById('menu-categories');
   const section = (scope) => root.querySelector(`[data-group-scope="${scope}"]`);
-  const toggle = (scope) => section(scope).querySelector('summary').onclick({ preventDefault() {} });
-  const search = (value) => { const input = root.querySelector('#ug-group-search'); input.value = value; input.oninput(); };
-  const clear = () => root.querySelector('[data-action="clear-search"]').onclick();
-  const choose = (id) => root.querySelector(`[data-group="${id}"]`).onclick();
+  const toggle = (scope) => {
+    const d = section(scope);
+    d.open = !d.open;
+    d.dispatchEvent(new app.context.Event('toggle'));
+  };
+  const search = (value) => {
+    const input = root.querySelector('#ug-group-search');
+    const setter = Object.getOwnPropertyDescriptor(app.context.HTMLInputElement.prototype, 'value').set;
+    setter.call(input, value);
+    input.dispatchEvent(new app.context.Event('input', { bubbles: true }));
+  };
+  const clear = () => root.querySelector('[data-action="clear-search"]').click();
+  const choose = (id) => root.querySelector(`[data-group="${id}"]`).click();
   return { ...app, root, section, toggle, search, clear, choose };
 }
 
 test('sections partition by scope, preserve order and include category inheritance once', async () => {
   const app = await workspace();
-  const ids = (scope) => app.section(scope).querySelectorAll('[data-group]').map((el) => el.dataset.group);
+  const ids = (scope) => Array.from(app.section(scope).querySelectorAll('[data-group]')).map((el) => el.dataset.group);
   assert.deepEqual(ids('order'), ['notes', 'utensils']);
   assert.deepEqual(ids('item'), ['drinks', 'spice']);
   for (const scope of ['order', 'item']) {
