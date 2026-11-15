@@ -160,9 +160,8 @@ test('searching filters categories and automatically expands categories with mat
   const drinksItems = drinksCard.querySelector('.ug-category-items');
   assert.equal(drinksItems.hidden, false, 'Matching category should auto-expand to show search results');
 
-  const rows = Array.from(drinksCard.querySelectorAll('.ug-check'));
-  const teaRow = rows.find((r) => r.dataset.search.includes('trà'));
-  const coffeeRow = rows.find((r) => r.dataset.search.includes('cà phê'));
+  const teaRow = drinksCard.querySelectorAll('.ug-check').find((r) => r.dataset.search.includes('trà'));
+  const coffeeRow = drinksCard.querySelectorAll('.ug-check').find((r) => r.dataset.search.includes('cà phê'));
   assert.equal(teaRow.hidden, false);
   assert.equal(coffeeRow.hidden, true);
 

@@ -2,7 +2,6 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
-const { getOptionGroupsBridgeBundleCode } = require('./helpers/option-groups-bundle.cjs');
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
@@ -53,7 +52,6 @@ const sampleMenu = [
 ];
 
 async function run() {
-  const optionGroupsBundle = await getOptionGroupsBridgeBundleCode();
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   
@@ -66,15 +64,6 @@ async function run() {
     if (url.pathname === '/orders.html') {
       const html = read('orders.html').replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '');
       return route.fulfill({ body: html, contentType: 'text/html' });
-    }
-    if (url.pathname === '/frontend/apps/pos/option-groups-bridge.tsx') {
-      return route.fulfill({ body: optionGroupsBundle, contentType: 'application/javascript' });
-    }
-    if (/^\/frontend\/.*\.tsx?$/.test(url.pathname)) {
-      return route.fulfill({ body: '', contentType: 'application/javascript' });
-    }
-    if (/^\/frontend\/.*\.css$/.test(url.pathname)) {
-      return route.fulfill({ body: read(url.pathname.slice(1)), contentType: 'text/css' });
     }
     if (/^\/(js|css)\/[\w.-]+$/.test(url.pathname)) {
       return route.fulfill({ body: read(url.pathname.slice(1)), contentType: url.pathname.endsWith('.css') ? 'text/css' : 'text/javascript' });

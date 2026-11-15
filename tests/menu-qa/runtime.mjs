@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { DatabaseSync } from 'node:sqlite';
 import { createServer } from 'node:http';
@@ -129,15 +129,12 @@ export async function startRuntime({ upgrade = false } = {}) {
 }
 
 export async function startPages() {
-  const distRoot = path.join(root, 'dist');
   const server = createServer((req, res) => {
     let name = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
     if (name === '/') name = '/index.html';
     if (name === '/orders') name = '/orders.html';
-    const distFile = path.resolve(distRoot, '.' + name);
-    const rootFile = path.resolve(root, '.' + name);
-    const file = (distFile.startsWith(distRoot + path.sep) && existsSync(distFile)) ? distFile : rootFile;
-    if ((!file.startsWith(distRoot + path.sep) && !file.startsWith(root + path.sep)) || !/\.(html|js|css|svg|png|jpg|ico|json|woff2?)$/.test(file)) { res.writeHead(404).end(); return; }
+    const file = path.resolve(root, '.' + name);
+    if (!file.startsWith(root + path.sep) || !/\.(html|js|css|svg|png|jpg|ico|json|woff2?)$/.test(file)) { res.writeHead(404).end(); return; }
     try { res.setHeader('Content-Type', ({ '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml' })[path.extname(file)] || 'application/octet-stream'); res.end(readFileSync(file)); }
     catch { res.writeHead(404).end(); }
   });

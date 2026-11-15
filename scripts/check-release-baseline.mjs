@@ -48,11 +48,7 @@ report.dependencies = {
 const sourcePaths = ['*.html', 'index.css', 'js', 'css', 'frontend', 'vite.config.mts', 'vitest.config.mts', 'tsconfig.frontend.json', 'tsconfig.node.json', 'benmi-worker-official/src', 'benmi-worker-official/migrations', 'benmi-worker-official/cloudflare.config.ts', 'benmi-worker-official/wrangler.config.ts'];
 const sourceFiles = git('ls-files', '--cached', '--others', '--exclude-standard', '--', ...sourcePaths).split('\n').filter(Boolean).sort();
 const sourceHash = createHash('sha256');
-for (const file of sourceFiles) {
-  const abs = path.join(root, file);
-  if (!existsSync(abs)) continue;
-  sourceHash.update(file).update('\0').update(readFileSync(abs)).update('\0');
-}
+for (const file of sourceFiles) sourceHash.update(file).update('\0').update(readFileSync(path.join(root, file))).update('\0');
 const changedSourceFiles = [git('diff', '--name-only', 'HEAD', '--', ...sourcePaths), git('ls-files', '--others', '--exclude-standard', '--', ...sourcePaths)].flatMap(value => value.split('\n')).filter(Boolean);
 report.application = { sha256: sourceHash.digest('hex'), fileCount: sourceFiles.length, changedFromHead: [...new Set(changedSourceFiles)].sort().join('\n') };
 const menuOnly = process.argv.includes('--menu');

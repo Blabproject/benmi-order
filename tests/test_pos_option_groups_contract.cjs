@@ -1,160 +1,139 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
 const { webcrypto } = require("node:crypto");
-const { JSDOM } = require("jsdom");
-const { getOptionGroupsBridgeBundleCode } = require("./helpers/option-groups-bundle.cjs");
+const { Element } = require("./helpers/menu-drawer-dom.cjs");
 const { schemaTrueFixture } = require("./helpers/option-groups.cjs");
 
 async function setupPOSContract(tenantId = "jiangjiejie") {
   const f = schemaTrueFixture();
-  await f.api.loadOptionCatalog(f.env, tenantId);
+  const realCatalog = await f.api.loadOptionCatalog(f.env, tenantId);
 
-  const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>", {
-    url: "http://localhost/orders.html",
-    pretendToBeVisual: true,
-    runScripts: "dangerously",
-  });
-  const win = dom.window;
-  const doc = win.document;
+  const doc = { createElement: (tag) => new Element(tag, doc) };
+  doc.body = new Element("body", doc);
+  doc.activeElement = doc.body;
+  doc.getElementById = (id) => doc.body.querySelector(`#${id}`);
+  doc.querySelectorAll = (s) => doc.body.querySelectorAll(s);
 
-  if (!win.crypto) {
-    Object.defineProperty(win, "crypto", { value: webcrypto, configurable: true });
-  }
-  win.requestAnimationFrame = (fn) => setTimeout(fn, 0);
-  win.cancelAnimationFrame = (id) => clearTimeout(id);
-  win.HTMLElement.prototype.scrollIntoView = () => {};
-  win.HTMLElement.prototype.getClientRects = function getClientRects() {
-    for (let node = this; node && node.nodeType === 1; node = node.parentElement) {
-      if (node.hasAttribute("hidden") || node.hasAttribute("inert")) return [];
-    }
-    return [{}];
-  };
-
-  // Setup menu containers expected by option-groups-bridge
-  const menuCategories = doc.createElement("div");
+  // Setup mock menu containers that orders-option-groups.js expects
+  const menuCategories = doc.body.appendChild(new Element("div", doc));
   menuCategories.id = "menu-categories";
-  doc.body.appendChild(menuCategories);
-  const menuEditorBody = doc.createElement("div");
+  const menuEditorBody = doc.body.appendChild(new Element("div", doc));
   menuEditorBody.id = "menu-editor-body";
-  doc.body.appendChild(menuEditorBody);
-  const menuEditorTitle = doc.createElement("div");
+  const menuEditorTitle = doc.body.appendChild(new Element("div", doc));
   menuEditorTitle.id = "menu-editor-title";
-  doc.body.appendChild(menuEditorTitle);
-  const btnEdit = doc.createElement("button");
+  const btnEdit = doc.body.appendChild(new Element("button", doc));
   btnEdit.id = "btn-option-group-edit";
-  doc.body.appendChild(btnEdit);
-  const btnAdd = doc.createElement("button");
+  const btnAdd = doc.body.appendChild(new Element("button", doc));
   btnAdd.id = "btn-option-group-add";
-  btnAdd.appendChild(doc.createElement("span"));
-  doc.body.appendChild(btnAdd);
+  btnAdd.appendChild(new Element("span", doc));
 
   const interceptedRequests = [];
 
-  win.I18N = {
-    vi: {
-      ugAdd: "Thêm lựa chọn",
-      ugCustom: "Tùy chọn tự tạo",
-      ugApply: "Áp dụng",
-      ugSaveGroup: "Lưu nhóm",
-      ugRemoveOption: "Xóa tùy chọn",
+  const context = {
+    document: doc,
+    I18N: {
+      vi: {
+        ugAdd: "Thêm lựa chọn",
+        ugCustom: "Tùy chọn tự tạo",
+        ugApply: "Áp dụng",
+        ugSaveGroup: "Lưu nhóm",
+        ugRemoveOption: "Xóa tùy chọn",
+      },
+      "zh-TW": {
+        ugAdd: "新增選項",
+        ugCustom: "自訂選項",
+        ugApply: "套用",
+        ugSaveGroup: "儲存群組",
+        ugRemoveOption: "刪除選項",
+      },
     },
-    "zh-TW": {
-      ugAdd: "新增選項",
-      ugCustom: "自訂選項",
-      ugApply: "套用",
-      ugSaveGroup: "儲存群組",
-      ugRemoveOption: "刪除選項",
+    currentLang: "vi",
+    console,
+    crypto: webcrypto,
+    WORKER_BASE: "https://test.platform.workers.dev",
+    getTenantIdFromUrl: () => tenantId,
+    syncMenuDataFromDOM() {},
+    renderMenuCategories() {},
+    renderMenuCategoryEditor() {},
+    checkMenuDirty() {},
+    canonicalMenuSnapshot: JSON.stringify,
+    activeCategoryIndex: 0,
+    currentMenuData: [],
+    savedMenuSnapshot: "[]",
+    fetch: async (url, request) => {
+      if (!request || request.method === "GET") {
+        const cat = await f.api.loadOptionCatalog(f.env, tenantId);
+        return { ok: true, json: async () => structuredClone(cat) };
+      }
+      const payload = JSON.parse(request.body);
+      interceptedRequests.push({ url, payload });
+
+      const kind = url.includes("/product?") ? "product" : "group";
+      const apiRes = await f.api.saveOptionEntity(
+        new Request(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: request.body,
+        }),
+        f.env,
+        kind
+      );
+      const apiBody = await apiRes.json();
+      return {
+        ok: apiRes.status === 200,
+        status: apiRes.status,
+        json: async () => apiBody,
+      };
     },
   };
-  win.currentLang = "vi";
-  win.WORKER_BASE = "https://test.platform.workers.dev";
-  win.getTenantIdFromUrl = () => tenantId;
-  win.syncMenuDataFromDOM = () => {};
-  win.renderMenuCategories = () => {};
-  win.renderMenuCategoryEditor = () => {};
-  win.checkMenuDirty = () => {};
-  win.canonicalMenuSnapshot = JSON.stringify;
-  win.activeCategoryIndex = 0;
-  win.currentMenuData = [];
-  win.savedMenuSnapshot = "[]";
-  win.t = (key, args) =>
-    (win.I18N[win.currentLang][key] || key).replace(
+
+  context.t = (key, args) =>
+    (context.I18N[context.currentLang][key] || key).replace(
       /\{(\w+)\}/g,
       (_, k) => args?.[k] ?? ""
     );
+  context.window = context;
+  vm.createContext(context);
+  vm.runInContext(
+    fs.readFileSync("js/orders-option-groups.js", "utf8"),
+    context
+  );
 
-  win.fetch = async (url, request) => {
-    if (!request || request.method === "GET") {
-      const cat = await f.api.loadOptionCatalog(f.env, tenantId);
-      return { ok: true, json: async () => structuredClone(cat) };
-    }
-    const payload = JSON.parse(request.body);
-    interceptedRequests.push({ url: String(url), payload });
-
-    const kind = String(url).includes("/product?") ? "product" : "group";
-    const apiRes = await f.api.saveOptionEntity(
-      new Request(String(url), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: request.body,
-      }),
-      f.env,
-      kind
-    );
-    const apiBody = await apiRes.json();
-    return {
-      ok: apiRes.status === 200,
-      status: apiRes.status,
-      json: async () => apiBody,
-    };
-  };
-
-  const bundleCode = await getOptionGroupsBridgeBundleCode();
-  win.eval(bundleCode);
-
-  await win.UnifiedMenu.load();
+  await context.UnifiedMenu.load();
 
   const drawer = () => doc.getElementById("unified-menu-drawer");
-  const flushTicks = async () => {
-    await new Promise((r) => setTimeout(r, 0));
-    await new Promise(setImmediate);
-  };
   const emit = (type, target, props = {}) => {
-    if (!target) return;
-    const evt = new win.Event(type, { bubbles: true, cancelable: true });
-    Object.assign(evt, props);
-    target.dispatchEvent(evt);
+    const event = {
+      target,
+      preventDefault() {},
+      stopPropagation() {},
+      ...props,
+    };
+    for (const fn of drawer().listeners[type] || []) fn(event);
   };
   const get = (selector) => {
-    const el = drawer()?.querySelector(selector);
+    const el = drawer().querySelector(selector);
     if (!el) throw new Error(`Missing UI control: ${selector}`);
     return el;
   };
   const click = async (action, attrs = "") => {
     const el = get(`[data-action="${action}"]${attrs}`);
     el.focus();
-    el.click();
-    await flushTicks();
+    emit("click", el);
+    await new Promise(setImmediate);
   };
   const input = (key, value) => {
     const el = get(`[data-field="${key}"]`);
     el.focus();
-    if (el.type === "checkbox") {
-      if (el.checked !== Boolean(value)) el.click();
-      return;
-    }
-    const proto =
-      el.tagName === "TEXTAREA"
-        ? win.HTMLTextAreaElement.prototype
-        : win.HTMLInputElement.prototype;
-    const setter = Object.getOwnPropertyDescriptor(proto, "value").set;
-    setter.call(el, String(value));
-    el.dispatchEvent(new win.Event("input", { bubbles: true }));
-    el.dispatchEvent(new win.Event("change", { bubbles: true }));
+    if (el.type === "checkbox") el.checked = value;
+    else el.value = String(value);
+    emit("input", el);
   };
 
   return {
-    context: win,
+    context,
     doc,
     drawer,
     get,

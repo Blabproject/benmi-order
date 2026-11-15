@@ -1,6 +1,6 @@
 # PDP: Frontend Modernization — Migrate
 
-Ngày: 2026-11-11 (cập nhật 2026-11-15). Trạng thái: Đã chốt 3 quyết định nền tảng; hoàn thành PR 1–4, Đợt Quick Win (QW1–QW5), PR 5A và PR 5B (`option-groups-model.ts`, `option-groups-store.ts`, `PosOptionGroupsDrawer.tsx`, `PosOptionGroupsSidebar.tsx`, `PosOptionGroupsWorkspace.tsx`, `option-groups-bridge.tsx`, đã gỡ `js/orders-option-groups.js`). Bước tiếp theo là PR 5C.
+Ngày: 2026-11-11 (cập nhật 2026-11-14). Trạng thái: Đã chốt 3 quyết định nền tảng; hoàn thành PR 1–4 và phát hành lên `staging`/`main` (`db69bdd1`), triển khai tab History & Order Detail chỉ đọc bằng React + TypeScript + Vite thay thế `js/orders-history.js` trong `dist/orders.html`. Bước tiếp theo chuyển theo **đợt Quick Win (QW1–QW5)** ít rủi ro trước khi chạm cụm lớn PR 5–7.
 
 ### Quyết định đã chốt (2026-11-11)
 1. **UI Runtime**: **React + Vite + TypeScript (`strict`)**. Ưu tiên hệ sinh thái chuẩn, ít rủi ro tương thích; phần Customer LIFF tách chunk riêng và đo hiệu năng thật trước khi mở rộng.
@@ -138,7 +138,7 @@ React hỗ trợ thêm từng phần vào ứng dụng hiện hữu; Vite hỗ t
 ### Các cụm lõi tiếp theo
 - [ ] PR 5: Menu editor, draft và option workspace (chia theo lát cắt 1-owner):
   - [x] PR 5A: Menu contracts, pure model & reactive store (`menu-model.ts`, `menu-store.ts`, `menu-bridge.tsx`, giữ `orders-menu-model.js` cho VM tests tới bước cắt 5D).
-  - [x] PR 5B: Drawer, sidebar & workspace nhóm tùy chọn chuẩn mới (`option-groups-model.ts`, `option-groups-store.ts`, `PosOptionGroupsDrawer.tsx`, `PosOptionGroupsSidebar.tsx`, `PosOptionGroupsWorkspace.tsx`, `option-groups-bridge.tsx`; đã gỡ `js/orders-option-groups.js`).
+  - [ ] PR 5B: Drawer nhóm tùy chọn chuẩn mới (`orders-option-groups.js` -> `PosOptionGroupsDrawer.tsx`).
   - [ ] PR 5C: Các modal/drawer lá trong `orders-menu.js` (Stock & Ảnh món, Bundle/Combo editor, Item Detail & Item Modifiers).
   - [ ] PR 5D: Workspace `#menu` chính, Categories manager & gỡ `js/orders-menu.js` + `js/orders-menu-model.js`.
 - [ ] PR 6: Live orders, reconnect, cảnh báo và printer integration.
@@ -156,4 +156,4 @@ Chưa chốt lịch tuần: cần biết nhân lực, lịch release và số th
 - Test lỗi: mất mạng khi submit, response về trễ, reconnect, tab sleep/resume, WASM chưa tải, menu đổi trong lúc đang chọn, chuyển tenant, payment redirect, reload với draft.
 - Test release: tab cũ tải chunk sau deploy, rollback entry, đường dẫn domain/LIFF/query cũ và phiên đang thanh toán. Chỉ phát hành khi không có sai lệch nghiệp vụ còn chưa giải thích.
 
-PR 1–4, toàn bộ Đợt Quick Win (QW1–QW5), PR 5A và PR 5B (gỡ `js/orders-option-groups.js`) đã được hoàn tất; bước tiếp theo là PR 5C (các modal/drawer lá trong `orders-menu.js`).
+PR 1–4, toàn bộ Đợt Quick Win (QW1–QW5) và bước nền PR 5A đã được hoàn tất; bước tiếp theo là PR 5B (`orders-option-groups.js`).
