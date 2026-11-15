@@ -10,7 +10,8 @@
   <script src="/js/order-code.js?v=20261109_order_code_v1"></script>
   <script src="js/orders-display.js?v=20261007_dev_main_sync_v1"></script>
   <link rel="stylesheet" href="css/orders.css?v=20261114_qw2_ai_react_v1" />
-  <link rel="stylesheet" href="css/orders-stock.css?v=20261107_stock_drawer_v1" />
+  <link rel="stylesheet" href="css/orders-stock.css?v=20261115_bulk_stock_v1" />
+  <link rel="stylesheet" href="css/pos-session.css?v=20261115_bulk_stock_v1" />
   <link rel="stylesheet" href="css/orders-menu.css?v=20261115_multilingual_pkg_v2" />
     <script>
       (function () {
@@ -1731,9 +1732,28 @@
               </button>
             </div>
           </div>
+          <div id="menu-editor-toolbar" class="batch-stock-toolbar" style="display:none;">
+            <input id="menu-stock-search" type="search" oninput="handleMenuItemsSearch(this.value)" aria-label="搜尋餐點">
+            <div class="batch-stock-filters" role="group" aria-label="供應狀態">
+              <button type="button" class="menu-filter-pill active" data-filter="all" onclick="setMenuItemFilter('all')"></button>
+              <button type="button" class="menu-filter-pill" data-filter="instock" onclick="setMenuItemFilter('instock')"></button>
+              <button type="button" class="menu-filter-pill" data-filter="oos" onclick="setMenuItemFilter('oos')"></button>
+            </div>
+            <button type="button" class="btn" id="btn-menu-stock-select" onclick="MenuStockBatch.toggle()" aria-pressed="false"></button>
+            <div id="batch-stock-selection" class="batch-stock-selection" hidden>
+              <label><input type="checkbox" id="batch-stock-all" onchange="MenuStockBatch.selectAll(this.checked)"><span id="batch-stock-all-label"></span></label>
+              <button type="button" class="btn btn-ghost" id="batch-stock-clear" onclick="MenuStockBatch.clear()"></button>
+            </div>
+          </div>
           <div class="panel-body menu-editor-body" id="menu-editor-body">
             <div style="text-align:center; padding: 22px; color:#999;" id="i18n-menu-select-prompt">請先從左側選擇分類</div>
           </div>
+          <div id="batch-stock-bar" class="batch-stock-bar" hidden>
+            <span id="batch-stock-count" role="status" aria-live="polite"></span>
+            <div><button type="button" class="btn" id="batch-stock-pause" onclick="MenuStockBatch.open('out_of_stock')"></button>
+            <button type="button" class="btn btn-primary" id="batch-stock-restore" onclick="MenuStockBatch.open('in_stock')"></button></div>
+          </div>
+          <p id="batch-stock-feedback" class="batch-stock-feedback" role="status" aria-live="polite" hidden></p>
           <div class="menu-editor-footer" id="menu-editor-footer" style="display:none;">
             <div class="menu-footer-info">
               <span id="menu-footer-showing-count">顯示餐點</span>
@@ -3253,7 +3273,7 @@
   </section>
 
   <!-- Benmi POS Modular Architecture Scripts -->
-  <script src="js/orders-i18n.js?v=20261115_multilingual_pkg_v1"></script>
+  <script src="js/orders-i18n.js?v=20261115_bulk_stock_v1"></script>
   <script src="js/orders-core.js?v=20261115_multilingual_pkg_v1"></script>
   <script src="js/orders-audio.js?v=20261114_deadcode_cleanup_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
@@ -3265,7 +3285,9 @@
   <script src="js/store-notice-format.js?v=20261111_store_notice_v1"></script>
   <script src="js/orders-settings.js?v=20261115_multilingual_pkg_v1"></script>
   <script src="js/orders-menu-model.js?v=20261115_multilingual_pkg_v1"></script>
-  <script src="js/orders-menu.js?v=20261115_multilingual_pkg_v1"></script>
+  <script src="js/pos-session.js?v=20261115_bulk_stock_v1"></script>
+  <script src="js/orders-stock-batch.js?v=20261115_bulk_stock_v1"></script>
+  <script src="js/orders-menu.js?v=20261115_bulk_stock_v1"></script>
   <script src="js/orders-bundle-wizard.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/orders-option-groups.js?v=20261115_multilingual_pkg_v1"></script>
 

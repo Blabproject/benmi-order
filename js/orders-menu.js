@@ -20,6 +20,7 @@ let currentLibraryOptionGroups = [];
 let menuModifierLibrary = [];
 
 function updateMenuWorkspace() {
+  window.MenuStockBatch?.refresh(false);
   const orderScreen = document.getElementById('menu-display-order-screen');
   if (orderScreen) orderScreen.hidden = !isCategoryManagerOpen;
   for (const id of ['menu-workspace-heading', 'menu-standard-workspace']) {
@@ -102,7 +103,7 @@ function updateMenuSaveState() {
   for (const [id, labelId] of [['btn-menu-save','btn-menu-save-text'], ['btn-menu-order-save','btn-menu-order-save-text']]) {
     const btn = document.getElementById(id), label = document.getElementById(labelId);
     if (!btn) continue;
-    btn.disabled = isMenuSaving || isStockSaving || !isMenuLoadedCompletely || !isMenuDirty;
+    btn.disabled = isMenuSaving || isStockSaving || Boolean(window.MenuStockBatch?.active) || !isMenuLoadedCompletely || !isMenuDirty;
     btn.classList.toggle("has-changes", isMenuDirty);
     if (label) label.textContent = id === 'btn-menu-order-save' ? (isMenuDirty ? (t('btnSaveSortChanges') || text) : text) : text;
     else btn.textContent = text;
@@ -1724,10 +1725,12 @@ function applyMenuItemFilters() {
   if (showingEl && cat && Array.isArray(cat.items)) {
     showingEl.textContent = t('menuFooterShowing', { cat: cat.title, showing: visibleCount, total: cat.items.length });
   }
+  window.MenuStockBatch?.refresh();
 }
 window.applyMenuItemFilters = applyMenuItemFilters;
 
 function renderMenuCategoryEditor(index) {
+  window.MenuStockBatch?.resetForCategory(index);
   if (isCategoryManagerOpen) return renderCategoriesManagerView();
   if (window.UnifiedMenu?.workspace()) return;
   isCategoryManagerOpen = false;

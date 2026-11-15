@@ -1,3 +1,5 @@
+import { updateStockBatch } from './modules/menu-stock-batch';
+import { handlePosSession } from './modules/pos-session';
 import { handlePaymentRoute, processPayments } from './modules/payments';
 import { tenantIsDeleted } from './utils/tenant-lifecycle';
 import { getOptionCatalog, saveOptionEntity } from './modules/option-groups';
@@ -74,6 +76,8 @@ export default {
 
       if (path.startsWith('/api/payments/')) return handlePaymentRoute(request, env, tenantCtx, path);
 
+      if (path === '/api/pos/session') return handlePosSession(request, env, tenantCtx);
+
       // 4. Staff API Routes
       if (path.startsWith("/api/staff")) {
         return handleStaffRoute(request, env, path, tenantCtx);
@@ -105,6 +109,7 @@ export default {
       if (request.method === "POST" && path === "/api/menu/ai-translate") return handleMenuAiTranslate(request, env, tenantCtx);
       if (request.method === "GET" && path === "/api/menu") return getMenu(request, env);
       if (request.method === "POST" && path === "/api/menu") return updateMenu(request, env);
+      if (request.method === "POST" && path === "/api/menu/stock-status/batch") return updateStockBatch(request, env, tenantId, ctx);
       if (request.method === "POST" && path === "/api/menu/stock-status") return updateStockStatus(request, env);
       if (request.method === "POST" && path === "/api/menu/bundle-rules") return updateBundleRule(request, env);
       if (request.method === "POST" && path === "/api/menu/bundles") return saveBundleProduct(request, env);
