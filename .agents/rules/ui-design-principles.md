@@ -43,3 +43,16 @@ Khi thực hiện thiết kế, chỉnh sửa layout, CSS hoặc thêm tính nă
   - Dành độ in đậm (`weight: bold`) và màu sắc tương phản cao cho món ăn, số lượng và tổng tiền chính.
   - Sử dụng đường kẻ mờ (`separator`) hoặc khoảng trống `margin` để phân tách khu vực, thay vì dùng icon trang trí.
 
+---
+
+### 4. Quy Chuẩn Bảo Toàn Giao Diện Khi Chuyển Đổi Sang React / TypeScript (Frontend Migration UI Parity)
+
+Khi chuyển đổi một màn hình hoặc module từ JS truyền thống (`js/orders-*.js`, `js/client-*.js`) sang React/TSX (ví dụ PR 5C, 5D, PR 6, PR 7), **BẮT BUỘC** giữ nguyên 100% giao diện và hành vi trừ khi người dùng yêu cầu thiết kế lại:
+
+1. **Đọc đủ Render Template + CSS gốc trước khi viết JSX**:
+   - Trước khi tạo component `.tsx`, phải đọc đầy đủ các hàm dựng HTML (`render*`) trong file JS cũ **và** toàn bộ rule CSS liên quan (`css/*.css`, `index.css`).
+   - Tuyệt đối không suy đoán hoặc tự đặt lại tên CSS class dựa trên file test (`id` / `data-*`). Phải giữ nguyên hệ thống class, thứ tự phần tử bọc (wrapper), switch track, icon SVG, stepper và nhãn nút đang ăn style từ CSS hiện hành.
+2. **Bảo toàn Hợp đồng Cầu nối Legacy (Bridge Invariants)**:
+   - Kiểm tra đủ tất cả điểm gọi qua lại với code JS còn lại: **giá trị trả về** (ví dụ `boolean` để hàm legacy biết React đã đảm nhận render hay chưa), trạng thái ẩn/hiện khi chuyển tab (`style.display` vs `hidden` để không khóa DOM dùng chung), route mở trực tiếp vs route lồng stack (nhãn nút *"Lưu ..."* vs *"Áp dụng"*), badge đếm phạm vi từng thực thể, và contract query param API (ví dụ `/api/image?tenant_id=...&name=...`).
+3. **Không xóa file JS cũ cho đến khi đối chiếu ảnh 1-to-1 đạt chuẩn**.
+

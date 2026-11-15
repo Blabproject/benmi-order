@@ -67,3 +67,13 @@ Khi cần xác thực layout thực đơn nhưng không muốn chạy toàn bộ
 - **Quy tắc**:
   - **CẤM**: Tuyệt đối không chạy `npm run test:release` sau mỗi lần sửa bug nhỏ hoặc trong lúc đang lặp nhanh (iterative development).
   - **BẮT BUỘC**: Chỉ chạy 1 lần duy nhất trước khi tạo Pull Request hợp nhất vào `dev`/`staging`/`main`, hoặc khi chuẩn bị deploy chính thức.
+
+---
+
+### Cổng Bắt Buộc Cho PR Chuyển Đổi UI (Legacy JS → React/TypeScript Visual Parity)
+Các bài test JSDOM/unit (`id`, `data-*`) **không phát hiện được lỗi lệch class CSS hoặc hỏng cầu nối render**. Với mọi PR thay thế giao diện legacy sang React, trước khi đánh giá sẵn sàng release hoặc merge `main`:
+1. **Chụp ảnh đối chiếu Playwright Trước (`origin/main`) vs Sau (`PR`)** qua `dist/` trên cùng bộ fixture dữ liệu thật (ví dụ dùng helper `tests/menu-qa/runtime.mjs` + `browser.mjs`), bao phủ:
+   - Toàn bộ workspace/sidebar chính ở các tab liên quan (và khi chuyển qua lại giữa tab React và tab JS legacy).
+   - Tất cả màn hình drawer/modal con (chế độ tạo mới, sửa trực tiếp từ workspace, sửa lồng trong stack, picker/accordion, hộp thoại xác nhận).
+   - Ảnh thumbnail, badge đếm số lượng, nút footer chính/phụ và trạng thái ẩn/hiện trên cả 2 ngôn ngữ `vi` / `zh-TW` (và viewport Tablet/Mobile).
+2. **Mở xem trực tiếp từng cặp ảnh `Before` vs `After`** để xác nhận khớp 1-to-1 trước khi gộp nhánh `main` hoặc deploy Production.
