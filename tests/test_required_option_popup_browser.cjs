@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
+const { getOptionGroupsBridgeBundleCode } = require('./helpers/option-groups-bundle.cjs');
 const chromium = require(process.env.PLAYWRIGHT_MODULE || 'playwright')[process.env.MENU_QA_BROWSER || 'chromium'];
 const root = path.resolve(__dirname, '..');
 const phase = process.env.OPTION_REQUIRED_PHASE || 'after';
@@ -33,7 +34,7 @@ test('required toggle alone controls POS saving and mobile option popup behavior
       const pos = await pageFor(browser, lang, { width: 1024, height: 900 });
       const errors = [];
       pos.on('pageerror', error => errors.push(error.message));
-      for (const file of ['css/orders.css', 'css/orders-menu.css']) await pos.addStyleTag({ content: source(file) });
+      for (const file of ['css/orders.css', 'css/orders-menu.css', ...(sourceRef ? [] : ['frontend/apps/pos/pos-option-groups.css'])]) await pos.addStyleTag({ content: source(file) });
       await pos.evaluate(lang => {
         window.I18N = { vi: {}, 'zh-TW': {} }; window.currentLang = lang;
         window.WORKER_BASE = 'https://worker.test'; window.getTenantIdFromUrl = () => 'test';
@@ -50,7 +51,10 @@ test('required toggle alone controls POS saving and mobile option popup behavior
           return { ok: true, json: async () => init ? { catalog: structuredClone(testCatalog) } : structuredClone(testCatalog) };
         };
       }, lang);
-      await pos.addScriptTag({ content: source('js/orders-option-groups.js') });
+      const posBridgeScript = sourceRef
+        ? source('js/orders-option-groups.js')
+        : await getOptionGroupsBridgeBundleCode();
+      await pos.addScriptTag({ content: posBridgeScript });
       await pos.evaluate(async () => { await UnifiedMenu.load(); UnifiedMenu.group(); });
       await pos.locator('[data-action="select-new-scope"][data-scope="item"]').click();
       await pos.locator('[data-field="name"]').fill(lang === 'vi' ? 'Chọn món ăn kèm' : '配餐選擇');

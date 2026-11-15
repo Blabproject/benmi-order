@@ -1,0 +1,5 @@
+#pos-option-groups-drawer-root,
+#pos-ug-sidebar-react-root,
+#pos-ug-workspace-react-root {
+  display: contents;
+}

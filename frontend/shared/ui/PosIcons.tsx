@@ -223,3 +223,64 @@ export function AlertTriangleIcon({ size = 24, ...props }: IconProps & { size?: 
     </StrokeIcon>
   );
 }
+
+/** Right chevron icon (Lucide MIT). */
+export function ChevronRightIcon({ size = 16, ...props }: IconProps & { size?: number }) {
+  return (
+    <StrokeIcon size={size} {...props}>
+      <path d="m9 18 6-6-6-6" />
+    </StrokeIcon>
+  );
+}
+
+/** Help circle icon (Feather/Lucide MIT). */
+export function HelpCircleIcon({ size = 18, ...props }: IconProps & { size?: number }) {
+  return (
+    <StrokeIcon size={size} {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <path d="M12 17h.01" />
+    </StrokeIcon>
+  );
+}
+
+/** Plus icon (Lucide MIT). */
+export function PlusIcon({ size = 20, ...props }: IconProps & { size?: number }) {
+  return (
+    <StrokeIcon size={size} {...props}>
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </StrokeIcon>
+  );
+}
+
+/** Book-open catalog picker icon (Lucide MIT). */
+export function BookOpenIcon({ size = 20, ...props }: IconProps & { size?: number }) {
+  return (
+    <StrokeIcon size={size} {...props}>
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+    </StrokeIcon>
+  );
+}
+
+/** Link chain icon for linked products/sub-options (Lucide MIT). */
+export function LinkIcon({ size = 14, ...props }: IconProps & { size?: number }) {
+  return (
+    <StrokeIcon size={size} {...props}>
+      <path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-2 2" />
+      <path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l2-2" />
+    </StrokeIcon>
+  );
+}
+
+/** Image placeholder frame icon (Lucide MIT). */
+export function ImagePlaceholderIcon({ size = 32, ...props }: IconProps & { size?: number }) {
+  return (
+    <StrokeIcon size={size} strokeWidth={1.5} {...props}>
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      <circle cx="8" cy="8" r="1.5" />
+      <path d="m3 17 6-6 4 4 3-3 5 5" />
+    </StrokeIcon>
+  );
+}
