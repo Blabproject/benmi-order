@@ -1188,8 +1188,11 @@
       d.i18n = d.i18n || {};
       d.i18n[loc] = d.i18n[loc] || {};
       if (prop) d.i18n[loc][prop] = value;
-    } else if (key.startsWith("option.")) r.option[key.slice(7)] = value;
-    else if (key.startsWith("sub.")) {
+    } else if (key.startsWith("option.")) {
+      const fieldName = key.slice(7);
+      r.option[fieldName] = value;
+      if (fieldName === "isLocallyOutOfStock" && !value) r.option.outOfStockUntil = null;
+    } else if (key.startsWith("sub.")) {
       const [, i, k] = key.split(".");
       if (typeof r.option.subOptions[i] === "string")
         r.option.subOptions[i] = { name: r.option.subOptions[i], price: 0 };
@@ -1385,8 +1388,16 @@
       return render();
     }
     if (name === "remove-group") {
-      d.links = d.links.filter((l) => l.groupId !== r.id);
-      d.links.push({ groupId: r.id, optionIds: null, disabled: true });
+      const prevIdx = d.links.findIndex((l) => l.groupId === r.id);
+      const prevLink = prevIdx >= 0 ? d.links[prevIdx] : null;
+      const nextLink = {
+        groupId: r.id,
+        optionIds: null,
+        disabled: true,
+        ...(prevLink?.sortOrder !== undefined ? { sortOrder: prevLink.sortOrder } : {}),
+      };
+      if (prevIdx >= 0) d.links[prevIdx] = nextLink;
+      else d.links.push(nextLink);
       return back();
     }
     if (name === "add-option") return push({ page: "add-option" });
@@ -1495,12 +1506,19 @@
           state.error = tr("ugInsufficient");
           return render();
         }
-        d.links = d.links.filter((l) => l.groupId !== r.id);
-        d.links.push({
+        const prevIdx = d.links.findIndex((l) => l.groupId === r.id);
+        const prevLink = prevIdx >= 0 ? d.links[prevIdx] : null;
+        const nextOrder = prevLink?.sortOrder !== undefined
+          ? prevLink.sortOrder
+          : (d.links.reduce((m, x) => Math.max(m, Number(x.sortOrder ?? -1)), -1) + 1);
+        const nextLink = {
           groupId: r.id,
           optionIds: r.optionIds,
           disabled: false,
-        });
+          sortOrder: nextOrder,
+        };
+        if (prevIdx >= 0) d.links[prevIdx] = nextLink;
+        else d.links.push(nextLink);
       }
       if (r.page === "sub-products") {
         const parent = state.stack.at(-1).route.option;
@@ -1593,6 +1611,57 @@
     }
     return persist(d, remove, removeOption);
   }
+  function groupNonStockDigest(g, itemIds) {
+    const included = Boolean(g.included);
+    return stable({
+      name: String(g.name || "").trim(),
+      scope: g.scope === "order" ? "order" : "item",
+      minSelection: included ? null : Number(g.minSelection ?? 0),
+      maxSelection: included ? null : Number(g.maxSelection ?? 1),
+      allowRepeats: Boolean(g.allowRepeats),
+      included,
+      autoPopup: (g.scope === "order" ? null : Boolean(included || Number(g.minSelection) > 0)),
+      i18n: cleanI18n(g.i18n),
+      options: (g.options || []).map((o) => {
+        const val = optionValues(o);
+        delete val.isLocallyOutOfStock;
+        delete val.outOfStockUntil;
+        return val;
+      }),
+      itemIds: sortedIds(itemIds),
+      categoryIds: [],
+      sources: [],
+    });
+  }
+  function extractPureLocalStockChanges(d) {
+    const orig = groupById(d.id);
+    if (!orig || orig.sources?.length || d.sources?.length) return null;
+    const origItemIds = catalog.links
+      .filter((l) => l.groupId === d.id && !l.disabled)
+      .map((l) => l.itemId);
+    if (groupNonStockDigest(orig, origItemIds) !== groupNonStockDigest(d, d.itemIds)) {
+      return null;
+    }
+    const origOpts = orig.options || [];
+    const nextOpts = d.options || [];
+    if (origOpts.length !== nextOpts.length) return null;
+    const changed = [];
+    for (let i = 0; i < origOpts.length; i++) {
+      const oldOpt = origOpts[i];
+      const newOpt = nextOpts[i];
+      if (!oldOpt || !newOpt || oldOpt.id !== newOpt.id || oldOpt.fromSource || newOpt.fromSource) {
+        return null;
+      }
+      const oldOos = Boolean(oldOpt.isLocallyOutOfStock);
+      const newOos = Boolean(newOpt.isLocallyOutOfStock);
+      if (oldOos !== newOos) {
+        changed.push(newOpt);
+      } else if ((oldOpt.outOfStockUntil || null) !== (newOpt.outOfStockUntil || null)) {
+        return null;
+      }
+    }
+    return changed.length > 0 ? changed : null;
+  }
   async function persist(d, remove, removeOption = false) {
     if (!remove && !removeOption && state.kind === "group") {
       const optionCount = options(d).length;
@@ -1635,51 +1704,82 @@
     state.error = "";
     render();
     try {
-      const payload = { ...d, delete: remove };
-      if (d.i18n !== undefined) payload.i18n = cleanI18n(d.i18n);
-      if (Array.isArray(payload.options)) {
-        payload.options = payload.options.map((opt) =>
-          opt && opt.i18n !== undefined ? { ...opt, i18n: cleanI18n(opt.i18n) } : opt,
-        );
-      }
-      const res = await fetch(
-        `${WORKER_BASE}/api/menu/${state.kind === "product" ? "product" : "option-group"}?tenant_id=${encodeURIComponent(getTenantIdFromUrl())}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        },
-      );
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "MENU_SAVE_FAILED");
       const kind = state.kind;
-      catalog = result.catalog;
-      if (d.imageDraft && !remove) {
-        const imageRes = await fetch(
-          `${WORKER_BASE}/api/image?tenant_id=${encodeURIComponent(getTenantIdFromUrl())}`,
+      const tenantId = getTenantIdFromUrl();
+      const stockOnlyChanges = (!remove && !removeOption && kind === "group" && !d.isNew)
+        ? extractPureLocalStockChanges(d)
+        : null;
+      if (stockOnlyChanges) {
+        for (const opt of stockOnlyChanges) {
+          const stockRes = await fetch(
+            `${WORKER_BASE}/api/menu/stock-status?tenant_id=${encodeURIComponent(tenantId)}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                category_slug: "modifier_option",
+                option_id: opt.id,
+                group_id: d.id,
+                name: opt.name || productById(opt.productId)?.name || opt.id,
+                status: opt.isLocallyOutOfStock ? "out_of_stock" : "in_stock",
+                duration: "indefinite",
+              }),
+            },
+          );
+          const stockResult = await stockRes.json();
+          if (!stockRes.ok) throw new Error(stockResult.error || "MENU_SAVE_FAILED");
+        }
+        const refreshRes = await fetch(
+          `${WORKER_BASE}/api/menu/options?tenant_id=${encodeURIComponent(tenantId)}`,
+        );
+        if (!refreshRes.ok) throw new Error("MENU_UNAVAILABLE");
+        catalog = await refreshRes.json();
+      } else {
+        const payload = { ...d, delete: remove };
+        if (d.i18n !== undefined) payload.i18n = cleanI18n(d.i18n);
+        if (Array.isArray(payload.options)) {
+          payload.options = payload.options.map((opt) =>
+            opt && opt.i18n !== undefined ? { ...opt, i18n: cleanI18n(opt.i18n) } : opt,
+          );
+        }
+        const res = await fetch(
+          `${WORKER_BASE}/api/menu/${kind === "product" ? "product" : "option-group"}?tenant_id=${encodeURIComponent(tenantId)}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: d.imageKey, dataUri: d.imageDraft }),
+            body: JSON.stringify(payload),
           },
         );
-        if (!imageRes.ok) {
-          d.revision = catalog.products.find(
-            (p) => p.id === d.id,
-          )?.menu_revision;
-          throw new Error("IMAGE_SAVE_FAILED");
-        }
-      } else if (!d.imageDraft && !d.imageKey && state.kind === "product") {
-        if (window._tenantImageList) {
-          if (d.prevImageKey) window._tenantImageList.delete(d.prevImageKey);
-          window._tenantImageList.delete(d.name);
-          window._tenantImageList.delete(`product:${d.id}`);
-          if (d.id) window._tenantImageList.delete(d.id);
-          if (d.categoryId) window._tenantImageList.delete(`${d.categoryId}_${d.name}`);
-          if (catalog?.categories) {
-            for (const cat of catalog.categories) {
-              window._tenantImageList.delete(`${cat.id}_${d.name}`);
-              if (cat.slug) window._tenantImageList.delete(`${cat.slug}_${d.name}`);
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || "MENU_SAVE_FAILED");
+        catalog = result.catalog;
+        if (d.imageDraft && !remove) {
+          const imageRes = await fetch(
+            `${WORKER_BASE}/api/image?tenant_id=${encodeURIComponent(tenantId)}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name: d.imageKey, dataUri: d.imageDraft }),
+            },
+          );
+          if (!imageRes.ok) {
+            d.revision = catalog.products.find(
+              (p) => p.id === d.id,
+            )?.menu_revision;
+            throw new Error("IMAGE_SAVE_FAILED");
+          }
+        } else if (!d.imageDraft && !d.imageKey && kind === "product") {
+          if (window._tenantImageList) {
+            if (d.prevImageKey) window._tenantImageList.delete(d.prevImageKey);
+            window._tenantImageList.delete(d.name);
+            window._tenantImageList.delete(`product:${d.id}`);
+            if (d.id) window._tenantImageList.delete(d.id);
+            if (d.categoryId) window._tenantImageList.delete(`${d.categoryId}_${d.name}`);
+            if (catalog?.categories) {
+              for (const cat of catalog.categories) {
+                window._tenantImageList.delete(`${cat.id}_${d.name}`);
+                if (cat.slug) window._tenantImageList.delete(`${cat.slug}_${d.name}`);
+              }
             }
           }
         }

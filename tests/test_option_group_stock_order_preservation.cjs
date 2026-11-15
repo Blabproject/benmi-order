@@ -347,3 +347,124 @@ test("migration 0093 restores collapsed sort_order=0 item_modifier_links while p
     f.db.close();
   }
 });
+
+test("saveOptionEntity preserves rowid and created_at on surviving options/links via upsert + targeted delete", async () => {
+  const f = schemaTrueFixture();
+  try {
+    const tenantId = "t_upsert";
+    const p = seedMultiGroupTenant(f, tenantId);
+    const workers = loadWorkersForFixture(f);
+
+    // Add a 3rd option to grp_1 with an explicit historical created_at
+    const grp1Id = p("grp_1");
+    f.db.prepare(
+      `INSERT INTO modifier_options (id, tenant_id, group_id, name, price, sort_order, created_at)
+       VALUES (?, ?, ?, 'Rice C', 5, 2, '2025-01-01 00:00:00')`,
+    ).run(`${grp1Id}_c`, tenantId, grp1Id);
+    f.db.prepare(
+      `UPDATE modifier_options SET created_at = '2025-01-01 00:00:00' WHERE tenant_id = ? AND group_id = ?`,
+    ).run(tenantId, grp1Id);
+
+    const snapRows = () => ({
+      opts: f.db
+        .prepare("SELECT rowid, id, created_at, price, sort_order FROM modifier_options WHERE tenant_id=? AND group_id=? ORDER BY sort_order ASC, rowid ASC")
+        .all(tenantId, grp1Id),
+      links: f.db
+        .prepare("SELECT rowid, group_id, sort_order, option_ids_json, is_disabled FROM item_modifier_links WHERE tenant_id=? AND item_id=? ORDER BY sort_order ASC, rowid ASC")
+        .all(tenantId, p("item_1")),
+    });
+    const before = snapRows();
+    const beforeRowIdA = before.opts.find((o) => o.id === `${grp1Id}_a`).rowid;
+    const beforeRowIdB = before.opts.find((o) => o.id === `${grp1Id}_b`).rowid;
+    const beforeLinkRowIds = Object.fromEntries(before.links.map((l) => [l.group_id, l.rowid]));
+
+    // 1. Group save: edit option A price, keep B unchanged, remove C, add D
+    const cat1 = await f.api.loadOptionCatalog(f.env, tenantId);
+    const grp1 = cat1.groups.find((g) => g.id === grp1Id);
+    grp1.options = [
+      { ...grp1.options[0], price: 8 },
+      grp1.options[1],
+      { id: `${grp1Id}_d`, name: "Rice D", price: 15, quantity: 1, subOptions: [], eligibilityRules: [] },
+    ];
+    const res1 = await f.save("group", { ...grp1, itemIds: [p("item_1")], categoryIds: [] }, tenantId);
+    assert.equal(res1.status, 200);
+
+    const after1 = snapRows();
+    assert.deepEqual(
+      after1.opts.map((o) => [o.id, o.rowid, o.created_at, o.price, o.sort_order]),
+      [
+        [`${grp1Id}_a`, beforeRowIdA, "2025-01-01 00:00:00", 8, 0],
+        [`${grp1Id}_b`, beforeRowIdB, "2025-01-01 00:00:00", 10, 1],
+        [`${grp1Id}_d`, after1.opts[2].rowid, after1.opts[2].created_at, 15, 2],
+      ],
+    );
+    // Removed option C must be deleted; surviving item_modifier_links must keep identical rowids
+    assert.equal(f.db.prepare("SELECT 1 FROM modifier_options WHERE id=?").get(`${grp1Id}_c`), undefined);
+    assert.deepEqual(
+      Object.fromEntries(after1.links.map((l) => [l.group_id, l.rowid])),
+      beforeLinkRowIds,
+    );
+
+    // 2. Product save: change subset on grp_1 and remove grp_5; remaining links must preserve rowid
+    const prod1 = cat1.products.find((it) => it.id === p("item_1"));
+    const res2 = await f.save(
+      "product",
+      {
+        id: prod1.id,
+        name: prod1.name,
+        price: prod1.price,
+        categoryId: prod1.category_id,
+        revision: prod1.menu_revision,
+        links: [
+          { groupId: p("grp_1"), optionIds: [`${grp1Id}_a`, `${grp1Id}_d`], disabled: false },
+          { groupId: p("grp_2"), optionIds: null, disabled: false },
+          { groupId: p("grp_3"), optionIds: null, disabled: false },
+          { groupId: p("grp_4"), optionIds: null, disabled: false },
+        ],
+      },
+      tenantId,
+    );
+    assert.equal(res2.status, 200);
+    const after2 = snapRows();
+    assert.equal(after2.links.some((l) => l.group_id === p("grp_5")), false);
+    for (const gid of [p("grp_1"), p("grp_2"), p("grp_3"), p("grp_4")]) {
+      assert.equal(after2.links.find((l) => l.group_id === gid).rowid, beforeLinkRowIds[gid], `rowid changed for ${gid}`);
+    }
+
+    // 3. Narrow stock-status endpoint toggles modifier option stock without mutating group revision or link rowids
+    const revBeforeStock = f.db.prepare("SELECT revision FROM modifier_groups WHERE id=?").get(grp1Id).revision;
+    const stockOff = await workers.updateStock(tenantId, {
+      category_slug: "modifier_option",
+      option_id: `${grp1Id}_a`,
+      group_id: grp1Id,
+      name: "Rice A",
+      status: "out_of_stock",
+      duration: "indefinite",
+    });
+    assert.equal(stockOff.status, 200);
+    const revAfterStock = f.db.prepare("SELECT revision FROM modifier_groups WHERE id=?").get(grp1Id).revision;
+    assert.equal(revAfterStock, revBeforeStock);
+
+    const optARowOff = f.db.prepare("SELECT rowid, is_out_of_stock, out_of_stock_until FROM modifier_options WHERE id=?").get(`${grp1Id}_a`);
+    assert.equal(optARowOff.rowid, beforeRowIdA);
+    assert.equal(optARowOff.is_out_of_stock, 1);
+
+    const bootOff = await workers.getBootstrap(tenantId);
+    const grp1BootOff = bootOff.data.catalog.find((c) => c.id === p("cat_main")).items.find((i) => i.id === p("item_1")).bundleRule.groups[0];
+    assert.equal(grp1BootOff.eligibleItems.find((o) => o.id === `${grp1Id}_a`).isOutOfStock, true);
+
+    const stockOn = await workers.updateStock(tenantId, {
+      category_slug: "modifier_option",
+      option_id: `${grp1Id}_a`,
+      group_id: grp1Id,
+      name: "Rice A",
+      status: "in_stock",
+    });
+    assert.equal(stockOn.status, 200);
+    const bootOn = await workers.getBootstrap(tenantId);
+    const grp1BootOn = bootOn.data.catalog.find((c) => c.id === p("cat_main")).items.find((i) => i.id === p("item_1")).bundleRule.groups[0];
+    assert.equal(grp1BootOn.eligibleItems.find((o) => o.id === `${grp1Id}_a`).isOutOfStock, false);
+  } finally {
+    f.db.close();
+  }
+});

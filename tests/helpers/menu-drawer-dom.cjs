@@ -94,7 +94,7 @@ async function setup({ included = false, source = false, lang = 'vi' } = {}) {
         {id:'custom',name:'Topping',price:5,quantity:1,subOptions:['Nóng'],metadata:{keep:'custom'}}], metadata:{keep:'group'}, labels:{}}],
     links:[{groupId:'drinks',itemId:'meal',optionIds:null,disabled:false}], categoryLinks:[],
   };
-  const posts = [], responses = [];
+  const posts = [], endpoints = [], responses = [];
   const context = {
     document: doc, I18N: {vi:{},'zh-TW':{}}, currentLang: lang, console, crypto: webcrypto,
     WORKER_BASE:'https://test.invalid', getTenantIdFromUrl: () => 'tenant',
@@ -104,9 +104,24 @@ async function setup({ included = false, source = false, lang = 'vi' } = {}) {
     savedMenuSnapshot: JSON.stringify([{id:'food',databaseId:'food',items:[{id:'meal',name:'Bánh mì',price:100}],groups:[{id:'drinks',canonicalId:'drinks',title:'Chọn đồ uống'}]}]),
     fetch: async (url, request) => {
       if (!request) return {ok:true,json:async()=>structuredClone(catalog)};
-      const payload = JSON.parse(request.body); posts.push(payload);
+      const payload = JSON.parse(request.body); posts.push(payload); endpoints.push({ url, payload });
       const queued = responses.shift(); if (queued) return queued;
       const next = structuredClone(catalog);
+      if (url.includes('/api/menu/stock-status?')) {
+        const isOos = payload.status === 'out_of_stock';
+        for (const grp of next.groups || []) {
+          if (payload.group_id && grp.id !== payload.group_id) continue;
+          for (const opt of grp.options || []) {
+            if (opt.id === payload.option_id || opt.name === payload.name) {
+              opt.isLocallyOutOfStock = isOos;
+              opt.isOutOfStock = isOos;
+              opt.outOfStockUntil = isOos ? '9999-12-31T23:59:59.000Z' : null;
+            }
+          }
+        }
+        catalog = next;
+        return {ok:true,json:async()=>({success:true})};
+      }
       if (url.includes('/api/menu/product?')) {
         const index = next.products.findIndex((p) => p.id === payload.id);
         next.products[index] = {...next.products[index],name:payload.name,price:payload.price,
@@ -131,6 +146,6 @@ async function setup({ included = false, source = false, lang = 'vi' } = {}) {
   const get = (selector) => { const el = drawer().querySelector(selector); if (!el) throw new Error(`Missing UI control: ${selector}`); return el; };
   const click = async (action, attrs = '') => { const el = get(`[data-action="${action}"]${attrs}`); el.focus(); emit('click', el); await new Promise(setImmediate); };
   const input = (key, value) => { const el = get(`[data-field="${key}"]`); el.focus(); if (el.type === 'checkbox') el.checked = value; else el.value = String(value); emit('input', el); };
-  return { context, doc, drawer, get, click, input, emit, posts, responses, launch, catalog:()=>catalog };
+  return { context, doc, drawer, get, click, input, emit, posts, endpoints, responses, launch, catalog:()=>catalog };
 }
 module.exports = { setup, Element };

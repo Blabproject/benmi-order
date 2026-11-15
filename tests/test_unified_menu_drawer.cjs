@@ -143,11 +143,28 @@ test('invalid fixed quantity stays in the draft; valid changes save computed gro
   assert.equal(app.posts[0].minSelection,4); assert.equal(app.posts[0].maxSelection,4);
 });
 
-test('local stock toggle persists without changing referenced product availability', async () => {
+test('local stock toggle persists via narrow stock-status endpoint without rewriting group or referenced product', async () => {
   const app = await setup(); app.context.UnifiedMenu.group('drinks','option','coffee_option');
   app.input('option.isLocallyOutOfStock',true); await app.click('save');
-  assert.equal(app.posts[0].options[0].isLocallyOutOfStock,true);
+  assert.equal(app.endpoints.length,1);
+  assert.match(app.endpoints[0].url,/\/api\/menu\/stock-status\?/);
+  assert.deepEqual(app.posts[0],{
+    category_slug:'modifier_option',
+    option_id:'coffee_option',
+    group_id:'drinks',
+    name:'Cà phê',
+    status:'out_of_stock',
+    duration:'indefinite',
+  });
+  assert.equal(app.catalog().groups[0].options[0].isLocallyOutOfStock,true);
   assert.equal(app.catalog().products.find((p)=>p.id==='coffee').is_out_of_stock,undefined);
+  app.context.UnifiedMenu.group('drinks','option','coffee_option');
+  app.input('option.isLocallyOutOfStock',false); await app.click('save');
+  assert.equal(app.endpoints.length,2);
+  assert.match(app.endpoints[1].url,/\/api\/menu\/stock-status\?/);
+  assert.equal(app.posts[1].status,'in_stock');
+  assert.equal(app.catalog().groups[0].options[0].isLocallyOutOfStock,false);
+  assert.equal(app.catalog().groups[0].options[0].outOfStockUntil,null);
 });
 
 test('product options entry shows only group settings; normal product entry keeps its full form', async () => {

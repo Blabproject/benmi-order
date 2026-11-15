@@ -434,6 +434,10 @@ function normalizeGroup(raw: any, existing?: OptionGroup): OptionGroup {
 			if (new Set(linkedSubIds).size !== linkedSubIds.length) throw new Error('OPTION_SUB_DUPLICATE');
 			// Unknown fields on existing custom options survive updates.
 			const prevOpt = existing?.options.find((old) => old.id === o.id);
+			const isLocallyOutOfStock = Boolean(o.isLocallyOutOfStock ?? prevOpt?.isLocallyOutOfStock);
+			const outOfStockUntil = (!isLocallyOutOfStock && prevOpt?.isLocallyOutOfStock && o.outOfStockUntil === prevOpt?.outOfStockUntil)
+				? null
+				: (o.outOfStockUntil || null);
 			return {
 				...prevOpt,
 				...o,
@@ -442,8 +446,8 @@ function normalizeGroup(raw: any, existing?: OptionGroup): OptionGroup {
 				productId: o.productId || null,
 				quantity: Number(o.quantity || 1),
 				isDefault: Boolean(o.isDefault),
-				isLocallyOutOfStock: Boolean(o.isLocallyOutOfStock ?? prevOpt?.isLocallyOutOfStock),
-				outOfStockUntil: o.outOfStockUntil || null,
+				isLocallyOutOfStock,
+				outOfStockUntil,
 				subOptions: o.subOptions || [],
 				eligibilityRules: o.eligibilityRules || [],
 				description: o.description || null,
@@ -473,6 +477,26 @@ function normalizeGroup(raw: any, existing?: OptionGroup): OptionGroup {
 			: (existing?.i18n || {}),
 		revision: Number(existing?.revision || 0) + 1,
 	};
+}
+const DELETE_BATCH_SIZE = 50;
+function chunkArray<T>(items: T[], size = DELETE_BATCH_SIZE): T[][] {
+	const chunks: T[][] = [];
+	for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size));
+	return chunks;
+}
+function normalizeOptionIdsKey(optionIds: any): string {
+	return Array.isArray(optionIds) ? JSON.stringify(optionIds) : 'NULL';
+}
+function isSameItemLink(
+	a: Row | undefined,
+	b: { optionIds: any; disabled: boolean; sortOrder: number },
+): boolean {
+	if (!a) return false;
+	return (
+		normalizeOptionIdsKey(a.optionIds) === normalizeOptionIdsKey(b.optionIds) &&
+		Boolean(a.disabled) === Boolean(b.disabled) &&
+		Number(a.sortOrder ?? 0) === Number(b.sortOrder ?? 0)
+	);
 }
 async function invalidate(env: Env, tenantId: string) {
 	await env.ORDER_STATE.delete(`tenant:${tenantId}:menu`);
@@ -669,9 +693,11 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 			if (existingProdIdx >= 0) nextProducts[existingProdIdx] = product;
 			else nextProducts.push(product);
 			catalog.products = nextProducts.sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0));
+			const oldProductLinks = catalog.links.filter((l) => l.itemId === id);
+			const oldLinkByGroupId = new Map(oldProductLinks.map((l) => [String(l.groupId), l]));
 			catalog.links = catalog.links.filter((l) => l.itemId !== id).concat(links);
 			validateOptionGraph(catalog);
-			const hasItemI18nCol = await hasTableColumn(env.DB, 'menu_items', 'i18n_json');
+			const [hasItemI18nCol] = await Promise.all([hasTableColumn(env.DB, 'menu_items', 'i18n_json')]);
 			statements.push(
 				env.DB.prepare(
 					`INSERT INTO menu_items (id,tenant_id,category_id,name,price,badge_text,is_recommended,menu_revision,sort_order,image_key${hasItemI18nCol ? ',i18n_json' : ''}) VALUES (?,?,?,?,?,?,?,?,?,?${hasItemI18nCol ? ',?' : ''}) ON CONFLICT(id) DO UPDATE SET category_id=excluded.category_id,name=excluded.name,price=excluded.price,badge_text=excluded.badge_text,is_recommended=excluded.is_recommended,menu_revision=excluded.menu_revision,image_key=excluded.image_key${hasItemI18nCol ? ',i18n_json=excluded.i18n_json' : ''},updated_at=datetime('now')`,
@@ -689,13 +715,33 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 					...(hasItemI18nCol ? [product.i18n_json] : []),
 				),
 			);
-			statements.push(env.DB.prepare('DELETE FROM item_modifier_links WHERE tenant_id=? AND item_id=?').bind(tenantId, id));
-			for (const [i, l] of links.entries())
+			const newGroupIds = new Set(links.map((l: any) => l.groupId));
+			const removedGroupIds = oldProductLinks
+				.map((l) => String(l.groupId))
+				.filter((gid) => !newGroupIds.has(gid));
+			for (const groupChunk of chunkArray(removedGroupIds)) {
+				const placeholders = groupChunk.map(() => '?').join(',');
 				statements.push(
 					env.DB.prepare(
-						'INSERT INTO item_modifier_links (tenant_id,item_id,group_id,option_ids_json,is_disabled,sort_order) VALUES (?,?,?,?,?,?)',
-					).bind(tenantId, id, l.groupId, l.optionIds === null ? null : JSON.stringify(l.optionIds), l.disabled ? 1 : 0, i),
+						`DELETE FROM item_modifier_links WHERE tenant_id=? AND item_id=? AND group_id IN (${placeholders})`,
+					).bind(tenantId, id, ...groupChunk),
 				);
+			}
+			for (const l of links) {
+				if (isSameItemLink(oldLinkByGroupId.get(l.groupId), l)) continue;
+				statements.push(
+					env.DB.prepare(
+						'INSERT INTO item_modifier_links (tenant_id,item_id,group_id,option_ids_json,is_disabled,sort_order) VALUES (?,?,?,?,?,?) ON CONFLICT(tenant_id,item_id,group_id) DO UPDATE SET option_ids_json=excluded.option_ids_json,is_disabled=excluded.is_disabled,sort_order=excluded.sort_order',
+					).bind(
+						tenantId,
+						id,
+						l.groupId,
+						l.optionIds === null ? null : JSON.stringify(l.optionIds),
+						l.disabled ? 1 : 0,
+						l.sortOrder,
+					),
+				);
+			}
 			// Double-write shadow sync to menu_bundle_rules
 			const bundleRule = projectOptionRule(catalog, id);
 			if (bundleRule && bundleRule.groups && bundleRule.groups.length > 0) {
@@ -764,6 +810,9 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 				throw new Error('OPTION_PRODUCT_CYCLE');
 			}
 			const categoryIds: string[] = [];
+			const oldCategoryIds = catalog.categoryLinks
+				.filter((l) => l.groupId === id)
+				.map((l) => String(l.categoryId));
 			catalog.categoryLinks = catalog.categoryLinks.filter((l) => l.groupId !== id);
 			const oldLinks = catalog.links.filter((l) => l.groupId === id);
 			const nextSortForNewLink = (itemId: string) => {
@@ -834,11 +883,22 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 					...(hasGroupI18nCol ? [serializeI18nJson(group.i18n)] : []),
 				),
 			);
-			statements.push(env.DB.prepare('DELETE FROM modifier_options WHERE tenant_id=? AND group_id=?').bind(tenantId, id));
+			const newOptionIds = new Set(group.options.map((o) => o.id));
+			const removedOptionIds = (existing?.options || [])
+				.map((o) => o.id)
+				.filter((oid) => !newOptionIds.has(oid));
+			for (const optChunk of chunkArray(removedOptionIds)) {
+				const placeholders = optChunk.map(() => '?').join(',');
+				statements.push(
+					env.DB.prepare(
+						`DELETE FROM modifier_options WHERE tenant_id=? AND group_id=? AND id IN (${placeholders})`,
+					).bind(tenantId, id, ...optChunk),
+				);
+			}
 			for (const [i, o] of group.options.entries())
 				statements.push(
 					env.DB.prepare(
-						`INSERT INTO modifier_options (id,tenant_id,group_id,name,price,product_id,included_quantity,is_default,sort_order,out_of_stock_until,sub_options_json,eligibility_rules_json,description,is_out_of_stock,source_metadata_json${hasOptI18nCol ? ',i18n_json' : ''}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?${hasOptI18nCol ? ',?' : ''})`,
+						`INSERT INTO modifier_options (id,tenant_id,group_id,name,price,product_id,included_quantity,is_default,sort_order,out_of_stock_until,sub_options_json,eligibility_rules_json,description,is_out_of_stock,source_metadata_json${hasOptI18nCol ? ',i18n_json' : ''}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?${hasOptI18nCol ? ',?' : ''}) ON CONFLICT(id) DO UPDATE SET name=excluded.name,price=excluded.price,product_id=excluded.product_id,included_quantity=excluded.included_quantity,is_default=excluded.is_default,sort_order=excluded.sort_order,out_of_stock_until=excluded.out_of_stock_until,sub_options_json=excluded.sub_options_json,eligibility_rules_json=excluded.eligibility_rules_json,description=excluded.description,is_out_of_stock=excluded.is_out_of_stock,source_metadata_json=excluded.source_metadata_json${hasOptI18nCol ? ',i18n_json=excluded.i18n_json' : ''},updated_at=datetime('now')`,
 					).bind(
 						o.id,
 						tenantId,
@@ -858,22 +918,59 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 						...(hasOptI18nCol ? [serializeI18nJson(o.i18n)] : []),
 					),
 				);
-			statements.push(env.DB.prepare('DELETE FROM item_modifier_links WHERE tenant_id=? AND group_id=?').bind(tenantId, id));
-			statements.push(env.DB.prepare('DELETE FROM category_modifier_links WHERE tenant_id=? AND group_id=?').bind(tenantId, id));
-			for (const categoryId of new Set<string>(categoryIds))
-				statements.push(
-					env.DB.prepare('INSERT INTO category_modifier_links (tenant_id,category_id,group_id) VALUES (?,?,?)').bind(
-						tenantId,
-						categoryId,
-						id,
-					),
-				);
-			for (const l of newLinks)
+			const nextCategoryIds = [...new Set<string>(categoryIds)];
+			const nextCategoryIdSet = new Set(nextCategoryIds);
+			const oldCategoryIdSet = new Set(oldCategoryIds);
+			const removedCategoryIds = oldCategoryIds.filter((cid) => !nextCategoryIdSet.has(cid));
+			for (const catChunk of chunkArray(removedCategoryIds)) {
+				const placeholders = catChunk.map(() => '?').join(',');
 				statements.push(
 					env.DB.prepare(
-						'INSERT INTO item_modifier_links (tenant_id,item_id,group_id,option_ids_json,is_disabled,sort_order) VALUES (?,?,?,?,?,?)',
-					).bind(tenantId, l.itemId, id, l.optionIds === null ? null : JSON.stringify(l.optionIds), l.disabled ? 1 : 0, Number(l.sortOrder ?? 0)),
+						`DELETE FROM category_modifier_links WHERE tenant_id=? AND group_id=? AND category_id IN (${placeholders})`,
+					).bind(tenantId, id, ...catChunk),
 				);
+			}
+			for (const categoryId of nextCategoryIds) {
+				if (oldCategoryIdSet.has(categoryId)) continue;
+				statements.push(
+					env.DB.prepare(
+						'INSERT INTO category_modifier_links (tenant_id,category_id,group_id) VALUES (?,?,?) ON CONFLICT(tenant_id,category_id,group_id) DO NOTHING',
+					).bind(tenantId, categoryId, id),
+				);
+			}
+			const oldLinkByItemId = new Map(oldLinks.map((l) => [String(l.itemId), l]));
+			const newItemIdSet = new Set(newLinks.map((l) => String(l.itemId)));
+			const removedLinkItemIds = oldLinks
+				.map((l) => String(l.itemId))
+				.filter((itemId) => !newItemIdSet.has(itemId));
+			for (const itemChunk of chunkArray(removedLinkItemIds)) {
+				const placeholders = itemChunk.map(() => '?').join(',');
+				statements.push(
+					env.DB.prepare(
+						`DELETE FROM item_modifier_links WHERE tenant_id=? AND group_id=? AND item_id IN (${placeholders})`,
+					).bind(tenantId, id, ...itemChunk),
+				);
+			}
+			for (const l of newLinks) {
+				const nextLink = {
+					optionIds: l.optionIds,
+					disabled: Boolean(l.disabled),
+					sortOrder: Number(l.sortOrder ?? 0),
+				};
+				if (isSameItemLink(oldLinkByItemId.get(String(l.itemId)), nextLink)) continue;
+				statements.push(
+					env.DB.prepare(
+						'INSERT INTO item_modifier_links (tenant_id,item_id,group_id,option_ids_json,is_disabled,sort_order) VALUES (?,?,?,?,?,?) ON CONFLICT(tenant_id,item_id,group_id) DO UPDATE SET option_ids_json=excluded.option_ids_json,is_disabled=excluded.is_disabled,sort_order=excluded.sort_order',
+					).bind(
+						tenantId,
+						l.itemId,
+						id,
+						l.optionIds === null ? null : JSON.stringify(l.optionIds),
+						l.disabled ? 1 : 0,
+						nextLink.sortOrder,
+					),
+				);
+			}
 			// Double-write shadow sync:
 			const legacyCustomId = group.metadata?.source_id || group.metadata?.source_group_id || id;
 			const legacyCustomKey = group.metadata?.legacy_key || group.metadata?.source_group_id || id;
