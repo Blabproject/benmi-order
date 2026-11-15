@@ -504,7 +504,7 @@ window.StaffOrder = (() => {
         : { discountAmount: 0 };
       if (bundleRes.discountAmount > 0) {
         linesHTML.push(`
-          <div class="staff-cart-line" style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:#059669;">
+          <div class="staff-cart-line staff-cart-discount">
             <span>${escapeHtmlStr((catMeta.name || '').split(' ')[0] || text('組合優惠', 'Ưu đãi combo'))}</span>
             <span>-$${bundleRes.discountAmount}</span>
           </div>

@@ -3,15 +3,15 @@
 
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="/css/staff-order.css?v=20261113_staff_tile_opt_btn_v1">
+    <link rel="stylesheet" href="/css/staff-order.css?v=20261115_staff_text_size_v1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title id="page-title" data-i18n="page_default_title">線上點餐</title>
-    <link rel="preload" href="/index.css?v=20261114_lang_dropdown_v2" as="style">
+    <link rel="preload" href="/index.css?v=20261115_staff_text_size_v1" as="style">
     <link rel="preload" href="/js/store-notice-format.js?v=20261111_store_notice_v1" as="script">
     <link rel="preload" href="/js/client-i18n.js?v=20261115_multilingual_pkg_v2" as="script">
     <link rel="preload" href="/js/client-core.js?v=20261115_multilingual_pkg_v2" as="script">
     <link rel="preload" href="/js/client-menu.js?v=20261115_multilingual_pkg_v2" as="script">
-    <link rel="stylesheet" href="/index.css?v=20261114_lang_dropdown_v2">
+    <link rel="stylesheet" href="/index.css?v=20261115_staff_text_size_v1">
     <style>html.tenant-resolution-failed body > :not(#tenant-resolution-error) { display: none !important; }</style>
     <script>
         try {
@@ -181,7 +181,8 @@
             } catch (e) { }
         })();
     </script>
-<link rel="stylesheet" href="/css/client-option-groups.css?v=20261108_option_flicker_fix_v1">
+    <script src="/js/orders-display.js?v=20261115_staff_text_size_v1" data-staff-only></script>
+<link rel="stylesheet" href="/css/client-option-groups.css?v=20261115_staff_text_size_v1">
   <link rel="stylesheet" href="/css/payments.css?v=20261103_payment_section_top_v1">
 </head>
 
@@ -1099,7 +1100,7 @@
   <script src="/js/order-detail-checkout.js?v=20261114_multilingual_v1"></script>
   <script src="/js/line-order-presentation.js?v=20261030_line_portions_v3"></script>
     <script src="/js/client-checkout.js?v=20261115_multilingual_pkg_v2"></script>
-    <script src="/js/staff-order.js?v=20261113_staff_tile_opt_btn_v1"></script>
+    <script src="/js/staff-order.js?v=20261115_staff_text_size_v1"></script>
     <script>
         if (window.__TENANT_RESOLUTION_FAILED) {
             document.getElementById('page-body-content').style.display = 'none';

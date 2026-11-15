@@ -25,6 +25,25 @@ html.staff-order-mode body {
   overscroll-behavior: none;
 }
 
+html.staff-order-mode body {
+  font-size: calc(16px * var(--pos-font-scale, 1));
+}
+
+/* Shared menu and option sheets must follow the staff preference as well. */
+html.staff-order-mode .modifier-group-title,
+html.staff-order-mode .modifier-pill {
+  font-size: calc(14px * var(--pos-font-scale, 1));
+}
+
+html.staff-order-mode .modifier-checkbox-chip {
+  font-size: calc(13.5px * var(--pos-font-scale, 1));
+}
+
+html.staff-order-mode .modifier-required-badge,
+html.staff-order-mode .modifier-optional-badge {
+  font-size: calc(11px * var(--pos-font-scale, 1));
+}
+
 html.staff-order-mode #page-body-content {
   max-width: 100%;
   height: 100%;
@@ -84,7 +103,7 @@ html.staff-order-mode .staff-chip {
   border: 1px solid #e2e8f0;
   background: #f8fafc;
   color: #334155;
-  font-size: 13px;
+  font-size: calc(13px * var(--pos-font-scale, 1));
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
@@ -142,7 +161,7 @@ html.staff-order-mode #dinein-table-number {
   min-height: 48px;
   height: 48px;
   padding: 4px 28px 4px 10px;
-  font-size: 13px;
+  font-size: calc(13px * var(--pos-font-scale, 1));
   font-weight: 700;
   color: #0f172a;
   background-color: #f8fafc;
@@ -153,7 +172,7 @@ html.staff-order-mode #dinein-table-number {
 
 html.staff-order-mode .staff-bar-legend {
   margin-left: auto;
-  font-size: 12px;
+  font-size: calc(12px * var(--pos-font-scale, 1));
   font-weight: 600;
   color: #64748b;
   display: inline-flex;
@@ -225,9 +244,9 @@ html.staff-order-mode #main-nav.sticky-nav {
 }
 
 html.staff-order-mode #main-nav .nav-btn {
-  min-height: 38px;
+  min-height: 48px;
   padding: 4px 12px !important;
-  font-size: 13px !important;
+  font-size: calc(13px * var(--pos-font-scale, 1)) !important;
   font-weight: 700 !important;
   border-radius: 8px !important;
   border: 1px solid #e2e8f0 !important;
@@ -282,7 +301,7 @@ html.staff-order-mode #catalog-sections .section-container:not(#sec-order-option
 /* Counter Dish Tile Grid — Compact, non-stretching layout */
 html.staff-order-mode #catalog-sections .grid {
   display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)) !important;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(116px * var(--pos-font-scale, 1))), 1fr)) !important;
   gap: 8px !important;
   align-content: start !important;
   align-items: start !important;
@@ -336,7 +355,7 @@ html.staff-order-mode .staff-tile-badges .badge {
   box-sizing: border-box;
   max-width: 100%;
   margin: 0;
-  font-size: 10px !important;
+  font-size: calc(10px * var(--pos-font-scale, 1)) !important;
   padding: 1px 5px !important;
   border-radius: 4px;
   white-space: nowrap;
@@ -367,17 +386,17 @@ html.staff-order-mode #catalog-sections .card .card-info {
 }
 
 html.staff-order-mode #catalog-sections .card .card-title {
-  font-size: 13.5px !important;
+  font-size: calc(13.5px * var(--pos-font-scale, 1)) !important;
   font-weight: 700 !important;
   color: #0f172a !important;
   line-height: 1.25 !important;
-  min-height: 32px;
-  max-height: 34px;
+  min-height: calc(32px * var(--pos-font-scale, 1));
+  max-height: calc(34px * var(--pos-font-scale, 1));
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  padding-right: 20px;
+  padding-right: calc(20px * var(--pos-font-scale, 1));
 }
 
 html.staff-order-mode #catalog-sections .card .card-info > div:first-child > div:not(.card-title) {
@@ -397,13 +416,13 @@ html.staff-order-mode #catalog-sections .card .card-footer {
 html.staff-order-mode #catalog-sections .card .card-footer > div:not(.card-price):not(.qty-control) {
   flex-shrink: 0;
   white-space: nowrap;
-  font-size: 11px !important;
+  font-size: calc(11px * var(--pos-font-scale, 1)) !important;
   padding: 3px 6px !important;
   line-height: 1.4;
 }
 
 html.staff-order-mode #catalog-sections .card .card-price {
-  font-size: 13px !important;
+  font-size: calc(13px * var(--pos-font-scale, 1)) !important;
   font-weight: 800 !important;
   color: #059669 !important;
 }
@@ -413,12 +432,12 @@ html.staff-order-mode .staff-tile-qty {
   top: 6px;
   right: 6px;
   min-width: 20px;
-  height: 18px;
+  min-height: calc(18px * var(--pos-font-scale, 1));
   padding: 0 5px;
   border-radius: 999px;
   background: var(--primary, #059669);
   color: #ffffff;
-  font-size: 10.5px;
+  font-size: calc(10.5px * var(--pos-font-scale, 1));
   font-weight: 800;
   display: inline-flex;
   align-items: center;
@@ -427,7 +446,7 @@ html.staff-order-mode .staff-tile-qty {
 }
 
 html.staff-order-mode .staff-tile-req {
-  font-size: 10px;
+  font-size: calc(10px * var(--pos-font-scale, 1));
   font-weight: 700;
   padding: 1px 5px;
   border-radius: 4px;
@@ -441,13 +460,13 @@ html.staff-order-mode .staff-tile-req {
 html.staff-order-mode .staff-tile-opt-btn {
   margin-top: 6px;
   width: 100%;
-  min-height: 30px;
+  min-height: 48px;
   padding: 4px 8px;
   border-radius: 7px;
   border: 1px solid #cbd5e1;
   background: #f8fafc;
   color: #334155;
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--pos-font-scale, 1));
   font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
@@ -458,12 +477,6 @@ html.staff-order-mode .staff-tile-opt-btn {
   cursor: pointer;
   flex-shrink: 0;
   transition: border-color 0.12s ease, background-color 0.12s ease, color 0.12s ease;
-}
-
-@media (pointer: coarse) {
-  html.staff-order-mode .staff-tile-opt-btn {
-    min-height: 36px;
-  }
 }
 
 html.staff-order-mode .staff-tile-opt-btn:hover {
@@ -543,13 +556,13 @@ html.staff-order-mode #staff-cart-header {
 }
 
 html.staff-order-mode #staff-cart-target {
-  font-size: 14px;
+  font-size: calc(14px * var(--pos-font-scale, 1));
   font-weight: 800;
   color: #0f172a;
 }
 
 html.staff-order-mode #staff-cart-round {
-  font-size: 11px;
+  font-size: calc(11px * var(--pos-font-scale, 1));
   font-weight: 700;
   padding: 2px 7px;
   border-radius: 999px;
@@ -593,7 +606,7 @@ html.staff-order-mode .staff-toast {
   border-radius: 10px;
   background: #0f172a;
   color: #ffffff;
-  font-size: 14px;
+  font-size: calc(14px * var(--pos-font-scale, 1));
   font-weight: 700;
   line-height: 1.4;
   text-align: center;
@@ -636,7 +649,7 @@ html.staff-order-mode .staff-cart-order-group {
   justify-content: space-between;
   align-items: baseline;
   gap: 6px;
-  font-size: 11px;
+  font-size: calc(11px * var(--pos-font-scale, 1));
   color: #64748b;
 }
 
@@ -673,7 +686,7 @@ html.staff-order-mode #pickup-time-picker-group > label {
 html.staff-order-mode .pickup-time-trigger-card {
   padding: 6px 8px !important;
   border-radius: 8px !important;
-  min-height: 34px !important;
+  min-height: 48px !important;
 }
 
 /* Scrollable Cart Summary that flexes and never pushes the submit button */
@@ -692,7 +705,7 @@ html.staff-order-mode #cart-summary {
 html.staff-order-mode .staff-cart-empty {
   padding: 24px 10px;
   text-align: center;
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--pos-font-scale, 1));
   font-weight: 600;
   color: #94a3b8;
 }
@@ -739,7 +752,7 @@ html.staff-order-mode .staff-cart-line-info {
 }
 
 html.staff-order-mode .staff-cart-name {
-  font-size: 13px;
+  font-size: calc(13px * var(--pos-font-scale, 1));
   font-weight: 700;
   color: #0f172a;
   line-height: 1.25;
@@ -750,7 +763,7 @@ html.staff-order-mode .staff-cart-name {
 }
 
 html.staff-order-mode .staff-cart-price {
-  font-size: 12px;
+  font-size: calc(12px * var(--pos-font-scale, 1));
   font-weight: 700;
   color: #059669;
   margin-top: 1px;
@@ -764,16 +777,16 @@ html.staff-order-mode .staff-cart-stepper {
 }
 
 html.staff-order-mode .staff-step-btn {
-  width: 28px !important;
-  height: 28px !important;
-  min-width: 28px !important;
-  min-height: 28px !important;
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
   padding: 0 !important;
   border-radius: 6px;
   border: 1px solid #cbd5e1;
   background: #f8fafc;
   color: #0f172a;
-  font-size: 14px;
+  font-size: calc(14px * var(--pos-font-scale, 1));
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -789,7 +802,7 @@ html.staff-order-mode .staff-step-btn:hover {
 html.staff-order-mode .staff-step-qty {
   min-width: 18px;
   text-align: center;
-  font-size: 13px;
+  font-size: calc(13px * var(--pos-font-scale, 1));
   font-weight: 700;
   color: #0f172a;
 }
@@ -812,7 +825,7 @@ html.staff-order-mode .staff-cart-opt-link {
   border: none;
   background: none;
   color: #059669;
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--pos-font-scale, 1));
   font-weight: 700;
   cursor: pointer;
   text-align: left;
@@ -828,14 +841,14 @@ html.staff-order-mode #staff-note-wrap {
 }
 
 html.staff-order-mode #staff-note-toggle {
-  min-height: 24px !important;
+  min-height: 48px !important;
   min-width: auto !important;
   padding: 2px 0 !important;
   border: none !important;
   border-radius: 0 !important;
   background: transparent !important;
   color: #64748b !important;
-  font-size: 12px !important;
+  font-size: calc(12px * var(--pos-font-scale, 1)) !important;
   font-weight: 700 !important;
   cursor: pointer !important;
   display: inline-flex;
@@ -850,9 +863,9 @@ html.staff-order-mode #staff-note-toggle:hover {
 html.staff-order-mode #note {
   margin-top: 4px;
   padding: 6px 8px !important;
-  font-size: 12.5px !important;
+  font-size: calc(12.5px * var(--pos-font-scale, 1)) !important;
   min-height: 36px !important;
-  height: 36px;
+  height: auto;
   border-radius: 8px !important;
   resize: none;
 }
@@ -880,13 +893,13 @@ html.staff-order-mode .desktop-sidebar-total-row {
 }
 
 html.staff-order-mode #staff-cart-count {
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--pos-font-scale, 1));
   font-weight: 600;
   color: #64748b;
 }
 
 html.staff-order-mode .desktop-sidebar-price {
-  font-size: 21px !important;
+  font-size: calc(21px * var(--pos-font-scale, 1)) !important;
   font-weight: 900 !important;
   color: #0f172a !important;
 }
@@ -899,7 +912,7 @@ html.staff-order-mode #btn-desktop-submit {
   min-height: 48px !important;
   padding: 10px 14px !important;
   border-radius: 10px !important;
-  font-size: 14.5px !important;
+  font-size: calc(14.5px * var(--pos-font-scale, 1)) !important;
   font-weight: 800 !important;
   border: none;
   background: var(--primary, #059669);
@@ -990,4 +1003,12 @@ html.staff-order-mode #staff-access-error {
     background: #fff;
     box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.06);
   }
+}
+
+html.staff-order-mode .staff-cart-discount {
+  display: flex;
+  justify-content: space-between;
+  font-size: calc(12px * var(--pos-font-scale, 1));
+  font-weight: 700;
+  color: #059669;
 }

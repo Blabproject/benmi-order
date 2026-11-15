@@ -126,7 +126,7 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
   const touchTargets=await page.locator('.staff-chip,#dinein-table-number').evaluateAll(elements=>elements.filter(el=>el.getClientRects().length).map(el=>({label:el.textContent,width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height})));
   assert(touchTargets.every(rect=>rect.width>=48&&rect.height>=48),JSON.stringify(touchTargets));
   const stepBtns=await page.locator('.staff-step-btn').evaluateAll(elements=>elements.filter(el=>el.getClientRects().length).map(el=>({width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height})));
-  assert(stepBtns.every(rect=>rect.width<=36&&rect.height<=36),JSON.stringify(stepBtns));
+  assert(stepBtns.length>0&&stepBtns.every(rect=>rect.width>=48&&rect.height>=48),`Staff quantity controls must meet the 48px POS touch target: ${JSON.stringify(stepBtns)}`);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   fs.mkdirSync('artifacts/staff-order-review-20261108',{recursive:true});
   await page.screenshot({path:`artifacts/staff-order-review-20261108/${name}-${viewport.width}-summary.png`});
@@ -150,7 +150,12 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  {
   const mobileCart=await page.locator('#cart-summary').boundingBox();
   assert(mobileCart&&mobileCart.height>=40,`Mobile standalone #cart-summary must not collapse: ${JSON.stringify(mobileCart)}`);
-  await page.locator('#staff-note-toggle').scrollIntoViewIfNeeded();
+  // A fixed footer can cover content that is already inside the viewport.
+  // Scroll explicitly before checking that the final control is reachable.
+  await page.evaluate(()=>{
+   window.scrollTo({top:document.scrollingElement.scrollHeight,behavior:'instant'});
+   return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  });
   const scrollMetrics=await page.evaluate(()=>({
    scrollTop:document.scrollingElement.scrollTop,
    scrollHeight:document.scrollingElement.scrollHeight,

@@ -2920,14 +2920,14 @@ input[type="checkbox"] {
 }
 
 .pickup-trigger-primary {
-    font-size: 15.5px;
+    font-size: calc(15.5px * var(--pos-font-scale, 1));
     font-weight: 800;
     color: #0f172a;
     line-height: 1.3;
 }
 
 .pickup-trigger-secondary {
-    font-size: 12.5px;
+    font-size: calc(12.5px * var(--pos-font-scale, 1));
     font-weight: 600;
     color: #64748b;
     margin-top: 2px;
@@ -3033,7 +3033,7 @@ input[type="checkbox"] {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 17.5px;
+    font-size: calc(17.5px * var(--pos-font-scale, 1));
     font-weight: 900;
     color: #0f172a;
 }
@@ -3119,7 +3119,7 @@ input[type="checkbox"] {
 }
 
 .pickup-date-tab-main {
-    font-size: 13.5px;
+    font-size: calc(13.5px * var(--pos-font-scale, 1));
     font-weight: 800;
     color: #1e293b;
     display: flex;
@@ -3132,7 +3132,7 @@ input[type="checkbox"] {
 }
 
 .pickup-date-tab-sub {
-    font-size: 11.5px;
+    font-size: calc(11.5px * var(--pos-font-scale, 1));
     font-weight: 600;
     color: #64748b;
     margin-top: 2px;
@@ -3143,7 +3143,7 @@ input[type="checkbox"] {
 }
 
 .pickup-date-tab-badge {
-    font-size: 10px;
+    font-size: calc(10px * var(--pos-font-scale, 1));
     font-weight: 700;
     padding: 1px 5px;
     border-radius: 4px;
@@ -3205,7 +3205,7 @@ input[type="checkbox"] {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 12px;
+    font-size: calc(12px * var(--pos-font-scale, 1));
     font-weight: 800;
     color: #15803d;
     background: #dcfce7;
@@ -3215,19 +3215,19 @@ input[type="checkbox"] {
 }
 
 .pickup-asap-title {
-    font-size: 15px;
+    font-size: calc(15px * var(--pos-font-scale, 1));
     font-weight: 900;
     color: #0f172a;
 }
 
 .pickup-asap-desc {
-    font-size: 12.5px;
+    font-size: calc(12.5px * var(--pos-font-scale, 1));
     color: #64748b;
     margin-top: 2px;
 }
 
 .pickup-asap-time {
-    font-size: 20px;
+    font-size: calc(20px * var(--pos-font-scale, 1));
     font-weight: 900;
     color: var(--primary);
     font-family: ui-monospace, monospace;
@@ -3241,13 +3241,13 @@ input[type="checkbox"] {
     align-items: center;
     justify-content: space-between;
     margin-bottom: 12px;
-    font-size: 13.5px;
+    font-size: calc(13.5px * var(--pos-font-scale, 1));
     font-weight: 800;
     color: #334155;
 }
 
 .pickup-slots-step-hint {
-    font-size: 12px;
+    font-size: calc(12px * var(--pos-font-scale, 1));
     font-weight: 600;
     color: #94a3b8;
 }
@@ -3273,7 +3273,7 @@ input[type="checkbox"] {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 13px;
+    font-size: calc(13px * var(--pos-font-scale, 1));
     font-weight: 800;
     color: #334155;
 }
@@ -3284,7 +3284,7 @@ input[type="checkbox"] {
 }
 
 .pickup-period-count {
-    font-size: 11.5px;
+    font-size: calc(11.5px * var(--pos-font-scale, 1));
     font-weight: 600;
     color: #94a3b8;
 }
@@ -3310,7 +3310,7 @@ input[type="checkbox"] {
     background: #f8fafc;
     border: 1.5px solid #e2e8f0;
     border-radius: 10px;
-    font-size: 15px;
+    font-size: calc(15px * var(--pos-font-scale, 1));
     font-weight: 800;
     color: #1e293b;
     cursor: pointer;
@@ -3340,7 +3340,7 @@ input[type="checkbox"] {
     padding: 24px 16px;
     text-align: center;
     color: #64748b;
-    font-size: 14px;
+    font-size: calc(14px * var(--pos-font-scale, 1));
     font-weight: 600;
     background: #f8fafc;
     border-radius: 12px;
@@ -3363,7 +3363,7 @@ input[type="checkbox"] {
     border: 1.5px solid #e2e8f0;
     background: #f8fafc;
     color: #475569;
-    font-size: 15px;
+    font-size: calc(15px * var(--pos-font-scale, 1));
     font-weight: 800;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -3380,7 +3380,7 @@ input[type="checkbox"] {
     border: none;
     background: var(--primary);
     color: #ffffff;
-    font-size: 16px;
+    font-size: calc(16px * var(--pos-font-scale, 1));
     font-weight: 900;
     cursor: pointer;
     box-shadow: 0 4px 14px rgba(0, 185, 0, 0.25);
