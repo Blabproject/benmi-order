@@ -12,6 +12,61 @@ var activeBundleCatTab = 'all';
 
 // Note: getModifierPrice is authoritatively implemented in client-core.js
 
+function bT(key, params, fallback) {
+    if (window.ClientI18n && typeof window.ClientI18n.t === 'function') {
+        const res = window.ClientI18n.t(key, params);
+        if (res && res !== key) return res;
+    }
+    if (fallback !== undefined) {
+        return String(fallback).replace(/\{(\w+)\}/g, (_, k) => (params && params[k] !== undefined ? params[k] : ''));
+    }
+    return key;
+}
+
+function bLoc(entity, field, fallback) {
+    if (window.ClientI18n && typeof window.ClientI18n.locText === 'function') {
+        return window.ClientI18n.locText(entity, field, fallback);
+    }
+    return fallback !== undefined ? fallback : ((entity && entity[field]) || '');
+}
+
+function getCleanBundleGroupLabel(group, fallbackText) {
+    const rawName = bLoc(group, 'name', group?.name || '');
+    const cleaned = String(rawName || '')
+        .replace(/^請選擇\s*(\d+\s*樣)?/g, '')
+        .trim();
+    return cleaned || fallbackText || bT('bundle_fallback_label', null, '配菜');
+}
+
+function applyBundleModalHeader() {
+    if (!currentBundleModalContext) return;
+    const { key, itemInfo, origName, group, portionIndex } = currentBundleModalContext;
+    const cartObj = window.cart || cart || {};
+    const currentQty = cartObj[key] || 0;
+    const titleEl = document.getElementById('bundle-modal-item-name');
+    const maxCountEl = document.getElementById('bundle-modal-max-count');
+    const promptEl = document.getElementById('bundle-modal-prompt-text');
+
+    const portionLabel = (currentQty > 1 || portionIndex > 0)
+        ? ` (${bT('portion_n', { n: portionIndex + 1 }, `第 ${portionIndex + 1} 份`)})`
+        : '';
+    const displayItemName = bLoc(itemInfo?.targetItem, 'name', itemInfo?.displayName || origName);
+    if (titleEl) titleEl.innerText = displayItemName + portionLabel;
+
+    const maxRequired = group.maxQuantity ?? group.maxSelections ?? group.requiredCount ?? 6;
+    if (maxCountEl) maxCountEl.innerText = maxRequired;
+
+    if (promptEl) {
+        const locale = (window.ClientI18n && typeof window.ClientI18n.getLocale === 'function')
+            ? window.ClientI18n.getLocale()
+            : ((typeof currentLocale !== 'undefined' && currentLocale) ? currentLocale : 'zh-TW');
+        const labelObj = typeof group.label === 'object' && group.label ? group.label : null;
+        const localizedLabel = labelObj ? (labelObj[locale] || labelObj[locale.split('-')[0]]) : (typeof group.label === 'string' && locale === 'zh-TW' ? group.label : '');
+        const cleanGroupLabel = getCleanBundleGroupLabel(group);
+        promptEl.innerText = localizedLabel || (group.name ? bT('bundle_step_prompt', { max: maxRequired, label: cleanGroupLabel }, `請選擇${cleanGroupLabel}`) : bT('bundle_prompt_default', null, '請選擇配菜'));
+    }
+}
+
 
 function openBundleBuilderModal(catSlug, origName, portionIndex) {
     const key = catSlug + '_' + origName;
@@ -75,22 +130,7 @@ function openBundleBuilderModal(catSlug, origName, portionIndex) {
     };
 
     const modal = document.getElementById('bundle-builder-modal');
-    const titleEl = document.getElementById('bundle-modal-item-name');
-    const maxCountEl = document.getElementById('bundle-modal-max-count');
-
-    const portionLabel = (currentQty > 1 || targetPortionIndex > 0) ? ` (第 ${targetPortionIndex + 1} 份)` : '';
-    if (titleEl) titleEl.innerText = (itemInfo.displayName || origName) + portionLabel;
-
-    const maxRequired = group.maxQuantity ?? group.maxSelections ?? group.requiredCount ?? 6;
-    if (maxCountEl) maxCountEl.innerText = maxRequired;
-
-    const cleanGroupLabel = (group.name || '').replace(/^請選擇\s*(\d+\s*樣)?/g, '').trim() || '配菜';
-    const promptEl = document.getElementById('bundle-modal-prompt-text');
-    if (promptEl) {
-        const userLang = (typeof currentLocale !== 'undefined' && currentLocale) ? currentLocale : ((typeof currentLang !== 'undefined' && currentLang) ? currentLang : 'zh-TW');
-        const promptText = (typeof group.label === 'object' && group.label ? (group.label[userLang] || group.label['zh-TW'] || group.label['vi']) : group.label) || (group.name ? `請選擇${cleanGroupLabel}` : '請選擇配菜');
-        promptEl.innerText = promptText;
-    }
+    applyBundleModalHeader();
 
     // Render category tabs & items
     activeBundleCatTab = 'all';
@@ -119,18 +159,22 @@ function renderBundleAddonsSection() {
     }
 
     container.style.display = 'block';
+    const oosTagText = bT('sold_out', null, '已售完');
     let html = `
         <div style="font-size: 14.5px; font-weight: 800; color: #0f172a; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
-            <span>加料加價購 / 客製備註</span>
-            <span style="font-size: 11.5px; font-weight: 600; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 6px;">選填</span>
+            <span>${bT('bundle_addons_title', null, '自訂餐點選項 / 加料 / 口味')}</span>
+            <span style="font-size: 11.5px; font-weight: 600; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 6px;">${bT('option_optional', null, '選填')}</span>
         </div>
     `;
 
     catModifiers.forEach(mod => {
-        const reqBadge = mod.isRequired ? `<span class="modifier-required-badge">必選</span>` : `<span class="modifier-optional-badge">可選</span>`;
+        const reqBadge = mod.isRequired
+            ? `<span class="modifier-required-badge">${bT('option_required', null, '必選')}</span>`
+            : `<span class="modifier-optional-badge">${bT('option_optional', null, '可選')}</span>`;
+        const modLabel = bLoc(mod, 'name', mod.name);
         html += `
             <div class="modifier-group-title" style="margin-top: 10px; margin-bottom: 8px;">
-                <span>${mod.name}</span>
+                <span>${modLabel}</span>
                 ${reqBadge}
             </div>
         `;
@@ -141,12 +185,13 @@ function renderBundleAddonsSection() {
                 const isOos = Boolean(opt.isOutOfStock);
                 const isSelected = (addonSelections.single && addonSelections.single[mod.slug] === opt.name);
                 const priceText = opt.price > 0 ? ` (+$${opt.price})` : '';
-                const oosBadge = isOos ? `<span class="modifier-oos-tag">已售完</span>` : '';
+                const oosBadge = isOos ? `<span class="modifier-oos-tag">${oosTagText}</span>` : '';
                 const safeOptName = String(opt.name).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                const optLabel = bLoc(opt, 'name', opt.name);
                 html += `
                     <div class="modifier-pill ${isSelected ? 'active' : ''} ${isOos ? 'disabled' : ''}"
                          onclick="${isOos ? '' : `selectBundleAddonSingle('${safeModSlug}', '${safeOptName}', this)`}">
-                        <span>${opt.name}${priceText}</span>${oosBadge}
+                        <span>${optLabel}${priceText}</span>${oosBadge}
                     </div>
                 `;
             });
@@ -156,12 +201,13 @@ function renderBundleAddonsSection() {
             mod.options.forEach(opt => {
                 const isOos = Boolean(opt.isOutOfStock);
                 const isChecked = Boolean(addonSelections.multiple && addonSelections.multiple[opt.name]);
-                const priceText = isOos ? `<span class="modifier-oos-tag">已售完</span>` : (opt.price > 0 ? `+$${opt.price}` : '$0');
+                const priceText = isOos ? `<span class="modifier-oos-tag">${oosTagText}</span>` : (opt.price > 0 ? `+$${opt.price}` : '$0');
                 const safeOptName = String(opt.name).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                const optLabel = bLoc(opt, 'name', opt.name);
                 html += `
                     <div class="modifier-checkbox-chip ${isChecked ? 'active' : ''} ${isOos ? 'disabled' : ''}"
                          onclick="${isOos ? '' : `toggleBundleAddonMultiple('${safeOptName}', this)`}">
-                        <span>${opt.name}</span>
+                        <span>${optLabel}</span>
                         <span style="font-size: 12px; opacity: 0.85;">${priceText}</span>
                     </div>
                 `;
@@ -171,8 +217,9 @@ function renderBundleAddonsSection() {
     });
 
     html += `
-        <label style="font-size: 13px; font-weight: 700; color: #475569; display: block; margin: 12px 0 6px 0;">個別備註</label>
+        <label style="font-size: 13px; font-weight: 700; color: #475569; display: block; margin: 12px 0 6px 0;">${bT('individual_note', null, '個別備註')}</label>
         <input type="text" maxlength="50" value="${(addonSelections.note || '').replace(/"/g, '&quot;')}"
+               placeholder="${bT('note_short_placeholder', null, '口味 / 備註').replace(/"/g, '&quot;')}"
                class="bundle-note-input"
                style="width: 100%; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 10px 14px; font-size: 14px; color: #1e293b; background: #fff; outline: none; box-sizing: border-box;"
                oninput="updateBundleAddonNote(this.value)">
@@ -224,18 +271,19 @@ function renderBundleCategoryTabs(group) {
 
     const bData = window.bootstrapData || bootstrapData;
     const catMap = new Map();
-    catMap.set('all', { id: 'all', name: '全部' });
+    catMap.set('all', { id: 'all', name: bT('bundle_cat_all', null, '全部') });
 
     (group.eligibleItems || []).forEach(it => {
         if (it.categoryId && bData?.catalog) {
             const cat = bData.catalog.find(c => c.id === it.categoryId || c.slug === it.categoryId);
             if (cat && !catMap.has(cat.id || cat.slug)) {
-                let cleanCatName = (cat.shortName || cat.short_name) || (cat.name || '')
+                const rawLocalizedCat = bLoc(cat, 'shortName', bLoc(cat, 'name', (cat.shortName || cat.short_name) || (cat.name || '')));
+                let cleanCatName = String(rawLocalizedCat || '')
                     .replace(/\s*\(一律.*?\)/g, '')
                     .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}]/gu, '')
                     .trim();
                 if (cleanCatName === '海裡') cleanCatName = '海鮮';
-                catMap.set(cat.id || cat.slug, { id: cat.id || cat.slug, name: cleanCatName || cat.name });
+                catMap.set(cat.id || cat.slug, { id: cat.id || cat.slug, name: cleanCatName || bLoc(cat, 'name', cat.name) });
             }
         }
     });
@@ -284,8 +332,8 @@ function handleBundleCardClick(itemId) {
     }
 
     if (totalCount >= maxAllowed) {
-        const cleanGroupLabel = (group.name || '').replace(/^請選擇\s*(\d+\s*樣)?/g, '').trim() || '配菜';
-        if (typeof customAlert === 'function') customAlert(`已選滿 ${maxAllowed} 樣${cleanGroupLabel}`);
+        const cleanGroupLabel = getCleanBundleGroupLabel(group);
+        if (typeof customAlert === 'function') customAlert(bT('bundle_err_max_selected', { max: maxAllowed, label: cleanGroupLabel }, `已選滿 ${maxAllowed} 樣${cleanGroupLabel}`));
         return;
     }
     changeBundleItemQty(itemId, 1);
@@ -300,6 +348,7 @@ function renderBundleItemsList() {
     const selMap = currentBundleModalContext.selections[group.id] || {};
     const totalCount = Object.values(selMap).reduce((s, q) => s + q, 0);
     const maxAllowed = group.maxQuantity ?? group.maxSelections ?? group.requiredCount ?? 6;
+    const oosTagText = bT('sold_out', null, '已售完');
 
     let filteredItems = group.eligibleItems || [];
     if (activeBundleCatTab !== 'all') {
@@ -312,11 +361,12 @@ function renderBundleItemsList() {
         const currentQty = selMap[it.id] || 0;
         const priceLabel = it.surcharge > 0 ? ` (+<span style="color:#059669; font-weight:800;">$${it.surcharge}</span>)` : '';
         const cardClass = currentQty > 0 ? 'bundle-item-card selected' : 'bundle-item-card';
-        const oosBadge = isOos ? `<span class="oos-badge" style="color:#dc2626; font-size:12px; font-weight:800; margin-left:6px;">(已售完)</span>` : '';
+        const oosBadge = isOos ? `<span class="oos-badge" style="color:#dc2626; font-size:12px; font-weight:800; margin-left:6px;">(${oosTagText})</span>` : '';
         const disabledPlus = isOos || (totalCount >= maxAllowed);
 
         // Clean name: remove "1. ", "A. " prefixes for clean culinary display
-        const cleanName = (it.name || '').replace(/^(\d+|[A-Za-z])\.\s*/, '');
+        const locItemName = bLoc(it, 'name', it.name || '');
+        const cleanName = String(locItemName || '').replace(/^(\d+|[A-Za-z])\.\s*/, '');
         const safeName = String(cleanName).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
         if (currentQty === 0) {
@@ -404,13 +454,18 @@ function updateBundleModalState() {
     const confirmBtn = document.getElementById('bundle-confirm-btn');
     if (!confirmBtn) return;
 
-    const cleanGroupLabel = (group.name || '').replace(/^請選擇\s*(\d+\s*樣)?/g, '').trim() || '配菜';
+    const cleanGroupLabel = getCleanBundleGroupLabel(group);
     const remain = Math.max(0, minRequired - totalCount);
 
     if (remain > 0) {
         confirmBtn.disabled = true;
         confirmBtn.className = 'bundle-confirm-btn pending';
-        confirmBtn.innerHTML = `還需選擇 ${remain} 樣${cleanGroupLabel} <span style="font-size: 13px; font-weight: 600; opacity: 0.85; margin-left: 4px;">(已選 ${totalCount}/${maxAllowed})</span>`;
+        confirmBtn.innerHTML = bT('bundle_btn_remain_count', {
+            remain,
+            label: cleanGroupLabel,
+            current: totalCount,
+            max: maxAllowed
+        }, `還需選擇 ${remain} 樣${cleanGroupLabel} <span style="font-size: 13px; font-weight: 600; opacity: 0.85; margin-left: 4px;">(已選 ${totalCount}/${maxAllowed})</span>`);
     } else {
         // Calculate portion price: base item price + bundle item surcharges + addon surcharges
         const basePrice = Number(currentBundleModalContext.itemInfo?.basePrice ?? currentBundleModalContext.itemInfo?.price) || 0;
@@ -473,7 +528,8 @@ function updateBundleModalState() {
 
         confirmBtn.disabled = false;
         confirmBtn.className = 'bundle-confirm-btn ready';
-        confirmBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><polyline points="20 6 9 17 4 12"></polyline></svg>確認${cleanGroupLabel}${priceLabel}`;
+        const btnText = bT('bundle_btn_confirm_label', { label: cleanGroupLabel, price: priceLabel }, `確認${cleanGroupLabel}${priceLabel}`);
+        confirmBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><polyline points="20 6 9 17 4 12"></polyline></svg>${btnText}`;
     }
 }
 
@@ -483,10 +539,10 @@ function confirmBundleSelection() {
     const selMap = selections[group.id] || {};
     const totalCount = Object.values(selMap).reduce((s, q) => s + q, 0);
     const minRequired = group.minQuantity ?? group.minSelections ?? group.requiredCount ?? 6;
-    const cleanGroupLabel = (group.name || '').replace(/^請選擇\s*(\d+\s*樣)?/g, '').trim() || '配菜';
+    const cleanGroupLabel = getCleanBundleGroupLabel(group);
 
     if (totalCount < minRequired) {
-        const msg = `請至少選擇 ${minRequired} 樣${cleanGroupLabel}`;
+        const msg = bT('bundle_err_min_selected', { min: minRequired, label: cleanGroupLabel }, `請至少選擇 ${minRequired} 樣${cleanGroupLabel}`);
         if (typeof customAlert === 'function') customAlert(msg);
         else alert(msg);
         return;
@@ -565,11 +621,12 @@ function checkAllBundlesComplete() {
             if (bundleRule && bundleRule.groups) {
                 const portions = (window.bundleCartData && window.bundleCartData[key]) || [];
                 const firstGroup = bundleRule.groups[0];
-                const cleanLabel = (firstGroup?.name || '').replace(/^請選擇\s*(\d+\s*樣)?/g, '').trim() || '搭配';
+                const cleanLabel = firstGroup ? getCleanBundleGroupLabel(firstGroup, bT('bundle_fallback_label', null, '搭配')) : bT('bundle_fallback_label', null, '搭配');
+                const itemTitle = bLoc(itemInfo?.targetItem, 'name', itemInfo?.displayName || itemInfo?.origName);
                 if (portions.length < qty) {
                     return {
                         valid: false,
-                        error: `「${itemInfo.displayName || itemInfo.origName}」尚有第 ${portions.length + 1} 份未完成${cleanLabel}選擇，請點擊「+」或「調整」完成搭配`
+                        error: bT('bundle_err_portion_incomplete', { item: itemTitle, n: portions.length + 1, label: cleanLabel }, `「${itemTitle}」尚有第 ${portions.length + 1} 份未完成${cleanLabel}選擇，請點擊「+」或「調整」完成搭配`)
                     };
                 }
                 for (let i = 0; i < qty; i++) {
@@ -577,18 +634,18 @@ function checkAllBundlesComplete() {
                     if (!portion || !portion.groups) {
                         return {
                             valid: false,
-                            error: `「${itemInfo.displayName || itemInfo.origName}」第 ${i + 1} 份尚未完成${cleanLabel}選擇`
+                            error: bT('bundle_err_portion_group', { item: itemTitle, n: i + 1, label: cleanLabel }, `「${itemTitle}」第 ${i + 1} 份尚未完成${cleanLabel}選擇`)
                         };
                     }
                     for (const gRule of bundleRule.groups) {
                         const selGroup = portion.groups.find(g => g.groupId === gRule.id);
                         const selCount = (selGroup?.items || []).reduce((s, it) => s + (it.quantity || 0), 0);
                         const min = gRule.minSelections ?? gRule.requiredCount ?? gRule.minQuantity ?? 0;
-                        const gLabel = (gRule.name || '').replace(/^請選擇\s*(\d+\s*樣)?/g, '').trim() || cleanLabel;
+                        const gLabel = getCleanBundleGroupLabel(gRule, cleanLabel);
                         if (selCount < min) {
                             return {
                                 valid: false,
-                                error: `「${itemInfo.displayName || itemInfo.origName}」第 ${i + 1} 份的${gLabel}還需選擇 ${min - selCount} 樣`
+                                error: bT('bundle_err_portion_remain', { item: itemTitle, n: i + 1, label: gLabel, remain: min - selCount }, `「${itemTitle}」第 ${i + 1} 份的${gLabel}還需選擇 ${min - selCount} 樣`)
                             };
                         }
                     }
@@ -599,9 +656,20 @@ function checkAllBundlesComplete() {
     return { valid: true };
 }
 
+function bundleRefreshLocale() {
+    const modal = document.getElementById('bundle-builder-modal');
+    if (!modal || modal.style.display === 'none' || !currentBundleModalContext) return;
+    applyBundleModalHeader();
+    renderBundleCategoryTabs(currentBundleModalContext.group);
+    renderBundleItemsList();
+    renderBundleAddonsSection();
+    updateBundleModalState();
+}
+
 // Window Public Bindings
 window.openBundleBuilderModal = openBundleBuilderModal;
 window.closeBundleBuilderModal = closeBundleBuilderModal;
+window.bundleRefreshLocale = bundleRefreshLocale;
 window.renderBundleAddonsSection = renderBundleAddonsSection;
 window.selectBundleAddonSingle = selectBundleAddonSingle;
 window.toggleBundleAddonMultiple = toggleBundleAddonMultiple;

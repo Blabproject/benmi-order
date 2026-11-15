@@ -6,8 +6,24 @@ var bootstrapData = window.bootstrapData;
 var storeConfig = window.storeConfig;
 var cart = window.cart;
 
+function _cmEsc(str) {
+    if (typeof escapeHtml === 'function') return escapeHtml(str);
+    return String(str ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
+}
+
 function clientMenuLanguage() {
-    return typeof currentLocale !== 'undefined' ? currentLocale : document.documentElement.lang;
+    if (typeof currentClientLocale !== 'undefined' && currentClientLocale) return currentClientLocale;
+    if (typeof window !== 'undefined' && window.currentClientLocale) return window.currentClientLocale;
+    if (typeof currentLocale !== 'undefined' && currentLocale) return currentLocale;
+    const docLang = (typeof document !== 'undefined' && document && document.documentElement) ? document.documentElement.lang : '';
+    if (docLang) return docLang;
+    const bData = (typeof window !== 'undefined' && window.bootstrapData) || (typeof bootstrapData !== 'undefined' ? bootstrapData : null);
+    return (bData && bData.tenant && bData.tenant.locale) || 'zh-TW';
+}
+
+function _cmT(key, vars, zhFallback, viFallback) {
+    if (typeof ct === 'function') return ct(key, vars);
+    return clientMenuLanguage() === 'vi' && viFallback !== undefined ? viFallback : zhFallback;
 }
 
 function shouldAutoOpenItemOptions(rule) {
@@ -96,6 +112,26 @@ function closeImageLightbox() {
     if (lightbox) lightbox.style.display = 'none';
 }
 
+function formatBundleButtonLabel(item, hasModifiers) {
+    if (item.bundleRule?.version === 3) {
+        return _cmT('bundle_v3_option_btn', null, '選項', 'Tuỳ chọn');
+    }
+    const firstGroup = item.bundleRule?.groups?.[0];
+    const rawGroupName = firstGroup
+        ? (typeof locText === 'function' ? locText(firstGroup, 'name', firstGroup.name || '') : (firstGroup.name || ''))
+        : '';
+    const bundleGroupLabel = rawGroupName.replace(/^(請選擇\s*(\d+\s*樣)?|Select\s*\d*\s*|Chọn\s*\d*\s*)/i, '').trim();
+    const hasCombinedModifiers = Boolean(item.bundleRule) && hasModifiers;
+    if (hasCombinedModifiers) {
+        return bundleGroupLabel
+            ? _cmT('bundle_adjust_label_addons', { label: bundleGroupLabel }, `調整${bundleGroupLabel} / 加料`, `Tùy chỉnh ${bundleGroupLabel} / Thêm món`)
+            : _cmT('bundle_adjust_combo', null, '調整搭配 / 加料', 'Tùy chỉnh combo / Thêm món');
+    }
+    return bundleGroupLabel
+        ? _cmT('bundle_adjust_label', { label: bundleGroupLabel }, `調整${bundleGroupLabel}`, `Tùy chỉnh ${bundleGroupLabel}`)
+        : _cmT('bundle_adjust_sides', null, '調整套餐配菜', 'Chọn món ăn kèm');
+}
+
 // --- DYNAMIC CATALOG RENDERING (UNIFIED FOR ALL TENANTS) ---
 function renderDynamicCatalog() {
     const bData = window.bootstrapData || bootstrapData;
@@ -106,8 +142,7 @@ function renderDynamicCatalog() {
         .filter(group => !group.scope || group.scope === 'order')
         .sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0));
     if (globalCustomizationGroups.length > 0) {
-        const locale = typeof currentLocale !== 'undefined' && currentLocale ? currentLocale : bData.tenant?.locale || document.documentElement?.lang;
-        const sectionTitle = locale === 'vi' ? 'Tùy chọn khẩu vị' : '口味選擇';
+        const sectionTitle = _cmT('global_flavor_section_title', null, '口味選擇', 'Tùy chọn khẩu vị');
         catalogSections.push({
             type: 'customizations',
             groups: globalCustomizationGroups,
@@ -126,14 +161,19 @@ function renderDynamicCatalog() {
     catalogSections.forEach((section, idx) => {
         const isActive = idx === 0;
         if (section.type === 'customizations') {
-            navHTML += `<div class="nav-btn ${isActive ? 'active' : ''}" onclick="scrollToSec('${section.sectionId}')">${escapeHtml(section.shortName)}</div>`;
+            navHTML += `<div class="nav-btn ${isActive ? 'active' : ''}" onclick="scrollToSec('${section.sectionId}')">${_cmEsc(section.shortName)}</div>`;
             return;
         }
         const cat = section.category;
-        const navTitle = (cat.shortName && cat.name && cat.name.includes(cat.shortName)) ? cat.shortName : cat.name;
-        navHTML += `<div class="nav-btn ${isActive ? 'active' : ''}" onclick="scrollToSec('sec-${cat.slug}')">${navTitle}</div>`;
+        const catDisplayName = typeof locText === 'function' ? locText(cat, 'name', cat.name) : cat.name;
+        const activeLocale = (typeof window !== 'undefined' && window.currentClientLocale) || 'zh-TW';
+        const localizedShort = (cat.i18n && cat.i18n[activeLocale] && cat.i18n[activeLocale].shortName)
+            ? cat.i18n[activeLocale].shortName
+            : ((cat.shortName && catDisplayName && catDisplayName.includes(cat.shortName)) ? cat.shortName : catDisplayName);
+        navHTML += `<div class="nav-btn ${isActive ? 'active' : ''}" onclick="scrollToSec('sec-${cat.slug}')">${_cmEsc(localizedShort)}</div>`;
     });
-    navHTML += `<div class="nav-btn" onclick="scrollToSec('sec-checkout')">結帳</div>`;
+    const navCheckoutLabel = _cmT('nav_checkout', null, '結帳', 'Thanh toán');
+    navHTML += `<div class="nav-btn" onclick="scrollToSec('sec-checkout')">${_cmEsc(navCheckoutLabel)}</div>`;
     if (nav) nav.innerHTML = navHTML;
 
     // 2. Section Containers
@@ -152,8 +192,14 @@ function renderDynamicCatalog() {
             sec.id = `sec-${cat.slug}`;
             const titleDiv = document.createElement('div');
             titleDiv.className = 'section-title';
-            const promoBadge = cat.pricingRules?.promo_label ? `<span style="margin-left:auto; font-size:12px; font-weight:700; color:#059669; background:#ecfdf5; border:1px solid #a7f3d0; padding:2px 8px; border-radius:9999px;">${cat.pricingRules.promo_label}</span>` : '';
-            titleDiv.innerHTML = `<span>${cat.name}</span>${promoBadge}`;
+            const catDisplayName = typeof locText === 'function' ? locText(cat, 'name', cat.name) : cat.name;
+            const activeLocale = (typeof window !== 'undefined' && window.currentClientLocale) || 'zh-TW';
+            const localizedPromo = (cat.pricingRules?.promo_label_i18n && cat.pricingRules.promo_label_i18n[activeLocale])
+                || (typeof locText === 'function' ? locText(cat, 'promo_label', '') : '')
+                || cat.pricingRules?.promo_label
+                || '';
+            const promoBadge = localizedPromo ? `<span style="margin-left:auto; font-size:12px; font-weight:700; color:#059669; background:#ecfdf5; border:1px solid #a7f3d0; padding:2px 8px; border-radius:9999px;">${_cmEsc(localizedPromo)}</span>` : '';
+            titleDiv.innerHTML = `<span>${_cmEsc(catDisplayName)}</span>${promoBadge}`;
             sec.appendChild(titleDiv);
 
             const gridDiv = document.createElement('div');
@@ -177,46 +223,56 @@ function renderDynamicCatalog() {
     }
 }
 
-function renderCustomizationsPanel(container, list, sectionTitle = '口味選擇') {
+function renderCustomizationsPanel(container, list, sectionTitle) {
     if (!container || !list || list.length === 0) return;
 
-    let html = `<div class="section-title">${escapeHtml(sectionTitle)}</div>
+    const resolvedSectionTitle = sectionTitle || _cmT('global_flavor_section_title', null, '口味選擇', 'Tùy chọn khẩu vị');
+    let html = `<div class="section-title">${_cmEsc(resolvedSectionTitle)}</div>
     <div class="custom-panel-wrapper">
     <div class="custom-panel">`;
 
     const currentSubtotal = typeof calculateCurrentFoodSubtotal === 'function' ? calculateCurrentFoodSubtotal() : 0;
 
-    function formatOptionContent(name, priceLabelHtml) {
-        const raw = String(name || '');
+    function formatOptionContent(displayName, priceLabelHtml) {
+        const raw = String(displayName || '');
         const match = raw.match(/^([^(（]+?)\s*[（(]([^)）]+)[）)]\s*$/);
         if (match) {
             const title = match[1].trim();
             const subtitle = match[2].trim();
             return `<div class="choice-content">
-                <span class="choice-title"><span class="choice-name">${escapeHtml(title)}</span>${priceLabelHtml}</span>
-                <span class="choice-subtitle">${escapeHtml(subtitle)}</span>
+                <span class="choice-title"><span class="choice-name">${_cmEsc(title)}</span>${priceLabelHtml}</span>
+                <span class="choice-subtitle">${_cmEsc(subtitle)}</span>
             </div>`;
         }
         return `<div class="choice-content">
-            <span class="choice-title"><span class="choice-name">${escapeHtml(raw)}</span>${priceLabelHtml}</span>
+            <span class="choice-title"><span class="choice-name">${_cmEsc(raw)}</span>${priceLabelHtml}</span>
         </div>`;
     }
 
     list.forEach((group, groupIdx) => {
         const topMargin = groupIdx > 0 ? 'margin-top: 16px; border-top: 1px dashed #f1f5f9; padding-top: 14px;' : '';
+        const canonicalGroupTitle = group.title || group.name || '';
+        const displayGroupTitle = typeof locText === 'function'
+            ? locText(group, 'title', locText(group, 'name', canonicalGroupTitle))
+            : canonicalGroupTitle;
+
         const hasDenseOptions = (group.options || []).some(o => {
-            const name = typeof o === 'string' ? o : (o ? o.name || '' : '');
-            return name.length > 8 || /[（(].+[)）]/.test(name);
+            const rawOpt = typeof o === 'string' ? o : (o ? o.name || '' : '');
+            const dispOpt = (typeof o === 'object' && o && typeof locText === 'function') ? locText(o, 'name', rawOpt) : rawOpt;
+            return dispOpt.length > 8 || /[（(].+[)）]/.test(dispOpt);
         });
         const denseGridClass = hasDenseOptions ? ' dense-grid' : '';
         const hasNestedOptions = group.type === 'radio' && (group.options || []).some(opt => Array.isArray(opt?.sub_options) && opt.sub_options.length > 0);
 
         html += `<div class="custom-group" style="${topMargin}">
-            <label class="custom-label">${escapeHtml(group.title)}</label>
+            <label class="custom-label">${_cmEsc(displayGroupTitle)}</label>
             <div class="custom-options-grid${denseGridClass}${hasNestedOptions ? ' has-nested-options' : ''}">`;
 
         (group.options || []).forEach((opt, optIdx) => {
             const optName = typeof opt === 'string' ? opt : (opt ? opt.name || '' : '');
+            const optDisplayName = (typeof opt === 'object' && opt && typeof locText === 'function')
+                ? locText(opt, 'name', optName)
+                : optName;
             const optPrice = (typeof opt === 'object' && opt && opt.price) ? Number(opt.price) : 0;
             const isOos = Boolean(typeof opt === 'object' && opt && (opt.is_out_of_stock || opt.isOutOfStock || opt.out_of_stock));
             const subOpts = (typeof opt === 'object' && opt && Array.isArray(opt.sub_options)) ? opt.sub_options : [];
@@ -225,15 +281,17 @@ function renderCustomizationsPanel(container, list, sectionTitle = '口味選擇
             const explicitDefaults = (group.options || []).some(o => o && typeof o === 'object' && o.is_default !== undefined);
             const isChecked = (group.type === 'radio' && !isOos && (explicitDefaults ? opt.is_default === true : optIdx === firstAvailableIdx)) ? 'checked' : '';
             const priceLabel = optPrice > 0 ? `<span class="choice-price-badge">+$${optPrice}</span>` : '';
-            const oosBadge = isOos ? ` <span class="oos-badge" style="color:#dc2626; font-size:12px; font-weight:900; text-decoration:none;">(已售完)</span>` : '';
+            const soldOutLabel = _cmT('sold_out', null, '已售完', 'Hết món');
+            const oosBadge = isOos ? ` <span class="oos-badge" style="color:#dc2626; font-size:12px; font-weight:900; text-decoration:none;">(${_cmEsc(soldOutLabel)})</span>` : '';
 
             const minSubtotal = (typeof opt === 'object' && opt && (opt.minOrderSubtotal || opt.min_order_amount)) ? Number(opt.minOrderSubtotal || opt.min_order_amount) : 0;
             const optRuleMsg = (typeof opt === 'object' && opt && opt.ruleErrorMessage) ? opt.ruleErrorMessage : '';
             const optId = (typeof opt === 'object' && opt && opt.id) ? opt.id : optName;
-            const thresholdBadgeHTML = minSubtotal > 0 ? `<span class="threshold-badge">滿$${minSubtotal}可選</span>` : '';
+            const minSpendText = _cmT('option_min_spend', { amount: minSubtotal }, `滿$${minSubtotal}可選`, `Từ $${minSubtotal}`);
+            const thresholdBadgeHTML = minSubtotal > 0 ? `<span class="threshold-badge">${_cmEsc(minSpendText)}</span>` : '';
             const thresholdAttrs = minSubtotal > 0
-                ? `data-min-subtotal="${minSubtotal}" data-option-id="${escapeHtml(optId)}" data-option-name="${escapeHtml(optName)}" data-error-msg="${escapeHtml(optRuleMsg)}"`
-                : `data-option-id="${escapeHtml(optId)}" data-option-name="${escapeHtml(optName)}"`;
+                ? `data-min-subtotal="${minSubtotal}" data-option-id="${_cmEsc(optId)}" data-option-name="${_cmEsc(optName)}" data-option-display-name="${_cmEsc(optDisplayName)}" data-error-msg="${_cmEsc(optRuleMsg)}"`
+                : `data-option-id="${_cmEsc(optId)}" data-option-name="${_cmEsc(optName)}" data-option-display-name="${_cmEsc(optDisplayName)}"`;
 
             const isThresholdBlocked = (minSubtotal > 0 && currentSubtotal < minSubtotal);
             const isEffectivelyDisabled = isOos || isThresholdBlocked;
@@ -247,16 +305,18 @@ function renderCustomizationsPanel(container, list, sectionTitle = '口味選擇
             if (group.type === 'radio') {
                 html += `<div class="flavor-option-container${subOpts.length > 0 ? ' has-sub-options' : ''}">
                     <label class="radio-label${thresholdClass}" ${thresholdDataAttr} ${combinedStyle}>
-                        <input type="radio" name="${inputName}" data-price="${optPrice}" data-group-title="${escapeHtml(group.title)}" value="${escapeHtml(optName)}" ${thresholdAttrs} ${isChecked} ${disabledAttr} onchange="handleCustomizationChange(event)"> 
-                        ${formatOptionContent(optName, priceLabel)}${thresholdBadgeHTML}${oosBadge}
+                        <input type="radio" name="${inputName}" data-price="${optPrice}" data-group-title="${_cmEsc(canonicalGroupTitle)}" value="${_cmEsc(optName)}" ${thresholdAttrs} ${isChecked} ${disabledAttr} onchange="handleCustomizationChange(event)"> 
+                        ${formatOptionContent(optDisplayName, priceLabel)}${thresholdBadgeHTML}${oosBadge}
                     </label>`;
 
                 if (subOpts.length > 0) {
-                    html += `<div class="sub-option-container" role="group" aria-label="${escapeHtml(optName)}" data-parent-flavor="${escapeHtml(optName)}" ${isChecked ? '' : 'hidden'}>`;
+                    html += `<div class="sub-option-container" role="group" aria-label="${_cmEsc(optDisplayName)}" data-parent-flavor="${_cmEsc(optName)}" ${isChecked ? '' : 'hidden'}>`;
                     subOpts.forEach((sub) => {
+                        const rawSubName = typeof sub === 'string' ? sub : sub.name;
+                        const subDisplayName = typeof locSubOptionText === 'function' ? locSubOptionText(opt, sub) : rawSubName;
                         html += `<label class="checkbox-label sub-chip">
-                            <input type="checkbox" class="sub-opt-chk" data-flavor="${escapeHtml(optName)}" data-sub-id="${escapeHtml(typeof sub === 'string' ? sub : sub.id || sub.productId || sub.name)}" data-price="${Number(sub.price || 0)}" value="${escapeHtml(typeof sub === 'string' ? sub : sub.name)}" onchange="handleCustomizationChange(event)"> 
-                            <span>${escapeHtml(typeof sub === 'string' ? sub : sub.name)}</span>
+                            <input type="checkbox" class="sub-opt-chk" data-flavor="${_cmEsc(optName)}" data-sub-id="${_cmEsc(typeof sub === 'string' ? sub : sub.id || sub.productId || sub.name)}" data-price="${Number(sub.price || 0)}" value="${_cmEsc(rawSubName)}" onchange="handleCustomizationChange(event)"> 
+                            <span>${_cmEsc(subDisplayName)}</span>
                         </label>`;
                     });
                     html += `</div>`;
@@ -264,8 +324,8 @@ function renderCustomizationsPanel(container, list, sectionTitle = '口味選擇
                 html += `</div>`;
             } else {
                 html += `<label class="checkbox-label${thresholdClass}" ${thresholdDataAttr} ${combinedStyle}>
-                    <input type="checkbox" name="${inputName}" data-price="${optPrice}" data-group-title="${escapeHtml(group.title)}" value="${escapeHtml(optName)}" ${thresholdAttrs} ${disabledAttr} onchange="handleCustomizationChange(event)"> 
-                    ${formatOptionContent(optName, priceLabel)}${thresholdBadgeHTML}${oosBadge}
+                    <input type="checkbox" name="${inputName}" data-price="${optPrice}" data-group-title="${_cmEsc(canonicalGroupTitle)}" value="${_cmEsc(optName)}" ${thresholdAttrs} ${disabledAttr} onchange="handleCustomizationChange(event)"> 
+                    ${formatOptionContent(optDisplayName, priceLabel)}${thresholdBadgeHTML}${oosBadge}
                 </label>`;
             }
         });
@@ -276,6 +336,9 @@ function renderCustomizationsPanel(container, list, sectionTitle = '口味選擇
 
     html += `</div>`; // Close .custom-panel
 
+    const lockTitle = _cmT('custom_panel_lock_title', null, '請先登入 LINE 帳號以自訂餐點口味', 'Vui lòng đăng nhập LINE để tùy chỉnh món');
+    const lockBtn = _cmT('custom_panel_lock_btn', null, '使用 LINE 登入', 'Đăng nhập LINE');
+
     // Frosted glass lock overlay for desktop guest users
     html += `<div class="custom-panel-lock-overlay" style="display: none;" onclick="triggerDesktopLineLogin()">
         <div class="lock-badge-icon">
@@ -284,12 +347,12 @@ function renderCustomizationsPanel(container, list, sectionTitle = '口味選擇
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
             </svg>
         </div>
-        <p class="lock-badge-title">請先登入 LINE 帳號以自訂餐點口味</p>
+        <p class="lock-badge-title">${_cmEsc(lockTitle)}</p>
         <button type="button" class="lock-badge-btn">
             <svg class="line-btn-svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.121.303.079.778.039 1.085l-.171 1.027c-.053.303-.242 1.186 1.039.647 1.281-.54 6.911-4.069 9.428-6.967 1.739-1.907 2.572-3.843 2.572-5.992z"/>
             </svg>
-            <span>使用 LINE 登入</span>
+            <span>${_cmEsc(lockBtn)}</span>
         </button>
     </div>`;
 
@@ -311,8 +374,11 @@ function handleCustomizationChange(event) {
         if (minSub > 0 && target.checked) {
             const currentSubtotal = typeof calculateCurrentFoodSubtotal === 'function' ? calculateCurrentFoodSubtotal() : 0;
             if (currentSubtotal < minSub) {
-                const optName = target.getAttribute('data-option-name') || target.value;
-                const customMsg = target.getAttribute('data-error-msg') || `此選項「${optName}」需全單商品消費滿 $${minSub} 元方可選擇（目前金額 $${currentSubtotal} 元，還差 $${minSub - currentSubtotal} 元）`;
+                const optName = target.getAttribute('data-option-display-name') || target.getAttribute('data-option-name') || target.value;
+                const defaultMsg = typeof ct === 'function'
+                    ? ct('threshold_opt_alert', { name: optName, min: minSub, current: currentSubtotal, diff: minSub - currentSubtotal })
+                    : `此選項「${optName}」需全單商品消費滿 $${minSub} 元方可選擇（目前金額 $${currentSubtotal} 元，還差 $${minSub - currentSubtotal} 元）`;
+                const customMsg = target.getAttribute('data-error-msg') || defaultMsg;
 
                 if (target.type === 'radio') {
                     const groupRadios = document.querySelectorAll(`input[name="${target.name}"]`);
@@ -408,9 +474,14 @@ function createDynamicItemCard(catSlug, item) {
         div.style.pointerEvents = 'none';
     }
 
-    const badgeText = (item.badgeText || item.badge || '').trim();
-    const badgeHTML = badgeText ? `<span class="badge">${badgeText}</span>` : '';
-    const limitBadgeHTML = (item.maxPerOrder && item.maxPerOrder > 0) ? `<span class="badge badge-limit" style="background:#fffbeb; color:#b45309; border:1px solid #fde68a;">限購${item.maxPerOrder}份</span>` : '';
+    const itemDisplayName = typeof locText === 'function' ? locText(item, 'name', item.name) : item.name;
+    const rawBadge = typeof locText === 'function'
+        ? locText(item, 'badgeText', item.badgeText || item.badge || '')
+        : (item.badgeText || item.badge || '');
+    const badgeText = String(rawBadge || '').trim();
+    const badgeHTML = badgeText ? `<span class="badge">${_cmEsc(badgeText)}</span>` : '';
+    const limitLabel = _cmT('item_limit_badge', { max: item.maxPerOrder }, `限購${item.maxPerOrder}份`, `Tối đa ${item.maxPerOrder} phần`);
+    const limitBadgeHTML = (item.maxPerOrder && item.maxPerOrder > 0) ? `<span class="badge badge-limit" style="background:#fffbeb; color:#b45309; border:1px solid #fde68a;">${_cmEsc(limitLabel)}</span>` : '';
 
     const workerBase = window.WORKER_BASE || "";
     let imgSrc = "";
@@ -422,13 +493,14 @@ function createDynamicItemCard(catSlug, item) {
         imgSrc = `${base}${glue}v=2`;
     }
     const imgHTML = imgSrc
-        ? `<img class="item-img" src="${imgSrc}" alt="${escapeHtml(item.name)}" loading="lazy" onclick="openImageLightbox(this.src)" style="cursor: zoom-in;" onerror="this.style.display='none'">`
+        ? `<img class="item-img" src="${imgSrc}" alt="${_cmEsc(itemDisplayName)}" loading="lazy" onclick="openImageLightbox(this.src)" style="cursor: zoom-in;" onerror="this.style.display='none'">`
         : '';
 
     const bData = window.bootstrapData || bootstrapData;
     const itemTrans = window.itemTranslations || {};
-    const trans = (bData?.translations && bData.translations[item.name]) || itemTrans[item.name] || item.description || '';
-    const transHTML = trans ? `<div style="font-size: 13px; color: #9ca3af; margin-top: 2px;">${trans}</div>` : '';
+    const localizedDesc = typeof locText === 'function' ? locText(item, 'description', '') : '';
+    const trans = localizedDesc || (bData?.translations && bData.translations[item.name]) || itemTrans[item.name] || item.description || '';
+    const transHTML = trans ? `<div style="font-size: 13px; color: #9ca3af; margin-top: 2px;">${_cmEsc(trans)}</div>` : '';
 
     const safeItemName = item.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     const safeCatSlug = catSlug.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -440,25 +512,20 @@ function createDynamicItemCard(catSlug, item) {
     const itemModifiers = getItemModsFn(catSlug, item.name);
     const hasModifiers = Array.isArray(itemModifiers) && itemModifiers.length > 0;
     const hasBundleRule = Boolean(item.bundleRule);
-    const bundleGroupLabel = (item.bundleRule?.groups?.[0]?.name || '').replace(/^請選擇\s*(\d+\s*樣)?/g, '').trim();
-    const hasCombinedModifiers = hasBundleRule && hasModifiers;
-    const bundleBtnText = item.bundleRule?.version === 3
-        ? (clientMenuLanguage() === 'vi' ? 'Tuỳ chọn' : '選項')
-        : hasCombinedModifiers
-        ? (bundleGroupLabel ? `調整${bundleGroupLabel} / 加料` : '調整搭配 / 加料')
-        : (bundleGroupLabel ? `調整${bundleGroupLabel}` : '調整套餐配菜');
+    const bundleBtnText = formatBundleButtonLabel(item, hasModifiers);
+    const customizeCardLabel = _cmT('customize_card_label', null, '客製化（加料 / 辣度 / 備註）', 'Tùy chỉnh (thêm món / độ cay / ghi chú)');
 
     const customizeBtnHTML = `
         <button class="customize-btn" id="customize-btn-${catSlug}-${item.name}" onclick="openItemCustomizeModal('${safeCatSlug}','${safeItemName}', 0)" style="pointer-events: auto; display: ${(!isOos && qty > 0 && hasModifiers && !hasBundleRule) ? 'flex' : 'none'}; align-items: center; justify-content: center; gap: 5px;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
-            <span>客製化（加料 / 辣度 / 備註）</span>
+            <span>${_cmEsc(customizeCardLabel)}</span>
         </button>
     `;
 
     const bundleEditBtnHTML = `
         <button class="bundle-edit-btn" id="bundle-edit-btn-${catSlug}-${item.name}" onclick="openBundleBuilderModal('${safeCatSlug}','${safeItemName}', 0)" style="pointer-events: auto; display: ${(!isOos && qty > 0 && hasBundleRule) ? 'flex' : 'none'};">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-            <span>${bundleBtnText}</span>
+            <span>${_cmEsc(bundleBtnText)}</span>
         </button>
     `;
 
@@ -467,7 +534,7 @@ function createDynamicItemCard(catSlug, item) {
             ${imgHTML}
             <div class="card-info">
                 <div>
-                    <div class="card-title">${item.name} ${badgeHTML} ${limitBadgeHTML}</div>
+                    <div class="card-title">${_cmEsc(itemDisplayName)} ${badgeHTML} ${limitBadgeHTML}</div>
                     ${transHTML}
                 </div>
                 <div class="card-footer">
@@ -488,9 +555,10 @@ function getDynamicItemFooterHTML(catSlug, itemName, price, isOos) {
     const qty = cartObj[`${catSlug}_${itemName}`] || 0;
     const safeItemName = itemName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     const safeCatSlug = catSlug.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const soldOutTodayText = _cmT('sold_out_today', null, '今日已售完', 'Hôm nay đã hết');
     return isOos ? `
         <div class="card-price" style="color: #9ca3af;">$${price}</div>
-        <div style="color: #dc2626; font-weight: 900; font-size: 14px; background: #fee2e2; padding: 4px 10px; border-radius: 6px;">今日已售完</div>
+        <div style="color: #dc2626; font-weight: 900; font-size: 14px; background: #fee2e2; padding: 4px 10px; border-radius: 6px;">${_cmEsc(soldOutTodayText)}</div>
     ` : `
         <div class="card-price">$${price}</div>
         <div class="qty-control">
@@ -533,13 +601,7 @@ function updateDynamicStockAndPrices() {
             if (bundleEditBtn) {
                 const qty = cartObj[`${cat.slug}_${item.name}`] || 0;
                 bundleEditBtn.style.display = (!item.isOutOfStock && qty > 0 && hasBundleRule) ? 'flex' : 'none';
-                const bundleGroupLabel = (item.bundleRule?.groups?.[0]?.name || '').replace(/^請選擇\s*(\d+\s*樣)?/g, '').trim();
-                const hasCombinedModifiers = hasBundleRule && hasModifiers;
-                const bundleBtnText = item.bundleRule?.version === 3
-                    ? (clientMenuLanguage() === 'vi' ? 'Tuỳ chọn' : '選項')
-                    : hasCombinedModifiers
-                    ? (bundleGroupLabel ? `調整${bundleGroupLabel} / 加料` : '調整搭配 / 加料')
-                    : (bundleGroupLabel ? `調整${bundleGroupLabel}` : '調整套餐配菜');
+                const bundleBtnText = formatBundleButtonLabel(item, hasModifiers);
                 const span = bundleEditBtn.querySelector('span');
                 if (span) span.textContent = bundleBtnText;
             }
@@ -576,6 +638,13 @@ function resolveCatalogItem(key) {
     }
 
     let displayName = origName;
+    let localizedDisplayName = (targetItem && typeof locText === 'function')
+        ? locText(targetItem, 'name', origName)
+        : origName;
+    let localizedCategoryName = (targetCat && typeof locText === 'function')
+        ? locText(targetCat, 'name', targetCat.name || '')
+        : (targetCat?.name || '');
+
     if (targetCat) {
         // Strip emoji icons from category name
         const rawCatName = targetCat.name || '';
@@ -604,16 +673,27 @@ function resolveCatalogItem(key) {
             const shortClean = catNameClean.split(/[\s\(\[\{（【]/)[0].trim();
             displayName = `[${shortClean}] ${origName}`;
         }
+
+        const locCatClean = (localizedCategoryName || catNameClean).replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}]/gu, '').trim();
+        if (sizeTag && !localizedDisplayName.includes(' L') && !localizedDisplayName.includes(' S') && !localizedDisplayName.includes(' M') && !localizedDisplayName.startsWith('大') && !localizedDisplayName.startsWith('小')) {
+            localizedDisplayName = `${localizedDisplayName}${sizeTag}`;
+        } else if (nameCount > 1 && locCatClean && !localizedDisplayName.includes(locCatClean)) {
+            const shortLocClean = locCatClean.split(/[\s\(\[\{（【]/)[0].trim();
+            if (shortLocClean) localizedDisplayName = `[${shortLocClean}] ${localizedDisplayName}`;
+        }
     }
 
+    const fallbackCategory = typeof ct === 'function' ? ct('item_category_fallback') : '餐點';
     return {
         catSlug,
         origName,
         displayName,
+        localizedDisplayName,
         targetCat,
         targetItem,
         basePrice: Number(targetItem?.price) || 0,
-        categoryName: targetCat?.name || catSlug || "Món",
+        categoryName: targetCat?.name || catSlug || fallbackCategory,
+        localizedCategoryName: localizedCategoryName || targetCat?.name || catSlug || fallbackCategory,
         itemId: targetItem?.id || key,
         bundleRule: targetItem?.bundleRule || null
     };

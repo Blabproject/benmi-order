@@ -5,12 +5,13 @@
     <meta charset="UTF-8">
     <link rel="stylesheet" href="/css/staff-order.css?v=20261113_staff_tile_opt_btn_v1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">線上點餐</title>
-    <link rel="preload" href="/index.css?v=20261114_compact_cart_actions_v3" as="style">
+    <title id="page-title" data-i18n="page_default_title">線上點餐</title>
+    <link rel="preload" href="/index.css?v=20261114_lang_dropdown_v2" as="style">
     <link rel="preload" href="/js/store-notice-format.js?v=20261111_store_notice_v1" as="script">
-    <link rel="preload" href="/js/client-core.js?v=20261111_store_notice_v1" as="script">
-    <link rel="preload" href="/js/client-menu.js?v=20261109_item_images_v1" as="script">
-    <link rel="stylesheet" href="/index.css?v=20261114_compact_cart_actions_v3">
+    <link rel="preload" href="/js/client-i18n.js?v=20261115_multilingual_pkg_v2" as="script">
+    <link rel="preload" href="/js/client-core.js?v=20261115_multilingual_pkg_v2" as="script">
+    <link rel="preload" href="/js/client-menu.js?v=20261115_multilingual_pkg_v2" as="script">
+    <link rel="stylesheet" href="/index.css?v=20261114_lang_dropdown_v2">
     <style>html.tenant-resolution-failed body > :not(#tenant-resolution-error) { display: none !important; }</style>
     <script>
         try {
@@ -152,31 +153,50 @@
                 if (cached) {
                     const t = JSON.parse(cached);
                     const cachedTenant = t.tenant || t;
-                    const brand = !cachedTenant.id || cachedTenant.id === tenantId ? (cachedTenant.brandName || "") : "";
-                    if (brand) document.title = brand + " 點餐";
+                    const cachedI18nEnabled = !window.isStaffOrderMode && (cachedTenant.i18nEnabled === true || (Array.isArray(cachedTenant.features) && (cachedTenant.features.includes('multilingual') || cachedTenant.features.includes('i18n'))));
+                    if (cachedI18nEnabled) {
+                        const _sp = new URLSearchParams(window.location.search || '');
+                        const _urlLang = _sp.get('lang');
+                        const _savedLang = tenantId ? localStorage.getItem('client_locale:' + tenantId) : '';
+                        const _earlyLocale = _urlLang || _savedLang || '';
+                        if (_earlyLocale) {
+                            const _norm = /^en/i.test(_earlyLocale) ? 'en' : /^vi/i.test(_earlyLocale) ? 'vi' : /^zh/i.test(_earlyLocale) ? 'zh-TW' : '';
+                            if (_norm) {
+                                window.currentClientLocale = _norm;
+                                window.currentLocale = _norm;
+                                document.documentElement.lang = _norm;
+                            }
+                        }
+                    }
+                    const activeLocale = cachedI18nEnabled ? (window.currentClientLocale || 'zh-TW') : (cachedTenant.locale || 'zh-TW');
+                    const i18nEntry = cachedI18nEnabled && cachedTenant.i18n ? (cachedTenant.i18n[activeLocale] || null) : null;
+                    const i18nBrand = (i18nEntry && (i18nEntry.brandName || i18nEntry.brand_name)) || '';
+                    const brand = !cachedTenant.id || cachedTenant.id === tenantId ? (i18nBrand || cachedTenant.brandName || "") : "";
+                    if (brand) document.title = activeLocale === 'zh-TW' ? (brand + " 點餐") : brand;
                 } else if (tenantId === "benmi") {
                     document.title = "Benmi 點餐";
                 } else {
-                    document.title = "線上點餐";
+                    document.title = '線上點餐';
                 }
             } catch (e) { }
         })();
     </script>
 <link rel="stylesheet" href="/css/client-option-groups.css?v=20261108_option_flicker_fix_v1">
   <link rel="stylesheet" href="/css/payments.css?v=20261103_payment_section_top_v1">
+  <link rel="stylesheet" href="/css/pos-session.css?v=20261114_lifecycle_v2">
 </head>
 
 <body>
     <div id="tenant-resolution-error" style="display: none; max-width: 420px; margin: 15vh auto; padding: 24px; text-align: center; font-family: sans-serif;">
-        <h1 style="font-size: 22px;">無法確認店家</h1>
-        <p style="line-height: 1.7;">請返回原本的店家連結，再次開啟並登入 LINE。</p>
+        <h1 style="font-size: 22px;" data-i18n="tenant_unknown_title">無法確認店家</h1>
+        <p style="line-height: 1.7;" data-i18n="tenant_unknown_desc">請返回原本的店家連結，再次開啟並登入 LINE。</p>
     </div>
     <!-- Edit Order Loading Overlay (Prevents $0 / Empty Cart FOUC) -->
     <div id="edit-order-loading-overlay" class="edit-order-loading-overlay">
         <div class="edit-order-loading-card">
             <div class="edit-order-spinner"></div>
-            <div class="edit-order-loading-title">正在載入訂單內容</div>
-            <div class="edit-order-loading-sub">正在確認剩餘餐點與金額，請稍候...</div>
+            <div class="edit-order-loading-title" data-i18n="edit_loading_title">正在載入訂單內容</div>
+            <div class="edit-order-loading-sub" data-i18n="edit_loading_sub">正在確認剩餘餐點與金額，請稍候...</div>
         </div>
     </div>
 
@@ -191,17 +211,17 @@
                         <circle cx="12" cy="7" r="4"></circle>
                     </svg>
                 </div>
-                <span id="desktop-user-name" class="desktop-user-name">顧客</span>
-                <span class="desktop-auth-badge">已登入</span>
+                <span id="desktop-user-name" class="desktop-user-name" data-i18n="desktop_guest">顧客</span>
+                <span class="desktop-auth-badge" data-i18n="desktop_logged_in">已登入</span>
             </div>
             <div class="desktop-auth-prompt" id="desktop-auth-logged-out" style="display: flex;">
-                <span class="desktop-auth-text">請先登入 LINE 帳號以開始選購餐點</span>
+                <span class="desktop-auth-text" data-i18n="desktop_login_prompt">請先登入 LINE 帳號以開始選購餐點</span>
                 <button type="button" class="btn-line-login" onclick="triggerDesktopLineLogin()">
                     <svg class="line-btn-svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                         <path
                             d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.121.303.079.778.039 1.085l-.171 1.027c-.053.303-.242 1.186 1.039.647 1.281-.54 6.911-4.069 9.428-6.967 1.739-1.907 2.572-3.843 2.572-5.992z" />
                     </svg>
-                    <span>LINE 帳號登入</span>
+                    <span data-i18n="desktop_login_btn">LINE 帳號登入</span>
                 </button>
             </div>
         </div>
@@ -216,7 +236,7 @@
                 <p class="store-subtitle" id="store-subtitle"></p>
             </div>
             <div class="store-status-wrapper">
-                <div id="store-status" class="store-status" style="display: none;">營業中</div>
+                <div id="store-status" class="store-status" style="display: none;" data-i18n="status_open">營業中</div>
                 <div id="waiting-counter-badge" class="waiting-badge" style="display: none;"></div>
             </div>
         </div>
@@ -245,12 +265,12 @@
                                 <polyline points="12 6 12 12 16 14"></polyline>
                             </svg>
                             <span
-                                style="font-weight: 700; color: #111; font-size: 15.5px; line-height: 1.4;">營業時間</span>
+                                style="font-weight: 700; color: #111; font-size: 15.5px; line-height: 1.4;" data-i18n="hours_label">營業時間</span>
                             <span id="hours-today-preview"
-                                style="font-size: 14px; font-weight: 600; color: #059669; background: #f0fdf4; padding: 2px 8px; border-radius: 6px; border: 1px solid #bbf7d0; line-height: 1.4;">載入中...</span>
+                                style="font-size: 14px; font-weight: 600; color: #059669; background: #f0fdf4; padding: 2px 8px; border-radius: 6px; border: 1px solid #bbf7d0; line-height: 1.4;" data-i18n="hours_loading">載入中...</span>
                         </div>
                         <div id="hours-toggle-btn" class="hours-toggle-btn">
-                            <span id="hours-toggle-text">展開</span>
+                            <span id="hours-toggle-text" data-i18n="hours_expand">展開</span>
                             <svg id="hours-arrow-icon" class="hours-arrow-icon" width="14" height="14"
                                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                                 stroke-linecap="round" stroke-linejoin="round">
@@ -273,6 +293,29 @@
                 </svg>
                 <span id="store-announcement"
                     style="font-size: 15.5px; font-weight: 500; color: #374151; line-height: 1.4; word-break: break-word; flex: 1;"></span>
+            </div>
+            <div class="store-detail-row store-lang-row" id="client-lang-switcher" style="display: none;">
+                <div class="store-lang-label-wrap">
+                    <svg class="detail-svg-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="#4b5563" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"
+                        aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                    <label for="client-lang-select" class="store-lang-label" data-i18n="lang_label">語言</label>
+                </div>
+                <div class="client-lang-select-wrap">
+                    <select id="client-lang-select" name="locale" class="client-lang-select"
+                        data-i18n-aria-label="lang_select_aria" aria-label="選擇語言"
+                        onchange="setClientLocale(this.value)">
+                    </select>
+                    <svg class="client-lang-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                        aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
             </div>
         </div>
     </div>
@@ -308,20 +351,46 @@
             }
 
             if (theme) {
-                document.title = (theme.brandName || "點餐系統") + " 點餐";
+                const _loc = (function () {
+                    if (window.currentClientLocale) return window.currentClientLocale;
+                    const enabled = theme.i18nEnabled === true || (Array.isArray(theme.features) && (theme.features.includes('multilingual') || theme.features.includes('i18n')));
+                    if (!enabled) return theme.locale || 'zh-TW';
+                    try {
+                        const saved = localStorage.getItem('client_locale:' + tenantId);
+                        if (saved) return saved;
+                        const nav = String(navigator.language || '').toLowerCase();
+                        if (nav.startsWith('zh')) return 'zh-TW';
+                        if (nav.startsWith('vi')) return 'vi';
+                        if (nav) return 'en';
+                    } catch (e) { }
+                    return theme.locale || 'zh-TW';
+                })();
+                const _tEntry = (theme.i18n && theme.i18n[_loc]) || null;
+                const _brandName = (_tEntry && (_tEntry.brandName || _tEntry.brand_name)) || theme.brandName || '';
+                const _brandSub = (_tEntry && (_tEntry.subtitle || _tEntry.brandSubtitle || _tEntry.brand_subtitle)) || theme.brandSubtitle || '';
+                const _storeAddr = (_tEntry && (_tEntry.storeAddress || _tEntry.store_address || _tEntry.address)) || theme.storeAddress || '';
+                const _ann = (_tEntry && _tEntry.announcement) || theme.announcement || '';
+
+                if (!window.isStaffOrderMode && (theme.i18nEnabled === true || (Array.isArray(theme.features) && (theme.features.includes('multilingual') || theme.features.includes('i18n'))))) {
+                    window.currentClientLocale = _loc;
+                    window.currentLocale = _loc;
+                    document.documentElement.lang = _loc;
+                }
+
+                document.title = _loc === 'zh-TW' ? ((_brandName || "點餐系統") + " 點餐") : (_brandName || (_loc === 'en' ? 'Online Ordering' : 'Đặt món trực tuyến'));
                 const pageTitle = document.getElementById("page-title");
-                if (pageTitle) pageTitle.innerText = (theme.brandName || "點餐系統") + " 點餐";
+                if (pageTitle) pageTitle.innerText = document.title;
 
                 const nameEl = document.getElementById("store-name");
-                if (nameEl && theme.brandName) nameEl.innerText = theme.brandName;
+                if (nameEl && _brandName) nameEl.innerText = _brandName;
 
                 const subEl = document.getElementById("store-subtitle");
-                if (subEl && theme.brandSubtitle) subEl.innerHTML = theme.brandSubtitle.replace(/\n/g, "<br>");
+                if (subEl && _brandSub) subEl.innerHTML = _brandSub.replace(/\n/g, "<br>");
 
                 const addrEl = document.getElementById("store-address");
                 const addrRow = document.getElementById("store-address-row");
-                if (addrEl && theme.storeAddress) {
-                    addrEl.innerText = theme.storeAddress;
+                if (addrEl && _storeAddr) {
+                    addrEl.innerText = _storeAddr;
                     if (addrRow) addrRow.style.display = "flex";
                 }
 
@@ -344,18 +413,21 @@
                         if (hrs) {
                             const todayDay = new Date().getDay();
                             const todayShifts = hrs[todayDay] || [];
+                            const nextDayLbl = _loc === 'en' ? '+1d' : _loc === 'vi' ? 'Qua ngày' : '隔日';
+                            const todayLbl = _loc === 'en' ? 'Today' : _loc === 'vi' ? 'Hôm nay' : '今日';
+                            const offLbl = _loc === 'en' ? 'Closed Today' : _loc === 'vi' ? 'Hôm nay nghỉ' : '今日公休';
                             if (todayShifts.length > 0) {
                                 const formatShift = (s) => {
                                     if (!s || !s.start || !s.end) return "";
                                     const [sh, sm] = (s.start || "0:0").split(":").map(Number);
                                     const [eh, em] = (s.end || "0:0").split(":").map(Number);
                                     const isOvernight = (eh * 60 + (em || 0)) <= (sh * 60 + (sm || 0));
-                                    const nextTag = isOvernight ? '<span style="font-size: 11px; background: #eff6ff; color: #2563eb; padding: 1px 5px; border-radius: 4px; font-weight: 800; border: 1px solid #bfdbfe; margin-right: 3px; vertical-align: middle;">隔日</span>' : '';
+                                    const nextTag = isOvernight ? `<span style="font-size: 11px; background: #eff6ff; color: #2563eb; padding: 1px 5px; border-radius: 4px; font-weight: 800; border: 1px solid #bfdbfe; margin-right: 3px; vertical-align: middle;">${nextDayLbl}</span>` : '';
                                     return `${s.start} - ${nextTag}${s.end}`;
                                 };
-                                todayPreviewEl.innerHTML = `今日 <strong style="color: #111827;">${todayShifts.map(formatShift).filter(Boolean).join(", ")}</strong>`;
+                                todayPreviewEl.innerHTML = `${todayLbl} <strong style="color: #111827;">${todayShifts.map(formatShift).filter(Boolean).join(", ")}</strong>`;
                             } else {
-                                todayPreviewEl.innerHTML = `<strong style="color: #dc2626;">今日公休</strong>`;
+                                todayPreviewEl.innerHTML = `<strong style="color: #dc2626;">${offLbl}</strong>`;
                                 todayPreviewEl.style.background = '#fef2f2';
                                 todayPreviewEl.style.color = '#dc2626';
                                 todayPreviewEl.style.borderColor = '#fca5a5';
@@ -366,14 +438,14 @@
 
                 const annEl = document.getElementById("store-announcement");
                 const annRow = document.getElementById("store-announcement-row");
-                if (annEl && theme.announcement) {
-                    annEl.innerText = theme.announcement;
+                if (annEl && _ann) {
+                    annEl.innerText = _ann;
                     if (annRow) annRow.style.display = "flex";
                 }
             } else {
                 // Neutral clean state for new tenants: Never show Benmi!
                 const nameEl = document.getElementById("store-name");
-                if (nameEl) nameEl.innerText = "線上點餐";
+                if (nameEl) nameEl.innerText = window.currentClientLocale === 'en' ? 'Online Ordering' : window.currentClientLocale === 'vi' ? 'Đặt món trực tuyến' : '線上點餐';
             }
         })();
     </script>
@@ -392,13 +464,13 @@
                 </svg>
             </div>
             <div style="flex: 1;">
-                <div id="append-mode-title" style="font-weight: 900; font-size: 15px; letter-spacing: 0.2px;">正在加點餐點
+                <div id="append-mode-title" style="font-weight: 900; font-size: 15px; letter-spacing: 0.2px;" data-i18n="banner_append_title">正在加點餐點
                 </div>
                 <div id="append-mode-desc"
                     style="font-size: 13px; color: #ede9fe; margin-top: 2px; font-weight: 600; line-height: 1.4;">正在為
                     <strong id="append-mode-table">-</strong> (<span id="append-mode-key">-</span>) 加點</div>
             </div>
-            <button type="button" onclick="cancelAppendMode()"
+            <button type="button" onclick="cancelAppendMode()" data-i18n="banner_append_new_btn"
                 style="background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.45); color: #fff; padding: 5px 10px; border-radius: 8px; font-size: 12.5px; font-weight: 800; cursor: pointer; white-space: nowrap; transition: all 0.15s ease;">
                 ✕ 建立新單
             </button>
@@ -415,9 +487,9 @@
             </div>
             <div style="flex: 1;">
                 <div style="font-weight: 900; font-size: 15px; color: #166534; letter-spacing: 0.2px;">
-                    內用桌號：<strong id="table-order-banner-label" style="font-weight: 1000; color: #15803d;">-</strong>
+                    <span data-i18n="banner_table_label">內用桌號：</span><strong id="table-order-banner-label" style="font-weight: 1000; color: #15803d;">-</strong>
                 </div>
-                <div style="font-size: 12.5px; color: #166534; margin-top: 2px; font-weight: 600; line-height: 1.4;">
+                <div style="font-size: 12.5px; color: #166534; margin-top: 2px; font-weight: 600; line-height: 1.4;" data-i18n="banner_table_desc">
                     掃碼點餐專屬通道，餐點將送至您的座位
                 </div>
             </div>
@@ -434,7 +506,7 @@
                 </svg>
             </div>
             <div style="flex: 1;">
-                <div id="edit-order-mode-title" style="font-weight: 900; font-size: 15px; letter-spacing: 0.2px;">
+                <div id="edit-order-mode-title" style="font-weight: 900; font-size: 15px; letter-spacing: 0.2px;" data-i18n="banner_edit_title">
                     已移除售完餐點</div>
                 <div id="edit-order-mode-desc"
                     style="font-size: 13px; color: #fef3c7; margin-top: 2px; font-weight: 600; line-height: 1.4;">
@@ -454,8 +526,8 @@
                 </svg>
             </div>
             <div style="flex: 1;">
-                <div style="font-weight: 900; font-size: 15px; letter-spacing: 0.2px; color: #991b1b;">店家目前暫停接單中</div>
-                <div style="font-size: 13px; color: #b91c1c; margin-top: 2px; font-weight: 600; line-height: 1.45;">
+                <div style="font-weight: 900; font-size: 15px; letter-spacing: 0.2px; color: #991b1b;" data-i18n="banner_paused_title">店家目前暫停接單中</div>
+                <div style="font-size: 13px; color: #b91c1c; margin-top: 2px; font-weight: 600; line-height: 1.45;" data-i18n="banner_paused_desc">
                     目前門市暫不接受新訂單，敬請見諒！</div>
             </div>
         </div>
@@ -470,9 +542,9 @@
                 </svg>
             </div>
             <div style="flex: 1;">
-                <div style="font-weight: 900; font-size: 15px; letter-spacing: 0.2px; color: #92400e;">門市繁忙中（製作時間 +1 小時）
+                <div style="font-weight: 900; font-size: 15px; letter-spacing: 0.2px; color: #92400e;" data-i18n="banner_busy_title">門市繁忙中（製作時間 +1 小時）
                 </div>
-                <div style="font-size: 13px; color: #b45309; margin-top: 2px; font-weight: 600; line-height: 1.45;">
+                <div style="font-size: 13px; color: #b45309; margin-top: 2px; font-weight: 600; line-height: 1.45;" data-i18n="banner_busy_desc">
                     現場訂單較多，新訂單取餐時間預計延長 1 小時，感謝您的體諒！</div>
             </div>
         </div>
@@ -488,7 +560,7 @@
                         <path d="M3 6h18"></path>
                         <path d="M16 10a4 4 0 0 1-8 0"></path>
                     </svg>
-                    <span class="dining-seg-text">外帶自取</span>
+                    <span class="dining-seg-text" data-i18n="dining_takeaway">外帶自取</span>
                 </button>
                 <button type="button" class="dining-seg-btn" id="btn-dining-dinein" role="tab" aria-selected="false"
                     onclick="setCustomerDiningOption('dine_in')">
@@ -500,7 +572,7 @@
                         <path d="M6 2v20"></path>
                         <path d="M6 2a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3"></path>
                     </svg>
-                    <span class="dining-seg-text">店內用餐</span>
+                    <span class="dining-seg-text" data-i18n="dining_dinein">店內用餐</span>
                 </button>
             </div>
         </div>
@@ -565,11 +637,11 @@
                             <path d="M3 6h18"></path>
                             <path d="M16 10a4 4 0 0 1-8 0"></path>
                         </svg>
-                        <span>購物車清單</span>
+                        <span data-i18n="checkout_cart_title">購物車清單</span>
                     </div>
                     <div id="cart-summary"
                         style="margin-bottom: 12px; padding: 14px 16px; background: #fff; border-radius: 14px; border: 1px solid #f1f5f9; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02); font-size: 15px; color: #334155;">
-                        <div style="text-align:center; color:#9ca3af;">(目前沒有已選商品)</div>
+                        <div style="text-align:center; color:#9ca3af;" data-i18n="cart_empty">(目前沒有已選商品)</div>
                     </div>
 
                     <!-- 2. Dining Option in Checkout (Synchronized with top switcher) -->
@@ -581,7 +653,7 @@
                                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                                 <circle cx="12" cy="10" r="3"></circle>
                             </svg>
-                            <span>用餐方式</span>
+                            <span data-i18n="dining_method_label">用餐方式</span>
                         </label>
                         <div class="dining-segmented-control" style="margin-bottom: 14px;">
                             <button type="button" class="dining-seg-btn active" id="checkout-btn-takeaway"
@@ -593,7 +665,7 @@
                                     <path d="M3 6h18"></path>
                                     <path d="M16 10a4 4 0 0 1-8 0"></path>
                                 </svg>
-                                <span class="dining-seg-text">外帶自取</span>
+                                <span class="dining-seg-text" data-i18n="dining_takeaway">外帶自取</span>
                             </button>
                             <button type="button" class="dining-seg-btn" id="checkout-btn-dinein"
                                 onclick="setCustomerDiningOption('dine_in')">
@@ -606,7 +678,7 @@
                                     <path d="M6 2v20"></path>
                                     <path d="M6 2a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3"></path>
                                 </svg>
-                                <span class="dining-seg-text">店內用餐</span>
+                                <span class="dining-seg-text" data-i18n="dining_dinein">店內用餐</span>
                             </button>
                         </div>
                     </div>
@@ -618,7 +690,7 @@
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <polyline points="12 6 12 12 16 14"></polyline>
                             </svg>
-                            <span id="pickup-time-title-text">取餐時間</span>
+                            <span id="pickup-time-title-text" data-i18n="pickup_time_title">取餐時間</span>
                         </div>
 
                         <!-- Dine-In Table Number Input -->
@@ -633,13 +705,13 @@
                                         <line x1="3" y1="9" x2="21" y2="9"></line>
                                         <line x1="9" y1="21" x2="9" y2="9"></line>
                                     </svg>
-                                    <span>用餐桌號</span>
+                                    <span data-i18n="table_number_label">用餐桌號</span>
                                 </span>
-                                <span
+                                <span data-i18n="table_required_badge"
                                     style="font-size: 11px; background: #ede9fe; color: #6d28d9; padding: 2px 8px; border-radius: 6px; font-weight: 800;">必填
                                     (送餐依據)</span>
                             </label>
-                            <input type="text" id="dinein-table-number" placeholder="請輸入桌號 (例如: 1, 05, A2, B3...)"
+                            <input type="text" id="dinein-table-number" placeholder="請輸入桌號 (例如: 1, 05, A2, B3...)" data-i18n-placeholder="table_placeholder"
                                 maxlength="20"
                                 style="width: 100%; box-sizing: border-box; padding: 12px 14px; font-size: 16px; font-weight: 700; border-radius: 10px; border: 2px solid #c4b5fd; background: #fff; color: #1e1b4b;"
                                 autocomplete="off">
@@ -655,13 +727,13 @@
                                         <line x1="12" y1="8" x2="12" y2="12"></line>
                                         <line x1="12" y1="16" x2="12.01" y2="16"></line>
                                     </svg>
-                                    <span>預計取餐時間</span>
+                                    <span data-i18n="pickup_eta_label">預計取餐時間</span>
                                 </div>
-                                <span style="font-size: 11px; font-weight: 700; color: var(--primary); background: #f0fdf4; border: 1px solid #bbf7d0; padding: 2px 8px; border-radius: 99px;">點擊修改</span>
+                                <span style="font-size: 11px; font-weight: 700; color: var(--primary); background: #f0fdf4; border: 1px solid #bbf7d0; padding: 2px 8px; border-radius: 99px;" data-i18n="pickup_tap_change">點擊修改</span>
                             </label>
 
                             <!-- Modern Clickable Trigger Card (Replaces clumsy native input) -->
-                            <div class="pickup-time-trigger-card" id="pickup-time-trigger" onclick="openPickupTimeModal()" role="button" tabindex="0" aria-label="選擇取餐時間">
+                            <div class="pickup-time-trigger-card" id="pickup-time-trigger" onclick="openPickupTimeModal()" role="button" tabindex="0" aria-label="選擇取餐時間" data-i18n-aria-label="pickup_aria_select">
                                 <div class="pickup-trigger-left">
                                     <div class="pickup-trigger-icon-box">
                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -670,8 +742,8 @@
                                         </svg>
                                     </div>
                                     <div class="pickup-trigger-text">
-                                        <div class="pickup-trigger-primary" id="pickup-trigger-display-time">最快取餐 (店家即刻製作)</div>
-                                        <div class="pickup-trigger-secondary" id="pickup-trigger-display-date">今日取餐 · 點擊更改時間</div>
+                                        <div class="pickup-trigger-primary" id="pickup-trigger-display-time" data-i18n="pickup_default_primary">最快取餐 (店家即刻製作)</div>
+                                        <div class="pickup-trigger-secondary" id="pickup-trigger-display-date" data-i18n="pickup_default_secondary">今日取餐 · 點擊更改時間</div>
                                     </div>
                                 </div>
                                 <div class="pickup-trigger-chevron">
@@ -708,18 +780,18 @@
                                         <path d="M6 2v20"></path>
                                         <path d="M6 2a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3"></path>
                                     </svg>
-                                    <span>現場內用・即時製作</span>
+                                    <span data-i18n="dinein_live_title">現場內用・即時製作</span>
                                 </div>
-                                <span
+                                <span data-i18n="dinein_live_badge"
                                     style="font-size: 12px; background: #ede9fe; color: #6d28d9; padding: 3px 10px; border-radius: 99px; font-weight: 800;">現點現做</span>
                             </div>
                             <div
                                 style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #c4b5fd; display: flex; align-items: center; justify-content: space-between; font-size: 15px;">
-                                <span style="color: #5b21b6; font-weight: 700;">點餐時間：</span>
+                                <span style="color: #5b21b6; font-weight: 700;" data-i18n="dinein_order_time_label">點餐時間：</span>
                                 <span id="dinein-current-time"
                                     style="font-weight: 900; color: #5b21b6; font-size: 16px; font-family: ui-monospace, monospace;">-</span>
                             </div>
-                            <div
+                            <div data-i18n="dinein_live_note"
                                 style="margin-top: 6px; font-size: 12px; color: #6d28d9; font-weight: 600; line-height: 1.45;">
                                 ※ 訂單送出後廚房將立即依照排單順序為您製作，出餐時請留意叫號或您的取餐號碼。
                             </div>
@@ -733,18 +805,18 @@
                                         stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                                         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                                     </svg>
-                                    <span>即時排隊製作模式</span>
+                                    <span data-i18n="asap_mode_title">即時排隊製作模式</span>
                                 </div>
-                                <span
+                                <span data-i18n="asap_mode_badge"
                                     style="font-size: 12px; background: #dcfce7; color: #15803d; padding: 3px 10px; border-radius: 99px; font-weight: 800;">現場排單</span>
                             </div>
                             <div
                                 style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #86efac; display: flex; align-items: center; justify-content: space-between; font-size: 15px;">
-                                <span style="color: #374151; font-weight: 700;">預計下單時間：</span>
+                                <span style="color: #374151; font-weight: 700;" data-i18n="asap_mode_time_label">預計下單時間：</span>
                                 <span id="asap-current-time"
                                     style="font-weight: 900; color: #15803d; font-size: 16px; font-family: ui-monospace, monospace;">-</span>
                             </div>
-                            <div
+                            <div data-i18n="asap_mode_note"
                                 style="margin-top: 6px; font-size: 12px; color: #4b5563; font-weight: 600; line-height: 1.4;">
                                 ※ 訂單送出後將以當前時間排單，門市人員會依序儘速為您新鮮現做。
                             </div>
@@ -760,10 +832,10 @@
                             <line x1="16" y1="17" x2="8" y2="17"></line>
                             <line x1="10" y1="9" x2="8" y2="9"></line>
                         </svg>
-                        <span>其他要求</span>
+                        <span data-i18n="other_requests_title">其他要求</span>
                     </div>
                     <div class="input-group">
-                        <textarea id="note" rows="3" placeholder="請填寫您的備注"></textarea>
+                        <textarea id="note" rows="3" placeholder="請填寫您的備注" data-i18n-placeholder="note_placeholder"></textarea>
                     </div>
 
                     <!-- Subtle & Professional Powered by Blab Footer -->
@@ -777,7 +849,7 @@
                             <span
                                 style="font-weight: 800; color: #1e293b; font-size: 13.5px; letter-spacing: 0.5px;">BLAB</span>
                             <span style="color: #cbd5e1; font-size: 11px;">•</span>
-                            <span style="color: #64748b; font-size: 12.5px; font-weight: 500;">LINE 智慧點餐系統 ↗</span>
+                            <span style="color: #64748b; font-size: 12.5px; font-weight: 500;" data-i18n="powered_by_tagline">LINE 智慧點餐系統 ↗</span>
                         </a>
                     </div>
 
@@ -789,7 +861,7 @@
                         <p id="checkout-empty-cart-hint" class="checkout-empty-cart-hint" hidden></p>
                         <button type="button" class="btn-desktop-submit" id="btn-desktop-submit"
                             onclick="submitOrder()">
-                            <span>確認下單</span>
+                            <span data-i18n="btn_submit_order">確認下單</span>
                         </button>
                     </div>
                 </div><!-- /checkout-sidebar-card -->
@@ -813,7 +885,7 @@
                     <span class="total-price">$<span id="total-price">0</span></span>
                 </div>
                 <button class="btn-send" id="btn-submit" onclick="handleFooterAction()">
-                    <span>前往結帳</span>
+                    <span data-i18n="btn_go_checkout">前往結帳</span>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
                         stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px;">
                         <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -826,24 +898,24 @@
 
     <div id="custom-alert" class="custom-alert-overlay">
         <div class="custom-alert-box">
-            <div class="custom-alert-header">提醒</div>
+            <div class="custom-alert-header" data-i18n="alert_header">提醒</div>
             <div id="custom-alert-message" class="custom-alert-body"></div>
-            <button class="custom-alert-btn" onclick="closeCustomAlert()">確定</button>
+            <button class="custom-alert-btn" onclick="closeCustomAlert()" data-i18n="btn_confirm">確定</button>
         </div>
     </div>
 
     <div id="store-notice-modal" class="store-notice-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="store-notice-modal-title">
         <div class="store-notice-modal-box">
             <div class="store-notice-modal-header">
-                <h2 id="store-notice-modal-title" class="store-notice-modal-title">門市公告</h2>
+                <h2 id="store-notice-modal-title" class="store-notice-modal-title" data-i18n="notice_modal_title">門市公告</h2>
             </div>
             <div id="store-notice-modal-body" class="store-notice-modal-body"></div>
             <div class="store-notice-modal-footer">
                 <label class="store-notice-modal-ack" for="store-notice-ack-checkbox">
                     <input type="checkbox" id="store-notice-ack-checkbox">
-                    <span>已閱讀，下次不再顯示</span>
+                    <span data-i18n="notice_ack_label">已閱讀，下次不再顯示</span>
                 </label>
-                <button type="button" id="store-notice-close-btn" class="store-notice-modal-btn" onclick="closeStoreNoticeModal()">我知道了</button>
+                <button type="button" id="store-notice-close-btn" class="store-notice-modal-btn" onclick="closeStoreNoticeModal()" data-i18n="notice_ok_btn">我知道了</button>
             </div>
         </div>
     </div>
@@ -857,15 +929,15 @@
     <!-- Desktop Mobile-Only QR Code Modal -->
     <div id="desktop-qr-modal" class="custom-alert-overlay" style="display:none; z-index: 2500;">
         <div class="custom-alert-box" style="max-width: 380px; text-align: center; padding: 24px 20px;">
-            <div style="font-size: 20px; font-weight: 900; color: #1e293b; margin-bottom: 8px;">請使用手機 LINE 掃碼點餐</div>
-            <div style="font-size: 14px; color: #64748b; margin-bottom: 18px; line-height: 1.5;">
+            <div style="font-size: 20px; font-weight: 900; color: #1e293b; margin-bottom: 8px;" data-i18n="desktop_qr_title">請使用手機 LINE 掃碼點餐</div>
+            <div style="font-size: 14px; color: #64748b; margin-bottom: 18px; line-height: 1.5;" data-i18n="desktop_qr_desc">
                 為了確保能即時接收製作進度通知與優惠，本門市僅支援手機 LINE 點餐。
             </div>
             <div id="desktop-qr-container" style="display: flex; justify-content: center; margin-bottom: 16px;">
                 <img id="desktop-qr-img" src="" alt="QR Code"
                     style="width: 180px; height: 180px; border-radius: 12px; border: 1px solid #e2e8f0; padding: 6px; background: #fff;">
             </div>
-            <button class="custom-alert-btn" onclick="closeDesktopQrModal()"
+            <button class="custom-alert-btn" onclick="closeDesktopQrModal()" data-i18n="btn_close"
                 style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">關閉</button>
         </div>
     </div>
@@ -880,20 +952,20 @@
             <!-- Sheet Header -->
             <div class="bundle-sheet-header">
                 <div style="flex: 1; padding-right: 12px; min-width: 0;">
-                    <div id="bundle-modal-item-name" class="bundle-header-title">套餐名稱</div>
+                    <div id="bundle-modal-item-name" class="bundle-header-title" data-i18n="bundle_title_default">套餐名稱</div>
                     <div id="bundle-modal-group-name" class="bundle-header-subtitle">
-                        <span id="bundle-modal-group-label"><span id="bundle-modal-prompt-text">請選擇配菜</span></span>
+                        <span id="bundle-modal-group-label"><span id="bundle-modal-prompt-text" data-i18n="bundle_prompt_default">請選擇配菜</span></span>
                         <span class="bundle-header-dot">·</span>
-                        <span>已選 <strong id="bundle-modal-current-count">0</strong>/<span
-                                id="bundle-modal-max-count">6</span> 樣</span>
-                        <span id="bundle-quota-badge" class="bundle-quota-badge" style="display: none;">已選滿</span>
+                        <span id="bundle-modal-count-wrap"><strong id="bundle-modal-current-count">0</strong>/<span
+                                id="bundle-modal-max-count">6</span></span>
+                        <span id="bundle-quota-badge" class="bundle-quota-badge" style="display: none;" data-i18n="bundle_quota_full">已選滿</span>
                     </div>
                     <!-- Animated Progress Bar -->
                     <div class="bundle-progress-track">
                         <div id="bundle-progress-fill" class="bundle-progress-fill" style="width: 0%;"></div>
                     </div>
                 </div>
-                <button type="button" class="bundle-close-btn" onclick="closeBundleBuilderModal()" aria-label="關閉">
+                <button type="button" class="bundle-close-btn" onclick="closeBundleBuilderModal()" aria-label="關閉" data-i18n-aria-label="btn_close">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -904,8 +976,8 @@
 
             <!-- Category Filter Tabs & Navigation -->
             <div id="bundle-step-nav" class="bundle-v2-step-nav"></div>
-            <button type="button" id="bundle-refresh-prices" class="bundle-v2-copy" onclick="bundleRefreshPrices()" style="display:none">價格已變更，查看並套用新價格</button>
-            <button type="button" id="bundle-copy-previous" class="bundle-v2-copy" onclick="bundleCopyPrevious()" style="display:none">與上一份相同</button>
+            <button type="button" id="bundle-refresh-prices" class="bundle-v2-copy" onclick="bundleRefreshPrices()" style="display:none" data-i18n="bundle_price_changed_btn">價格已變更，查看並套用新價格</button>
+            <button type="button" id="bundle-copy-previous" class="bundle-v2-copy" onclick="bundleCopyPrevious()" style="display:none" data-i18n="copy_prev_same">與上一份相同</button>
             <div id="bundle-cat-tabs" class="bundle-cat-tabs-row">
             </div>
 
@@ -938,9 +1010,9 @@
                         <circle cx="12" cy="12" r="10"></circle>
                         <polyline points="12 6 12 12 16 14"></polyline>
                     </svg>
-                    <span>選擇取餐時間</span>
+                    <span data-i18n="pickup_modal_title">選擇取餐時間</span>
                 </div>
-                <button type="button" class="pickup-sheet-close" onclick="closePickupTimeModal()" aria-label="關閉">
+                <button type="button" class="pickup-sheet-close" onclick="closePickupTimeModal()" aria-label="關閉" data-i18n-aria-label="btn_close">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -960,30 +1032,30 @@
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                             </svg>
-                            <span>最快取餐</span>
+                            <span data-i18n="pickup_asap_badge">最快取餐</span>
                         </div>
-                        <div class="pickup-asap-title">店家即刻備餐</div>
-                        <div class="pickup-asap-desc" id="pickup-asap-eta-desc">預計約 15-20 分鐘後可取餐</div>
+                        <div class="pickup-asap-title" data-i18n="pickup_asap_title">店家即刻備餐</div>
+                        <div class="pickup-asap-desc" id="pickup-asap-eta-desc" data-i18n="pickup_asap_default_desc">預計約 15-20 分鐘後可取餐</div>
                     </div>
                     <div class="pickup-asap-time" id="pickup-asap-time-val">--:--</div>
                 </div>
 
                 <!-- Slots Section Title -->
                 <div class="pickup-slots-section-title">
-                    <span>或選擇指定時間</span>
-                    <span class="pickup-slots-step-hint">每 15 分鐘為一時段</span>
+                    <span data-i18n="pickup_slots_title">或選擇指定時間</span>
+                    <span class="pickup-slots-step-hint" data-i18n="pickup_slots_hint">每 15 分鐘為一時段</span>
                 </div>
 
                 <!-- Time Slots Grid -->
                 <div class="pickup-slots-grid" id="pickup-slots-grid"></div>
-                <div class="pickup-slots-empty" id="pickup-slots-empty" style="display: none;">
+                <div class="pickup-slots-empty" id="pickup-slots-empty" style="display: none;" data-i18n="pickup_slots_empty_today_closed">
                     本日營業時間已結束，請選擇明日或其他日期
                 </div>
             </div>
 
             <div class="pickup-sheet-footer">
-                <button type="button" class="pickup-sheet-btn-cancel" onclick="closePickupTimeModal()">取消</button>
-                <button type="button" class="pickup-sheet-btn-confirm" id="pickup-sheet-confirm-btn" onclick="confirmPickupTimeSelection()">確認時間</button>
+                <button type="button" class="pickup-sheet-btn-cancel" onclick="closePickupTimeModal()" data-i18n="btn_cancel">取消</button>
+                <button type="button" class="pickup-sheet-btn-confirm" id="pickup-sheet-confirm-btn" onclick="confirmPickupTimeSelection()" data-i18n="pickup_confirm_btn">確認時間</button>
             </div>
         </div>
     </div>
@@ -993,13 +1065,14 @@
     <script src="/js/order-code.js?v=20261109_order_code_v1"></script>
     <script src="/js/client-pricing-wasm.js?v=20261108_wasm_portion_pricing_v1"></script>
     <script src="/js/store-notice-format.js?v=20261111_store_notice_v1"></script>
-    <script src="/js/client-core.js?v=20261111_store_notice_v1"></script>
-    <script src="/js/client-menu.js?v=20261109_item_images_v1"></script>
-    <script src="/js/client-customizations.js?v=20261108_wasm_portion_pricing_v1"></script>
-    <script src="/js/client-bundle.js?v=20261108_wasm_portion_pricing_v1"></script>
-    <script src="/js/client-cart.js?v=20261114_compact_cart_actions_v3"></script>
-    <script src="/js/bundle-builder-v2.js?v=20261108_wasm_portion_pricing_v1"></script>
-    <script src="/js/client-option-groups.js?v=20261108_option_flicker_fix_v1"></script>
+    <script src="/js/client-i18n.js?v=20261115_multilingual_pkg_v2"></script>
+    <script src="/js/client-core.js?v=20261115_multilingual_pkg_v2"></script>
+    <script src="/js/client-menu.js?v=20261115_multilingual_pkg_v2"></script>
+    <script src="/js/client-customizations.js?v=20261114_multilingual_v2"></script>
+    <script src="/js/client-bundle.js?v=20261114_multilingual_v2"></script>
+    <script src="/js/client-cart.js?v=20261114_multilingual_v1"></script>
+    <script src="/js/bundle-builder-v2.js?v=20261114_multilingual_v1"></script>
+    <script src="/js/client-option-groups.js?v=20261115_multilingual_pkg_v2"></script>
     <!-- Center Auth Card & Overlay for Desktop Guest Users -->
     <div id="desktop-center-auth-overlay" class="desktop-center-auth-overlay" style="display: none;">
         <div class="desktop-center-auth-backdrop" onclick="triggerDesktopLineLogin()"></div>
@@ -1011,23 +1084,24 @@
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                 </svg>
             </div>
-            <h2 class="center-auth-title">請登入 LINE 帳號開始點餐</h2>
-            <p class="center-auth-desc">登入後即可自訂餐點口味、加入購物車並即時接收餐點製作與取餐通知。</p>
+            <h2 class="center-auth-title" data-i18n="center_auth_title">請登入 LINE 帳號開始點餐</h2>
+            <p class="center-auth-desc" data-i18n="center_auth_desc">登入後即可自訂餐點口味、加入購物車並即時接收餐點製作與取餐通知。</p>
             <button type="button" class="btn-center-line-login" onclick="triggerDesktopLineLogin()">
                 <svg class="line-btn-svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                     <path
                         d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.121.303.079.778.039 1.085l-.171 1.027c-.053.303-.242 1.186 1.039.647 1.281-.54 6.911-4.069 9.428-6.967 1.739-1.907 2.572-3.843 2.572-5.992z" />
                 </svg>
-                <span>使用 LINE 帳號一鍵登入</span>
+                <span data-i18n="center_auth_btn">使用 LINE 帳號一鍵登入</span>
             </button>
         </div>
     </div>
     <script src="/js/order-legacy-adapter.js?v=20261017_order_detail_v1"></script>
   <script src="/js/order-detail-view.js?v=20261017_order_detail_v1"></script>
-  <script src="/js/order-detail-checkout.js?v=20261017_order_detail_v1"></script>
+  <script src="/js/order-detail-checkout.js?v=20261114_multilingual_v1"></script>
   <script src="/js/line-order-presentation.js?v=20261030_line_portions_v3"></script>
-    <script src="/js/client-checkout.js?v=20261109_order_code_v2"></script>
-    <script src="/js/staff-order.js?v=20261113_staff_tile_opt_btn_v1"></script>
+    <script src="/js/client-checkout.js?v=20261115_multilingual_pkg_v2"></script>
+  <script src="/js/pos-session.js?v=20261114_lifecycle_v2"></script>
+    <script src="/js/staff-order.js?v=20261114_lifecycle_v2"></script>
     <script>
         if (window.__TENANT_RESOLUTION_FAILED) {
             document.getElementById('page-body-content').style.display = 'none';

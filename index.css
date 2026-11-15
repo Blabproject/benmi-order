@@ -3525,3 +3525,121 @@ input[type="checkbox"] {
     background: var(--primary-dark);
     transform: scale(0.99);
 }
+
+/* Minimalist Language Dropdown Row in Store Details */
+.store-lang-row {
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 44px;
+}
+
+.store-lang-label-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+}
+
+.store-lang-label {
+    font-weight: 700;
+    color: #111827;
+    font-size: 15.5px;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.client-lang-select-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.client-lang-select {
+    appearance: none;
+    -webkit-appearance: none;
+    min-height: 40px;
+    min-width: 132px;
+    padding: 8px 34px 8px 14px;
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.25;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.client-lang-select:focus-visible {
+    outline: 2px solid var(--primary, #059669);
+    outline-offset: 2px;
+    border-color: var(--primary, #059669);
+}
+
+.client-lang-chevron {
+    position: absolute;
+    right: 12px;
+    pointer-events: none;
+    color: #059669;
+}
+
+@supports (appearance: base-select) {
+    .client-lang-select,
+    .client-lang-select::picker(select) {
+        appearance: base-select;
+    }
+
+    .client-lang-select {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+    }
+
+    .client-lang-select::picker-icon {
+        color: #059669;
+        margin-inline-start: auto;
+    }
+
+    .client-lang-select::picker(select) {
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 14px;
+        padding: 6px;
+        margin-top: 6px;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+        min-width: 164px;
+    }
+
+    .client-lang-select option {
+        padding: 10px 14px;
+        min-height: 44px;
+        border-radius: 10px;
+        font-size: 14.5px;
+        font-weight: 700;
+        color: #0f172a;
+        cursor: pointer;
+    }
+
+    .client-lang-select option:checked {
+        background: #ecfdf5;
+        color: #059669;
+    }
+
+    .client-lang-select option::checkmark {
+        color: #059669;
+    }
+
+    .client-lang-select option:hover {
+        background: #f1f5f9;
+    }
+
+    .client-lang-chevron {
+        display: none;
+    }
+}

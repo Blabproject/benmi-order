@@ -590,18 +590,76 @@ function validateMenuUpdate(data: any): void {
   }
 }
 
+function serializeI18nJson(input: unknown): string {
+  if (!input) return '{}';
+  let parsed: unknown = input;
+  if (typeof input === 'string') {
+    const trimmed = input.trim();
+    if (!trimmed || trimmed === '{}') return '{}';
+    try { parsed = JSON.parse(trimmed); } catch { return '{}'; }
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return '{}';
+  const normalized: Record<string, Record<string, unknown>> = {};
+  for (const [locale, rawEntry] of Object.entries(parsed as Record<string, unknown>)) {
+    if (!rawEntry || typeof rawEntry !== 'object' || Array.isArray(rawEntry)) continue;
+    const out: Record<string, unknown> = {};
+    let hasField = false;
+    for (const [k, v] of Object.entries(rawEntry as Record<string, unknown>)) {
+      if (k === 'sub_options' || k === 'subOptions') {
+        if (v && typeof v === 'object' && !Array.isArray(v)) {
+          const subOut: Record<string, string> = {};
+          for (const [sk, sv] of Object.entries(v as Record<string, unknown>)) {
+            if (typeof sv === 'string' && sv.trim() !== '') { subOut[sk] = sv.trim(); }
+          }
+          if (Object.keys(subOut).length > 0) { out.sub_options = subOut; hasField = true; }
+        }
+      } else if (typeof v === 'string' && v.trim() !== '') {
+        out[k] = v.trim();
+        hasField = true;
+      }
+    }
+    if (hasField) normalized[String(locale).trim()] = out;
+  }
+  return Object.keys(normalized).length > 0 ? JSON.stringify(normalized) : '{}';
+}
+
+async function hasTableColumn(db: D1Database | undefined | null, tableName: string, columnName: string): Promise<boolean> {
+  if (!db || typeof (db as any).prepare !== 'function') return false;
+  const safeTable = tableName.replace(/[^a-zA-Z0-9_]/g, '');
+  try {
+    const stmt: any = db.prepare(`PRAGMA table_info(${safeTable})`);
+    const bound: any = typeof stmt?.bind === 'function' ? stmt.bind() : stmt;
+    const res = typeof bound?.all === 'function' ? await bound.all() : null;
+    const rows = Array.isArray(res?.results) ? res.results : [];
+    return rows.some((r: any) => r?.name === columnName);
+  } catch {
+    return false;
+  }
+}
+
 async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<void> {
   validateMenuUpdate(menuData);
   // Anchor the guard before reading ranks and IDs used to construct the write batch.
   const unifiedCatalog = unifiedMenuEnabled(env) ? await loadOptionCatalog(env, tenantId) : null;
+  const [hasCatI18nCol, hasItemI18nCol] = await Promise.all([
+    hasTableColumn(env.DB, "menu_categories", "i18n_json"),
+    hasTableColumn(env.DB, "menu_items", "i18n_json"),
+  ]);
   // 1. Nạp danh mục và món ăn hiện có để ánh xạ ID tránh xung đột unique
   const { results: existingCats } = await env.DB.prepare(
-    "SELECT id, slug, name, short_name, category_type, sort_order FROM menu_categories WHERE tenant_id = ?"
+    `SELECT id, slug, name, short_name, category_type, sort_order${hasCatI18nCol ? ", i18n_json" : ""} FROM menu_categories WHERE tenant_id = ?`
   ).bind(tenantId).all();
 
   const { results: existingItems } = await env.DB.prepare(
-    "SELECT id, category_id, name FROM menu_items WHERE tenant_id = ?"
+    `SELECT id, category_id, name${hasItemI18nCol ? ", i18n_json" : ""} FROM menu_items WHERE tenant_id = ?`
   ).bind(tenantId).all();
+
+  const existingCatI18nMap = new Map<string, string>(
+    (existingCats || []).map((row: any) => [String(row.slug), String(row.i18n_json || "{}")])
+  );
+  const existingItemI18nMap = new Map<string, string>(
+    (existingItems || []).map((row: any) => [String(row.id), String(row.i18n_json || "{}")])
+  );
 
   const { results: existingCustomizations } = await env.DB.prepare(
     "SELECT id, key FROM menu_customizations WHERE tenant_id = ?"
@@ -918,11 +976,17 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
 
     const catName = customCatName || catNameMap.get(slug) || defaultCategoryNamesZh[slug] || slug;
     const catShortName = customCatShortName || (customCatName ? customCatName : (catShortNameMap.get(slug) || catName));
+    const catI18nRaw = itemsMap && (itemsMap._i18n !== undefined || itemsMap.__i18n !== undefined || itemsMap.i18n !== undefined)
+      ? (itemsMap._i18n ?? itemsMap.__i18n ?? itemsMap.i18n)
+      : undefined;
+    const catI18nJson = catI18nRaw !== undefined
+      ? serializeI18nJson(catI18nRaw)
+      : (existingCatI18nMap.get(slug) || "{}");
 
     statements.push(
       env.DB.prepare(
-        `INSERT INTO menu_categories (id, tenant_id, name, short_name, slug, category_type, allow_customization, applied_modifiers, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO menu_categories (id, tenant_id, name, short_name, slug, category_type, allow_customization, applied_modifiers, sort_order${hasCatI18nCol ? ", i18n_json" : ""})
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?${hasCatI18nCol ? ", ?" : ""})
          ON CONFLICT(id) DO UPDATE SET 
            name = excluded.name, 
            short_name = excluded.short_name,
@@ -930,9 +994,9 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
            category_type = excluded.category_type,
            allow_customization = excluded.allow_customization,
            applied_modifiers = excluded.applied_modifiers,
-           sort_order = excluded.sort_order
+           sort_order = excluded.sort_order${hasCatI18nCol ? ",\n           i18n_json = excluded.i18n_json" : ""}
              WHERE menu_categories.tenant_id = excluded.tenant_id`
-      ).bind(catId, tenantId, catName, catShortName, slug, customCatType, allowCustomization, appliedModifiers, customCatSort)
+      ).bind(catId, tenantId, catName, catShortName, slug, customCatType, allowCustomization, appliedModifiers, customCatSort, ...(hasCatI18nCol ? [catI18nJson] : []))
     );
 
     if (itemsMap && typeof itemsMap === "object") {
@@ -975,11 +1039,17 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
         const explicitItemSort = (itemVal && (itemVal.sort_order !== undefined || itemVal.sortOrder !== undefined))
           ? Number(itemVal.sort_order ?? itemVal.sortOrder)
           : itemSortOrder++;
+        const itemI18nRaw = (itemVal && typeof itemVal === "object" && (itemVal.i18n !== undefined || itemVal.i18n_json !== undefined))
+          ? (itemVal.i18n ?? itemVal.i18n_json)
+          : undefined;
+        const itemI18nJson = itemI18nRaw !== undefined
+          ? serializeI18nJson(itemI18nRaw)
+          : (existingItemI18nMap.get(itemId) || "{}");
 
         statements.push(
           env.DB.prepare(
-            `INSERT INTO menu_items (id, tenant_id, category_id, name, price, badge_text, is_recommended, sort_order, item_type)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `INSERT INTO menu_items (id, tenant_id, category_id, name, price, badge_text, is_recommended, sort_order, item_type${hasItemI18nCol ? ", i18n_json" : ""})
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?${hasItemI18nCol ? ", ?" : ""})
              ON CONFLICT(id) DO UPDATE SET 
                category_id = excluded.category_id,
                name = excluded.name,
@@ -987,9 +1057,9 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
                badge_text = excluded.badge_text, 
                is_recommended = excluded.is_recommended, 
                sort_order = excluded.sort_order,
-               item_type = excluded.item_type
+               item_type = excluded.item_type${hasItemI18nCol ? ",\n               i18n_json = excluded.i18n_json" : ""}
              WHERE menu_items.tenant_id = excluded.tenant_id`
-          ).bind(itemId, tenantId, catId, itemName, price, badgeText, isRec, explicitItemSort, itemType)
+          ).bind(itemId, tenantId, catId, itemName, price, badgeText, isRec, explicitItemSort, itemType, ...(hasItemI18nCol ? [itemI18nJson] : []))
         );
 
         // If modifier groups are provided for this item, persist them

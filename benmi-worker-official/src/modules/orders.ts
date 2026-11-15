@@ -1,3 +1,4 @@
+import { handleOrderCommand } from './order-commands';
 import OrderCode from '../../../js/order-code.js';
 import { attachPayments } from './payments';
 import { verifyStaffSession } from './staff';
@@ -566,7 +567,8 @@ export async function createOrder(
       ctx,
       tenantCtx,
       isDesktopOrder,
-      clientCustomizations
+      clientCustomizations,
+      (data as any).customer_locale || (data as any).customerLocale
     );
   }
 
@@ -617,7 +619,7 @@ export async function createOrder(
     try {
       receipt = await prepareOrderReceipt(env, tenantId, order.key, order.userId, 'create',
         `[${tenantCtx?.brandName || "Benmi"}] 訂單明細 ${OrderCode.format(order.displayKey || order.key)}`,
-        buildOrderFlexMessage(order, tenantCtx, rawItems, data.customizations));
+        buildOrderFlexMessage(order, tenantCtx, rawItems, data.customizations, data.customer_locale || data.customerLocale));
       if (rawItems.length > 0 && env.DB) {
         let tableId: string | null = null;
         if (order.tableNumber && env.DB) {
@@ -713,7 +715,8 @@ export async function executeAppendOrderInternal(
   ctx?: ExecutionContext,
   tenantCtx?: TenantContext | null,
   isDesktop?: boolean,
-  customizations: any[] = []
+  customizations: any[] = [],
+  customerLocale?: string | null
 ): Promise<Response> {
   const resolvedParentKey = await resolveOrderKey(env, tenantId, parentKey);
   if (!resolvedParentKey) return json({ error: 'Order not found', code: 'ORDER_NOT_FOUND' }, 404);
@@ -799,7 +802,7 @@ export async function executeAppendOrderInternal(
   if (Number(row.detail_revision || 0) > 0) return json({ code: 'ORDER_CLIENT_UPGRADE_REQUIRED' }, 409);
 
   // 2. Lock boundary: Cannot append if order is PICKED_UP, REJECTED, or PAID
-  if (row.status === 'PICKED_UP' || row.status === 'REJECTED' || row.status === 'PAID') {
+  if (row.status === 'COMPLETED' || row.status === 'CANCELLED' || row.status === 'COMPLETED') {
     return json({
       error: "訂單已完成或已取消，無法再加點，請重新開啟新訂單 / Đơn hàng đã kết thúc hoặc đã hủy, không thể gọi thêm",
       code: "ORDER_LOCKED"
@@ -853,7 +856,7 @@ export async function executeAppendOrderInternal(
 
   const receipt = await prepareOrderReceipt(env, tenantId, parentKey, updatedOrder.userId, 'append',
     `[${tenantCtx?.brandName || "Benmi"}] 現場加點確認 (第 ${nextRound} 輪)`,
-    buildAppendConfirmationFlexMessage(updatedOrder, appendedContent, appendedTotal, nextRound, tenantCtx, rawItems));
+    buildAppendConfirmationFlexMessage(updatedOrder, appendedContent, appendedTotal, nextRound, tenantCtx, rawItems, customerLocale));
 
   // 6. Persist to D1: Luôn chuyển trạng thái về NEW khi gọi thêm món để POS hiển thị ở cột Mới và phát chuông báo
   if (rawItems.length > 0) {
@@ -986,7 +989,8 @@ export async function appendOrder(
       ctx,
       tenantCtx,
       isDesktop,
-      Array.isArray((payload as any).customizations) ? (payload as any).customizations : []
+      Array.isArray((payload as any).customizations) ? (payload as any).customizations : [],
+      (payload as any).customer_locale || (payload as any).customerLocale
     );
   } catch (e: any) {
     console.error("[appendOrder] Error:", e);
@@ -1005,6 +1009,7 @@ export async function getPendingMap(env: Env, tenantId: string, userId: string):
       for (const row of results) {
         pMap[row.order_key] = {
           orderKey: row.order_key,
+          actionId: row.action_id,
           type: row.action_type,
           createdAt: row.created_at ? new Date(row.created_at + "Z").getTime() : Date.now(),
           questionText: row.question_text,
@@ -1020,7 +1025,31 @@ export async function getPendingMap(env: Env, tenantId: string, userId: string):
   }
 }
 
-export async function updateOrder(
+export async function updateOrder(request: Request, env: Env, ctx?: ExecutionContext, tenantCtx?: TenantContext | null): Promise<Response> {
+  const tenant = tenantCtx?.tenantId || getTenantId(request);
+  if (!await verifyStaffSession(request,env,tenant)) return json({code:'UNAUTHORIZED'},401);
+  const data: any = await request.clone().json().catch(()=>null);
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return json({code:'INVALID_COMMAND'},400);
+  const aliases: Record<string,string> = {ACCEPTED:'accept',DONE:'mark_ready',READY:'mark_ready',PICKED_UP:'complete',PAID:'complete',COMPLETED:'complete',FORCE_REJECT:'cancel'};
+  if (Object.hasOwn(aliases,data.status)) {
+    if (!data.operationId || !Number.isSafeInteger(data.expectedRevision)) return json({code:'ORDER_CLIENT_UPGRADE_REQUIRED'},409);
+    return handleOrderCommand(new Request(request.url,{method:'POST',headers:request.headers,body:JSON.stringify({
+      operationId:data.operationId,expectedRevision:data.expectedRevision,action:aliases[data.status],
+      ...(data.settlement ? {settlement:data.settlement}:{}),reason:data.reason || (aliases[data.status]==='cancel'?'Staff cancellation':'')
+    })}),env,tenant,String(data.key || ''));
+  }
+  if (!['CHANGED','REJECTED','CANCELLED'].includes(data.status)) return json({code:'INVALID_ORDER_STATE'},400);
+  // Pending customer proposals are migrated next; require a fresh revision now.
+  const row = await env.DB.prepare('SELECT revision,status FROM orders WHERE tenant_id=? AND key=?')
+    .bind(tenant,await resolveOrderKey(env,tenant,String(data.key || ''))).first<{revision:number;status:string}>();
+  if (!row) return json({code:'ORDER_NOT_FOUND'},404);
+  if (data.expectedRevision !== row.revision) return json({code:'ORDER_REVISION_CONFLICT'},409);
+  if (['COMPLETED','CANCELLED','EXPIRED','PENDING_PAYMENT'].includes(row.status)) return json({code:'ORDER_FINALIZED'},409);
+  if (data.status==='REJECTED') data.status='CANCELLED';
+  return updateOrderInternal(new Request(request.url,{method:'POST',headers:request.headers,body:JSON.stringify(data)}),env,ctx,tenantCtx);
+}
+
+async function updateOrderInternal(
   request: Request,
   env: Env,
   ctx?: ExecutionContext,
@@ -1034,7 +1063,7 @@ export async function updateOrder(
 
   const paymentProtected = await env.DB.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='payments'").first()
     && await env.DB.prepare('SELECT 1 FROM payments WHERE tenant_id=? AND order_key=?').bind(orderRow.tenant_id,orderRow.key).first();
-  if (paymentProtected && ['WAITING_CUSTOMER_CHANGE','PAID'].includes(data.status)) return json({code:'PAYMENT_ORDER_LOCKED'},409);
+  if (paymentProtected && ['WAITING_CUSTOMER_CHANGE','COMPLETED'].includes(data.status)) return json({code:'PAYMENT_ORDER_LOCKED'},409);
   if (orderRow.source === 'staff') return json({code:'STAFF_ORDER_RESTRICTED'},403);
 
   const effectiveTenantId = orderRow.tenant_id || tenantCtx?.tenantId || getTenantId(request);
@@ -1075,7 +1104,7 @@ export async function updateOrder(
 
   // Employee 接單
   if (incoming === "ACCEPTED") {
-    if (order.status === "ACCEPTED" || order.status === "DONE" || order.status === "PICKED_UP") {
+    if (order.status === "ACCEPTED" || order.status === "READY" || order.status === "COMPLETED") {
       await saveOrder(env, order, tenantId); // Sync DB
       return json({ success: true });
     }
@@ -1093,12 +1122,12 @@ export async function updateOrder(
   }
 
   // Employee 準備好了
-  if (incoming === "DONE") {
-    if (order.status === "DONE" || order.status === "PICKED_UP") {
+  if (incoming === "READY") {
+    if (order.status === "READY" || order.status === "COMPLETED") {
       await saveOrder(env, order, tenantId);
       return json({ success: true });
     }
-    order.status = "DONE";
+    order.status = "READY";
     await saveOrder(env, order, tenantId);
 
     return json({ success: true });
@@ -1186,7 +1215,8 @@ export async function updateOrder(
       ).bind(tenantId, order.userId, order.key, "CHANGE", notifyText, reason, note).run();
 
       if (reason === "時間需調整") {
-        const timeFlex = createTimeChangeFlexBubble(order.key, note, brandName, order.displayKey);
+        const proposal = await env.DB.prepare('SELECT action_id FROM pending_actions WHERE tenant_id=? AND order_key=? AND user_id=?').bind(tenantId, order.key, order.userId).first<{action_id:string}>();
+        const timeFlex = createTimeChangeFlexBubble(order.key, note, brandName, order.displayKey, proposal?.action_id);
         const flexSent = await pushLineFlexMessage(order.userId, `[${brandName}] 調整取餐時間確認 ${OrderCode.format(order.displayKey || order.key)}`, timeFlex, env, tenantCtx);
         if (!flexSent) {
           await pushLineMessage(order.userId, notifyText, env, tenantCtx);
@@ -1210,9 +1240,9 @@ export async function updateOrder(
   }
 
   // Employee 無法接單 -> 等客戶「同意/不同意」
-  if (incoming === "REJECTED") {
+  if (incoming === "CANCELLED") {
     if (order.reason === "取消並不回復客戶") {
-      order.status = "REJECTED";
+      order.status = "CANCELLED";
       await saveOrder(env, order, tenantId);
       if (ctx && ctx.waitUntil) ctx.waitUntil(syncToGoogleSheets(order, env, tenantCtx));
       return json({ success: true });
@@ -1239,7 +1269,8 @@ export async function updateOrder(
            created_at = CURRENT_TIMESTAMP`
       ).bind(tenantId, order.userId, order.key, "REJECT", notifyText, reason, order.note || "").run();
 
-      const rejectFlex = createRejectFlexBubble(order.key, reason, brandName, undefined, order.displayKey);
+      const proposal = await env.DB.prepare('SELECT action_id FROM pending_actions WHERE tenant_id=? AND order_key=? AND user_id=?').bind(tenantId, order.key, order.userId).first<{action_id:string}>();
+      const rejectFlex = createRejectFlexBubble(order.key, reason, brandName, undefined, order.displayKey, proposal?.action_id);
       const flexSent = await pushLineFlexMessage(order.userId, `[${brandName}] 無法接單通知 ${OrderCode.format(order.displayKey || order.key)}`, rejectFlex, env, tenantCtx);
       if (!flexSent) {
         await pushLineMessage(order.userId, notifyText, env, tenantCtx);
@@ -1251,7 +1282,7 @@ export async function updateOrder(
 
   // Employee 強制取消
   if (incoming === "FORCE_REJECT") {
-    order.status = "REJECTED";
+    order.status = "CANCELLED";
     await saveOrder(env, order, tenantId);
 
     if (order.userId) {
@@ -1267,36 +1298,8 @@ export async function updateOrder(
     return json({ success: true });
   }
 
-  // Employee 已取餐 (PICKED_UP - Dành cho đơn mang đi)
-  if (incoming === "PICKED_UP") {
-    if (order.status === "PICKED_UP") {
-      await saveOrder(env, order, tenantId);
-      return json({ success: true });
-    }
-    order.status = "PICKED_UP";
-    await saveOrder(env, order, tenantId);
+  return json({code:'INVALID_ORDER_STATE'},400);
 
-    if (ctx && ctx.waitUntil) ctx.waitUntil(syncToGoogleSheets(order, env, tenantCtx));
-    return json({ success: true });
-  }
-
-  // Employee 已結帳 (PAID - Dành cho đơn ăn tại bàn)
-  if (incoming === "PAID") {
-    if (order.status === "PAID") {
-      await saveOrder(env, order, tenantId);
-      return json({ success: true });
-    }
-    order.status = "PAID";
-    await saveOrder(env, order, tenantId);
-
-    if (ctx && ctx.waitUntil) ctx.waitUntil(syncToGoogleSheets(order, env, tenantCtx));
-    return json({ success: true });
-  }
-
-  order.status = incoming;
-  await saveOrder(env, order, tenantId);
-
-  return json({ success: true });
 }
 
 export async function getWaitingCount(request: Request, env: Env): Promise<Response> {
@@ -1437,7 +1440,7 @@ export async function getOrders(request: Request, env: Env): Promise<Response> {
       `SELECT key, order_id, display_key, business_date, legacy_key, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, table_id, source, revision, round_count, last_appended_at, created_at, is_modified
        FROM orders 
        WHERE tenant_id = ? AND status <> 'PENDING_PAYMENT'
-         AND (status IN ('NEW', 'ACCEPTED', 'WAITING_CUSTOMER_CHANGE', 'WAITING_CUSTOMER_REJECT', 'DONE') 
+         AND (status IN ('NEW', 'ACCEPTED', 'WAITING_CUSTOMER_CHANGE', 'WAITING_CUSTOMER_REJECT', 'READY')
               OR created_at >= ?)
        ORDER BY created_at DESC LIMIT 500`
     ).bind(tenantId, startOfTodayUTC).all<any>();
@@ -1465,7 +1468,7 @@ export async function getHistorySummary(request: Request, env: Env): Promise<Res
          SUM(total_amount) as total_revenue
        FROM orders
        WHERE tenant_id = ? 
-         AND status IN ('PICKED_UP', 'REJECTED', 'PAID')
+         AND status IN ('COMPLETED', 'CANCELLED', 'COMPLETED')
          AND created_at >= DATETIME('now', '-30 days')
        GROUP BY date_group
        ORDER BY date_group DESC`
@@ -1499,7 +1502,7 @@ export async function getOrdersByDate(request: Request, env: Env): Promise<Respo
       `SELECT key, order_id, display_key, business_date, legacy_key, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, table_id, source, revision, round_count, last_appended_at, created_at
        FROM orders 
        WHERE tenant_id = ? 
-         AND status IN ('PICKED_UP', 'REJECTED', 'PAID')
+         AND status IN ('COMPLETED', 'CANCELLED', 'COMPLETED')
          AND DATE(DATETIME(created_at, '+8 hours')) = ?
        ORDER BY created_at DESC LIMIT 500`
     ).bind(tenantId, dateStr).all<any>();
@@ -1524,7 +1527,7 @@ export async function getHistoryAll(request: Request, env: Env): Promise<Respons
       `SELECT key, order_id, display_key, business_date, legacy_key, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, table_id, source, revision, round_count, last_appended_at, created_at
        FROM orders 
        WHERE tenant_id = ? 
-         AND status IN ('PICKED_UP', 'REJECTED', 'PAID')
+         AND status IN ('COMPLETED', 'CANCELLED', 'COMPLETED')
          AND created_at >= DATETIME('now', '-30 days')
        ORDER BY created_at DESC LIMIT 1000`
     ).bind(tenantId).all<any>();
@@ -1554,7 +1557,7 @@ export async function saveOrder(env: Env, order: Order, tenantId: string, create
      ${createOnly ? '' : `ON CONFLICT(key) DO UPDATE SET
        uuid = CASE WHEN excluded.uuid IS NOT NULL THEN excluded.uuid ELSE orders.uuid END,
        status = CASE
-         WHEN orders.status IN ('ACCEPTED', 'DONE', 'REJECTED', 'PICKED_UP', 'PAID') AND excluded.status = 'NEW'
+         WHEN orders.status IN ('ACCEPTED', 'READY', 'CANCELLED', 'COMPLETED') AND excluded.status = 'NEW'
          THEN orders.status
          ELSE excluded.status
        END,
@@ -1677,7 +1680,7 @@ export async function getOrderQueueAhead(env: Env, tenantId: string, orderKey: s
     };
 
     await attachOrderDetails(env, tenantId, [order]);
-    if (order.status === 'DONE' || order.status === 'PICKED_UP' || order.status === 'REJECTED') {
+    if (order.status === 'READY' || order.status === 'COMPLETED' || order.status === 'CANCELLED') {
       return { order, queueAhead: 0 };
     }
 
@@ -1722,7 +1725,7 @@ export async function getUserLatestActiveOrder(env: Env, tenantId: string, userI
     const row = await env.DB.prepare(
       `SELECT key FROM orders 
        WHERE tenant_id = ? AND user_id = ?
-         AND status IN ('NEW', 'ACCEPTED', 'WAITING_CUSTOMER_CHANGE', 'WAITING_CUSTOMER_REJECT', 'DONE')
+         AND status IN ('NEW', 'ACCEPTED', 'WAITING_CUSTOMER_CHANGE', 'WAITING_CUSTOMER_REJECT', 'READY')
        ORDER BY created_at DESC LIMIT 1`
     ).bind(tenantId, userId).first<any>();
 

@@ -30,7 +30,7 @@ export async function getTableStatus(
     FROM orders
     WHERE tenant_id = ?
       AND (table_id = ? OR table_number = ?)
-      AND status NOT IN ('PAID', 'REJECTED', 'PICKED_UP', 'EXPIRED', 'FORCE_REJECT')
+      AND status NOT IN ('COMPLETED', 'CANCELLED', 'COMPLETED', 'EXPIRED', 'FORCE_REJECT')
     ORDER BY created_at DESC
     LIMIT 1
   `).bind(tenantId, tableId || '__none__', tableLabel).first<any>();

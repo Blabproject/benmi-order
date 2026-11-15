@@ -66,7 +66,7 @@ export async function writeDetailedOrder(env: Env, tenant: string, input: any, k
       if (!row) throw new DetailError('ORDER_NOT_FOUND', 404);
       if (row.source === 'staff') throw new DetailError('STAFF_ORDER_RESTRICTED',403);
       if ((kind === 'modify' && row.status !== 'WAITING_CUSTOMER_CHANGE') ||
-        (kind === 'append' && ['PICKED_UP','REJECTED','PAID','EXPIRED','FORCE_REJECT'].includes(row.status))) throw new DetailError('ORDER_LOCKED', 409);
+        (kind === 'append' && ['COMPLETED','CANCELLED','COMPLETED','EXPIRED','FORCE_REJECT'].includes(row.status))) throw new DetailError('ORDER_LOCKED', 409);
       if (!Number.isInteger(input.expectedDetailRevision) || input.expectedDetailRevision !== row.detail_revision)
         throw new DetailError('ORDER_DETAIL_CONFLICT', 409);
       current = await readDetail(env, tenant, key);
@@ -97,8 +97,9 @@ export async function writeDetailedOrder(env: Env, tenant: string, input: any, k
     // Append receipts show only this round, while persisted snapshot contains the whole order.
     const receiptOrder = kind === 'append' ? { ...order, total: round.total,
       detailSnapshot: { schemaVersion: 1 as const, rounds: [round], total: round.total } } : order;
+    const customerLocale = (input as any)?.customer_locale || (input as any)?.customerLocale;
     const receipt = await prepareOrderReceipt(env, tenant, key, order.userId, kind,
-      `[${tenantCtx?.brandName || tenant}] ${OrderCode.format(displayKey)}`, buildOrderFlexMessage(receiptOrder, tenantCtx));
+      `[${tenantCtx?.brandName || tenant}] ${OrderCode.format(displayKey)}`, buildOrderFlexMessage(receiptOrder, tenantCtx, undefined, undefined, customerLocale));
     const statements: D1PreparedStatement[] = [];
     let tableId: string | null = null;
     if (order.tableNumber && env.DB) {

@@ -4,7 +4,8 @@ export function createRejectFlexBubble(
   reason: string,
   brandName: string = "店家",
   brandColor: string = "#DC2626",
-  displayKey: string = orderKey
+  displayKey: string = orderKey,
+  actionId: string = ""
 ): any {
   return {
     type: "bubble",
@@ -67,7 +68,7 @@ export function createRejectFlexBubble(
           action: {
             type: "postback",
             label: "同意取消",
-            data: `action=reject_agree&orderKey=${orderKey}`,
+            data: `action=reject_agree&orderKey=${encodeURIComponent(orderKey)}&actionId=${encodeURIComponent(actionId)}`,
             displayText: "同意取消"
           }
         },
@@ -78,7 +79,7 @@ export function createRejectFlexBubble(
           action: {
             type: "postback",
             label: "不同意",
-            data: `action=reject_disagree&orderKey=${orderKey}`,
+            data: `action=reject_disagree&orderKey=${encodeURIComponent(orderKey)}&actionId=${encodeURIComponent(actionId)}`,
             displayText: "不同意"
           }
         }
@@ -91,7 +92,8 @@ export function createTimeChangeFlexBubble(
   orderKey: string,
   newTime: string,
   brandName: string = "店家",
-  displayKey: string = orderKey
+  displayKey: string = orderKey,
+  actionId: string = ""
 ): any {
   const timeDisplay = newTime || "稍後";
   return {
@@ -156,7 +158,7 @@ export function createTimeChangeFlexBubble(
           action: {
             type: "postback",
             label: "同意",
-            data: `action=change_agree&orderKey=${orderKey}&newTime=${encodeURIComponent(timeDisplay)}`,
+            data: `action=change_agree&orderKey=${encodeURIComponent(orderKey)}&actionId=${encodeURIComponent(actionId)}&newTime=${encodeURIComponent(timeDisplay)}`,
             displayText: "同意"
           }
         },
@@ -167,7 +169,7 @@ export function createTimeChangeFlexBubble(
           action: {
             type: "postback",
             label: "不同意",
-            data: `action=change_cancel&orderKey=${orderKey}`,
+            data: `action=change_cancel&orderKey=${encodeURIComponent(orderKey)}&actionId=${encodeURIComponent(actionId)}`,
             displayText: "不同意"
           }
         }

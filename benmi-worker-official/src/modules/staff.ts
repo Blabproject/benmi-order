@@ -1,3 +1,4 @@
+import { handleOrderCommand } from './order-commands';
 import { Env } from '../types/env';
 import { json } from '../utils/http';
 import { getTenantId } from './menu';
@@ -197,6 +198,8 @@ async function dispatchStaffRoute(
     : path === '/api/staff/orders' ? 'create' : 'orders_read';
   if (!access.capabilities[required] && !(hasTableQrOrdering && isTableManagementPath)) return denied();
 
+  if (request.method !== 'GET' && !await verifyStaffSession(request,env,tenantId)) return json({code:'UNAUTHORIZED'},401);
+
   // --- 4. GET /api/staff/tables (List tables with active order info) ---
   if (request.method === "GET" && path === "/api/staff/tables") {
     const includeInactive = url.searchParams.get("include_inactive") === "1" || url.searchParams.get("all") === "1";
@@ -210,7 +213,7 @@ async function dispatchStaffRoute(
              o.revision AS active_revision, o.detail_revision AS active_detail_revision, o.customer_name AS active_customer_name,
              o.created_at AS active_created_at, o.last_appended_at AS active_last_appended_at
       FROM restaurant_tables t
-      LEFT JOIN orders o ON o.table_id = t.id AND o.tenant_id=t.tenant_id AND o.source = 'staff' AND o.status NOT IN ('PAID', 'REJECTED', 'PICKED_UP', 'EXPIRED', 'FORCE_REJECT')
+      LEFT JOIN orders o ON o.table_id = t.id AND o.tenant_id=t.tenant_id AND o.source = 'staff' AND o.status NOT IN ('COMPLETED', 'CANCELLED', 'EXPIRED')
       WHERE t.tenant_id = ? ${includeInactive ? '' : 'AND t.is_active = 1'}
       ORDER BY t.sort_order ASC, t.label ASC
     `;
@@ -317,7 +320,7 @@ async function dispatchStaffRoute(
     if ((newLabel !== table.label || newActive === 0) && newActive !== table.is_active || (newLabel !== table.label)) {
       const activeOrder = await env.DB.prepare(
         `SELECT key FROM orders
-         WHERE tenant_id = ? AND table_id = ? AND source = 'staff' AND status NOT IN ('PAID', 'REJECTED', 'PICKED_UP', 'EXPIRED', 'FORCE_REJECT')
+         WHERE tenant_id = ? AND table_id = ? AND source = 'staff' AND status NOT IN ('COMPLETED', 'CANCELLED', 'EXPIRED')
          LIMIT 1`
       ).bind(tenantId, tableId).first();
 
@@ -382,7 +385,7 @@ async function dispatchStaffRoute(
   return handleStaffOrderWrite(request, env, path, tenantId, tenantCtx);
 }
 
-const FINAL = ['PAID','REJECTED','PICKED_UP','EXPIRED','FORCE_REJECT'];
+const FINAL = ['COMPLETED','CANCELLED','EXPIRED'];
 async function handleStaffOrderWrite(request: Request, env: Env, path: string, tenant: string, tenantCtx: TenantContext) {
   const match = path.match(/^\/api\/staff\/orders\/([^/]+)\/(rounds|status)$/);
   const create = request.method === 'POST' && path === '/api/staff/orders';
@@ -401,13 +404,13 @@ async function handleStaffOrderWrite(request: Request, env: Env, path: string, t
     const expected = body.expectedRevision;
     if (!create && (!Number.isInteger(expected) || expected < 0)) throw new DetailError('INVALID_REVISION');
     if (status) {
-      const transitions: Record<string,string[]> = { ACCEPTED:['DONE','PAID','PICKED_UP','REJECTED','FORCE_REJECT'], DONE:['PAID','PICKED_UP','REJECTED','FORCE_REJECT'], NEW:['ACCEPTED','REJECTED','FORCE_REJECT'] };
-      if (!transitions[row.status]?.includes(body.status)) throw new DetailError('INVALID_STATUS_TRANSITION',409);
-      const result = await env.DB.prepare(`UPDATE orders SET status=?,revision=revision+1,
-        updated_at=strftime('%Y-%m-%d %H:%M:%f','now') WHERE tenant_id=? AND key=? AND source='staff' AND revision=? AND status=?`)
-        .bind(body.status,tenant,row.key,expected,row.status).run();
-      if (!result.meta.changes) throw new DetailError('REVISION_CONFLICT',409);
-      return json({ok:true,success:true,key:row.key,status:body.status,revision:expected+1});
+      const action: Record<string,string> = {ACCEPTED:'accept',DONE:'mark_ready',READY:'mark_ready',PAID:'complete',PICKED_UP:'complete',COMPLETED:'complete',REJECTED:'cancel',CANCELLED:'cancel',FORCE_REJECT:'cancel'};
+      if (!Object.hasOwn(action,body.status)) throw new DetailError('INVALID_STATUS_TRANSITION',409);
+      if (!body.operationId) throw new DetailError('ORDER_CLIENT_UPGRADE_REQUIRED',409);
+      return handleOrderCommand(new Request(request.url,{method:'POST',headers:request.headers,body:JSON.stringify({
+        operationId:body.operationId,expectedRevision:expected,action:action[body.status],
+        reason:body.reason || (action[body.status]==='cancel'?'Staff cancellation':''),...(body.settlement?{settlement:body.settlement}:{})
+      })}),env,tenant,row.key);
     }
     if (tenantCtx.storeStatus === 'paused' || tenantCtx.storeStatus === 'closed') throw new DetailError('STORE_PAUSED');
     if (await tenantIsDeleted(env.DB, tenant)) throw new DetailError('TENANT_DELETED', 403);
@@ -435,7 +438,7 @@ async function handleStaffOrderWrite(request: Request, env: Env, path: string, t
       table = await env.DB.prepare('SELECT id,label FROM restaurant_tables WHERE tenant_id=? AND id=? AND is_active=1').bind(tenant,body.tableId || '').first();
       if (!table) throw new DetailError('TABLE_NOT_AVAILABLE',404);
       if (await env.DB.prepare(`SELECT 1 FROM orders WHERE tenant_id=? AND table_id=? AND source='staff'
-        AND status NOT IN ('PAID','REJECTED','PICKED_UP','EXPIRED','FORCE_REJECT')`).bind(tenant,table.id).first()) throw new DetailError('TABLE_OCCUPIED',409);
+        AND status NOT IN ('COMPLETED','CANCELLED','EXPIRED')`).bind(tenant,table.id).first()) throw new DetailError('TABLE_OCCUPIED',409);
     }
     const current = row ? await readDetail(env,tenant,row.key) : null;
     const snapshot: OrderDetailSnapshot = current ? structuredClone(current.snapshot) : {schemaVersion:1,rounds:[],total:0};
@@ -467,7 +470,7 @@ async function handleStaffOrderWrite(request: Request, env: Env, path: string, t
         customerDisplayName,pickupTimeStr,diningOption,diningOption === 'dine_in' ? table.label : '',diningOption === 'dine_in' ? table.id : null));
     statements.push(detailStatement(env,tenant,key,detailRevision,requestId,hash,snapshot,create?'create':'append'));
     statements.push(env.DB.prepare(`UPDATE orders SET revision=CASE WHEN revision=? AND status NOT IN
-      ('PAID','REJECTED','PICKED_UP','EXPIRED','FORCE_REJECT') THEN revision+1 ELSE -1 END,
+      ('COMPLETED','CANCELLED','EXPIRED') THEN revision+1 ELSE -1 END,
       detail_revision=?,total_amount=?,order_content=?,note=?,round_count=?,status='ACCEPTED',
       last_appended_at=CASE WHEN ? THEN strftime('%Y-%m-%d %H:%M:%f','now') ELSE last_appended_at END,
       updated_at=strftime('%Y-%m-%d %H:%M:%f','now') WHERE tenant_id=? AND key=? AND source='staff'`)

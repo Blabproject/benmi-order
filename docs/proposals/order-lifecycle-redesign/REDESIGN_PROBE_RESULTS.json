@@ -1,0 +1,85 @@
+{
+  "diagnosticOnly": true,
+  "remoteRequests": false,
+  "measuredAt": "2026-11-13T17:11:08.329Z",
+  "scope": "current local handlers, two disposable schema versions; not deployed production requests",
+  "results": [
+    {
+      "schema": "through_0087_production_shape",
+      "observations": {
+        "arbitraryStatus": {
+          "http": 200,
+          "status": "NOT_A_REAL_STATE",
+          "total_amount": 120
+        },
+        "completedToChange": {
+          "http": 200,
+          "status": "WAITING_CUSTOMER_CHANGE",
+          "total_amount": 120
+        },
+        "lateWriterAfterPickup": {
+          "status": "PICKED_UP",
+          "total_amount": 999
+        },
+        "stalePostbackSql": {
+          "status": "NEW",
+          "total_amount": 120
+        },
+        "pickupThenPaid": {
+          "http": 200,
+          "status": "PAID",
+          "total_amount": 120
+        },
+        "historyIncludesCancelledAmount": {
+          "http": 200,
+          "rows": [
+            {
+              "date": "2026-11-14",
+              "count": 2,
+              "total": 200
+            }
+          ]
+        }
+      }
+    },
+    {
+      "schema": "through_0089_dev_foundation",
+      "observations": {
+        "arbitraryStatus": {
+          "http": 200,
+          "status": "NOT_A_REAL_STATE",
+          "total_amount": 120
+        },
+        "completedToChange": {
+          "http": 200,
+          "status": "WAITING_CUSTOMER_CHANGE",
+          "total_amount": 120
+        },
+        "lateWriterAfterPickup": {
+          "status": "PICKED_UP",
+          "total_amount": 999
+        },
+        "stalePostbackSql": {
+          "status": "NEW",
+          "total_amount": 120
+        },
+        "pickupThenPaid": {
+          "http": 200,
+          "status": "PAID",
+          "total_amount": 120,
+          "collectionCount": 1
+        },
+        "historyIncludesCancelledAmount": {
+          "http": 200,
+          "rows": [
+            {
+              "date": "2026-11-14",
+              "count": 2,
+              "total": 200
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -248,9 +248,12 @@ document.addEventListener('click', function(e) {
         if (input) {
             const minSub = Number(input.getAttribute('data-min-subtotal')) || 0;
             const currentSub = typeof calculateCurrentFoodSubtotal === 'function' ? calculateCurrentFoodSubtotal() : 0;
-            const optName = input.getAttribute('data-option-name') || input.value;
+            const optName = input.getAttribute('data-option-display-name') || input.getAttribute('data-option-name') || input.value;
             const diff = Math.max(0, minSub - currentSub);
-            const customMsg = input.getAttribute('data-error-msg') || `此選項「${optName}」需全單消費滿 $${minSub} 元方可選擇（目前金額 $${currentSub} 元，還差 $${diff} 元）`;
+            const fallbackMsg = typeof ct === 'function'
+                ? ct('threshold_opt_alert', { name: optName, min: minSub, current: currentSub, diff })
+                : `此選項「${optName}」需全單消費滿 $${minSub} 元方可選擇（目前金額 $${currentSub} 元，還差 $${diff} 元）`;
+            const customMsg = input.getAttribute('data-error-msg') || fallbackMsg;
             if (typeof customAlert === 'function') {
                 customAlert(customMsg);
             } else {
@@ -271,6 +274,7 @@ function validateCustomizationThresholds() {
         if (minSub > 0 && currentSubtotal < minSub) {
             violations.push({
                 name: radio.getAttribute('data-option-name') || radio.value,
+                displayName: radio.getAttribute('data-option-display-name') || radio.getAttribute('data-option-name') || radio.value,
                 minSubtotal: minSub,
                 currentSubtotal: currentSubtotal,
                 errorMsg: radio.getAttribute('data-error-msg')
@@ -285,6 +289,7 @@ function validateCustomizationThresholds() {
         if (minSub > 0 && currentSubtotal < minSub) {
             violations.push({
                 name: chk.getAttribute('data-option-name') || chk.value,
+                displayName: chk.getAttribute('data-option-display-name') || chk.getAttribute('data-option-name') || chk.value,
                 minSubtotal: minSub,
                 currentSubtotal: currentSubtotal,
                 errorMsg: chk.getAttribute('data-error-msg')
@@ -321,7 +326,10 @@ function updateQty(category, origName, change) {
     const currentQty = cartObj[key] || 0;
 
     if (change > 0 && maxPerOrder && currentQty >= maxPerOrder) {
-        const limitMsg = `【${targetItem.name || origName}】每單限購 ${maxPerOrder} 份`;
+        const itemLabel = (typeof locText === 'function' ? locText(targetItem, 'name', targetItem.name || origName) : (targetItem.name || origName));
+        const limitMsg = typeof ct === 'function'
+            ? ct('cart_max_limit_short', { item: itemLabel, max: maxPerOrder })
+            : `【${itemLabel}】每單限購 ${maxPerOrder} 份`;
         if (typeof customAlert === 'function') {
             customAlert(limitMsg);
         } else {
@@ -584,8 +592,8 @@ function updateTotal() {
     let total = 0;
     let totalQty = 0;
     let summaryHTML = '';
-    const zhNumbers = ['第一份', '第二份', '第三份', '第四份', '第五份', '第六份', '第七份', '第八份', '第九份', '第十份'];
-    const cartIsVietnamese = (typeof currentLocale !== 'undefined' ? currentLocale : document.documentElement?.lang) === 'vi';
+    const t = (key, vars, fallback) => (typeof ct === 'function' ? ct(key, vars) : fallback);
+    const loc = (entity, field, fallback) => (typeof locText === 'function' ? locText(entity, field, fallback) : (fallback ?? entity?.[field] ?? ''));
     const escapeCartText = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 
     const bData = window.bootstrapData || bootstrapData;
@@ -593,21 +601,46 @@ function updateTotal() {
     const cData = window.customizeData || customizeData || {};
     const cDrinkData = window.comboDrinkData || comboDrinkData || {};
 
-    // 1. Tóm tắt 口味與客製化設定
+    const resolveGlobalOptObj = (group, rawOptName) =>
+        (group?.options || []).find(o => typeof o === 'object' && o && (o.name === rawOptName || String(o.id) === rawOptName)) || null;
+    const resolveGlobalOptName = (group, rawOptName) => {
+        const obj = resolveGlobalOptObj(group, rawOptName);
+        return obj ? loc(obj, 'name', rawOptName) : rawOptName;
+    };
+    const resolveItemModLabel = (modsList, detailIdOrName, rawVal) => {
+        const resolved = (typeof resolveOptionDisplayName === 'function') ? resolveOptionDisplayName(rawVal) : rawVal;
+        for (const m of (modsList || [])) {
+            for (const o of (m.options || [])) {
+                if ((detailIdOrName && (o.id === detailIdOrName)) || o.name === rawVal || o.name === resolved) {
+                    return { optObj: o, displayName: loc(o, 'name', o.name || resolved) };
+                }
+            }
+        }
+        return { optObj: null, displayName: resolved };
+    };
+
+    // 1. Order-level customization summary
     let customSummaries = [];
     if (bData?.customizations && bData.customizations.length > 0) {
         bData.customizations.forEach(group => {
             const inputName = `opt-${group.key}`;
+            const rawGroupTitle = loc(group, 'title', loc(group, 'name', group.title || ''));
+            const cleanGroupTitle = String(rawGroupTitle || '').replace(/^✦\s*/, '').replace(/選擇|調整/g, '').trim();
             if (group.type === 'radio') {
                 const checkedRadio = document.querySelector(`input[name="${inputName}"]:checked`);
                 if (checkedRadio) {
                     const val = checkedRadio.value;
+                    const optObj = resolveGlobalOptObj(group, val);
+                    const optDisplay = optObj ? loc(optObj, 'name', val) : val;
                     let subDetails = '';
                     const activeSubContainer = document.querySelector(`.sub-option-container[data-parent-flavor="${val}"]`);
                     if (activeSubContainer) {
                         let subOpts = [];
                         activeSubContainer.querySelectorAll('input.sub-opt-chk:checked').forEach(chk => {
-                            subOpts.push(chk.value);
+                            const subDisplay = (typeof locSubOptionText === 'function' && optObj)
+                                ? locSubOptionText(optObj, chk.value)
+                                : chk.value;
+                            subOpts.push(escapeCartText(subDisplay));
                         });
                         if (subOpts.length > 0) {
                             subDetails = ` (${subOpts.join('、')})`;
@@ -615,20 +648,20 @@ function updateTotal() {
                     }
                     const p = Number(checkedRadio.getAttribute('data-price')) || 0;
                     const priceSuffix = p > 0 ? ` (+$${p})` : '';
-                    const groupTitle = (group.title || '').replace(/^✦\s*/, '').replace(/選擇|調整/g, '').trim();
-                    customSummaries.push(`<div><b style="color:#1e293b;">${groupTitle || '口味'}：</b>${val}${priceSuffix}${subDetails}</div>`);
+                    const labelTitle = cleanGroupTitle || t('customize_group_fallback', null, '口味');
+                    customSummaries.push(`<div><b style="color:#1e293b;">${escapeCartText(labelTitle)}：</b>${escapeCartText(optDisplay)}${priceSuffix}${subDetails}</div>`);
                 }
             } else if (group.type === 'checkbox') {
                 let selectedChecks = [];
                 document.querySelectorAll(`input[name="${inputName}"]:checked`).forEach(chk => {
                     const p = Number(chk.getAttribute('data-price')) || 0;
                     if (p === 0) {
-                        selectedChecks.push(chk.value);
+                        selectedChecks.push(escapeCartText(resolveGlobalOptName(group, chk.value)));
                     }
                 });
                 if (selectedChecks.length > 0) {
-                    const groupTitle = (group.title || '').replace(/^✦\s*/, '').replace(/選擇|調整/g, '').trim();
-                    customSummaries.push(`<div><b style="color:#1e293b;">${groupTitle || '配料'}：</b>${selectedChecks.join('、')}</div>`);
+                    const labelTitle = cleanGroupTitle || t('cart_topping_fallback', null, '配料');
+                    customSummaries.push(`<div><b style="color:#1e293b;">${escapeCartText(labelTitle)}：</b>${selectedChecks.join('、')}</div>`);
                 }
             }
         });
@@ -639,7 +672,7 @@ function updateTotal() {
             <div style="margin-bottom: 8px; padding: 8px 12px; background: #f8fafc; border-radius: 10px; border: 1px dashed #cbd5e1; font-size: 13px; color: #475569; line-height: 1.5;">
                 <div style="font-weight: 800; color: #0f172a; margin-bottom: 2px; font-size: 13.5px; display: flex; align-items: center; gap: 6px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
-                    <span>客製化設定</span>
+                    <span>${escapeCartText(t('cart_custom_settings', null, '客製化設定'))}</span>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 2px;">${customSummaries.join('')}</div>
             </div>
@@ -679,6 +712,7 @@ function updateTotal() {
             const { catSlug, itemName } = parseCartKey(key);
             const qty = cartObj[key];
             const dName = itemInfo.displayName || itemName;
+            const localizedDName = itemInfo.localizedDisplayName || (itemInfo.targetItem ? loc(itemInfo.targetItem, 'name', dName) : dName);
 
             const isOutOfStock = (
                 (typeof isItemOutOfStock === 'function' && isItemOutOfStock(key)) ||
@@ -700,7 +734,7 @@ function updateTotal() {
                 itemInfo,
                 catSlug,
                 itemName,
-                displayName: dName,
+                displayName: localizedDName,
                 qty,
                 price: itemBasePrice,
                 isOutOfStock
@@ -727,6 +761,9 @@ function updateTotal() {
             const bundleRule = it.itemInfo?.bundleRule || it.itemInfo?.targetItem?.bundleRule;
             const hasBundleGroups = Boolean(bundleRule?.groups?.length);
 
+            const getItemModsFn = typeof getItemModifiers === 'function' ? getItemModifiers : (window.getItemModifiers || (() => []));
+            const itemMods = getItemModsFn(catSlug, itemName);
+
             if (cData[key]) {
                 cData[key].slice(0, qty).forEach((c, i) => {
                     if (!c) return;
@@ -734,9 +771,11 @@ function updateTotal() {
                     if (c.selectedDetails && Object.keys(c.selectedDetails).length > 0) {
                         Object.values(c.selectedDetails).forEach(detail => {
                             if (!detail) return;
+                            const { optObj, displayName: optLabel } = resolveItemModLabel(itemMods, detail.id, detail.name || detail.id);
                             const sub = detail.subOption || c.subOptions?.[detail.id] || c.subOptions?.[detail.name];
+                            const subDisplay = sub ? (typeof locSubOptionText === 'function' ? locSubOptionText(optObj, sub) : (sub.name || sub)) : '';
                             const price = Number(detail.price || 0) + Number(sub?.price || 0);
-                            const label = `${detail.name || detail.id}${sub ? ` (${sub.name})` : ''}`;
+                            const label = `${optLabel}${subDisplay ? ` (${subDisplay})` : ''}`;
                             parts.push(price > 0 ? `${label} (+$${price})` : label);
                         });
                     } else if (c.single) {
@@ -744,8 +783,9 @@ function updateTotal() {
                             const rawVal = c.single[s];
                             const val = (typeof resolveOptionDisplayName === 'function') ? resolveOptionDisplayName(rawVal) : rawVal;
                             if (val && val !== '不辣' && val !== '不需要') {
+                                const { displayName: optLabel } = resolveItemModLabel(itemMods, null, rawVal);
                                 const addP = getPrice(val) || getPrice(rawVal);
-                                const label = addP > 0 ? `${val} (+$${addP})` : val;
+                                const label = addP > 0 ? `${optLabel} (+$${addP})` : optLabel;
                                 if (!parts.includes(label)) parts.push(label);
                             }
                         }
@@ -753,11 +793,12 @@ function updateTotal() {
                     if ((!c.selectedDetails || Object.keys(c.selectedDetails).length === 0) && c.multiple) {
                         for (let topName in c.multiple) {
                             if (c.multiple[topName]) {
+                                const { displayName: optLabel } = resolveItemModLabel(itemMods, topName, topName);
                                 const topPrice = getPrice(topName);
                                 if (topPrice > 0) {
-                                    parts.push(`${topName} (+$${topPrice})`);
+                                    parts.push(`${optLabel} (+$${topPrice})`);
                                 } else {
-                                    parts.push(topName);
+                                    parts.push(optLabel);
                                 }
                             }
                         }
@@ -789,8 +830,8 @@ function updateTotal() {
                 summaryHTML += `
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; opacity:0.6; text-decoration:line-through; color:#94a3b8;">
                         <div style="font-weight:700;">
-                            <span>${qty}x ${displayName}</span>
-                            <span style="display:inline-block; margin-left:6px; font-size:11px; font-weight:700; background:#fee2e2; color:#dc2626; padding:1px 6px; border-radius:4px; text-decoration:none; vertical-align:middle;">已移除</span>
+                            <span>${qty}x ${escapeCartText(displayName)}</span>
+                            <span style="display:inline-block; margin-left:6px; font-size:11px; font-weight:700; background:#fee2e2; color:#dc2626; padding:1px 6px; border-radius:4px; text-decoration:none; vertical-align:middle;">${escapeCartText(t('cart_item_removed', null, '已移除'))}</span>
                         </div>
                         <div style="font-weight:700; color:#94a3b8;">$${lineTotal}</div>
                     </div>
@@ -801,8 +842,24 @@ function updateTotal() {
                     portions.forEach((p, pIdx) => {
                         const bundleParts = [];
                         (p.groups || []).forEach(g => {
-                            const itemsStr = (g.items || []).map(item => `${item.name} x${item.quantity}${(item.modifiers || []).length ? ` (${item.modifiers.map(mod => mod.name).join('、')})` : ''}`).join('、');
-                            if (itemsStr) bundleParts.push(`${g.groupName || '配菜'}：${itemsStr}`);
+                            const bGroupDef = (bundleRule?.groups || []).find(bg => bg.id === g.groupId);
+                            const gDisplayTitle = bGroupDef ? loc(bGroupDef, 'name', g.groupName) : (g.groupName || t('bundle_fallback_label', null, '配菜'));
+                            const bOpts = bGroupDef ? (bGroupDef.eligibleItems || bGroupDef.options || []) : [];
+                            const itemsStr = (g.items || []).map(item => {
+                                const srcDef = bOpts.find(opt => opt.id === (item.optionId || item.itemId));
+                                const itemLabel = srcDef ? loc(srcDef, 'name', item.name) : item.name;
+                                const modsList = (item.modifiers || []).map(mod => {
+                                    const mGroup = (srcDef?.optionGroups || []).find(mg => mg.id === mod.groupId);
+                                    const mOpt = (mGroup?.eligibleItems || mGroup?.options || []).find(o => o.id === mod.optionId || o.name === mod.name);
+                                    return mOpt ? loc(mOpt, 'name', mod.name) : mod.name;
+                                });
+                                const subList = (item.subOptions || []).map(sub => {
+                                    return (typeof locSubOptionText === 'function' && srcDef) ? locSubOptionText(srcDef, sub) : (sub.name || sub);
+                                });
+                                const detailsJoin = [...modsList, ...subList].filter(Boolean).join('、');
+                                return `${itemLabel} x${item.quantity}${detailsJoin ? ` (${detailsJoin})` : ''}`;
+                            }).join('、');
+                            if (itemsStr) bundleParts.push(`${gDisplayTitle}：${itemsStr}`);
                         });
 
                         // Check customize selections for this portion
@@ -814,8 +871,9 @@ function updateTotal() {
                                     const rawVal = c.single[s];
                                     const val = (typeof resolveOptionDisplayName === 'function') ? resolveOptionDisplayName(rawVal) : rawVal;
                                     if (val && val !== '不辣' && val !== '不需要') {
+                                        const { displayName: optLabel } = resolveItemModLabel(itemMods, null, rawVal);
                                         const addP = getPrice(val) || getPrice(rawVal);
-                                        const label = addP > 0 ? `${val} (+$${addP})` : val;
+                                        const label = addP > 0 ? `${optLabel} (+$${addP})` : optLabel;
                                         if (!customParts.includes(label)) customParts.push(label);
                                     }
                                 }
@@ -823,13 +881,14 @@ function updateTotal() {
                             if (c.multiple) {
                                 for (let topName in c.multiple) {
                                     if (c.multiple[topName]) {
+                                        const { displayName: optLabel } = resolveItemModLabel(itemMods, topName, topName);
                                         const topPrice = getPrice(topName);
-                                        customParts.push(topPrice > 0 ? `${topName} (+$${topPrice})` : topName);
+                                        customParts.push(topPrice > 0 ? `${optLabel} (+$${topPrice})` : optLabel);
                                     }
                                 }
                             }
                             if (c.note && c.note.trim() !== '') {
-                                customParts.push(`備註: ${c.note.trim()}`);
+                                customParts.push(t('cart_note_prefix', { note: c.note.trim() }, `備註: ${c.note.trim()}`));
                             }
                         }
 
@@ -867,13 +926,13 @@ function updateTotal() {
                 const safeDisplayName = escapeCartText(displayName);
 
                 if (qty === 1 && portionGroups.length === 1 && !portionGroups[0].detail && !drinkStr) {
-                    const editLabel = cartIsVietnamese ? `Điều chỉnh ${safeDisplayName}` : `調整 ${safeDisplayName}`;
-                    const removeLabel = cartIsVietnamese ? `Xóa ${safeDisplayName}` : `移除 ${safeDisplayName}`;
+                    const editLabel = escapeCartText(t('cart_edit_item_aria', { name: displayName }, `調整 ${displayName}`));
+                    const removeLabel = escapeCartText(t('cart_remove_item_aria', { name: displayName }, `移除 ${displayName}`));
                     summaryHTML += `
                         <div class="cart-item-block">
                             <div class="cart-item-header">
                                 <div class="cart-item-title">
-                                    <span>${qty}x ${displayName}</span>
+                                    <span>${qty}x ${safeDisplayName}</span>
                                 </div>
                                 <div class="cart-item-right" data-category="${safeCatSlug}" data-item="${safeItemName}" data-portion="0">
                                     <span class="cart-portion-actions">
@@ -891,24 +950,22 @@ function updateTotal() {
                         let groupLabel = '';
                         if (qty > 1) {
                             if (group.indices.length === qty) {
-                                groupLabel = cartIsVietnamese ? `Tất cả ${qty} phần` : `共 ${qty} 份`;
+                                groupLabel = t('cart_all_portions', { qty }, `共 ${qty} 份`);
                             } else if (group.indices.length === 1) {
-                                groupLabel = cartIsVietnamese ? `Phần ${firstIndex + 1}` : (zhNumbers[firstIndex] || `第 ${firstIndex + 1} 份`);
+                                groupLabel = t('portion_n', { n: firstIndex + 1 }, `第 ${firstIndex + 1} 份`);
                             } else {
-                                groupLabel = cartIsVietnamese
-                                    ? `Phần ${group.indices.map(idx => idx + 1).join(', ')}`
-                                    : `第 ${group.indices.map(idx => idx + 1).join('、')} 份`;
+                                groupLabel = t('cart_portions_join', { list: group.indices.map(idx => idx + 1).join(', ') }, `第 ${group.indices.map(idx => idx + 1).join('、')} 份`);
                             }
                         }
 
                         const detailHtml = groupLabel && group.detail
-                            ? `${groupLabel}：${escapeCartText(group.detail)}`
-                            : (group.detail ? escapeCartText(group.detail) : groupLabel);
-                        const contextLabel = groupLabel ? `${safeDisplayName}, ${escapeCartText(groupLabel)}` : safeDisplayName;
-                        const editLabel = cartIsVietnamese ? `Điều chỉnh ${contextLabel}` : `調整 ${contextLabel}`;
+                            ? `${escapeCartText(groupLabel)}：${escapeCartText(group.detail)}`
+                            : (group.detail ? escapeCartText(group.detail) : escapeCartText(groupLabel));
+                        const contextLabel = groupLabel ? `${displayName}, ${groupLabel}` : displayName;
+                        const editLabel = escapeCartText(t('cart_edit_item_aria', { name: contextLabel }, `調整 ${contextLabel}`));
                         const removeLabel = group.indices.length > 1
-                            ? (cartIsVietnamese ? `Xóa 1 phần ${safeDisplayName}` : `移除 1 份 ${safeDisplayName}`)
-                            : (cartIsVietnamese ? `Xóa ${contextLabel}` : `移除 ${contextLabel}`);
+                            ? escapeCartText(t('cart_remove_one_aria', { name: displayName }, `移除 1 份 ${displayName}`))
+                            : escapeCartText(t('cart_remove_item_aria', { name: contextLabel }, `移除 ${contextLabel}`));
 
                         portionsHTML += `<div class="cart-portion-row" data-category="${safeCatSlug}" data-item="${safeItemName}" data-portion="${firstIndex}">
                             <button type="button" class="cart-portion-edit-btn" aria-label="${editLabel}" onclick="const d=this.closest('[data-portion]').dataset;editCartPortion(d.category,d.item,Number(d.portion))">
@@ -925,11 +982,11 @@ function updateTotal() {
                         <div class="cart-item-block">
                             <div class="cart-item-header">
                                 <div class="cart-item-title">
-                                    <span>${qty}x ${displayName}</span>
+                                    <span>${qty}x ${safeDisplayName}</span>
                                 </div>
                                 <div class="cart-item-price">$${lineTotal}</div>
                             </div>
-                            ${drinkStr ? `<div style="font-size:13px; color:#6b7280; margin-left:8px; margin-top:3px;">↳ 飲料：${drinkStr}</div>` : ''}
+                            ${drinkStr ? `<div style="font-size:13px; color:#6b7280; margin-left:8px; margin-top:3px;">${escapeCartText(t('cart_drink_prefix', { drinks: drinkStr }, `↳ 飲料：${drinkStr}`))}</div>` : ''}
                             ${portionsHTML}
                         </div>
                     `;
@@ -940,12 +997,18 @@ function updateTotal() {
 
         if (bundleRes.discountAmount > 0) {
             totalCategoryDiscounts += bundleRes.discountAmount;
-            const cleanCatName = (catMeta.name || '').split(' ')[0] || '組合';
+            const localizedCat = loc(catMeta, 'name', catMeta.name) || '';
+            const cleanCatName = localizedCat.split(' ')[0] || t('cart_combo_discount', null, '組合特惠');
+            const bundlePromoLine = t('cart_bundle_promo_line', {
+                cat: cleanCatName,
+                count: bundleRes.bundleCount,
+                saved: bundleRes.discountAmount
+            }, `${cleanCatName} 組合特惠 (${bundleRes.bundleCount}組，已省 $${bundleRes.discountAmount})`);
             summaryHTML += `
                 <div style="display:flex; justify-content:space-between; align-items:center; margin: 2px 0 10px 0; color:#059669; font-size:13px; font-weight:700; background:#ecfdf5; padding:6px 10px; border-radius:8px; border:1px dashed #a7f3d0;">
                     <div style="display:flex; align-items:center; gap:5px;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-                        <span>${cleanCatName} 組合特惠 (${bundleRes.bundleCount}組，已省 $${bundleRes.discountAmount})</span>
+                        <span>${escapeCartText(bundlePromoLine)}</span>
                     </div>
                     <div>-$${bundleRes.discountAmount}</div>
                 </div>
@@ -955,17 +1018,19 @@ function updateTotal() {
         summaryHTML += `<div style="border-bottom: 1px dashed #eee; margin-bottom: 8px;"></div>`;
     }
 
-    // Render removed sold-out items from previous order with line-through and '已移除' tag
+    // Render removed sold-out items from previous order with line-through and localized removed tag
     if (window.isEditOrderMode && Array.isArray(window.editOrderRemovedItems) && window.editOrderRemovedItems.length > 0) {
+        const removedTag = escapeCartText(t('cart_item_removed', null, '已移除'));
         window.editOrderRemovedItems.forEach(rem => {
             const rQty = Number(rem.quantity) || 1;
             const rPrice = Number(rem.subtotal) || ((Number(rem.price) || 0) * rQty);
-            const rName = rem.displayName || rem.name || '';
+            const rResolved = rem.name ? resolveFn(`${rem.category || ''}_${rem.name}`) : null;
+            const rName = rResolved?.localizedDisplayName || rem.displayName || rem.name || '';
             summaryHTML += `
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; opacity:0.6; text-decoration:line-through; color:#94a3b8;">
                     <div style="font-weight:700;">
-                        <span>${rQty}x ${(typeof escapeHtml === 'function' ? escapeHtml(rName) : rName)}</span>
-                        <span style="display:inline-block; margin-left:6px; font-size:11px; font-weight:700; background:#fee2e2; color:#dc2626; padding:1px 6px; border-radius:4px; text-decoration:none; vertical-align:middle;">已移除</span>
+                        <span>${rQty}x ${escapeCartText(rName)}</span>
+                        <span style="display:inline-block; margin-left:6px; font-size:11px; font-weight:700; background:#fee2e2; color:#dc2626; padding:1px 6px; border-radius:4px; text-decoration:none; vertical-align:middle;">${removedTag}</span>
                     </div>
                     <div style="font-weight:700; color:#94a3b8;">$${rPrice}</div>
                 </div>
@@ -984,11 +1049,15 @@ function updateTotal() {
         if (p > 0) {
             addonsTotal += p;
             const rawGroupTitle = chk.getAttribute('data-group-title') || '';
-            const cleanGroup = rawGroupTitle.replace(/^✦\s*/, '').replace(/選擇|調整/g, '').trim();
-            const labelText = cleanGroup ? `${cleanGroup} (${chk.value})` : chk.value;
+            const matchingGroup = (bData?.customizations || []).find(g => `opt-${g.key}` === chk.name || g.title === rawGroupTitle);
+            const locGroupTitle = matchingGroup ? loc(matchingGroup, 'title', loc(matchingGroup, 'name', rawGroupTitle)) : rawGroupTitle;
+            const cleanGroup = String(locGroupTitle || '').replace(/^✦\s*/, '').replace(/選擇|調整/g, '').trim();
+            const locOptName = matchingGroup ? resolveGlobalOptName(matchingGroup, chk.value) : chk.value;
+            const labelText = cleanGroup ? `${cleanGroup} (${locOptName})` : locOptName;
+            const addonLine = t('cart_addon_prefix', { label: labelText }, `+ 加購：${labelText}`);
             summaryHTML += `
                 <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:#059669; font-size:13.5px; font-weight:700;">
-                    <div>+ 加購：${labelText}</div>
+                    <div>${escapeCartText(addonLine)}</div>
                     <div>+$${p}</div>
                 </div>
             `;
@@ -999,7 +1068,7 @@ function updateTotal() {
         total = wasmCart.total;
     }
 
-    // Sold out items are automatically crossed out, tagged 已移除, and deducted from total
+    // Sold out items are automatically crossed out, tagged removed, and deducted from total
     window.editOrderHasSoldOutRemaining = false;
 
     const totalEl = document.getElementById('total-price');
@@ -1012,15 +1081,19 @@ function updateTotal() {
     if (summaryContainer) {
         const hasRemovedItems = window.isEditOrderMode && Array.isArray(window.editOrderRemovedItems) && window.editOrderRemovedItems.length > 0;
         if (totalQty === 0 && addonsTotal === 0 && !hasRemovedItems) {
-            summaryContainer.innerHTML = '<div style="text-align:center; color:#9ca3af;">(目前沒有已選商品)</div>';
+            summaryContainer.innerHTML = `<div style="text-align:center; color:#9ca3af;">${escapeCartText(t('cart_empty', null, '(目前沒有已選商品)'))}</div>`;
         } else {
             const violations = (typeof getActiveThresholdViolations === 'function') ? getActiveThresholdViolations() : [];
             if (violations.length > 0) {
-                const vList = violations.map(v => `「${v.name}」(需滿$${v.minSubtotal})`).join('、');
+                const vList = violations.map(v => `「${v.displayName || v.name}」`).join('、');
+                const bannerText = t('cart_threshold_banner', {
+                    list: vList,
+                    current: violations[0].currentSubtotal
+                }, `口味條件未達門檻：${vList}，目前餐點金額 $${violations[0].currentSubtotal} 元，下單前請補足金額或修改口味。`);
                 const warningHTML = `
                     <div class="threshold-warning-banner">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                        <div>口味條件未達門檻：${vList}，目前餐點金額 $${violations[0].currentSubtotal} 元，下單前請補足金額或修改口味。</div>
+                        <div>${escapeCartText(bannerText)}</div>
                     </div>
                 `;
                 summaryHTML = warningHTML + summaryHTML;
@@ -1030,20 +1103,21 @@ function updateTotal() {
             if (window.isEditOrderMode) {
                 const origTot = window.editOrderOriginalTotal || 0;
                 const diff = total - origTot;
-                let diffText = '無差額 ($0)';
+                let diffText = t('alert_edit_no_delta', null, '無差額 ($0)');
                 let diffColor = '#64748b';
                 if (diff > 0) {
-                    diffText = `需補差額 +$${diff}`;
+                    diffText = t('alert_edit_delta_add', { delta: diff }, `需補差額 +$${diff}`);
                     diffColor = '#dc2626';
                 } else if (diff < 0) {
-                    diffText = `退還差額 -$${Math.abs(diff)}`;
+                    diffText = t('alert_edit_delta_refund', { delta: Math.abs(diff) }, `退還差額 -$${Math.abs(diff)}`);
                     diffColor = '#059669';
                 }
+                const deltaLineText = t('cart_edit_delta_line', { orig: origTot, total }, `原金額 $${origTot} → 新總計 $${total}`);
                 const deltaHTML = `
                     <div class="edit-order-delta-box">
                         <div style="display:flex; justify-content:space-between; align-items:center; font-weight:800;">
-                            <span>原金額 $${origTot} → 新總計 $${total}</span>
-                            <span style="color:${diffColor}; font-weight:900;">${diffText}</span>
+                            <span>${escapeCartText(deltaLineText)}</span>
+                            <span style="color:${diffColor}; font-weight:900;">${escapeCartText(diffText)}</span>
                         </div>
                     </div>
                 `;
@@ -1051,11 +1125,11 @@ function updateTotal() {
             }
 
             if (totalQty === 0 && addonsTotal === 0 && hasRemovedItems) {
-                summaryHTML += '<div style="text-align:center; color:#dc2626; font-weight:700; font-size:13px; margin:8px 0;">(購物車內餐點已全數售完，請由上方菜單挑選更換餐點)</div>';
+                summaryHTML += `<div style="text-align:center; color:#dc2626; font-weight:700; font-size:13px; margin:8px 0;">${escapeCartText(t('cart_edit_all_oos_note', null, '(購物車內餐點已全數售完，請由上方菜單挑選更換餐點)'))}</div>`;
             }
 
             summaryHTML += `<div style="display:flex; justify-content:space-between; font-weight:900; margin-top:12px; font-size:16px;">
-                <div>總計</div><div style="color:var(--primary);">$${total}</div>
+                <div>${escapeCartText(t('cart_total_label', null, '總計'))}</div><div style="color:var(--primary);">$${total}</div>
             </div>`;
             summaryContainer.innerHTML = summaryHTML;
         }

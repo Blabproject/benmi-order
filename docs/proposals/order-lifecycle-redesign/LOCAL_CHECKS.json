@@ -1,0 +1,18 @@
+{
+  "checkedAt": "2026-11-14T01:48:45.039045+00:00",
+  "targetedTests": {
+    "command": "npm run test:lifecycle",
+    "passed": 30,
+    "failed": 0,
+    "scope": "policy + local D1 commands/session + POS VM commands + synthetic provider refund recovery",
+    "log": "/tmp/benmi-redesign-targeted.log"
+  },
+  "frontendStatic": "passed",
+  "backendTypecheck": "passed",
+  "diffCheck": "passed",
+  "fullReleaseGate": "not_run_pending_integration",
+  "browserAndApk": "pending",
+  "migration0090AppliedRemote": false,
+  "productionChanged": false,
+  "goalAchieved": false
+}

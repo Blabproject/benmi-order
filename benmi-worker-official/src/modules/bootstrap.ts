@@ -6,6 +6,163 @@ import { json } from '../utils/http';
 import { getTenantId } from './menu';
 import { resolveTenantContext } from './tenant';
 
+type EntityI18nEntry = Record<string, string | Record<string, string> | undefined>;
+type EntityI18nMap = Record<string, EntityI18nEntry>;
+
+function parseI18nJson(raw: unknown): EntityI18nMap {
+  if (!raw) return {};
+  let parsed: unknown = raw;
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed || trimmed === '{}') return {};
+    try { parsed = JSON.parse(trimmed); } catch { return {}; }
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+  const result: EntityI18nMap = {};
+  for (const [locale, rawEntry] of Object.entries(parsed as Record<string, unknown>)) {
+    if (!rawEntry || typeof rawEntry !== 'object' || Array.isArray(rawEntry)) continue;
+    const out: EntityI18nEntry = {};
+    let hasField = false;
+    for (const [k, v] of Object.entries(rawEntry as Record<string, unknown>)) {
+      if (k === 'sub_options' || k === 'subOptions') {
+        if (v && typeof v === 'object' && !Array.isArray(v)) {
+          const subOut: Record<string, string> = {};
+          for (const [sk, sv] of Object.entries(v as Record<string, unknown>)) {
+            if (typeof sv === 'string' && sv.trim() !== '') subOut[sk] = sv.trim();
+          }
+          if (Object.keys(subOut).length > 0) { out.sub_options = subOut; hasField = true; }
+        }
+      } else if (typeof v === 'string' && v.trim() !== '') {
+        out[k] = v.trim();
+        hasField = true;
+      }
+    }
+    if (hasField) result[String(locale).trim()] = out;
+  }
+  return result;
+}
+
+function mergeI18nMaps(base: unknown, patch: unknown): EntityI18nMap {
+  const target = parseI18nJson(base);
+  const incoming = parseI18nJson(patch);
+  for (const [locale, entry] of Object.entries(incoming)) {
+    const existing = target[locale] || {};
+    const mergedSub = (existing.sub_options || entry.sub_options)
+      ? { ...((existing.sub_options as Record<string, string>) || {}), ...((entry.sub_options as Record<string, string>) || {}) }
+      : undefined;
+    target[locale] = { ...existing, ...entry, ...(mergedSub ? { sub_options: mergedSub } : {}) };
+  }
+  return target;
+}
+
+function hasAnyI18nTranslation(input: unknown): boolean {
+  return Object.keys(parseI18nJson(input)).length > 0;
+}
+
+function withModifierI18nColumns(sql: string, hasGroupI18nCol: boolean, hasOptI18nCol: boolean): string {
+  let result = sql;
+  if (hasGroupI18nCol) {
+    result = result.replace('AS scope,', 'AS scope, g.i18n_json AS group_i18n_json,');
+  }
+  if (hasOptI18nCol) {
+    result = result.replace('AS eligibility_rules_json', 'AS eligibility_rules_json, o.i18n_json AS option_i18n_json');
+  }
+  return result;
+}
+
+function appendModifierGroupOptionRow(
+  targetMap: Map<string, any[]>,
+  mapKey: string,
+  row: any,
+  now: Date,
+  includeScope?: boolean
+): void {
+  if (!targetMap.has(mapKey)) {
+    targetMap.set(mapKey, []);
+  }
+  const groupList = targetMap.get(mapKey)!;
+  let grp = groupList.find((g: any) => g.id === row.group_id);
+  if (!grp) {
+    const grpI18n = parseI18nJson(row.group_i18n_json);
+    grp = {
+      id: row.group_id,
+      name: row.group_name,
+      ...(Object.keys(grpI18n).length > 0 ? { i18n: grpI18n } : {}),
+      selectionType: row.selection_type || 'single',
+      isRequired: Boolean(row.is_required),
+      minSelection: Number(row.min_selection ?? 0),
+      maxSelection: Number(row.max_selection ?? 1),
+      ...(includeScope ? { scope: row.scope || 'category' } : {}),
+      options: []
+    };
+    groupList.push(grp);
+  }
+  if (row.option_id) {
+    const isOptOos = Boolean(row.option_out_of_stock_until && new Date(row.option_out_of_stock_until) > now);
+    let subOptions: any[] = [];
+    try { subOptions = JSON.parse(row.sub_options_json || '[]'); } catch { subOptions = []; }
+    let eligibilityRules: any[] = [];
+    try { eligibilityRules = JSON.parse(row.eligibility_rules_json || '[]'); } catch { eligibilityRules = []; }
+    const minRule = eligibilityRules.find((r: any) => r.rule_type === 'min_order_subtotal' && Number(r.min_order_subtotal) > 0);
+    const optI18n = parseI18nJson(row.option_i18n_json);
+
+    grp.options.push({
+      id: row.option_id,
+      name: row.option_name,
+      ...(Object.keys(optI18n).length > 0 ? { i18n: optI18n } : {}),
+      price: Number(row.option_price || 0),
+      isDefault: Boolean(row.is_default),
+      isOutOfStock: isOptOos,
+      subOptions: subOptions.length > 0 ? subOptions : undefined,
+      eligibilityRules: eligibilityRules.length > 0 ? eligibilityRules : undefined,
+      minOrderSubtotal: minRule ? Number(minRule.min_order_subtotal) : undefined,
+      ruleErrorMessage: minRule?.error_message
+    });
+  }
+}
+
+function parseSupportedLocales(raw: unknown, fallback: string[] = ['zh-TW', 'en']): string[] {
+  let list: unknown[] = [];
+  if (Array.isArray(raw)) list = raw;
+  else if (typeof raw === 'string' && raw.trim() !== '') {
+    try { const p = JSON.parse(raw); if (Array.isArray(p)) list = p; }
+    catch { list = raw.split(',').map((s) => s.trim()); }
+  }
+  const normalized = Array.from(new Set(list.map((x) => (typeof x === 'string' ? x.trim() : '')).filter(Boolean)));
+  return normalized.length > 0 ? normalized : [...fallback];
+}
+
+function isMultilingualCanaryEnabled(tenantId: string, env: Env, options?: { features?: string[]; hasCatalogI18n?: boolean }): boolean {
+  const features = options?.features || [];
+  if (features.includes('multilingual') || features.includes('i18n')) return true;
+  const raw = env.MULTILINGUAL_TENANTS;
+  if (raw && typeof raw === 'string') {
+    const trimmed = raw.trim();
+    let list: string[] = [];
+    if (trimmed.startsWith('[')) {
+      try { const p = JSON.parse(trimmed); if (Array.isArray(p)) list = p.map((x) => String(x || '').trim()).filter(Boolean); } catch {}
+    } else if (trimmed) {
+      list = trimmed.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    if (list.includes(tenantId) || list.includes('*')) return true;
+  }
+  return false;
+}
+
+async function hasTableColumn(db: D1Database | undefined | null, tableName: string, columnName: string): Promise<boolean> {
+  if (!db || typeof (db as any).prepare !== 'function') return false;
+  const safeTable = tableName.replace(/[^a-zA-Z0-9_]/g, '');
+  try {
+    const stmt: any = db.prepare(`PRAGMA table_info(${safeTable})`);
+    const bound: any = typeof stmt?.bind === 'function' ? stmt.bind() : stmt;
+    const res = typeof bound?.all === 'function' ? await bound.all() : null;
+    const rows = Array.isArray(res?.results) ? res.results : [];
+    return rows.some((r: any) => r?.name === columnName);
+  } catch {
+    return false;
+  }
+}
+
 export interface BootstrapBundleGroup {
   id: string;
   name: string;
@@ -41,8 +198,8 @@ export interface BootstrapBundleRule {
   groups: BootstrapBundleGroup[];
 }
 
-// v5 restores item imageUrl resolution from tenant_images when product.image_key is unset.
-export const BOOTSTRAP_VERSION = 5;
+// v6 adds multilingual i18n_json metadata & canary supportedLocales resolution.
+export const BOOTSTRAP_VERSION = 6;
 
 export interface BootstrapResponse {
   bootstrapVersion: number;
@@ -464,10 +621,44 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
     let customRulesRows: any[] = [];
     let itemModifierRows: any[] = [];
     let categoryModifierRows: any[] = [];
+    let tenantMetaRow: { i18n_json?: string | null; supported_locales?: string | null } | null = null;
 
     if (env.DB) {
       try {
-        const [catsRes, itemsRes, customRes, orderModRes] = await env.DB.batch([
+        const [
+          hasTenantI18nCol,
+          hasTenantLocalesCol,
+          hasCatI18nCol,
+          hasItemI18nCol,
+          hasGroupI18nCol,
+          hasOptI18nCol,
+        ] = await Promise.all([
+          hasTableColumn(env.DB, 'tenant_config', 'i18n_json'),
+          hasTableColumn(env.DB, 'tenant_config', 'supported_locales'),
+          hasTableColumn(env.DB, 'menu_categories', 'i18n_json'),
+          hasTableColumn(env.DB, 'menu_items', 'i18n_json'),
+          hasTableColumn(env.DB, 'modifier_groups', 'i18n_json'),
+          hasTableColumn(env.DB, 'modifier_options', 'i18n_json'),
+        ]);
+
+        const baseOrderModifierSql =
+          `SELECT g.id AS group_id, g.name AS group_name, g.selection_type,
+                  COALESCE(g.is_required, 0) AS is_required,
+                  COALESCE(g.min_selection, 0) AS min_selection,
+                  COALESCE(g.max_selection, 1) AS max_selection,
+                  COALESCE(g.sort_order, 0) AS sort_order,
+                  COALESCE(g.scope, 'order') AS scope,
+                  o.id AS option_id, o.name AS option_name, COALESCE(o.price, 0) AS option_price,
+                  COALESCE(o.is_default, 0) AS is_default, o.out_of_stock_until AS option_out_of_stock_until,
+                  COALESCE(o.sub_options_json, '[]') AS sub_options_json,
+                  COALESCE(o.eligibility_rules_json, '[]') AS eligibility_rules_json
+           FROM modifier_groups g
+           LEFT JOIN modifier_options o ON o.group_id = g.id AND o.tenant_id = g.tenant_id
+           WHERE g.tenant_id = ? AND g.scope = 'order'
+           ORDER BY g.sort_order ASC, o.sort_order ASC`;
+        const orderModifierSql = withModifierI18nColumns(baseOrderModifierSql, hasGroupI18nCol, hasOptI18nCol);
+
+        const [catsRes, itemsRes, customRes, orderModRes, tenantMetaRes] = await env.DB.batch([
           env.DB.prepare(
             `SELECT id, name, short_name, slug, 
                     COALESCE(category_type, 'catalog') AS category_type, 
@@ -478,7 +669,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
                     COALESCE(allow_customization, 1) AS allow_customization,
                     COALESCE(applied_modifiers, '') AS applied_modifiers,
                     pricing_rules,
-                    sort_order 
+                    sort_order${hasCatI18nCol ? ', i18n_json' : ''} 
              FROM menu_categories 
              WHERE tenant_id = ? 
              ORDER BY sort_order ASC`
@@ -488,7 +679,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
                     COALESCE(badge_text, '') AS badge_text,
                     COALESCE(is_recommended, 0) AS is_recommended,
                     max_per_order,
-                    COALESCE(item_type, 'standard') AS item_type
+                    COALESCE(item_type, 'standard') AS item_type${hasItemI18nCol ? ', i18n_json' : ''}
              FROM menu_items 
              WHERE tenant_id = ? 
              ORDER BY sort_order ASC`
@@ -506,22 +697,12 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
              WHERE tenant_id = ?
              ORDER BY sort_order ASC`
           ).bind(tenantId),
-          env.DB.prepare(
-            `SELECT g.id AS group_id, g.name AS group_name, g.selection_type,
-                    COALESCE(g.is_required, 0) AS is_required,
-                    COALESCE(g.min_selection, 0) AS min_selection,
-                    COALESCE(g.max_selection, 1) AS max_selection,
-                    COALESCE(g.sort_order, 0) AS sort_order,
-                    COALESCE(g.scope, 'order') AS scope,
-                    o.id AS option_id, o.name AS option_name, COALESCE(o.price, 0) AS option_price,
-                    COALESCE(o.is_default, 0) AS is_default, o.out_of_stock_until AS option_out_of_stock_until,
-                    COALESCE(o.sub_options_json, '[]') AS sub_options_json,
-                    COALESCE(o.eligibility_rules_json, '[]') AS eligibility_rules_json
-             FROM modifier_groups g
-             LEFT JOIN modifier_options o ON o.group_id = g.id AND o.tenant_id = g.tenant_id
-             WHERE g.tenant_id = ? AND g.scope = 'order'
-             ORDER BY g.sort_order ASC, o.sort_order ASC`
-          ).bind(tenantId)
+          env.DB.prepare(orderModifierSql).bind(tenantId),
+          (hasTenantI18nCol || hasTenantLocalesCol)
+            ? env.DB.prepare(
+                `SELECT ${hasTenantI18nCol ? 'i18n_json' : 'NULL AS i18n_json'}, ${hasTenantLocalesCol ? 'supported_locales' : 'NULL AS supported_locales'} FROM tenant_config WHERE tenant_id = ? LIMIT 1`
+              ).bind(tenantId)
+            : env.DB.prepare('SELECT NULL AS i18n_json, NULL AS supported_locales WHERE 0')
         ]);
         if ([catsRes, itemsRes, customRes].some(result => !result || !result.success || !Array.isArray(result.results))) {
           throw new Error('Incomplete menu query');
@@ -530,6 +711,9 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
         items = (itemsRes.results as any[]) || [];
         rawCustomizations = (customRes.results as any[]) || [];
         orderModifierRows = (orderModRes && orderModRes.success && Array.isArray(orderModRes.results)) ? (orderModRes.results as any[]) : [];
+        if (tenantMetaRes && tenantMetaRes.success && Array.isArray(tenantMetaRes.results) && tenantMetaRes.results.length > 0) {
+          tenantMetaRow = tenantMetaRes.results[0] as any;
+        }
         menuComplete = true;
 
         if (!isUnified) {
@@ -558,39 +742,45 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
         }
 
         try {
+          const itemModifierSql = withModifierI18nColumns(
+            `SELECT l.item_id, g.id AS group_id, g.name AS group_name, g.selection_type,
+                    COALESCE(g.is_required, 0) AS is_required,
+                    COALESCE(g.min_selection, 0) AS min_selection,
+                    COALESCE(g.max_selection, 1) AS max_selection,
+                    COALESCE(g.scope, 'item') AS scope,
+                    o.id AS option_id, o.name AS option_name, COALESCE(o.price, 0) AS option_price,
+                    COALESCE(o.is_default, 0) AS is_default, o.out_of_stock_until AS option_out_of_stock_until,
+                    COALESCE(o.sub_options_json, '[]') AS sub_options_json,
+                    COALESCE(o.eligibility_rules_json, '[]') AS eligibility_rules_json
+             FROM item_modifier_links l
+             JOIN modifier_groups g ON g.id = l.group_id AND g.tenant_id = l.tenant_id
+             LEFT JOIN modifier_options o ON o.group_id = g.id AND o.tenant_id = g.tenant_id
+             WHERE l.tenant_id = ?
+             ORDER BY l.sort_order ASC, g.sort_order ASC, o.sort_order ASC`,
+            hasGroupI18nCol,
+            hasOptI18nCol
+          );
+          const catModifierSql = withModifierI18nColumns(
+            `SELECT l.category_id, g.id AS group_id, g.name AS group_name, g.selection_type,
+                    COALESCE(g.is_required, 0) AS is_required,
+                    COALESCE(g.min_selection, 0) AS min_selection,
+                    COALESCE(g.max_selection, 1) AS max_selection,
+                    COALESCE(g.scope, 'category') AS scope,
+                    o.id AS option_id, o.name AS option_name, COALESCE(o.price, 0) AS option_price,
+                    COALESCE(o.is_default, 0) AS is_default, o.out_of_stock_until AS option_out_of_stock_until,
+                    COALESCE(o.sub_options_json, '[]') AS sub_options_json,
+                    COALESCE(o.eligibility_rules_json, '[]') AS eligibility_rules_json
+             FROM category_modifier_links l
+             JOIN modifier_groups g ON g.id = l.group_id AND g.tenant_id = l.tenant_id
+             LEFT JOIN modifier_options o ON o.group_id = g.id AND o.tenant_id = g.tenant_id
+             WHERE l.tenant_id = ?
+             ORDER BY l.sort_order ASC, g.sort_order ASC, o.sort_order ASC`,
+            hasGroupI18nCol,
+            hasOptI18nCol
+          );
           const [modRes, catModRes] = await env.DB.batch([
-            env.DB.prepare(
-              `SELECT l.item_id, g.id AS group_id, g.name AS group_name, g.selection_type,
-                      COALESCE(g.is_required, 0) AS is_required,
-                      COALESCE(g.min_selection, 0) AS min_selection,
-                      COALESCE(g.max_selection, 1) AS max_selection,
-                      COALESCE(g.scope, 'item') AS scope,
-                      o.id AS option_id, o.name AS option_name, COALESCE(o.price, 0) AS option_price,
-                      COALESCE(o.is_default, 0) AS is_default, o.out_of_stock_until AS option_out_of_stock_until,
-                      COALESCE(o.sub_options_json, '[]') AS sub_options_json,
-                      COALESCE(o.eligibility_rules_json, '[]') AS eligibility_rules_json
-               FROM item_modifier_links l
-               JOIN modifier_groups g ON g.id = l.group_id AND g.tenant_id = l.tenant_id
-               LEFT JOIN modifier_options o ON o.group_id = g.id AND o.tenant_id = g.tenant_id
-               WHERE l.tenant_id = ?
-               ORDER BY l.sort_order ASC, g.sort_order ASC, o.sort_order ASC`
-            ).bind(tenantId),
-            env.DB.prepare(
-              `SELECT l.category_id, g.id AS group_id, g.name AS group_name, g.selection_type,
-                      COALESCE(g.is_required, 0) AS is_required,
-                      COALESCE(g.min_selection, 0) AS min_selection,
-                      COALESCE(g.max_selection, 1) AS max_selection,
-                      COALESCE(g.scope, 'category') AS scope,
-                      o.id AS option_id, o.name AS option_name, COALESCE(o.price, 0) AS option_price,
-                      COALESCE(o.is_default, 0) AS is_default, o.out_of_stock_until AS option_out_of_stock_until,
-                      COALESCE(o.sub_options_json, '[]') AS sub_options_json,
-                      COALESCE(o.eligibility_rules_json, '[]') AS eligibility_rules_json
-               FROM category_modifier_links l
-               JOIN modifier_groups g ON g.id = l.group_id AND g.tenant_id = l.tenant_id
-               LEFT JOIN modifier_options o ON o.group_id = g.id AND o.tenant_id = g.tenant_id
-               WHERE l.tenant_id = ?
-               ORDER BY l.sort_order ASC, g.sort_order ASC, o.sort_order ASC`
-            ).bind(tenantId)
+            env.DB.prepare(itemModifierSql).bind(tenantId),
+            env.DB.prepare(catModifierSql).bind(tenantId)
           ]);
           if (!modRes || !modRes.success || !Array.isArray(modRes.results)) {
             throw new Error('Incomplete item modifiers query');
@@ -624,6 +814,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
       const orderGroupsMap = new Map<string, any>();
       for (const row of orderModifierRows) {
         if (!orderGroupsMap.has(row.group_id)) {
+          const grpI18n = parseI18nJson(row.group_i18n_json);
           orderGroupsMap.set(row.group_id, {
             id: row.group_id,
             key: row.group_id,
@@ -632,6 +823,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
             type: row.selection_type === 'multiple' ? 'checkbox' : 'radio',
             isRequired: Boolean(row.is_required),
             sortOrder: Number(row.sort_order || 0),
+            ...(Object.keys(grpI18n).length > 0 ? { i18n: grpI18n } : {}),
             options: []
           });
         }
@@ -646,6 +838,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
 
           const minRule = eligibilityRules.find((r: any) => r.rule_type === 'min_order_subtotal' && Number(r.min_order_subtotal) > 0);
           const minSubtotal = minRule ? Number(minRule.min_order_subtotal) : undefined;
+          const optI18n = parseI18nJson(row.option_i18n_json);
 
           orderGroupsMap.get(row.group_id)!.options.push({
             id: row.option_id,
@@ -660,7 +853,8 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
             ruleErrorMessage: minRule?.error_message,
             subOptions: subOptions.length > 0 ? subOptions : undefined,
             sub_options: subOptions.length > 0 ? subOptions : undefined,
-            eligibilityRules: eligibilityRules.length > 0 ? eligibilityRules : undefined
+            eligibilityRules: eligibilityRules.length > 0 ? eligibilityRules : undefined,
+            ...(Object.keys(optI18n).length > 0 ? { i18n: optI18n } : {}),
           });
         }
       }
@@ -681,6 +875,8 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
               (opt.out_of_stock_until && new Date(opt.out_of_stock_until) > now)
             );
 
+            const optI18n = parseI18nJson(opt.i18n ?? opt.i18n_json);
+
             return {
               ...opt,
               id: optId,
@@ -689,10 +885,12 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
               minOrderSubtotal: minSubtotal > 0 ? minSubtotal : undefined,
               min_order_amount: minSubtotal > 0 ? minSubtotal : (opt.min_order_amount || undefined),
               thresholdBasis: rule?.threshold_basis,
-              ruleErrorMessage: rule?.error_message
+              ruleErrorMessage: rule?.error_message,
+              ...(Object.keys(optI18n).length > 0 ? { i18n: optI18n } : {}),
             };
           });
 
+          const custI18n = parseI18nJson(c.i18n ?? c.i18n_json);
           customizations.push({
             id: c.id,
             key: c.key,
@@ -701,6 +899,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
             type: c.type || 'radio',
             isRequired: Boolean(c.is_required),
             sortOrder: c.sort_order || 0,
+            ...(Object.keys(custI18n).length > 0 ? { i18n: custI18n } : {}),
             options: enrichedOpts
           });
         } catch (e) {
@@ -713,86 +912,13 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
     // Build Item Modifier Groups Map before resolving bundle rules so eligible child items get modifier groups
     const itemModifierGroupsMap = new Map<string, any[]>();
     for (const row of itemModifierRows) {
-      if (!itemModifierGroupsMap.has(row.item_id)) {
-        itemModifierGroupsMap.set(row.item_id, []);
-      }
-      const groupList = itemModifierGroupsMap.get(row.item_id)!;
-      let grp = groupList.find((g: any) => g.id === row.group_id);
-      if (!grp) {
-        grp = {
-          id: row.group_id,
-          name: row.group_name,
-          selectionType: row.selection_type || 'single',
-          isRequired: Boolean(row.is_required),
-          minSelection: Number(row.min_selection ?? 0),
-          maxSelection: Number(row.max_selection ?? 1),
-          options: []
-        };
-        groupList.push(grp);
-      }
-      if (row.option_id) {
-        const isOptOos = Boolean(row.option_out_of_stock_until && new Date(row.option_out_of_stock_until) > now);
-        let subOptions: any[] = [];
-        try { subOptions = JSON.parse(row.sub_options_json || '[]'); } catch { subOptions = []; }
-        let eligibilityRules: any[] = [];
-        try { eligibilityRules = JSON.parse(row.eligibility_rules_json || '[]'); } catch { eligibilityRules = []; }
-        const minRule = eligibilityRules.find((r: any) => r.rule_type === 'min_order_subtotal' && Number(r.min_order_subtotal) > 0);
-
-        grp.options.push({
-          id: row.option_id,
-          name: row.option_name,
-          price: Number(row.option_price || 0),
-          isDefault: Boolean(row.is_default),
-          isOutOfStock: isOptOos,
-          subOptions: subOptions.length > 0 ? subOptions : undefined,
-          eligibilityRules: eligibilityRules.length > 0 ? eligibilityRules : undefined,
-          minOrderSubtotal: minRule ? Number(minRule.min_order_subtotal) : undefined,
-          ruleErrorMessage: minRule?.error_message
-        });
-      }
+      appendModifierGroupOptionRow(itemModifierGroupsMap, row.item_id, row, now, false);
     }
 
     // Build Category Modifier Groups Map for Category-Level soft inheritance (Tier 3)
     const categoryModifierGroupsMap = new Map<string, any[]>();
     for (const row of categoryModifierRows) {
-      if (!categoryModifierGroupsMap.has(row.category_id)) {
-        categoryModifierGroupsMap.set(row.category_id, []);
-      }
-      const groupList = categoryModifierGroupsMap.get(row.category_id)!;
-      let grp = groupList.find((g: any) => g.id === row.group_id);
-      if (!grp) {
-        grp = {
-          id: row.group_id,
-          name: row.group_name,
-          selectionType: row.selection_type || 'single',
-          isRequired: Boolean(row.is_required),
-          minSelection: Number(row.min_selection ?? 0),
-          maxSelection: Number(row.max_selection ?? 1),
-          scope: row.scope || 'category',
-          options: []
-        };
-        groupList.push(grp);
-      }
-      if (row.option_id) {
-        const isOptOos = Boolean(row.option_out_of_stock_until && new Date(row.option_out_of_stock_until) > now);
-        let subOptions: any[] = [];
-        try { subOptions = JSON.parse(row.sub_options_json || '[]'); } catch { subOptions = []; }
-        let eligibilityRules: any[] = [];
-        try { eligibilityRules = JSON.parse(row.eligibility_rules_json || '[]'); } catch { eligibilityRules = []; }
-        const minRule = eligibilityRules.find((r: any) => r.rule_type === 'min_order_subtotal' && Number(r.min_order_subtotal) > 0);
-
-        grp.options.push({
-          id: row.option_id,
-          name: row.option_name,
-          price: Number(row.option_price || 0),
-          isDefault: Boolean(row.is_default),
-          isOutOfStock: isOptOos,
-          subOptions: subOptions.length > 0 ? subOptions : undefined,
-          eligibilityRules: eligibilityRules.length > 0 ? eligibilityRules : undefined,
-          minOrderSubtotal: minRule ? Number(minRule.min_order_subtotal) : undefined,
-          ruleErrorMessage: minRule?.error_message
-        });
-      }
+      appendModifierGroupOptionRow(categoryModifierGroupsMap, row.category_id, row, now, true);
     }
 
     // Resolve bundle rules and populate eligibleItems
@@ -819,6 +945,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
               catch { appliedModifiers = String(cat.applied_modifiers || '').split(',').map((s: string) => s.trim()).filter(Boolean); }
             }
             const modGroups = itemModifierGroupsMap.get(it.id) || [];
+            const itemI18n = parseI18nJson(it.i18n_json);
             eligibleItems.push({
               id: it.id,
               name: it.name,
@@ -828,7 +955,8 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
               categoryId: it.category_id,
               allowCustomization: appliedModifiers.length > 0 || modGroups.length > 0,
               appliedModifiers,
-              modifierGroups: modGroups.length > 0 ? modGroups : undefined
+              modifierGroups: modGroups.length > 0 ? modGroups : undefined,
+              ...(Object.keys(itemI18n).length > 0 ? { i18n: itemI18n } : {}),
             });
           };
 
@@ -942,6 +1070,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
       const imageUrl = hasImage ? `/api/image?tenant_id=${tenantId}&name=${encodeURIComponent(imageLookupKey)}` : null;
       const bundleRule = bundleRulesByItemId.get(item.id) || null;
       const modGroups = itemModifierGroupsMap.get(item.id) || [];
+      const itemI18n = parseI18nJson(item.i18n_json);
 
       itemsByCatId.get(item.category_id)!.push({
         id: item.id,
@@ -957,6 +1086,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
         maxPerOrder: item.max_per_order !== null && item.max_per_order !== undefined && item.max_per_order > 0 ? Number(item.max_per_order) : null,
         itemType: item.item_type || 'standard',
         modifierGroups: modGroups.length > 0 ? modGroups : undefined,
+        ...(Object.keys(itemI18n).length > 0 ? { i18n: itemI18n } : {}),
         outOfStockUntil: item.out_of_stock_until || null,
         sortOrder: item.sort_order || 0
       });
@@ -985,10 +1115,12 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
       const catItems = itemsByCatId.get(cat.id) || [];
 
       if (catType === 'modifier') {
+        const modCatI18n = parseI18nJson(cat.i18n_json);
         modifiers.push({
           id: cat.id,
           slug: cat.slug,
           name: cat.name,
+          ...(Object.keys(modCatI18n).length > 0 ? { i18n: modCatI18n } : {}),
           selectionType: (cat.slug === 'topping' ? 'multiple' : (cat.selection_type || 'single')),
           isRequired: Boolean(cat.is_required),
           minSelection: cat.min_selection || 0,
@@ -997,6 +1129,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
           options: catItems.map((opt, idx) => ({
             id: opt.id,
             name: opt.name,
+            ...(opt.i18n ? { i18n: opt.i18n } : {}),
             price: opt.price,
             isDefault: idx === 0 && Boolean(cat.is_required),
             isOutOfStock: opt.isOutOfStock,
@@ -1027,6 +1160,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
 
         const catModGroups = categoryModifierGroupsMap.get(cat.id) || [];
         const isCustomizationAllowed = Boolean(cat.allow_customization ?? 1) && (appliedModifiers.length > 0 || catModGroups.length > 0);
+        const catI18n = parseI18nJson(cat.i18n_json);
 
         catalog.push({
           id: cat.id,
@@ -1037,6 +1171,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
           appliedModifiers: appliedModifiers,
           modifierGroups: catModGroups,
           pricingRules: pricingRules,
+          ...(Object.keys(catI18n).length > 0 ? { i18n: catI18n } : {}),
           sortOrder: cat.sort_order || 0,
           items: catItems
         });
@@ -1099,12 +1234,21 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
       payload.modifiers = [];
       payload.categoryModifierLinks = [];
       for (const category of catalog) {
+        const unifiedCat = options.categories.find((c) => c.id === category.id);
+        const mergedCatI18n = mergeI18nMaps((category as any).i18n, unifiedCat?.i18n);
+        if (Object.keys(mergedCatI18n).length > 0) {
+          (category as any).i18n = mergedCatI18n;
+        }
         category.appliedModifiers = [];
         category.modifierGroups = [];
         category.allowCustomization = false;
       }
       for (const category of catalog) for (const item of category.items) {
         const product = options.products.find(p=>p.id===item.id);
+        const mergedItemI18n = mergeI18nMaps((item as any).i18n, product?.i18n);
+        if (Object.keys(mergedItemI18n).length > 0) {
+          (item as any).i18n = mergedItemI18n;
+        }
         (item as any).imageKey = product?.image_key || null;
         if (product?.image_key) {
           item.imageUrl = (!imageListLoaded || imageList.includes(product.image_key))
@@ -1117,10 +1261,34 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
       }
       for (const customization of customizations) {
         const group=options.groups.find(g=>g.scope==='order' && g.id===customization.id);
-        if(group) customization.options=groupOptions(options,group).map(o=>({...o,is_out_of_stock:o.isOutOfStock,sub_options:o.subOptions,minOrderSubtotal:o.eligibilityRules.find(r=>r.rule_type==='min_order_subtotal')?.min_order_subtotal}));
+        if(group) {
+          const mergedGroupI18n = mergeI18nMaps((customization as any).i18n, group.i18n);
+          if (Object.keys(mergedGroupI18n).length > 0) {
+            (customization as any).i18n = mergedGroupI18n;
+          }
+          customization.options=groupOptions(options,group).map(o=>({...o,is_out_of_stock:o.isOutOfStock,sub_options:o.subOptions,minOrderSubtotal:o.eligibilityRules.find(r=>r.rule_type==='min_order_subtotal')?.min_order_subtotal}));
+        }
       }
       (payload as any).unifiedMenu = true;
     }
+    const i18nEnabled = isMultilingualCanaryEnabled(tenantId, env, {
+      features: tenantCtx?.features || [],
+    });
+    const tenantI18n = i18nEnabled
+      ? mergeI18nMaps(tenantCtx?.i18n, parseI18nJson(tenantMetaRow?.i18n_json))
+      : {};
+    const parsedSupportedLocales = parseSupportedLocales(
+      tenantMetaRow?.supported_locales ?? tenantCtx?.supportedLocales,
+      locale === 'vi' ? ['vi', 'en'] : ['zh-TW', 'en']
+    );
+    const supportedLocales = i18nEnabled
+      ? (parsedSupportedLocales.includes(locale)
+          ? parsedSupportedLocales
+          : [locale, ...parsedSupportedLocales])
+      : [locale];
+    (payload.tenant as any).i18n = tenantI18n;
+    (payload.tenant as any).supportedLocales = supportedLocales;
+    (payload.tenant as any).i18nEnabled = i18nEnabled;
     (payload as any).orderDetailVersion = detailWrites(env) ? 1 : 0;
     // 6. Cache in KV Edge Cache
     if (menuComplete && env.ORDER_STATE) {

@@ -123,6 +123,17 @@
       ugLocalStock: "Tạm ngừng lựa chọn trong nhóm",
       ugRemovePhoto: "Gỡ ảnh",
       ugInUse: "Món đang được dùng làm lựa chọn. Gỡ liên kết trước khi xóa.",
+      ugI18nSection: "Bản dịch đa ngôn ngữ (Tiếng Anh / Tiếng Việt)",
+      ugI18nSectionBase: "Bản dịch đa ngôn ngữ",
+      ugLocaleEn: "Tiếng Anh",
+      ugLocaleVi: "Tiếng Việt",
+      ugI18nEnName: "Tên tiếng Anh (EN)",
+      ugI18nEnBadge: "Nhãn tiếng Anh (EN)",
+      ugI18nViName: "Tên tiếng Việt (VI)",
+      ugI18nViBadge: "Nhãn tiếng Việt (VI)",
+      ugAiTranslate: "AI dịch tự động",
+      ugAiTranslating: "AI đang dịch…",
+      ugAiTranslateError: "Dịch tự động bằng AI thất bại, vui lòng thử lại.",
     },
     "zh-TW": {
       ugProduct: "編輯餐點",
@@ -245,6 +256,17 @@
       ugLocalStock: "暫停此群組內的選項",
       ugRemovePhoto: "移除圖片",
       ugInUse: "此餐點仍被選項群組使用，請先移除連結再刪除。",
+      ugI18nSection: "多語系顯示（英文 / 越南文）",
+      ugI18nSectionBase: "多語系顯示",
+      ugLocaleEn: "英文",
+      ugLocaleVi: "越南文",
+      ugI18nEnName: "英文名稱 (EN)",
+      ugI18nEnBadge: "英文標籤 (EN)",
+      ugI18nViName: "越南文名稱 (VI)",
+      ugI18nViBadge: "越南文標籤 (VI)",
+      ugAiTranslate: "AI 一鍵翻譯",
+      ugAiTranslating: "AI 翻譯中…",
+      ugAiTranslateError: "AI 自動翻譯失敗，請稍後再試。",
     },
   };
   for (const lang of Object.keys(translations))
@@ -363,6 +385,80 @@
       ? Object.fromEntries(Object.keys(v).sort().map((key) => [key, v[key]]))
       : v,
   );
+  function cleanI18n(raw) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+    const out = {};
+    for (const loc of Object.keys(raw).sort()) {
+      const patch = raw[loc];
+      if (!patch || typeof patch !== "object") continue;
+      const cleanPatch = {};
+      for (const key of Object.keys(patch).sort()) {
+        const val = patch[key];
+        if (typeof val === "string") {
+          const trimmed = val.trim();
+          if (trimmed) cleanPatch[key] = trimmed;
+        } else if (val && typeof val === "object" && !Array.isArray(val)) {
+          const nested = {};
+          for (const nk of Object.keys(val).sort()) {
+            if (typeof val[nk] === "string" && val[nk].trim()) nested[nk] = val[nk].trim();
+          }
+          if (Object.keys(nested).length) cleanPatch[key] = nested;
+        }
+      }
+      if (Object.keys(cleanPatch).length) out[loc] = cleanPatch;
+    }
+    return out;
+  }
+  function activeTargetLocales() {
+    if (typeof window.isTenantMultilingualEnabled === "function" && !window.isTenantMultilingualEnabled()) {
+      return [];
+    }
+    if (window.currentTenantI18nEnabled === false) {
+      return [];
+    }
+    if (typeof window.getTenantAiTargetLocales === "function") {
+      return window.getTenantAiTargetLocales();
+    }
+    return [];
+  }
+  function formatI18nSummary(locales) {
+    const base = tr("ugI18nSectionBase");
+    if (!locales.length) return base;
+    const labels = locales.map((loc) =>
+      loc === "en" ? tr("ugLocaleEn") : loc === "vi" ? tr("ugLocaleVi") : loc.toUpperCase()
+    );
+    const isVi = (window.currentLang || "zh-TW") === "vi";
+    const sep = isVi ? ", " : " / ";
+    return isVi ? `${base} (${labels.join(sep)})` : `${base}（${labels.join(sep)}）`;
+  }
+  function renderI18nSection(prefix, i18nMap, includeBadge, aiAction, subOptions = []) {
+    const locales = activeTargetLocales();
+    if (locales.length === 0) return "";
+    const en = i18nMap?.en || {};
+    const vi = i18nMap?.vi || {};
+    const showEn = locales.includes("en");
+    const showVi = locales.includes("vi");
+    const customSubs = (Array.isArray(subOptions) ? subOptions : [])
+      .filter((s) => typeof s === "string" || !s?.productId)
+      .map((s) => (typeof s === "string" ? s : String(s?.name || "").trim()))
+      .filter(Boolean);
+    const subFieldsHtml = customSubs.map((subName) =>
+      `<div class="ug-i18n-subrow"><span class="ug-i18n-subkey">${esc(subName)}</span>` +
+      (showEn ? `<label class="ug-field"><span>EN</span><input data-field="${prefix}.en.sub_options" data-sub-key="${esc(subName)}" type="text" value="${esc(en.sub_options?.[subName] || "")}"></label>` : "") +
+      (showVi ? `<label class="ug-field"><span>VI</span><input data-field="${prefix}.vi.sub_options" data-sub-key="${esc(subName)}" type="text" value="${esc(vi.sub_options?.[subName] || "")}"></label>` : "") +
+      `</div>`
+    ).join("");
+    const isBusy = Boolean(state?.aiBusy);
+    const spinnerHtml = isBusy ? `<span class="ai-inline-spinner" aria-hidden="true"></span>` : "";
+    return `<details data-section="i18n" class="ug-i18n-details${isBusy ? " is-ai-loading" : ""}"><summary>${esc(formatI18nSummary(locales))}</summary><div class="ug-i18n-box">` +
+      `<button type="button" class="ug-ai-btn${isBusy ? " is-loading" : ""}" data-action="${aiAction}" aria-busy="${isBusy ? "true" : "false"}" ${isBusy ? "disabled" : ""}>${spinnerHtml}<span>${esc(tr(isBusy ? "ugAiTranslating" : "ugAiTranslate"))}</span></button>` +
+      (showEn ? field(`${prefix}.en.name`, "ugI18nEnName", en.name || "") : "") +
+      (showEn && includeBadge ? field(`${prefix}.en.badge_text`, "ugI18nEnBadge", en.badge_text || "") : "") +
+      (showVi ? field(`${prefix}.vi.name`, "ugI18nViName", vi.name || "") : "") +
+      (showVi && includeBadge ? field(`${prefix}.vi.badge_text`, "ugI18nViBadge", vi.badge_text || "") : "") +
+      subFieldsHtml +
+      `</div></details>`;
+  }
   function optionValues(o) {
     return {
       id: o.id,
@@ -374,6 +470,7 @@
       isLocallyOutOfStock: Boolean(o.isLocallyOutOfStock),
       outOfStockUntil: o.outOfStockUntil || null,
       description: o.description || "",
+      i18n: cleanI18n(o.i18n),
       subOptions: (o.subOptions || []).map((s) => ({
         ...(s.id ? { id: s.id } : {}),
         ...(s.productId ? { productId: s.productId } : {}),
@@ -395,6 +492,7 @@
       name: String(d.name || "").trim(), price: Number(d.price), categoryId: d.categoryId,
       badgeText: d.badgeText || "", isRecommended: Boolean(d.isRecommended),
       imageKey: d.imageKey, imageDraft: d.imageDraft || null,
+      i18n: cleanI18n(d.i18n),
       links: (d.links || []).map((l) => ({ groupId: l.groupId, disabled: Boolean(l.disabled), optionIds: l.optionIds === null ? null : sortedIds(l.optionIds) })).sort((a, b) => a.groupId.localeCompare(b.groupId)),
     });
     return stable({
@@ -404,6 +502,7 @@
       maxSelection: d.included ? null : d.maxSelection,
       allowRepeats: Boolean(d.allowRepeats), included: Boolean(d.included),
       autoPopup: d.scope === "item" ? Boolean(d.included || Number(d.minSelection) > 0) : null,
+      i18n: cleanI18n(d.i18n),
       options: (d.options || []).map(optionValues),
       itemIds: sortedIds(d.itemIds), categoryIds: [],
       sources: [],
@@ -724,7 +823,7 @@
             `<option value="${esc(c.id)}" ${d.categoryId === c.id ? "selected" : ""}>${esc(c.name)}</option>`,
         )
         .join("");
-      body = `<section class="ug-photo"><div class="ug-photo-frame"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 6-6 4 4 3-3 5 5"/></svg><img ${d.imageKey === "" && !d.imageDraft ? "hidden" : ""} src="${esc(d.imageDraft || `${WORKER_BASE}/api/image?tenant_id=${encodeURIComponent(getTenantIdFromUrl())}&name=${encodeURIComponent(d.imageKey || d.name)}`)}" alt="" onerror="this.hidden=true"></div><div><label class="ug-upload">${esc(tr("ugPhoto"))}<input type="file" accept="image/*" data-field="photo"></label>${btn("remove-photo", "ugRemovePhoto")}</div></section>${field("name", "ugName", d.name)}<label class="ug-field"><span>${esc(tr("ugCategory"))}</span><select data-field="categoryId">${catOptions}</select></label>${field("price", "ugPrice", d.price, "number", 'min="0" step="0.01"')}${field("badgeText", "ugBadge", d.badgeText)}`;
+      body = `<section class="ug-photo"><div class="ug-photo-frame"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 6-6 4 4 3-3 5 5"/></svg><img ${d.imageKey === "" && !d.imageDraft ? "hidden" : ""} src="${esc(d.imageDraft || `${WORKER_BASE}/api/image?tenant_id=${encodeURIComponent(getTenantIdFromUrl())}&name=${encodeURIComponent(d.imageKey || d.name)}`)}" alt="" onerror="this.hidden=true"></div><div><label class="ug-upload">${esc(tr("ugPhoto"))}<input type="file" accept="image/*" data-field="photo"></label>${btn("remove-photo", "ugRemovePhoto")}</div></section>${field("name", "ugName", d.name)}<label class="ug-field"><span>${esc(tr("ugCategory"))}</span><select data-field="categoryId">${catOptions}</select></label>${field("price", "ugPrice", d.price, "number", 'min="0" step="0.01"')}${field("badgeText", "ugBadge", d.badgeText)}${renderI18nSection("i18n", d.i18n, true, "ai-translate-entity")}`;
       body += productGroupSection(d) +
         (!d.isNew ? btn("delete", "ugDelete", 'class="ug-danger"') : "");
     } else if (r.page === "product-options") {
@@ -733,7 +832,7 @@
     } else if (r.page === "group") {
       const [min, max] = selectionRules(d);
       const isOrder = d.scope === "order";
-      body = `<section><h3>${esc(tr("ugDetails"))}</h3>${field("name", "ugName", d.name)}</section><section><h3>${esc(tr("ugRules"))}</h3><div class="ug-list">${toggle("required", "ugRequired", d.included ? min > 0 : state.required, d.scope === "order" || d.included ? null : "ugRequiredHelp")}${d.included || state.required ? stepper("minSelection", "ugMin", min, 1) : ""}${stepper("maxSelection", "ugMax", max, 1)}</div><div class="ug-list">${toggle("allowRepeats", "ugRepeat", d.allowRepeats)}${toggle("included", "ugIncluded", d.included)}</div></section><section><div class="ug-section-title"><h3>${esc(tr("ugOptions"))} (${options(d).length})</h3>${btn("add-option", "ugAdd")}</div><div class="ug-list">${
+      body = `<section><h3>${esc(tr("ugDetails"))}</h3>${field("name", "ugName", d.name)}${renderI18nSection("i18n", d.i18n, false, "ai-translate-entity")}</section><section><h3>${esc(tr("ugRules"))}</h3><div class="ug-list">${toggle("required", "ugRequired", d.included ? min > 0 : state.required, d.scope === "order" || d.included ? null : "ugRequiredHelp")}${d.included || state.required ? stepper("minSelection", "ugMin", min, 1) : ""}${stepper("maxSelection", "ugMax", max, 1)}</div><div class="ug-list">${toggle("allowRepeats", "ugRepeat", d.allowRepeats)}${toggle("included", "ugIncluded", d.included)}</div></section><section><div class="ug-section-title"><h3>${esc(tr("ugOptions"))} (${options(d).length})</h3>${btn("add-option", "ugAdd")}</div><div class="ug-list">${
         options(d)
           .map((o) =>
             row(
@@ -853,7 +952,9 @@
         (d.included
           ? stepper("option.quantity", "ugQuantity", o.quantity, 1)
           : "") +
-        `<div class="ug-list ug-option-toggles">${toggle("option.isDefault", "ugDefault", o.isDefault, "ugDefaultHelp")}${toggle("option.isLocallyOutOfStock", "ugLocalStock", o.isLocallyOutOfStock, "ugLocalStockHelp")}</div></section>` +
+        `<div class="ug-list ug-option-toggles">${toggle("option.isDefault", "ugDefault", o.isDefault, "ugDefaultHelp")}${toggle("option.isLocallyOutOfStock", "ugLocalStock", o.isLocallyOutOfStock, "ugLocalStockHelp")}</div>` +
+        (!p ? renderI18nSection("option.i18n", o.i18n, false, "ai-translate-option", o.subOptions || []) : "") +
+        `</section>` +
         `<section class="ug-option-children"><div class="ug-section-title"><h3>${esc(tr("ugSub"))} (${(o.subOptions || []).length})</h3>${subMenu()}</div>${(o.subOptions || []).map(subRow).join("") || `<p class="ug-muted">${esc(tr("ugSubEmpty"))}</p>`}</section>` +
         `<details data-section="conditions"><summary>${esc(tr("ugConditions"))}</summary>${field("eligibility.min_order_subtotal", "ugMinimumSubtotal", (o.eligibilityRules || []).find((r) => r.rule_type === "min_order_subtotal")?.min_order_subtotal || 0, "number", 'min="0" step="0.01"')}${field("eligibility.error_message", "ugRuleMessage", (o.eligibilityRules || []).find((r) => r.rule_type === "min_order_subtotal")?.error_message || "")}</details>` +
         (!r.isNew ? sourceContains(d, o)
@@ -1067,6 +1168,21 @@
         r.option.eligibilityRules.push(rule);
       }
       rule[key.slice(12)] = value;
+    } else if (key.startsWith("option.i18n.")) {
+      const [, , loc, prop] = key.split(".");
+      r.option.i18n = r.option.i18n || {};
+      r.option.i18n[loc] = r.option.i18n[loc] || {};
+      if (prop === "sub_options" && el.dataset.subKey !== undefined) {
+        r.option.i18n[loc].sub_options = r.option.i18n[loc].sub_options || {};
+        r.option.i18n[loc].sub_options[el.dataset.subKey] = value;
+      } else if (prop) {
+        r.option.i18n[loc][prop] = value;
+      }
+    } else if (key.startsWith("i18n.")) {
+      const [, loc, prop] = key.split(".");
+      d.i18n = d.i18n || {};
+      d.i18n[loc] = d.i18n[loc] || {};
+      if (prop) d.i18n[loc][prop] = value;
     } else if (key.startsWith("option.")) r.option[key.slice(7)] = value;
     else if (key.startsWith("sub.")) {
       const [, i, k] = key.split(".");
@@ -1088,8 +1204,95 @@
       if (["minSelection", "maxSelection", "allowRepeats"].includes(key)) showSelectionErrors();
     }
   }
+  async function translateDraftWithAi(mode) {
+    if (!state || state.busy || state.aiBusy) return;
+    const d = state.draft;
+    const r = state.route;
+    const tenantId = getTenantIdFromUrl();
+    const isOption = mode === "option" && r.page === "option" && r.option;
+    const entry = isOption
+      ? {
+          type: "option",
+          id: r.option.id,
+          name: String(r.option.name || "").trim(),
+          sub_options: (r.option.subOptions || [])
+            .filter((s) => typeof s === "string" || !s?.productId)
+            .map((s) => (typeof s === "string" ? s.trim() : String(s?.name || "").trim()))
+            .filter(Boolean),
+        }
+      : state.kind === "product"
+        ? {
+            type: "item",
+            id: d.id,
+            name: String(d.name || "").trim(),
+            badge_text: String(d.badgeText || "").trim(),
+          }
+        : {
+            type: "option_group",
+            id: d.id,
+            name: String(d.name || "").trim(),
+          };
+    const targetLocales = activeTargetLocales();
+    if (!targetLocales.length) return;
+    if (!entry.name) {
+      state.error = tr("ugInvalid");
+      return render();
+    }
+    state.aiBusy = true;
+    state.error = "";
+    r.view = r.view || {};
+    r.view.details = [...new Set([...(r.view.details || []), "i18n"])];
+    render();
+    try {
+      const res = await fetch(
+        `${WORKER_BASE}/api/menu/ai-translate?tenant_id=${encodeURIComponent(tenantId)}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Tenant-ID": tenantId,
+          },
+          body: JSON.stringify({
+            tenant_id: tenantId,
+            applyToDatabase: false,
+            targetLocales,
+            entries: [entry],
+          }),
+        },
+      );
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(result.error || "AI_TRANSLATION_FAILED");
+      const translated = result.byId?.[entry.id] || result.translations?.[`${entry.type}:${entry.id}`] || {};
+      const target = isOption ? r.option : d;
+      target.i18n = target.i18n || {};
+      for (const loc of targetLocales) {
+        if (!translated[loc] || typeof translated[loc] !== "object") continue;
+        target.i18n[loc] = {
+          ...(target.i18n[loc] || {}),
+          ...translated[loc],
+          ...(translated[loc].sub_options
+            ? {
+                sub_options: {
+                  ...(target.i18n[loc]?.sub_options || {}),
+                  ...translated[loc].sub_options,
+                },
+              }
+            : {}),
+        };
+      }
+    } catch (_) {
+      state.error = tr("ugAiTranslateError");
+    } finally {
+      if (state) {
+        state.aiBusy = false;
+        render();
+      }
+    }
+  }
   function action(name, el) {
-    if (!state || state.busy) return;
+    if (!state || state.busy || state.aiBusy) return;
+    if (name === "ai-translate-entity") return translateDraftWithAi("entity");
+    if (name === "ai-translate-option") return translateDraftWithAi("option");
     if (state.confirm && !["continue", "discard", "confirm-delete"].includes(name)) return;
     const d = state.draft,
       r = state.route;
@@ -1424,12 +1627,19 @@
     state.error = "";
     render();
     try {
+      const payload = { ...d, delete: remove };
+      if (d.i18n !== undefined) payload.i18n = cleanI18n(d.i18n);
+      if (Array.isArray(payload.options)) {
+        payload.options = payload.options.map((opt) =>
+          opt && opt.i18n !== undefined ? { ...opt, i18n: cleanI18n(opt.i18n) } : opt,
+        );
+      }
       const res = await fetch(
         `${WORKER_BASE}/api/menu/${state.kind === "product" ? "product" : "option-group"}?tenant_id=${encodeURIComponent(getTenantIdFromUrl())}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...d, delete: remove }),
+          body: JSON.stringify(payload),
         },
       );
       const result = await res.json();
@@ -1537,6 +1747,7 @@
             itemType: "standard",
             bundleRule: null,
             modifierGroups: [],
+            i18n: p.i18n || old?.i18n || {},
             menuRevision: p.menu_revision,
           });
         }
@@ -1555,6 +1766,7 @@
                   minSelection: g.minSelection,
                   maxSelection: g.maxSelection,
                   isRequired: g.minSelection > 0,
+                  i18n: g.i18n || c.groups[i].i18n || {},
                 };
               }
             }
@@ -1617,6 +1829,7 @@
         badgeText: (optionsOnly ? p.badge_text : local?.badgeText) || "",
         isRecommended: Boolean(optionsOnly ? p.is_recommended : local?.isRecommended),
         revision: Number(p?.menu_revision || 0),
+        i18n: clone((optionsOnly ? p?.i18n : (local?.i18n || p?.i18n)) || {}),
         links: clone(catalog.links.filter((l) => l.itemId === local?.id)),
         imageKey:
           optionsOnly ? p.image_key : p?.image_key ??

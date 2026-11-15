@@ -29,6 +29,8 @@ export interface TenantConfigRow extends OrderDomainRow {
   quick_replies?: string | null;
   default_password?: string | null;
   locale?: string | null;
+  supported_locales?: string | null;
+  i18n_json?: string | null;
   google_sheets_url?: string | null;
   features?: string | null;
   auto_open_before_minutes?: number | null;
@@ -76,6 +78,8 @@ export interface UpdateTenantConfigInput {
   prepTimeMinutes?: number | null;
   paymentMethods?: string[] | string | null;
   brandName?: string | null;
+  supportedLocales?: string[] | string | null;
+  i18n?: Record<string, any> | string | null;
 }
 
 export interface SaveAdminTenantInput {
@@ -99,6 +103,8 @@ export interface SaveAdminTenantInput {
   quick_replies?: any;
   default_password?: string | null;
   locale?: string | null;
+  supported_locales?: string | null;
+  i18n_json?: string | null;
   google_sheets_url?: string | null;
   is_active?: number;
 }

@@ -7,6 +7,7 @@ import { invalidateMarketplaceCache } from './marketplace';
 import { customerOrderConfig } from '../utils/order-domain';
 import { createTenantRepository } from '../repositories/tenant.repository';
 import { parseAISettings, validAISettingsPatch } from './ai-settings';
+import { isMultilingualCanaryEnabled, parseSupportedLocales } from './menu-i18n';
 
 export async function getConfig(
   request: Request,
@@ -65,6 +66,24 @@ export async function getConfig(
     ? Number(domainRow.auto_open_before_minutes)
     : (tenantCtx?.autoOpenBeforeMinutes ?? 60);
 
+  const primaryLocale = domainRow.locale || tenantCtx?.locale || 'zh-TW';
+  const i18nEnabled = isMultilingualCanaryEnabled(tenantId, env, {
+    features: finalFeatures
+  });
+  const defaultLocales = i18nEnabled
+    ? (primaryLocale === 'vi' ? ['vi', 'en'] : ['zh-TW', 'en'])
+    : [primaryLocale];
+  const rawSupportedLocales =
+    domainRow.supported_locales !== undefined && domainRow.supported_locales !== null
+      ? domainRow.supported_locales
+      : tenantCtx?.supportedLocales;
+  const parsedSupported = parseSupportedLocales(rawSupportedLocales, defaultLocales);
+  const supportedLocales = i18nEnabled
+    ? (parsedSupported.includes(primaryLocale)
+        ? parsedSupported
+        : [primaryLocale, ...parsedSupported])
+    : [primaryLocale];
+
   return json({
     tenantId,
     aiSettings: parseAISettings(domainRow.ai_settings, domainRow.ai_order_redirect_enabled),
@@ -74,6 +93,9 @@ export async function getConfig(
     allowScheduledPickup,
     allowDineIn,
     features: finalFeatures,
+    locale: primaryLocale,
+    supportedLocales,
+    i18nEnabled,
     storeStatus: normalizeStoreStatus(domainRow.store_status || tenantCtx?.storeStatus, new Date(), domainRow.operating_hours || tenantCtx?.operatingHours, autoOpenBeforeMinutes),
     autoOpenBeforeMinutes,
     prepTimeMinutes: (domainRow.prep_time_minutes !== undefined && domainRow.prep_time_minutes !== null) ? Number(domainRow.prep_time_minutes) : (tenantCtx?.prepTimeMinutes ?? 5),
@@ -157,6 +179,51 @@ export async function updateConfig(
       storeNotice = serializeStoreNotice(payload.storeNotice, current?.store_notice);
     }
 
+    if (payload.supportedLocales !== undefined || payload.i18n !== undefined) {
+      let existingFeatures: string[] = Array.isArray(tenantCtx?.features) ? tenantCtx.features : [];
+      if (!tenantCtx) {
+        const cur = await tenantRepo.getTenantConfigRow(tenantId);
+        if (cur?.features) {
+          try {
+            const parsed = typeof cur.features === 'string' ? JSON.parse(cur.features) : cur.features;
+            if (Array.isArray(parsed)) existingFeatures = parsed;
+          } catch {}
+        }
+      }
+      if (!isMultilingualCanaryEnabled(tenantId, env, { features: existingFeatures })) {
+        return json({ error: 'FEATURE_LOCKED', feature: 'multilingual' }, 403);
+      }
+    }
+
+    let normalizedSupportedLocales: string[] | undefined;
+    if (payload.supportedLocales !== undefined) {
+      if (!Array.isArray(payload.supportedLocales)) {
+        return json({ error: 'INVALID_SUPPORTED_LOCALES' }, 400);
+      }
+      const primaryLocale = tenantCtx?.locale || 'zh-TW';
+      const cleaned = Array.from(
+        new Set(
+          payload.supportedLocales
+            .map((loc: unknown) => (typeof loc === 'string' ? loc.trim() : ''))
+            .filter((loc: string) => /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(loc))
+        )
+      ) as string[];
+      if (cleaned.length === 0 && payload.supportedLocales.length > 0) {
+        return json({ error: 'INVALID_SUPPORTED_LOCALES' }, 400);
+      }
+      normalizedSupportedLocales = cleaned.includes(primaryLocale)
+        ? [primaryLocale, ...cleaned.filter((l) => l !== primaryLocale)]
+        : [primaryLocale, ...cleaned];
+    }
+
+    let normalizedTenantI18n: Record<string, any> | undefined;
+    if (payload.i18n !== undefined) {
+      if (!payload.i18n || typeof payload.i18n !== 'object' || Array.isArray(payload.i18n)) {
+        return json({ error: 'INVALID_TENANT_I18N' }, 400);
+      }
+      normalizedTenantI18n = payload.i18n;
+    }
+
     await tenantRepo.updateTenantConfig(tenantId, {
       operatingHours: payload.operatingHours,
       allowScheduledPickup: payload.allowScheduledPickup,
@@ -173,17 +240,23 @@ export async function updateConfig(
       aiSettings,
       aiOrderRedirectEnabled,
       features: payload.features,
+      ...(normalizedSupportedLocales !== undefined ? { supportedLocales: normalizedSupportedLocales } : {}),
+      ...(normalizedTenantI18n !== undefined ? { i18n: normalizedTenantI18n } : {}),
       brandName
     });
 
     await invalidateBootstrapCache(tenantId, env);
     await invalidateMarketplaceCache(env);
 
+    const responseBody: Record<string, any> = { success: true };
+    if (normalizedSupportedLocales !== undefined) {
+      responseBody.supportedLocales = normalizedSupportedLocales;
+    }
     if (aiSettings) {
       const current = await tenantRepo.getTenantConfigRow(tenantId);
-      return json({ success: true, aiSettings: parseAISettings(current?.ai_settings, current?.ai_order_redirect_enabled) });
+      responseBody.aiSettings = parseAISettings(current?.ai_settings, current?.ai_order_redirect_enabled);
     }
-    return json({ success: true });
+    return json(responseBody);
   } catch (e: any) {
     if (e instanceof HttpError) return json({ error: e.message }, e.status);
     console.error('[updateConfig] Error:', e);

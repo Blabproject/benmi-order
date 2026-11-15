@@ -11,7 +11,9 @@ export interface Env extends Partial<Pick<RuntimeBindings,
   PRICING_ENGINE?: Fetcher;
   PRICING_RUST_ENABLED?: string;
   PRICING_RUST_TENANTS?: string;
+  MULTILINGUAL_TENANTS?: string;
   // Bindings
+  AI?: Ai;
   ORDER_STATE: KVNamespace;
   DB: D1Database;
   IMAGES_BUCKET?: R2Bucket;

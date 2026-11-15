@@ -1,6 +1,9 @@
+import { handleOrderCommand } from './modules/order-commands';
+import { handlePosSession } from './modules/pos-session';
 import { handlePaymentRoute, processPayments } from './modules/payments';
 import { tenantIsDeleted } from './utils/tenant-lifecycle';
 import { getOptionCatalog, saveOptionEntity } from './modules/option-groups';
+import { handleMenuAiTranslate } from './modules/menu-ai-translate';
 import { getModifierLibrary } from './modules/modifier-library';
 import { Env } from './types/env';
 import { corsHeaders, json } from './utils/http';
@@ -71,6 +74,13 @@ export default {
         && await tenantIsDeleted(env.DB, tenantId)) return json({ error: 'TENANT_DELETED' }, 410, { 'Cache-Control': 'no-store' });
       const tenantCtx = await resolveTenantContext(tenantId, env);
 
+      if (path === '/api/pos/session') return handlePosSession(request, env, tenantCtx);
+      const commandMatch = path.match(/^\/api\/orders\/([^/]+)\/commands$/);
+      if (commandMatch && request.method === 'POST') {
+        if (!tenantCtx) return json({code:'TENANT_UNAVAILABLE'},404);
+        return handleOrderCommand(request,env,tenantCtx.tenantId,decodeURIComponent(commandMatch[1]));
+      }
+
       if (path.startsWith('/api/payments/')) return handlePaymentRoute(request, env, tenantCtx, path);
 
       // 4. Staff API Routes
@@ -101,6 +111,7 @@ export default {
       if (request.method === "POST" && path === "/api/menu/product") return saveOptionEntity(request, env, 'product');
       if (request.method === "POST" && path === "/api/menu/option-group") return saveOptionEntity(request, env, 'group');
       if (request.method === "GET" && path === "/api/menu/modifier-library") return getModifierLibrary(request, env);
+      if (request.method === "POST" && path === "/api/menu/ai-translate") return handleMenuAiTranslate(request, env);
       if (request.method === "GET" && path === "/api/menu") return getMenu(request, env);
       if (request.method === "POST" && path === "/api/menu") return updateMenu(request, env);
       if (request.method === "POST" && path === "/api/menu/stock-status") return updateStockStatus(request, env);

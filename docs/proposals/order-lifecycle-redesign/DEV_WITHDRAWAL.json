@@ -1,0 +1,9 @@
+{
+  "at": "2026-11-13T17:33:36.574Z",
+  "database": "blab-db-dev",
+  "ordersAndPaymentsUnchanged": true,
+  "fingerprint": "e38c1232799fb76a333511bee199c75ab891ffd2b71978173c57814e81e14e59",
+  "archivedEvents": 83,
+  "residualObjects": [],
+  "productionTouched": false
+}

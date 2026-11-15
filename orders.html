@@ -9,9 +9,9 @@
 
   <script src="/js/order-code.js?v=20261109_order_code_v1"></script>
   <script src="js/orders-display.js?v=20261007_dev_main_sync_v1"></script>
-  <link rel="stylesheet" href="css/orders.css?v=20261113_revert_hours_v1" />
+  <link rel="stylesheet" href="css/orders.css?v=20261114_multilingual_v1" />
   <link rel="stylesheet" href="css/orders-stock.css?v=20261107_stock_drawer_v1" />
-  <link rel="stylesheet" href="css/orders-menu.css?v=20261102_menu_mobile_v5" />
+  <link rel="stylesheet" href="css/orders-menu.css?v=20261115_multilingual_pkg_v2" />
     <script>
       (function () {
         document.documentElement.style.setProperty('--primary', '#00b900');
@@ -1174,6 +1174,64 @@
                     <div style="font-size: var(--pos-text-meta); color: #64748b; margin-top: 2px;" id="i18n-lang-vi-desc">Giao diện tiếng Việt chuẩn hóa cho nhân viên quầy và thu ngân</div>
                   </div>
                 </label>
+
+                <div id="setting-customer-locales-section" style="margin-top: 8px; padding-top: 18px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px;">
+                  <div>
+                    <div style="font-weight: 1100; font-size: var(--pos-text-body); color: #111827;" id="i18n-setting-cust-lang-title">顧客菜單與 AI 翻譯語言</div>
+                    <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600; margin-top: 2px;" id="i18n-setting-cust-lang-sub">選擇顧客端菜單顯示語言切換，以及 AI 自動翻譯的目標語言</div>
+                  </div>
+
+                  <div id="setting-customer-locales-unlocked-body" style="display: none; flex-direction: column; gap: 12px;">
+                    <label class="setting-mode-card" id="cust-lang-card-primary" style="display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; min-height: 48px; border-radius: 12px; border: 2px solid var(--border); background: #f8fafc; cursor: default;">
+                      <div style="display: flex; align-items: center; gap: 14px;">
+                        <input type="checkbox" id="setting-cust-locale-primary" checked disabled style="width: 20px; height: 20px; accent-color: var(--primary);">
+                        <div>
+                          <div style="font-weight: 900; font-size: var(--pos-text-body); color: #111827;" id="i18n-cust-lang-primary-title">繁體中文（門市預設主語言）</div>
+                          <div style="font-size: var(--pos-text-meta); color: #64748b; margin-top: 2px;" id="i18n-cust-lang-primary-desc">菜單編輯主語言，顧客端永遠包含此語言</div>
+                        </div>
+                      </div>
+                      <span id="i18n-cust-lang-primary-badge" style="font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 999px; background: #e2e8f0; color: #334155; white-space: nowrap;">主語言</span>
+                    </label>
+
+                    <label class="setting-mode-card" id="cust-lang-card-en" style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; min-height: 48px; border-radius: 12px; border: 2px solid var(--border); cursor: pointer; transition: all 0.15s ease;">
+                      <input type="checkbox" id="setting-cust-locale-en" value="en" onchange="toggleCustomerLocaleCheckbox('en')" style="width: 20px; height: 20px; accent-color: var(--primary);">
+                      <div>
+                        <div style="font-weight: 900; font-size: var(--pos-text-body); color: #111827;" id="i18n-cust-lang-en-title">English（英文菜單）</div>
+                        <div style="font-size: var(--pos-text-meta); color: #64748b; margin-top: 2px;" id="i18n-cust-lang-en-desc">開啟後，顧客可切換英文菜單，POS 與 AI 將支援英文翻譯</div>
+                      </div>
+                    </label>
+
+                    <label class="setting-mode-card" id="cust-lang-card-vi" style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; min-height: 48px; border-radius: 12px; border: 2px solid var(--border); cursor: pointer; transition: all 0.15s ease;">
+                      <input type="checkbox" id="setting-cust-locale-vi" value="vi" onchange="toggleCustomerLocaleCheckbox('vi')" style="width: 20px; height: 20px; accent-color: var(--primary);">
+                      <div>
+                        <div style="font-weight: 900; font-size: var(--pos-text-body); color: #111827;" id="i18n-cust-lang-vi-title">Tiếng Việt（越南文菜單）</div>
+                        <div style="font-size: var(--pos-text-meta); color: #64748b; margin-top: 2px;" id="i18n-cust-lang-vi-desc">開啟後，顧客可切換越南文菜單，POS 與 AI 將支援越南文翻譯</div>
+                      </div>
+                    </label>
+
+                    <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
+                      <button type="button" class="btn btn-primary" id="btn-save-customer-locales" onclick="saveCustomerSupportedLocalesSetting()" style="min-height: 48px; padding: 0 22px; font-weight: 900;">
+                        <span id="i18n-btn-save-cust-lang">儲存菜單語言設定</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div id="setting-customer-locales-locked-body" style="display: flex; background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%); border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 14px 18px; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 240px;">
+                      <div style="width: 40px; height: 40px; border-radius: 50%; background: #ede9fe; color: #6d28d9; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid #ddd6fe;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                      </div>
+                      <div>
+                        <div style="font-weight: 900; font-size: var(--pos-text-body); color: #1e1b4b;" id="i18n-cust-lang-locked-title">多語系菜單與 AI 翻譯套件（未啟用）</div>
+                        <div style="font-size: var(--pos-text-meta); color: #64748b; line-height: 1.4; margin-top: 2px;" id="i18n-cust-lang-locked-desc">可為顧客提供多語系菜單切換，並使用 AI 一鍵翻譯餐點與客製選項。歡迎聯繫升級套件。</div>
+                      </div>
+                    </div>
+                    <button type="button" class="btn btn-primary" style="min-height: 48px; padding: 8px 16px; font-size: var(--pos-text-meta); font-weight: 800; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25); cursor: pointer; white-space: nowrap;" onclick="openBlabContactModal('upgrade')">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                      <span id="i18n-btn-contact-upgrade-i18n">聯繫升級方案</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1788,6 +1846,10 @@
             </div>
             <button type="button" class="btn btn-primary menu-action-btn" id="btn-menu-save" disabled onclick="saveMenuData()">
               <span id="btn-menu-save-text">儲存變更</span>
+            </button>
+            <button type="button" class="btn btn-ghost menu-action-btn" id="btn-menu-ai-translate" disabled onclick="translateMissingMenuWithAI()" style="min-height: 48px; display: none;">
+              <svg class="ai-btn-idle-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <span id="i18n-btn-menu-ai-translate-text">AI 一鍵翻譯缺漏</span>
             </button>
             <button type="button" class="btn btn-ghost menu-action-btn menu-order-entry-btn" id="btn-menu-manage-cats" disabled onclick="openCategoriesManager()">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v18M4 7l4-4 4 4M16 21V3m-4 14 4 4 4-4"/></svg>
@@ -3047,6 +3109,34 @@
                 <!-- Rendered via JS based on currentLang -->
               </div>
             </div>
+
+            <!-- Multilingual Translations Section -->
+            <details class="item-i18n-details" id="item-detail-i18n-details" style="margin-top: 16px;">
+              <summary id="i18n-item-i18n-section-title">多語系顯示（英文 / 越南文）</summary>
+              <div class="item-i18n-box">
+                <button type="button" class="item-i18n-ai-btn" id="btn-item-detail-ai-translate" onclick="translateItemDetailWithAI()">
+                  <span id="i18n-btn-item-ai-translate">AI 一鍵翻譯</span>
+                </button>
+                <div class="item-i18n-grid">
+                  <div data-i18n-locale="en">
+                    <label class="item-detail-label" id="i18n-item-en-name-label" for="item-detail-i18n-en-name">英文名稱 (EN)</label>
+                    <input type="text" id="item-detail-i18n-en-name" class="item-detail-input" autocomplete="off" style="height: 48px;">
+                  </div>
+                  <div data-i18n-locale="en">
+                    <label class="item-detail-label" id="i18n-item-en-badge-label" for="item-detail-i18n-en-badge">英文標籤 (EN)</label>
+                    <input type="text" id="item-detail-i18n-en-badge" class="item-detail-input" autocomplete="off" style="height: 48px;">
+                  </div>
+                  <div data-i18n-locale="vi">
+                    <label class="item-detail-label" id="i18n-item-vi-name-label" for="item-detail-i18n-vi-name">越南文名稱 (VI)</label>
+                    <input type="text" id="item-detail-i18n-vi-name" class="item-detail-input" autocomplete="off" style="height: 48px;">
+                  </div>
+                  <div data-i18n-locale="vi">
+                    <label class="item-detail-label" id="i18n-item-vi-badge-label" for="item-detail-i18n-vi-badge">越南文標籤 (VI)</label>
+                    <input type="text" id="item-detail-i18n-vi-badge" class="item-detail-input" autocomplete="off" style="height: 48px;">
+                  </div>
+                </div>
+              </div>
+            </details>
           </div>
         </div>
 
@@ -3374,8 +3464,8 @@
   </section>
 
   <!-- Benmi POS Modular Architecture Scripts -->
-  <script src="js/orders-i18n.js?v=20261113_revert_hours_v1"></script>
-  <script src="js/orders-core.js?v=20261111_staff_table_sync_v1"></script>
+  <script src="js/orders-i18n.js?v=20261115_multilingual_pkg_v1"></script>
+  <script src="js/orders-core.js?v=20261115_multilingual_pkg_v1"></script>
   <script src="js/orders-audio.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
   <script src="js/order-detail-view.js?v=20261017_order_detail_v1"></script>
@@ -3386,12 +3476,12 @@
   <script src="js/orders-reports.js?v=20261007_dev_main_sync_v1"></script>
   <script src="js/qrcode.min.js?v=20261107_table_qr_v1"></script>
   <script src="js/store-notice-format.js?v=20261111_store_notice_v1"></script>
-  <script src="js/orders-settings.js?v=20261113_revert_hours_v1"></script>
+  <script src="js/orders-settings.js?v=20261115_multilingual_pkg_v1"></script>
   <script src="js/orders-ai-settings.js?v=20261112_ai_settings_v1"></script>
-  <script src="js/orders-menu-model.js?v=20261104_menu_model_v1"></script>
-  <script src="js/orders-menu.js?v=20261109_menu_image_delete_v2"></script>
+  <script src="js/orders-menu-model.js?v=20261115_multilingual_pkg_v1"></script>
+  <script src="js/orders-menu.js?v=20261115_multilingual_pkg_v1"></script>
   <script src="js/orders-bundle-wizard.js?v=20261007_dev_main_sync_v1"></script>
-  <script src="js/orders-option-groups.js?v=20261109_menu_image_delete_v2"></script>
+  <script src="js/orders-option-groups.js?v=20261115_multilingual_pkg_v1"></script>
 
   <!-- POS Bootstrap & Initialization -->
   <script>

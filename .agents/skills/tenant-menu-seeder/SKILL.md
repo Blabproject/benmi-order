@@ -117,6 +117,11 @@ For menu-only changes, leave `tenants` and `tenant_config` untouched. For initia
 ### Step 2: One-Time SQL Seed Template (Canonical Unified Schema)
 Scope every write to `tenant_id`. Conflict handling below is a SQL construction pattern for the authorized payload; it is not permission to replay the seed over a live menu. Preserve an applied seed as history and use a fresh incremental patch for subsequent changes.
 
+**Multilingual Columns (`supported_locales` & `i18n_json`) for New Tenants**:
+- Set `tenant_config.supported_locales = '["zh-TW","en","vi"]'` (or desired locale array) and `tenant_config.i18n_json` for multilingual new tenants (and include the tenant in `MULTILINGUAL_TENANTS` or store `i18n_json` / `supported_locales` so LIFF displays the language switcher; legacy stores stay unaffected).
+- Populate `i18n_json` on `menu_categories`, `menu_items`, `modifier_groups`, and `modifier_options` from the extractor's `i18n` fields (`{"en":{"name":"...","sub_options":{...}},"vi":{"name":"...",...}}`). Canonical `name` columns MUST remain in the restaurant's primary `locale` so POS receipts and printers stay single-language.
+- If any entries in a newly seeded menu omit `i18n_json`, you can backfill missing translations automatically using Cloudflare Workers AI via `POST /api/menu/ai-translate?tenant_id=<tenant_id>` (`{"applyToDatabase":true,"onlyMissing":true,"targetLocales":["en","vi"]}`).
+
 The following is an illustrative initial-onboarding template, not a list of rows or settings to create for every restaurant. Include only groups/components established by the input. Choose initialization LIFF/settings from the tenant's supplied configuration or the selected environment. The `tenant_config` update list below assumes those business fields were supplied; remove assignments for omitted fields. Guard ID-based upserts with tenant ownership and never update `tenant_id` on conflict.
 
 When correcting an existing group, reconcile its seed-owned links and obsolete options with the desired exact set. `DO NOTHING` leaves stale links/defaults/subsets in place and is insufficient for such a correction. Do not delete unrelated groups, historical orders or staff-authored data outside the requested change.
@@ -139,8 +144,8 @@ ON CONFLICT(id) DO UPDATE SET name = excluded.name;
 -- 2. Tenant Config Table
 INSERT INTO tenant_config (
     tenant_id, brand_name, brand_color, store_address, operating_hours,
-    delivery_policy, default_password, locale, allow_scheduled_pickup,
-    allow_dine_in, store_status, liff_id, liff_url, order_prefix,
+    delivery_policy, default_password, locale, supported_locales, i18n_json,
+    allow_scheduled_pickup, allow_dine_in, store_status, liff_id, liff_url, order_prefix,
     features, cuisine_type, is_marketplace_visible, is_active, latitude, longitude,
     groq_model, openrouter_model, customer_order_domain, legacy_liff_endpoint_url
 ) VALUES (
@@ -152,6 +157,8 @@ INSERT INTO tenant_config (
     '<delivery_policy>',
     '12345678',
     '<zh-TW | vi>',
+    '["zh-TW","en","vi"]',
+    '<tenant_i18n_json_or_{}>',
     <1 or 0>,
     <1 or 0>,
     'open',
@@ -176,6 +183,8 @@ ON CONFLICT(tenant_id) DO UPDATE SET
     operating_hours = excluded.operating_hours,
     delivery_policy = excluded.delivery_policy,
     locale = excluded.locale,
+    supported_locales = excluded.supported_locales,
+    i18n_json = excluded.i18n_json,
     allow_scheduled_pickup = excluded.allow_scheduled_pickup,
     allow_dine_in = excluded.allow_dine_in,
     order_prefix = excluded.order_prefix,
@@ -185,11 +194,11 @@ ON CONFLICT(tenant_id) DO UPDATE SET
 INSERT INTO menu_categories (
     id, tenant_id, name, short_name, slug, category_type, selection_type,
     is_required, min_selection, max_selection, sort_order,
-    allow_customization, applied_modifiers
+    allow_customization, applied_modifiers, i18n_json
 ) VALUES
-('cat_<tenant>_main',   '<tenant_id>', '招牌主食', '主食', 'main',   'catalog',     'single', 0, 0, 1, 1, 1, '[]'),
-('cat_<tenant>_combos', '<tenant_id>', '超值套餐', '套餐', 'combos', 'catalog',     'single', 0, 0, 1, 2, 1, '[]'),
-('cat_<tenant>_drinks_pool', '<tenant_id>', '套餐飲料池', '飲料', 'drink-choice', 'bundle_pool', 'single', 1, 1, 1, 9, 0, '[]')
+('cat_<tenant>_main',   '<tenant_id>', '招牌主食', '主食', 'main',   'catalog',     'single', 0, 0, 1, 1, 1, '[]', '{"en":{"name":"Signature Mains","short_name":"Mains"},"vi":{"name":"Món chính đặc trưng","short_name":"Món chính"}}'),
+('cat_<tenant>_combos', '<tenant_id>', '超值套餐', '套餐', 'combos', 'catalog',     'single', 0, 0, 1, 2, 1, '[]', '{"en":{"name":"Value Combos","short_name":"Combos"},"vi":{"name":"Combo tiết kiệm","short_name":"Combo"}}'),
+('cat_<tenant>_drinks_pool', '<tenant_id>', '套餐飲料池', '飲料', 'drink-choice', 'bundle_pool', 'single', 1, 1, 1, 9, 0, '[]', '{"en":{"name":"Combo Drinks","short_name":"Drinks"},"vi":{"name":"Đồ uống combo","short_name":"Đồ uống"}}')
 ON CONFLICT(id) DO UPDATE SET
     name = excluded.name,
     short_name = excluded.short_name,
@@ -201,17 +210,18 @@ ON CONFLICT(id) DO UPDATE SET
     max_selection = excluded.max_selection,
     sort_order = excluded.sort_order,
     allow_customization = excluded.allow_customization,
-    applied_modifiers = excluded.applied_modifiers
+    applied_modifiers = excluded.applied_modifiers,
+    i18n_json = excluded.i18n_json
 WHERE menu_categories.tenant_id = excluded.tenant_id;
 
 -- 4. Menu Items (Catalog Products & Pool Items)
 INSERT INTO menu_items (
-    id, tenant_id, category_id, name, price, description, badge_text, is_recommended, sort_order
+    id, tenant_id, category_id, name, price, description, badge_text, is_recommended, sort_order, i18n_json
 ) VALUES
-('<tenant>_main_01',  '<tenant_id>', 'cat_<tenant>_main',        '招牌脆皮雞排', 85,  NULL, '招牌必點', 1, 1),
-('<tenant>_combo_01', '<tenant_id>', 'cat_<tenant>_combos',      '個人獨享餐',   150, '含雞排+點心+飲料擇一', '超值', 1, 1),
-('<tenant>_drk_01',   '<tenant_id>', 'cat_<tenant>_drinks_pool', '可樂',         0,   NULL, NULL, 0, 1),
-('<tenant>_drk_02',   '<tenant_id>', 'cat_<tenant>_drinks_pool', '無糖綠茶',     0,   NULL, NULL, 0, 2)
+('<tenant>_main_01',  '<tenant_id>', 'cat_<tenant>_main',        '招牌脆皮雞排', 85,  NULL, '招牌必點', 1, 1, '{"en":{"name":"Crispy Chicken Cutlet","badge_text":"Signature"},"vi":{"name":"Gà chiên giòn","badge_text":"Đặc trưng"}}'),
+('<tenant>_combo_01', '<tenant_id>', 'cat_<tenant>_combos',      '個人獨享餐',   150, '含雞排+點心+飲料擇一', '超值', 1, 1, '{"en":{"name":"Solo Combo","description":"Includes chicken cutlet, side & drink choice","badge_text":"Value"},"vi":{"name":"Combo cá nhân","description":"Gồm gà chiên, món phụ và 1 đồ uống","badge_text":"Tiết kiệm"}}'),
+('<tenant>_drk_01',   '<tenant_id>', 'cat_<tenant>_drinks_pool', '可樂',         0,   NULL, NULL, 0, 1, '{"en":{"name":"Cola"},"vi":{"name":"Coca-Cola"}}'),
+('<tenant>_drk_02',   '<tenant_id>', 'cat_<tenant>_drinks_pool', '無糖綠茶',     0,   NULL, NULL, 0, 2, '{"en":{"name":"Unsweetened Green Tea"},"vi":{"name":"Trà xanh không đường"}}')
 ON CONFLICT(id) DO UPDATE SET
     category_id = excluded.category_id,
     name = excluded.name,
@@ -219,7 +229,8 @@ ON CONFLICT(id) DO UPDATE SET
     description = excluded.description,
     badge_text = excluded.badge_text,
     is_recommended = excluded.is_recommended,
-    sort_order = excluded.sort_order
+    sort_order = excluded.sort_order,
+    i18n_json = excluded.i18n_json
 WHERE menu_items.tenant_id = excluded.tenant_id;
 
 -- 5. Level 1: Order-Wide Customizations (Canonical + Legacy Shadow)
@@ -243,7 +254,7 @@ WHERE menu_customizations.tenant_id = excluded.tenant_id;
 
 INSERT INTO modifier_groups (
     id, tenant_id, name, selection_type, is_required, min_selection, max_selection,
-    sort_order, scope, auto_popup, source_metadata_json
+    sort_order, scope, auto_popup, source_metadata_json, i18n_json
 ) VALUES (
     'mg_cust_<tenant>_bag',
     '<tenant_id>',
@@ -255,7 +266,8 @@ INSERT INTO modifier_groups (
     0,
     'order',
     0,
-    '{"source_table":"menu_customizations","source_id":"custom_<tenant>_bag","legacy_key":"bag","legacy_type":"radio"}'
+    '{"source_table":"menu_customizations","source_id":"custom_<tenant>_bag","legacy_key":"bag","legacy_type":"radio"}',
+    '{"en":{"title":"Eco-Friendly / Shopping Bag"},"vi":{"title":"Bảo vệ môi trường / Mua thêm túi"}}'
 )
 ON CONFLICT(id) DO UPDATE SET
     name = excluded.name,
@@ -266,15 +278,16 @@ ON CONFLICT(id) DO UPDATE SET
     sort_order = excluded.sort_order,
     scope = excluded.scope,
     auto_popup = excluded.auto_popup,
-    source_metadata_json = excluded.source_metadata_json
+    source_metadata_json = excluded.source_metadata_json,
+    i18n_json = excluded.i18n_json
 WHERE modifier_groups.tenant_id = excluded.tenant_id;
 
 INSERT INTO modifier_options (
     id, tenant_id, group_id, name, price, is_default, sort_order,
-    sub_options_json, eligibility_rules_json, source_metadata_json
+    sub_options_json, eligibility_rules_json, source_metadata_json, i18n_json
 ) VALUES
-('opt_<tenant>_bag_none', '<tenant_id>', 'mg_cust_<tenant>_bag', '不需要提袋',     0, 1, 0, '[]', '[]', '{}'),
-('opt_<tenant>_bag_buy',  '<tenant_id>', 'mg_cust_<tenant>_bag', '購買提袋 (+1元)', 1, 0, 1, '[]', '[]', '{}')
+('opt_<tenant>_bag_none', '<tenant_id>', 'mg_cust_<tenant>_bag', '不需要提袋',     0, 1, 0, '[]', '[]', '{}', '{"en":{"name":"No bag needed"},"vi":{"name":"Không cần túi"}}'),
+('opt_<tenant>_bag_buy',  '<tenant_id>', 'mg_cust_<tenant>_bag', '購買提袋 (+1元)', 1, 0, 1, '[]', '[]', '{}', '{"en":{"name":"Add shopping bag (+$1)"},"vi":{"name":"Mua túi (+1$)"}}')
 ON CONFLICT(id) DO UPDATE SET
     group_id = excluded.group_id,
     name = excluded.name,
@@ -282,13 +295,14 @@ ON CONFLICT(id) DO UPDATE SET
     is_default = excluded.is_default,
     sort_order = excluded.sort_order,
     sub_options_json = excluded.sub_options_json,
-    eligibility_rules_json = excluded.eligibility_rules_json
+    eligibility_rules_json = excluded.eligibility_rules_json,
+    i18n_json = excluded.i18n_json
 WHERE modifier_options.tenant_id = excluded.tenant_id;
 
 -- 6. Level 2: Mandatory Core Choice / Combo Drink (auto_popup = 1, included = 0)
 INSERT INTO modifier_groups (
     id, tenant_id, name, selection_type, is_required, min_selection, max_selection,
-    sort_order, scope, allow_repeats, included, sources_json, labels_json, auto_popup, source_metadata_json
+    sort_order, scope, allow_repeats, included, sources_json, labels_json, auto_popup, source_metadata_json, i18n_json
 ) VALUES (
     'mg_item_<tenant>_combo_drink',
     '<tenant_id>',
@@ -304,7 +318,8 @@ INSERT INTO modifier_groups (
     '[{"type":"category","categoryId":"cat_<tenant>_drinks_pool"}]',
     '{"zh-TW":"請選擇 1 樣飲料","vi":"Chọn 1 loại đồ uống"}',
     1,
-    '{}'
+    '{}',
+    '{"en":{"title":"Drink Selection (Choose 1)"},"vi":{"title":"Chọn đồ uống (Chọn 1)"}}'
 )
 ON CONFLICT(id) DO UPDATE SET
     name = excluded.name,
@@ -318,7 +333,8 @@ ON CONFLICT(id) DO UPDATE SET
     included = excluded.included,
     sources_json = excluded.sources_json,
     labels_json = excluded.labels_json,
-    auto_popup = excluded.auto_popup
+    auto_popup = excluded.auto_popup,
+    i18n_json = excluded.i18n_json
 WHERE modifier_groups.tenant_id = excluded.tenant_id;
 
 INSERT INTO item_modifier_links (tenant_id, item_id, group_id, sort_order, option_ids_json, is_disabled)
@@ -331,7 +347,7 @@ ON CONFLICT(tenant_id, item_id, group_id) DO UPDATE SET
 -- 7. Level 3: Mandatory Flavor Choice (only the source-confirmed dish uses it)
 INSERT INTO modifier_groups (
     id, tenant_id, name, selection_type, is_required, min_selection, max_selection,
-    sort_order, scope, allow_repeats, included, auto_popup, source_metadata_json
+    sort_order, scope, allow_repeats, included, auto_popup, source_metadata_json, i18n_json
 ) VALUES (
     'mg_item_<tenant>_flavor',
     '<tenant_id>',
@@ -345,7 +361,8 @@ INSERT INTO modifier_groups (
     0,
     0,
     1,
-    '{}'
+    '{}',
+    '{"en":{"title":"Flavor Selection"},"vi":{"title":"Chọn hương vị"}}'
 )
 ON CONFLICT(id) DO UPDATE SET
     name = excluded.name,
@@ -357,16 +374,17 @@ ON CONFLICT(id) DO UPDATE SET
     scope = excluded.scope,
     allow_repeats = excluded.allow_repeats,
     included = excluded.included,
-    auto_popup = excluded.auto_popup
+    auto_popup = excluded.auto_popup,
+    i18n_json = excluded.i18n_json
 WHERE modifier_groups.tenant_id = excluded.tenant_id;
 
 INSERT INTO modifier_options (
     id, tenant_id, group_id, name, price, is_default, sort_order,
-    sub_options_json, eligibility_rules_json
+    sub_options_json, eligibility_rules_json, i18n_json
 ) VALUES
-('opt_<tenant>_fl_01', '<tenant_id>', 'mg_item_<tenant>_flavor', '椒鹽', 0, 0, 1, '[]', '[]'),
-('opt_<tenant>_fl_02', '<tenant_id>', 'mg_item_<tenant>_flavor', '小辣', 0, 0, 2, '[]', '[]'),
-('opt_<tenant>_fl_03', '<tenant_id>', 'mg_item_<tenant>_flavor', '梅粉', 0, 0, 3, '[]', '[]')
+('opt_<tenant>_fl_01', '<tenant_id>', 'mg_item_<tenant>_flavor', '椒鹽', 0, 0, 1, '["不加蒜"]', '[]', '{"en":{"name":"Salt & Pepper","sub_options":{"不加蒜":"No Garlic"}},"vi":{"name":"Muối tiêu","sub_options":{"不加蒜":"Không tỏi"}}}'),
+('opt_<tenant>_fl_02', '<tenant_id>', 'mg_item_<tenant>_flavor', '小辣', 0, 0, 2, '[]', '[]', '{"en":{"name":"Mild Spicy"},"vi":{"name":"Cay ít"}}'),
+('opt_<tenant>_fl_03', '<tenant_id>', 'mg_item_<tenant>_flavor', '梅粉', 0, 0, 3, '[]', '[]', '{"en":{"name":"Plum Powder"},"vi":{"name":"Bột xí muội"}}')
 ON CONFLICT(id) DO UPDATE SET
     group_id = excluded.group_id,
     name = excluded.name,
@@ -374,7 +392,8 @@ ON CONFLICT(id) DO UPDATE SET
     is_default = excluded.is_default,
     sort_order = excluded.sort_order,
     sub_options_json = excluded.sub_options_json,
-    eligibility_rules_json = excluded.eligibility_rules_json
+    eligibility_rules_json = excluded.eligibility_rules_json,
+    i18n_json = excluded.i18n_json
 WHERE modifier_options.tenant_id = excluded.tenant_id;
 
 -- Exact item link; the combo above has a drink group, not this flavor group.

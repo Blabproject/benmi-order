@@ -19,7 +19,7 @@ export function createReportRepository(db: D1Database): ReportRepository {
          FROM order_items oi
          JOIN orders o ON oi.order_key = o.key
          WHERE oi.tenant_id = ?
-           AND o.status IN ('DONE', 'PICKED_UP', 'PAID')
+           AND o.status IN ('READY', 'COMPLETED')
            AND oi.created_at >= ?
            AND oi.created_at <= ?
          GROUP BY oi.item_name
@@ -72,7 +72,7 @@ export function createReportRepository(db: D1Database): ReportRepository {
         `SELECT COUNT(DISTINCT o.key) as total_orders
          FROM orders o
          WHERE o.tenant_id = ?
-           AND o.status IN ('DONE', 'PICKED_UP', 'PAID')
+           AND o.status IN ('READY', 'COMPLETED')
            AND o.created_at >= ?
            AND o.created_at <= ?`
       ).bind(tenantId, startUtcIso, endUtcIso).first<{ total_orders: number }>();

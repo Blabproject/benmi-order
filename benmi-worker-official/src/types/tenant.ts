@@ -40,6 +40,8 @@ export interface TenantContext {
   quickReplies: QuickReply[];
   defaultPassword: string;
   locale: string;
+  supportedLocales?: string[];
+  i18n?: Record<string, Record<string, string | Record<string, string> | undefined>>;
   // Google Sheets
   googleSheetsUrl: string | null;
   // Subscription & Packaging Features

@@ -82,7 +82,10 @@ function validateModifierDraft(modifiers, draft) {
         return { valid: true };
     }
     if (!draft) {
-        return { valid: false, message: '請完成客製選項設定' };
+        return {
+            valid: false,
+            message: typeof ct === 'function' ? ct('opt_err_complete') : '請完成客製選項設定'
+        };
     }
 
     for (const mod of modifiers) {
@@ -141,13 +144,17 @@ function validateModifierDraft(modifiers, draft) {
 
         const count = selectedOpts.length;
 
+        const modDisplayName = typeof locText === 'function' ? locText(mod, 'name', mod.name) : mod.name;
+
         // Check if all options in a required group are out of stock
         const availableOptions = (mod.options || []).filter(o => !o.isOutOfStock);
         if (effectiveMin > 0 && availableOptions.length === 0) {
             return {
                 valid: false,
                 group: mod,
-                message: `「${mod.name}」選項已全數售完，暫時無法點選`,
+                message: typeof ct === 'function'
+                    ? ct('opt_err_all_oos', { name: modDisplayName })
+                    : `「${modDisplayName}」選項已全數售完，暫時無法點選`,
                 reason: 'ALL_OOS'
             };
         }
@@ -155,8 +162,8 @@ function validateModifierDraft(modifiers, draft) {
         // Check min selection
         if (count < effectiveMin) {
             const msg = (effectiveMin === 1)
-                ? `請選擇「${mod.name}」`
-                : `「${mod.name}」至少需選擇 ${effectiveMin} 項`;
+                ? (typeof ct === 'function' ? ct('opt_err_choose', { name: modDisplayName }) : `請選擇「${modDisplayName}」`)
+                : (typeof ct === 'function' ? ct('opt_err_min', { name: modDisplayName, min: effectiveMin }) : `「${modDisplayName}」至少需選擇 ${effectiveMin} 項`);
             return {
                 valid: false,
                 group: mod,
@@ -171,7 +178,9 @@ function validateModifierDraft(modifiers, draft) {
             return {
                 valid: false,
                 group: mod,
-                message: `「${mod.name}」最多只能選擇 ${effectiveMax} 項`,
+                message: typeof ct === 'function'
+                    ? ct('opt_err_max', { name: modDisplayName, max: effectiveMax })
+                    : `「${modDisplayName}」最多只能選擇 ${effectiveMax} 項`,
                 reason: 'EXCEEDED_MAX'
             };
         }
@@ -239,6 +248,7 @@ function getCategoryModifiers(catSlug) {
             id: mg.id || `mg_cat_${idx}`,
             slug: mg.id || `mg_cat_${idx}`,
             name: mg.name,
+            ...(mg.i18n ? { i18n: mg.i18n } : {}),
             source: 'category',
             selectionType: mg.selectionType || mg.selection_type || 'single',
             isRequired: Boolean(mg.isRequired || mg.is_required),
@@ -247,9 +257,13 @@ function getCategoryModifiers(catSlug) {
             options: (mg.options || []).map(opt => ({
                 id: opt.id,
                 name: opt.name,
+                ...(opt.i18n ? { i18n: opt.i18n } : {}),
                 price: Number(opt.price || 0),
                 isDefault: Boolean(opt.isDefault || opt.is_default),
-                isOutOfStock: Boolean(opt.isOutOfStock || opt.is_out_of_stock)
+                isOutOfStock: Boolean(opt.isOutOfStock || opt.is_out_of_stock),
+                ...(opt.subOptions || opt.sub_options ? { subOptions: opt.subOptions || opt.sub_options } : {}),
+                ...(opt.minOrderSubtotal != null || opt.min_order_amount != null ? { minOrderSubtotal: opt.minOrderSubtotal ?? opt.min_order_amount } : {}),
+                ...(opt.ruleErrorMessage ? { ruleErrorMessage: opt.ruleErrorMessage } : {})
             }))
         }));
     }
@@ -276,6 +290,7 @@ function getItemModifiers(catSlug, itemName) {
                 id: mg.id || `mg_${idx}`,
                 slug: mg.id || `mg_${idx}`,
                 name: mg.name,
+                ...(mg.i18n ? { i18n: mg.i18n } : {}),
                 selectionType: mg.selectionType || 'single',
                 isRequired: Boolean(mg.isRequired),
                 minSelection: mg.minSelection,
@@ -283,9 +298,13 @@ function getItemModifiers(catSlug, itemName) {
                 options: (mg.options || []).map(opt => ({
                     id: opt.id,
                     name: opt.name,
+                    ...(opt.i18n ? { i18n: opt.i18n } : {}),
                     price: opt.price || 0,
                     isDefault: Boolean(opt.isDefault),
-                    isOutOfStock: Boolean(opt.isOutOfStock)
+                    isOutOfStock: Boolean(opt.isOutOfStock),
+                    ...(opt.subOptions || opt.sub_options ? { subOptions: opt.subOptions || opt.sub_options } : {}),
+                    ...(opt.minOrderSubtotal != null || opt.min_order_amount != null ? { minOrderSubtotal: opt.minOrderSubtotal ?? opt.min_order_amount } : {}),
+                    ...(opt.ruleErrorMessage ? { ruleErrorMessage: opt.ruleErrorMessage } : {})
                 }))
             });
         });
@@ -466,9 +485,16 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
     const box = document.createElement('div');
     box.className = 'popup-box';
 
+    const t = (key, vars, fallback) => (typeof ct === 'function' ? ct(key, vars) : fallback);
+    const esc = (typeof escapeHtml === 'function')
+        ? escapeHtml
+        : (v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
+    const itemDisplayName = itemInfo?.localizedDisplayName
+        || (itemInfo?.targetItem && typeof locText === 'function' ? locText(itemInfo.targetItem, 'name', origName) : origName);
+
     const portionLabel = isAddingNew
-        ? (currentQty > 0 ? `加點第 ${portionIdx + 1} 份` : `基本售價 $${basePrice}`)
-        : `編輯第 ${portionIdx + 1} 份`;
+        ? (currentQty > 0 ? t('portion_add_nth', { n: portionIdx + 1 }, `加點第 ${portionIdx + 1} 份`) : t('portion_base_price', { price: basePrice }, `基本售價 $${basePrice}`))
+        : t('portion_editing', { n: portionIdx + 1 }, `編輯第 ${portionIdx + 1} 份`);
 
     let portionTabsHTML = '';
     if (currentQty > 0) {
@@ -477,12 +503,12 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
                 ${Array.from({ length: currentQty }).map((_, i) => `
                     <button type="button" class="portion-tab-btn" data-portion="${i}" 
                             style="padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 700; border: 1.5px solid ${i === portionIdx ? 'var(--primary)' : '#e2e8f0'}; background: ${i === portionIdx ? '#f0fdf4' : '#fff'}; color: ${i === portionIdx ? 'var(--primary)' : '#475569'}; cursor: pointer; white-space: nowrap;">
-                        第 ${i + 1} 份
+                        ${esc(t('portion_n', { n: i + 1 }, `第 ${i + 1} 份`))}
                     </button>
                 `).join('')}
                 <button type="button" class="portion-tab-btn" data-portion="${currentQty}" 
                         style="padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 700; border: 1.5px dashed ${portionIdx >= currentQty ? 'var(--primary)' : '#cbd5e1'}; background: ${portionIdx >= currentQty ? '#f0fdf4' : '#f8fafc'}; color: ${portionIdx >= currentQty ? 'var(--primary)' : '#64748b'}; cursor: pointer; white-space: nowrap;">
-                    + 加點第 ${currentQty + 1} 份
+                    ${esc(t('portion_add_nth', { n: currentQty + 1 }, `+ 加點第 ${currentQty + 1} 份`))}
                 </button>
             </div>
         `;
@@ -490,15 +516,15 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
 
     const copyPrevBtnHTML = (portionIdx > 0 && isAddingNew && cData[key] && cData[key][portionIdx - 1]) ? `
         <button type="button" class="btn-copy-prev-custom" style="width: 100%; border: 1px dashed #cbd5e1; background: #f8fafc; color: #475569; font-size: 13px; font-weight: 700; border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; cursor: pointer;">
-            與上一份相同
+            ${esc(t('copy_prev_same', null, '與上一份相同'))}
         </button>
     ` : '';
 
     box.innerHTML = `
         <div class="popup-header">
             <div>
-                <div style="font-size: 18px; font-weight: 900; color: #0f172a;">${origName}</div>
-                <div style="font-size: 13px; font-weight: 600; color: #64748b; margin-top: 2px;">${portionLabel}</div>
+                <div style="font-size: 18px; font-weight: 900; color: #0f172a;">${esc(itemDisplayName)}</div>
+                <div style="font-size: 13px; font-weight: 600; color: #64748b; margin-top: 2px;">${esc(portionLabel)}</div>
             </div>
             <div class="close-btn" onclick="closePopup()">✕</div>
         </div>
@@ -508,7 +534,7 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
         </div>
         <div class="customize-modal-footer" style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #f1f5f9;">
             <button type="button" class="btn-send btn-customize-confirm" style="width: 100%; min-height: 48px; font-size: 16px; font-weight: 800; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                <span>${isAddingNew ? '加入購物車' : '確認修改'}</span>
+                <span>${esc(isAddingNew ? t('add_to_cart', null, '加入購物車') : t('confirm_update', null, '確認修改'))}</span>
             </button>
         </div>
     `;
@@ -549,17 +575,18 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
             let reqBadge = '';
             if (effectiveMin > 0) {
                 reqBadge = effectiveMin === 1 
-                    ? `<span class="modifier-required-badge">必選</span>` 
-                    : `<span class="modifier-required-badge">必選 (至少 ${effectiveMin} 項)</span>`;
+                    ? `<span class="modifier-required-badge">${esc(t('option_required', null, '必選'))}</span>` 
+                    : `<span class="modifier-required-badge">${esc(t('option_required_min', { min: effectiveMin }, `必選 (至少 ${effectiveMin} 項)`))}</span>`;
             } else {
                 reqBadge = effectiveMax > 0 
-                    ? `<span class="modifier-optional-badge">可選 (最多 ${effectiveMax} 項)</span>` 
-                    : `<span class="modifier-optional-badge">可選</span>`;
+                    ? `<span class="modifier-optional-badge">${esc(t('option_optional_max', { max: effectiveMax }, `可選 (最多 ${effectiveMax} 項)`))}</span>` 
+                    : `<span class="modifier-optional-badge">${esc(t('option_optional', null, '可選'))}</span>`;
             }
 
+            const modDisplayName = typeof locText === 'function' ? locText(mod, 'name', mod.name) : mod.name;
             let sectionInner = `
                 <div class="modifier-group-title" style="margin-bottom: 8px;">
-                    <span style="font-size: 14px; font-weight: 800; color: #1e293b;">${mod.name}</span>
+                    <span style="font-size: 14px; font-weight: 800; color: #1e293b;">${esc(modDisplayName)}</span>
                     ${reqBadge}
                 </div>
             `;
@@ -572,13 +599,14 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
                     const isSelected = isOptionSelectedInSingle(draft, mod, opt, optIdx);
                     const price = Number(opt.price !== undefined ? opt.price : getPrice(opt.name));
                     const priceText = price > 0 ? ` (+$${price})` : '';
-                    const oosBadge = isOos ? `<span class="modifier-oos-tag">已售完</span>` : '';
+                    const oosBadge = isOos ? `<span class="modifier-oos-tag">${esc(t('sold_out', null, '已售完'))}</span>` : '';
                     const minSpend = Number(opt.minOrderSubtotal || opt.min_order_amount || 0);
-                    const minSpendBadge = minSpend > 0 ? `<span style="font-size: 10px; color: #ea580c; background: #fff7ed; border: 1px solid #fed7aa; padding: 1px 4px; border-radius: 4px; margin-left: 4px;">滿$${minSpend}可選</span>` : '';
+                    const minSpendBadge = minSpend > 0 ? `<span style="font-size: 10px; color: #ea580c; background: #fff7ed; border: 1px solid #fed7aa; padding: 1px 4px; border-radius: 4px; margin-left: 4px;">${esc(t('option_min_spend', { amount: minSpend }, `滿$${minSpend}可選`))}</span>` : '';
+                    const optDisplayName = typeof locText === 'function' ? locText(opt, 'name', opt.name) : opt.name;
                     sectionInner += `
                         <div class="modifier-pill ${isSelected ? 'active' : ''} ${isOos ? 'disabled' : ''}" 
-                             data-mod-slug="${mod.slug}" data-mod-id="${mod.id || mod.slug}" data-opt-id="${optId}" data-opt-name="${opt.name}" data-opt-idx="${optIdx}">
-                            <span>${opt.name}${priceText}</span>${oosBadge}${minSpendBadge}
+                             data-mod-slug="${mod.slug}" data-mod-id="${mod.id || mod.slug}" data-opt-id="${optId}" data-opt-name="${esc(opt.name)}" data-opt-idx="${optIdx}">
+                            <span>${esc(optDisplayName)}${priceText}</span>${oosBadge}${minSpendBadge}
                         </div>
                     `;
                 });
@@ -598,17 +626,20 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
                         }
                         const currentSub = draft.subOptions[optId] || draft.subOptions[opt.name];
                         const activeSubId = String(currentSub?.id);
+                        const optDisplayName = typeof locText === 'function' ? locText(opt, 'name', opt.name) : opt.name;
+                        const subTitle = t('sub_option_title_prefix', { opt: optDisplayName }, `↳ ${optDisplayName} - 規格 / 配料:`);
                         sectionInner += `
                             <div class="sub-options-container" style="display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; padding: 8px 12px; background: #f8fafc; border-left: 3px solid var(--primary, #0ea5e9); border-radius: 8px; width: 100%; box-sizing: border-box;">
-                                <div style="font-size: 11px; font-weight: 700; color: #64748b; width: 100%; margin-bottom: 2px;">↳ ${opt.name} - 規格 / 配料:</div>
+                                <div style="font-size: 11px; font-weight: 700; color: #64748b; width: 100%; margin-bottom: 2px;">${esc(subTitle)}</div>
                                 ${subList.map(sub => {
                                     const isSubActive = String(sub.id) === activeSubId;
                                     const subP = Number(sub.price || 0);
                                     const subPText = subP > 0 ? ` (+$${subP})` : '';
+                                    const subDisplayName = typeof locSubOptionText === 'function' ? locSubOptionText(opt, sub) : sub.name;
                                     return `
-                                        <button type="button" class="sub-option-chip" data-parent-opt-id="${optId}" data-parent-opt="${opt.name}" data-sub-id="${sub.id}"
+                                        <button type="button" class="sub-option-chip" data-parent-opt-id="${optId}" data-parent-opt="${esc(opt.name)}" data-sub-id="${sub.id}"
                                                 style="padding: 4px 10px; font-size: 12px; border-radius: 6px; border: 1.5px solid ${isSubActive ? 'var(--primary, #0ea5e9)' : '#cbd5e1'}; background: ${isSubActive ? 'rgba(14, 165, 233, 0.1)' : '#fff'}; color: ${isSubActive ? 'var(--primary, #0ea5e9)' : '#334155'}; font-weight: ${isSubActive ? '700' : '500'}; cursor: pointer;">
-                                            ${sub.name}${subPText}
+                                            ${esc(subDisplayName)}${subPText}
                                         </button>
                                     `;
                                 }).join('')}
@@ -623,13 +654,14 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
                     const optId = getUniqueModifierOptionId(mod, opt, optIdx);
                     const isChecked = isOptionSelectedInMultiple(draft, mod, opt, optIdx);
                     const price = Number(opt.price !== undefined ? opt.price : getPrice(opt.name));
-                    const priceText = isOos ? `<span class="modifier-oos-tag">已售完</span>` : (price > 0 ? `+$${price}` : '$0');
+                    const priceText = isOos ? `<span class="modifier-oos-tag">${esc(t('sold_out', null, '已售完'))}</span>` : (price > 0 ? `+$${price}` : '$0');
                     const minSpend = Number(opt.minOrderSubtotal || opt.min_order_amount || 0);
-                    const minSpendBadge = minSpend > 0 ? `<span style="font-size: 10px; color: #ea580c; background: #fff7ed; border: 1px solid #fed7aa; padding: 1px 4px; border-radius: 4px; margin-left: 4px;">滿$${minSpend}可選</span>` : '';
+                    const minSpendBadge = minSpend > 0 ? `<span style="font-size: 10px; color: #ea580c; background: #fff7ed; border: 1px solid #fed7aa; padding: 1px 4px; border-radius: 4px; margin-left: 4px;">${esc(t('option_min_spend', { amount: minSpend }, `滿$${minSpend}可選`))}</span>` : '';
+                    const optDisplayName = typeof locText === 'function' ? locText(opt, 'name', opt.name) : opt.name;
                     sectionInner += `
                         <div class="modifier-checkbox-chip ${isChecked ? 'active' : ''} ${isOos ? 'disabled' : ''}" 
-                             data-mod-slug="${mod.slug}" data-mod-id="${mod.id || mod.slug}" data-opt-id="${optId}" data-opt-name="${opt.name}" data-opt-idx="${optIdx}">
-                            <span>${opt.name}${minSpendBadge}</span>
+                             data-mod-slug="${mod.slug}" data-mod-id="${mod.id || mod.slug}" data-opt-id="${optId}" data-opt-name="${esc(opt.name)}" data-opt-idx="${optIdx}">
+                            <span>${esc(optDisplayName)}${minSpendBadge}</span>
                             <span style="font-size: 12px; opacity: 0.85;">${priceText}</span>
                         </div>
                     `;
@@ -650,17 +682,20 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
                         }
                         const currentSub = draft.subOptions[optId] || draft.subOptions[opt.name];
                         const activeSubId = String(currentSub?.id);
+                        const optDisplayName = typeof locText === 'function' ? locText(opt, 'name', opt.name) : opt.name;
+                        const subTitle = t('sub_option_title_prefix', { opt: optDisplayName }, `↳ ${optDisplayName} - 規格 / 配料:`);
                         sectionInner += `
                             <div class="sub-options-container" style="display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; padding: 8px 12px; background: #f8fafc; border-left: 3px solid var(--primary, #0ea5e9); border-radius: 8px; width: 100%; box-sizing: border-box;">
-                                <div style="font-size: 11px; font-weight: 700; color: #64748b; width: 100%; margin-bottom: 2px;">↳ ${opt.name} - 規格 / 配料:</div>
+                                <div style="font-size: 11px; font-weight: 700; color: #64748b; width: 100%; margin-bottom: 2px;">${esc(subTitle)}</div>
                                 ${subList.map(sub => {
                                     const isSubActive = String(sub.id) === activeSubId;
                                     const subP = Number(sub.price || 0);
                                     const subPText = subP > 0 ? ` (+$${subP})` : '';
+                                    const subDisplayName = typeof locSubOptionText === 'function' ? locSubOptionText(opt, sub) : sub.name;
                                     return `
-                                        <button type="button" class="sub-option-chip" data-parent-opt-id="${optId}" data-parent-opt="${opt.name}" data-sub-id="${sub.id}"
+                                        <button type="button" class="sub-option-chip" data-parent-opt-id="${optId}" data-parent-opt="${esc(opt.name)}" data-sub-id="${sub.id}"
                                                 style="padding: 4px 10px; font-size: 12px; border-radius: 6px; border: 1.5px solid ${isSubActive ? 'var(--primary, #0ea5e9)' : '#cbd5e1'}; background: ${isSubActive ? 'rgba(14, 165, 233, 0.1)' : '#fff'}; color: ${isSubActive ? 'var(--primary, #0ea5e9)' : '#334155'}; font-weight: ${isSubActive ? '700' : '500'}; cursor: pointer;">
-                                            ${sub.name}${subPText}
+                                            ${esc(subDisplayName)}${subPText}
                                         </button>
                                     `;
                                 }).join('')}
@@ -768,7 +803,8 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
                                 if (isOptionSelectedInMultiple(draft, mod, o, idx)) currentCount++;
                             });
                             if (currentCount >= max) {
-                                const limitMsg = `「${mod.name}」最多只能選擇 ${max} 項`;
+                                const modDisplayName = typeof locText === 'function' ? locText(mod, 'name', mod.name) : mod.name;
+                                const limitMsg = t('opt_err_max', { name: modDisplayName, max }, `「${modDisplayName}」最多只能選擇 ${max} 項`);
                                 if (typeof customAlert === 'function') customAlert(limitMsg);
                                 else alert(limitMsg);
                                 return;
@@ -834,8 +870,9 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
         // Note input
         const noteDiv = document.createElement('div');
         noteDiv.innerHTML = `
-            <label style="font-size: 13px; font-weight: 800; color: #475569; display: block; margin: 12px 0 6px 0;">個別備註</label>
+            <label style="font-size: 13px; font-weight: 800; color: #475569; display: block; margin: 12px 0 6px 0;">${esc(t('individual_note', null, '個別備註'))}</label>
             <input type="text" maxlength="50" value="${(draft.note || '').replace(/"/g, '&quot;')}"
+                   placeholder="${esc(t('note_short_placeholder', null, '口味 / 備註'))}"
                    class="customize-note-input"
                    style="width: 100%; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 10px 14px; font-size: 14px; color: #1e293b; background: #fff; outline: none; box-sizing: border-box;">
         `;
@@ -896,13 +933,15 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
         }
         const totalPrice = (wasmPriceRes && typeof wasmPriceRes.subtotal === 'number') ? wasmPriceRes.subtotal : (basePrice + extra);
 
-        const actionText = isAddingNew ? '加入購物車' : '確認修改';
+        const actionText = isAddingNew
+            ? t('add_to_cart', null, '加入購物車')
+            : t('confirm_update', null, '確認修改');
         const valRes = validateModifierDraft(modifiers, draft);
         if (!valRes.valid) {
             confirmBtn.style.opacity = '0.75';
             confirmBtn.style.background = '#64748b';
             confirmBtn.innerHTML = `
-                <span>${valRes.message || actionText}</span>
+                <span>${esc(valRes.message || actionText)}</span>
                 <span style="opacity: 0.85;">·</span>
                 <span>$${totalPrice}</span>
             `;
@@ -910,7 +949,7 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
             confirmBtn.style.opacity = '1';
             confirmBtn.style.background = 'var(--primary)';
             confirmBtn.innerHTML = `
-                <span>${actionText}</span>
+                <span>${esc(actionText)}</span>
                 <span style="opacity: 0.85;">·</span>
                 <span>$${totalPrice}</span>
             `;
@@ -1000,7 +1039,9 @@ function updateCustomizeOkBtn(key) {
             }
         });
     }
-    okBtn.innerText = extra > 0 ? `完成設定 (+$${extra})` : '完成設定';
+    okBtn.innerText = extra > 0
+        ? (typeof ct === 'function' ? ct('finish_setup_extra', { extra }) : `完成設定 (+$${extra})`)
+        : (typeof ct === 'function' ? ct('finish_setup') : '完成設定');
 }
 
 // Dynamic tenant modifier helpers

@@ -42,6 +42,7 @@ const menuOnly = process.argv.includes('--menu');
 const suites = [
   ['frontend-static', ['scripts/check-frontend.js']],
   ['routing-lifecycle', ['--test', 'scripts/test-frontend-scope.cjs', 'scripts/test-explore-routing.mjs', 'scripts/test-client-modular.mjs', 'scripts/test-line-tenant-redirect.mjs', 'scripts/test-line-text-normalization.mjs', 'scripts/test-order-domain-routing.mjs', 'scripts/test-order-domain-api.cjs', 'scripts/test-tenant-lifecycle.cjs']],
+  ['order-lifecycle', ['--test','tests/test_order_lifecycle_policy.cjs','tests/test_order_commands.cjs','tests/test_pos_session.cjs','tests/test_refund_reconciliation.cjs','tests/test_order_pending_actions.cjs']],
   ['worker-types', ['benmi-worker-official/node_modules/typescript/bin/tsc', '--noEmit', '-p', 'benmi-worker-official/tsconfig.json']],
   ['cloudflare-config', ['--test', 'scripts/test-cloudflare-cli.mjs']],
   ['staff-runtime', ['--test', 'tests/test_staff_ordering.cjs', 'tests/test_staff_migration.cjs', 'tests/test_store_pin_api.cjs', 'tests/test_store_status.cjs']],

@@ -142,3 +142,28 @@ Backend đã migrate sang Cloudflare `cf` CLI. Cấu hình chính: `benmi-worker
    - Hợp nhất `staging` vào `main`: `git checkout main && git merge staging && git push origin main`.
    - Apply migration: `npm run db:migrations:apply:production`.
    - Deploy backend production: `npm run deploy`.
+
+### Pre-Flight Gate Bắt Buộc Trước Khi Deploy Production (Zero Dirty-Tree Deploy)
+- **CẤM TUYỆT ĐỐI** chạy `npm run deploy` (`cf deploy --mode production`) hoặc deploy Pages production khi:
+  1. Đang đứng ở nhánh khác `main` (hoặc `HEAD` chưa đồng bộ với `origin/main`).
+  2. Working tree có thay đổi chưa commit (`git status --porcelain` khác rỗng) — dễ đóng gói nhầm code dở dang của tính năng khác lên production.
+  3. Có migration mới đi kèm code Worker chưa được kiểm tra/đồng bộ với frontend production.
+- **Bắt buộc kiểm tra trước khi deploy production**:
+  ```bash
+  git branch --show-current        # Phải là: main
+  git status --porcelain           # Phải trống (clean working tree)
+  npm run db:migrations:list:production
+  ```
+
+### Lệnh `cf` CLI Kiểm tra D1 & Rollback Worker Khẩn Cấp (Production)
+- **Truy vấn D1 Read-Only** (dùng `cf d1 query`, KHÔNG dùng `cf d1 execute`):
+  ```bash
+  cd benmi-worker-official
+  npx cf d1 query 48479f91-eec7-4da2-b044-edaaf622f195 --mode production --sql "SELECT ...;"
+  ```
+- **Xem lịch sử deployment & Rollback Worker tức thì** (khi phát hiện deploy lỗi):
+  ```bash
+  cd benmi-worker-official
+  npx cf workers deployments list --worker benmi-worker-official --mode production
+  npx cf workers deployments create --worker benmi-worker-official --mode production --strategy percentage --versions '[{"version_id":"<PREVIOUS_HEALTHY_VERSION_ID>","percentage":100}]'
+  ```

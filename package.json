@@ -54,7 +54,9 @@
     "test:payments": "node --experimental-sqlite --test tests/test_linepay.cjs tests/test_payment_redirect.cjs && node --test tests/test_linepay_browser.cjs tests/test_payment_result_browser.cjs tests/test_payment_pin_onboarding_browser.cjs",
     "graphify": "graphify .",
     "graphify:update": "graphify update .",
-    "test:frontend-scope": "node --test scripts/test-frontend-scope.cjs"
+    "test:frontend-scope": "node --test scripts/test-frontend-scope.cjs",
+    "test:lifecycle-policy": "node --test tests/test_order_lifecycle_policy.cjs",
+    "test:lifecycle": "node --test tests/test_order_lifecycle_policy.cjs tests/test_order_commands.cjs tests/test_pos_session.cjs tests/test_staff_pos.cjs tests/test_refund_reconciliation.cjs tests/test_order_pending_actions.cjs"
   },
   "keywords": [
     "pos",

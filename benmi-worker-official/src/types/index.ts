@@ -4,12 +4,11 @@ export type OrderStatus =
   | 'PENDING_PAYMENT'
   | 'NEW'
   | 'ACCEPTED'
-  | 'DONE'
-  | 'PICKED_UP'
-  | 'PAID'
+  | 'READY'
+  | 'COMPLETED'
   | 'WAITING_CUSTOMER_CHANGE'
   | 'WAITING_CUSTOMER_REJECT'
-  | 'REJECTED'
+  | 'CANCELLED'
   | 'EXPIRED'
   | 'FORCE_REJECT';
 

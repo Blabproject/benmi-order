@@ -26,7 +26,8 @@ export function buildOrderFlexMessage(
   order: Order,
   tenantCtx?: TenantContext | null,
   items?: OrderItemInput[],
-  customizations?: Array<{ label: string; value: string }>
+  customizations?: Array<{ label: string; value: string }>,
+  customerLocale?: string | null
 ): any {
   const structured = DetailView.isSnapshot(order.detailSnapshot);
   if (structured) {
@@ -37,6 +38,11 @@ export function buildOrderFlexMessage(
   const brandColor = tenantCtx?.brandColor || "#059669";
   const isScheduled = tenantCtx?.allowScheduledPickup !== false;
   const isDineIn = order.diningOption === "dine_in" || ((order.content || "").includes("用餐方式：") && (order.content || "").includes("內用")) || (order.content || "").includes("【內用】");
+
+  const normalizedCustLocale = String(customerLocale || "").trim();
+  const isEnCustomer = normalizedCustLocale === "en" || normalizedCustLocale.toLowerCase().startsWith("en-");
+  const isViCustomer = (normalizedCustLocale === "vi" || normalizedCustLocale.toLowerCase().startsWith("vi-")) && tenantCtx?.locale !== "vi";
+  const isBilingual = isEnCustomer || isViCustomer;
 
   let tableNum = (order.tableNumber || "").trim();
   if (!structured && (!tableNum || tableNum === "-")) {
@@ -52,8 +58,16 @@ export function buildOrderFlexMessage(
     .replace(/桌/g, "")
     .trim();
 
-  const diningLabel = isDineIn ? (tableNum && tableNum !== "-" ? `內用 (${tableNum} 桌)` : "內用 (現場製作)") : "外帶自取";
-  const timeLabel = isDineIn ? "點餐時間" : (isScheduled ? "預計取餐時間" : "訂餐時間");
+  const diningLabel = isDineIn
+    ? (tableNum && tableNum !== "-"
+      ? (isEnCustomer ? `Dine-in (${tableNum}) · 內用 (${tableNum} 桌)` : isViCustomer ? `Tại bàn (${tableNum}) · 內用 (${tableNum} 桌)` : `內用 (${tableNum} 桌)`)
+      : (isEnCustomer ? "Dine-in · 內用 (現場製作)" : isViCustomer ? "Tại quán · 內用 (現場製作)" : "內用 (現場製作)"))
+    : (isEnCustomer ? "Takeaway · 外帶自取" : isViCustomer ? "Mang về · 外帶自取" : "外帶自取");
+  const timeLabel = isDineIn
+    ? (isEnCustomer ? "Order Time / 點餐時間" : isViCustomer ? "Giờ đặt / 點餐時間" : "點餐時間")
+    : (isScheduled
+      ? (isEnCustomer ? "Pickup Time / 預計取餐時間" : isViCustomer ? "Giờ lấy / 預計取餐時間" : "預計取餐時間")
+      : (isEnCustomer ? "Order Time / 訂餐時間" : isViCustomer ? "Giờ đặt / 訂餐時間" : "訂餐時間"));
 
   // Extract and clean Global Customizations
   const flavorPills: string[] = [];
@@ -110,6 +124,9 @@ export function buildOrderFlexMessage(
     ] });
   }
 
+  const tBi = (zh: string, en: string, vi: string) =>
+    isEnCustomer ? `${en} / ${zh}` : isViCustomer ? `${vi} / ${zh}` : zh;
+
   return LineOrderPresentation.paginate({
     type: "bubble",
     size: "kilo",
@@ -123,7 +140,7 @@ export function buildOrderFlexMessage(
           type: "box",
           layout: "horizontal",
           contents: [
-            { type: "text", text: "訂單明細", size: "xs", weight: "bold", color: "#64748B", flex: 0 },
+            { type: "text", text: tBi("訂單明細", "Order Details", "Chi tiết đơn"), size: "xs", weight: "bold", color: "#64748B", flex: 0 },
             { type: "text", text: `${OrderCode.format(order.displayKey || order.key)}`, size: "sm", weight: "bold", color: "#059669", align: "end", flex: 1 }
           ]
         },
@@ -131,7 +148,7 @@ export function buildOrderFlexMessage(
           type: "box",
           layout: "horizontal",
           contents: [
-            { type: "text", text: "用餐方式", size: "xs", color: "#64748B", flex: 0 },
+            { type: "text", text: tBi("用餐方式", "Dining", "Hình thức"), size: "xs", color: "#64748B", flex: 0 },
             { type: "text", text: diningLabel, size: "sm", weight: "bold", color: isDineIn ? "#7C3AED" : "#059669", align: "end", flex: 1 }
           ]
         },
@@ -142,7 +159,7 @@ export function buildOrderFlexMessage(
           layout: "vertical",
           spacing: "xs",
           contents: [
-            { type: "text", text: "訂單品項", size: "xs", weight: "bold", color: "#64748B", margin: "none" },
+            { type: "text", text: tBi("訂單品項", "Items", "Món đã đặt"), size: "xs", weight: "bold", color: "#64748B", margin: "none" },
             ...itemComponents
           ]
         },
@@ -159,7 +176,7 @@ export function buildOrderFlexMessage(
             contents: [
               {
                 type: "text",
-                text: "口味設定",
+                text: tBi("口味設定", "Customizations", "Tùy chỉnh"),
                 size: "xxs",
                 weight: "bold",
                 color: "#94A3B8"
@@ -193,7 +210,7 @@ export function buildOrderFlexMessage(
             margin: "4px",
             layout: "horizontal",
             contents: [
-              { type: "text", text: "備註說明", size: "xs", color: "#64748B", flex: 0 },
+              { type: "text", text: tBi("備註說明", "Note", "Ghi chú"), size: "xs", color: "#64748B", flex: 0 },
               { type: "text", text: order.note.trim(), size: "xs", color: "#334155", wrap: true, align: "end", flex: 1 }
             ]
           }
@@ -213,7 +230,7 @@ export function buildOrderFlexMessage(
           layout: "horizontal",
           alignItems: "center",
           contents: [
-            { type: "text", text: order.payment?.status === "PAID" ? (tenantCtx?.locale === "vi" ? "LINE Pay · Đã thanh toán" : "LINE Pay · 已付款") : "總金額", size: "sm", weight: "bold", color: "#64748B", flex: 0 },
+            { type: "text", text: order.payment?.status === "PAID" ? (tenantCtx?.locale === "vi" ? "LINE Pay · Đã thanh toán" : tBi("LINE Pay · 已付款", "LINE Pay · Paid", "LINE Pay · Đã thanh toán")) : tBi("總金額", "Total", "Tổng cộng"), size: "sm", weight: "bold", color: "#64748B", flex: 0 },
             { type: "text", text: `$${order.total}`, size: "xl", weight: "bold", color: "#059669", align: "end", flex: 1 }
           ]
         }
@@ -228,9 +245,10 @@ export function buildOrderFlexMessage(
         const liffBaseUrl = tenantCtx?.liffUrl || (tenantCtx?.liffId ? `https://liff.line.me/${tenantCtx.liffId}` : "https://liff.line.me/");
         const tenantId = tenantCtx?.tenantId || "benmi";
         const buttons: any[] = [];
+        const langSuffix = isBilingual ? `&lang=${encodeURIComponent(normalizedCustLocale)}` : "";
 
         if (isDineIn) {
-          const appendUrl = `${liffBaseUrl}?tenant_id=${encodeURIComponent(tenantId)}&parent_order_key=${encodeURIComponent(order.key)}&parent_display_key=${encodeURIComponent(order.displayKey || order.key)}&table_number=${encodeURIComponent(tableNum)}&mode=append`;
+          const appendUrl = `${liffBaseUrl}?tenant_id=${encodeURIComponent(tenantId)}&parent_order_key=${encodeURIComponent(order.key)}&parent_display_key=${encodeURIComponent(order.displayKey || order.key)}&table_number=${encodeURIComponent(tableNum)}&mode=append${langSuffix}`;
           buttons.push({
             type: "button",
             style: "primary",
@@ -238,7 +256,7 @@ export function buildOrderFlexMessage(
             height: "sm",
             action: {
               type: "uri",
-              label: "現場加點餐點",
+              label: isEnCustomer ? "Add Items / 加點" : isViCustomer ? "Gọi thêm / 加點" : "現場加點餐點",
               uri: appendUrl
             }
           });
@@ -251,7 +269,7 @@ export function buildOrderFlexMessage(
           height: "sm",
           action: {
             type: "postback",
-            label: "查詢訂單進度",
+            label: isEnCustomer ? "Status / 查詢進度" : isViCustomer ? "Tiến độ / 查詢進度" : "查詢訂單進度",
             data: `action=check_progress&order_key=${order.key}`,
             displayText: "查詢訂單進度"
           }
@@ -283,11 +301,11 @@ export function buildProgressFlexMessage(order: Order, queueAheadCount: number, 
     queueText = queueAheadCount > 0
       ? `前方還有 ${queueAheadCount} 張訂單正在排隊製作`
       : "您的餐點正由店家製作中！";
-  } else if (order.status === "DONE") {
+  } else if (order.status === "READY") {
     statusTitle = isDineIn ? "餐點製作完成" : "餐點製作完成，可取餐！";
     statusColor = "#059669";
     queueText = isDineIn ? "" : "您的餐點已準備完畢，請儘快前來取餐！";
-  } else if (order.status === "PICKED_UP") {
+  } else if (order.status === "COMPLETED") {
     statusTitle = isDineIn ? "已完成用餐" : "已完成取餐";
     statusColor = "#64748B";
     queueText = "感謝您的訂購，期待再次為您服務！";
@@ -295,7 +313,7 @@ export function buildProgressFlexMessage(order: Order, queueAheadCount: number, 
     statusTitle = "訂單微調確認中";
     statusColor = "#D97706";
     queueText = "請查看上方對話並回覆店家確認事項。";
-  } else if (order.status === "REJECTED") {
+  } else if (order.status === "CANCELLED") {
     statusTitle = "訂單已取消";
     statusColor = "#DC2626";
     queueText = "該訂單已被取消。如有需要歡迎再次點餐。";
@@ -375,7 +393,7 @@ export function buildProgressFlexMessage(order: Order, queueAheadCount: number, 
         const tableNum = order.tableNumber || "";
         const buttons: any[] = [];
 
-        if (isDineIn && (order.status === "NEW" || order.status === "ACCEPTED" || order.status === "DONE")) {
+        if (isDineIn && (order.status === "NEW" || order.status === "ACCEPTED" || order.status === "READY")) {
           const appendUrl = `${liffBaseUrl}?tenant_id=${encodeURIComponent(tenantId)}&parent_order_key=${encodeURIComponent(order.key)}&parent_display_key=${encodeURIComponent(order.displayKey || order.key)}&table_number=${encodeURIComponent(tableNum)}&mode=append`;
           buttons.push({
             type: "button",
@@ -414,8 +432,16 @@ export function buildAppendConfirmationFlexMessage(
   addedAmount: number,
   roundNumber: number,
   tenantCtx?: TenantContext | null,
-  items?: OrderItemInput[]
+  items?: OrderItemInput[],
+  customerLocale?: string | null
 ): any {
+  const normalizedCustLocale = String(customerLocale || "").trim();
+  const isEnCustomer = normalizedCustLocale === "en" || normalizedCustLocale.toLowerCase().startsWith("en-");
+  const isViCustomer = (normalizedCustLocale === "vi" || normalizedCustLocale.toLowerCase().startsWith("vi-")) && tenantCtx?.locale !== "vi";
+  const isBilingual = isEnCustomer || isViCustomer;
+  const biLabel = (zh: string, en: string, vi: string) =>
+    isEnCustomer ? `${en} / ${zh}` : isViCustomer ? `${vi} / ${zh}` : zh;
+
   let rawTable = (order.tableNumber || "").trim();
   if (!rawTable || rawTable === "-") {
     const tableMatch = (order.content || "").match(/(?:桌號|Bàn)[：:\s]*([^\n\r,，()（）]+)/i) ||
@@ -448,6 +474,7 @@ export function buildAppendConfirmationFlexMessage(
 
   const liffBaseUrl = tenantCtx?.liffUrl || (tenantCtx?.liffId ? `https://liff.line.me/${tenantCtx.liffId}` : "https://liff.line.me/");
   const tenantId = tenantCtx?.tenantId || "benmi";
+  const langQuery = normalizedCustLocale ? `&lang=${encodeURIComponent(normalizedCustLocale)}` : "";
 
   return LineOrderPresentation.paginate({
     type: "bubble",
@@ -462,7 +489,7 @@ export function buildAppendConfirmationFlexMessage(
           type: "box",
           layout: "horizontal",
           contents: [
-            { type: "text", text: `現場加點 (第 ${roundNumber} 輪)`, size: "xs", weight: "bold", color: "#7C3AED", flex: 0 },
+            { type: "text", text: isEnCustomer ? `Add-on (Round ${roundNumber}) · 現場加點` : isViCustomer ? `Gọi thêm (Lần ${roundNumber}) · 現場加點` : `現場加點 (第 ${roundNumber} 輪)`, size: "xs", weight: "bold", color: "#7C3AED", flex: 0 },
             { type: "text", text: `${OrderCode.format(order.displayKey || order.key)}`, size: "sm", weight: "bold", color: "#0F172A", align: "end", flex: 1 }
           ]
         },
@@ -470,8 +497,8 @@ export function buildAppendConfirmationFlexMessage(
           type: "box",
           layout: "horizontal",
           contents: [
-            { type: "text", text: "桌號", size: "xs", color: "#64748B", flex: 0 },
-            { type: "text", text: `${displayTable} 桌`, size: "sm", weight: "bold", color: "#7C3AED", align: "end", flex: 1 }
+            { type: "text", text: biLabel("桌號", "Table", "Bàn"), size: "xs", color: "#64748B", flex: 0 },
+            { type: "text", text: isBilingual ? `${displayTable} · ${displayTable} 桌` : `${displayTable} 桌`, size: "sm", weight: "bold", color: "#7C3AED", align: "end", flex: 1 }
           ]
         },
         { type: "separator", margin: "4px", color: "#E2E8F0" },
@@ -481,7 +508,7 @@ export function buildAppendConfirmationFlexMessage(
           layout: "vertical",
           spacing: "xs",
           contents: [
-            { type: "text", text: "本次加點品項", size: "xs", weight: "bold", color: "#64748B", margin: "none" },
+            { type: "text", text: biLabel("本次加點品項", "Added Items", "Món gọi thêm"), size: "xs", weight: "bold", color: "#64748B", margin: "none" },
             ...contentComponents
           ]
         },
@@ -492,7 +519,7 @@ export function buildAppendConfirmationFlexMessage(
             margin: "4px",
             layout: "horizontal",
             contents: [
-              { type: "text", text: "備註說明", size: "xs", color: "#64748B", flex: 0 },
+              { type: "text", text: biLabel("備註說明", "Note", "Ghi chú"), size: "xs", color: "#64748B", flex: 0 },
               { type: "text", text: order.note, size: "xs", color: "#334155", wrap: true, align: "end", flex: 1 }
             ]
           }
@@ -503,7 +530,7 @@ export function buildAppendConfirmationFlexMessage(
           margin: "4px",
           layout: "horizontal",
           contents: [
-            { type: "text", text: "本次加點金額", size: "xs", color: "#64748B", flex: 0 },
+            { type: "text", text: biLabel("本次加點金額", "Added Subtotal", "Tiền gọi thêm"), size: "xs", color: "#64748B", flex: 0 },
             { type: "text", text: `+$${addedAmount}`, size: "sm", weight: "bold", color: "#7C3AED", align: "end", flex: 1 }
           ]
         },
@@ -512,7 +539,7 @@ export function buildAppendConfirmationFlexMessage(
           layout: "horizontal",
           alignItems: "center",
           contents: [
-            { type: "text", text: "累計總金額", size: "sm", weight: "bold", color: "#64748B", flex: 0 },
+            { type: "text", text: biLabel("累計總金額", "Running Total", "Tổng cộng"), size: "sm", weight: "bold", color: "#64748B", flex: 0 },
             { type: "text", text: `$${order.total}`, size: "xl", weight: "bold", color: "#059669", align: "end", flex: 1 }
           ]
         }
@@ -531,8 +558,8 @@ export function buildAppendConfirmationFlexMessage(
           height: "sm",
           action: {
             type: "uri",
-            label: "再次加點",
-            uri: `${liffBaseUrl}?tenant_id=${encodeURIComponent(tenantId)}&parent_order_key=${encodeURIComponent(order.key)}&parent_display_key=${encodeURIComponent(order.displayKey || order.key)}&table_number=${encodeURIComponent(rawTable || '')}&mode=append`
+            label: isEnCustomer ? "Add More / 再次加點" : isViCustomer ? "Thêm món / 再次加點" : "再次加點",
+            uri: `${liffBaseUrl}?tenant_id=${encodeURIComponent(tenantId)}&parent_order_key=${encodeURIComponent(order.key)}&parent_display_key=${encodeURIComponent(order.displayKey || order.key)}&table_number=${encodeURIComponent(rawTable || '')}&mode=append${langQuery}`
           }
         },
         {
@@ -541,7 +568,7 @@ export function buildAppendConfirmationFlexMessage(
           height: "sm",
           action: {
             type: "postback",
-            label: "查詢訂單進度",
+            label: isEnCustomer ? "Status / 查詢進度" : isViCustomer ? "Tiến độ / 查詢進度" : "查詢訂單進度",
             data: `action=check_progress&order_key=${order.key}`,
             displayText: "查詢訂單進度"
           }

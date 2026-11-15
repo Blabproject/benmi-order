@@ -135,18 +135,23 @@ export async function reconcilePayment(env:Env,id:string,tenant:string,initialRe
    const refunded=(d?.refundList||[]).reduce((n:number,r:any)=>n+Math.abs(Number(r.refundAmount)||0),0);
    if(d&&refunded===p.amount) {
     await env.DB.batch([
+     env.DB.prepare("INSERT INTO payment_events(payment_id,event,result_code,created_at) VALUES(?,'refund_commit',?,?)").bind(id,lease,Date.now()),
      env.DB.prepare("UPDATE payment_refunds SET status='SUCCEEDED',updated_at=? WHERE payment_id=?").bind(Date.now(),id),
      env.DB.prepare("UPDATE payments SET status='REFUNDED',refunded_at=?,updated_at=? WHERE id=? AND lease_token=?").bind(Date.now(),Date.now(),id,lease),
-     env.DB.prepare("UPDATE orders SET updated_at=strftime('%Y-%m-%d %H:%M:%f','now') WHERE key=? AND tenant_id=?").bind(p.order_key,tenant)]);
-   } else if(['PENDING','PROCESSING','UNKNOWN'].includes(refund.status) && (refunded===0 || !d)) {
+     env.DB.prepare("UPDATE orders SET status=CASE WHEN status IN ('COMPLETED','CANCELLED','EXPIRED') THEN status ELSE 'CANCELLED' END,revision=revision+1,updated_at=strftime('%Y-%m-%d %H:%M:%f','now') WHERE key=? AND tenant_id=?").bind(p.order_key,tenant)]);
+   } else if(refund.status==='PENDING' && (refunded===0 || !d)) {
     // Commit PROCESSING before POST; a crash after this point may only QUERY.
-    await env.DB.prepare("UPDATE payment_refunds SET status='PROCESSING',updated_at=? WHERE payment_id=? AND status='PENDING'").bind(Date.now(),id).run();
+    const claim=await env.DB.prepare(`UPDATE payment_refunds SET status='PROCESSING',updated_at=?
+      WHERE payment_id=? AND status='PENDING' AND EXISTS(SELECT 1 FROM payments p
+      WHERE p.id=payment_id AND p.lease_token=? AND p.lease_until>?)`).bind(Date.now(),id,lease,Date.now()).run();
+    if(!claim.meta.changes)return await get(env,id,tenant);
     const result=await call(`/v4/payments/${p.transaction_id}/refund`,{refundAmount:p.amount});
     if(result.returnCode==='0000'||result.returnCode==='1164') {
      await env.DB.batch([
+     env.DB.prepare("INSERT INTO payment_events(payment_id,event,result_code,created_at) VALUES(?,'refund_commit',?,?)").bind(id,lease,Date.now()),
       env.DB.prepare("UPDATE payment_refunds SET status='SUCCEEDED',transaction_id=?,updated_at=? WHERE payment_id=?").bind(String(result.info?.refundTransactionId||''),Date.now(),id),
       env.DB.prepare("UPDATE payments SET status='REFUNDED',refunded_at=?,updated_at=? WHERE id=? AND lease_token=?").bind(Date.now(),Date.now(),id,lease),
-      env.DB.prepare("UPDATE orders SET updated_at=strftime('%Y-%m-%d %H:%M:%f','now') WHERE key=? AND tenant_id=?").bind(p.order_key,tenant)]);
+      env.DB.prepare("UPDATE orders SET status=CASE WHEN status IN ('COMPLETED','CANCELLED','EXPIRED') THEN status ELSE 'CANCELLED' END,revision=revision+1,updated_at=strftime('%Y-%m-%d %H:%M:%f','now') WHERE key=? AND tenant_id=?").bind(p.order_key,tenant)]);
      await event(env,id,'REFUNDED',result.returnCode);
     } else {
      const definite=['1163'].includes(result.returnCode);

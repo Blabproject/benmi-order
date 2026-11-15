@@ -1,3 +1,4 @@
+import { resolvePendingOrder, type PendingDecision } from './order-pending-actions';
 import OrderCode from '../../../js/order-code.js';
 import { handleOrderReceiptWebhook, handleOrderReceiptPageWebhook, prepareOrderReceipt, deliverOrderReceipt } from './line-order-receipts';
 import { resolveOrderKey, findOrderForCustomer, isOrderId } from './order-identity';
@@ -8,7 +9,7 @@ import { corsHeaders } from '../utils/http';
 import { resolveSecret } from '../utils/secrets';
 import { LineRuntimeError, readVerifiedLineWebhook } from './line-runtime';
 import { getNextDailyOrderSeq, saveOrder, getPendingMap, getOrderQueueAhead, getUserLatestActiveOrder } from './orders';
-import { callAI, FewShotExample } from '../integrations/groq';
+import { callAI } from '../integrations/groq';
 import { syncToGoogleSheets } from '../integrations/googleSheets';
 import { getTenantId, getMenuData, formatMenuForPrompt } from './menu';
 import { formatOperatingHoursForDisplay } from './bootstrap';
@@ -28,7 +29,6 @@ export {
 } from './line/templates';
 import {
   buildProgressFlexMessage,
-  createTimeChangeConfirmedFlexBubble,
   buildAppendConfirmationFlexMessage,
   createOrderModifiedConfirmationFlexBubble
 } from './line/templates';
@@ -541,145 +541,17 @@ export async function handleLineWebhook(
         if (m) orderKey = m[1];
       }
 
-      if (!orderKey && env.DB) {
-        try {
-          const pRow = await env.DB.prepare(
-            "SELECT order_key FROM pending_actions WHERE tenant_id = ? AND user_id = ? ORDER BY created_at DESC LIMIT 1"
-          ).bind(tenantId, userId).first<{ order_key: string }>();
-          if (pRow?.order_key) {
-            orderKey = pRow.order_key;
-          } else {
-            const wRow = await env.DB.prepare(
-              "SELECT key FROM orders WHERE tenant_id = ? AND user_id = ? AND status IN ('WAITING_CUSTOMER_REJECT', 'WAITING_CUSTOMER_CHANGE') ORDER BY updated_at DESC LIMIT 1"
-            ).bind(tenantId, userId).first<{ key: string }>();
-            if (wRow?.key) orderKey = wRow.key;
-          }
-        } catch (e) {
-          console.error("[Postback Fallback orderKey error]:", e);
-        }
-      }
-
-      if (orderKey) orderKey = await resolveOrderKey(env, tenantId, orderKey) || '';
-      const actionOrder = orderKey ? await env.DB.prepare('SELECT display_key FROM orders WHERE key = ? AND tenant_id = ?').bind(orderKey, tenantId).first<{ display_key: string }>() : null;
-      const displayKey = actionOrder?.display_key || '';
-      if (action && orderKey && env.DB) {
-        try {
-          if (action === "reject_agree") {
-            await env.DB.prepare(
-              "UPDATE orders SET status = 'REJECTED', updated_at = strftime('%Y-%m-%d %H:%M:%f', 'now') WHERE tenant_id = ? AND key = ?"
-            ).bind(tenantId, orderKey).run();
-            await env.DB.prepare(
-              "DELETE FROM pending_actions WHERE tenant_id = ? AND (order_key = ? OR user_id = ?)"
-            ).bind(tenantId, orderKey, userId).run();
-            await replyText(replyToken, `✅ 訂單 ${OrderCode.format(displayKey)} 已確認取消。期待下次能為您服務！`, env, tenantCtx);
-          } else if (action === "reject_disagree") {
-            await env.DB.prepare(
-              "UPDATE orders SET status = 'NEW', updated_at = strftime('%Y-%m-%d %H:%M:%f', 'now') WHERE tenant_id = ? AND key = ?"
-            ).bind(tenantId, orderKey).run();
-            await env.DB.prepare(
-              "DELETE FROM pending_actions WHERE tenant_id = ? AND (order_key = ? OR user_id = ?)"
-            ).bind(tenantId, orderKey, userId).run();
-            await replyText(replyToken, `感謝您的回覆！店家將盡快與您聯繫或重新為您確認訂單 ${OrderCode.format(displayKey)}。`, env, tenantCtx);
-          } else if (action === "change_agree") {
-            const pendingRow = await env.DB.prepare(
-              "SELECT * FROM pending_actions WHERE tenant_id = ? AND (order_key = ? OR user_id = ?) LIMIT 1"
-            ).bind(tenantId, orderKey, userId).first<any>();
-
-            const orderRow = await env.DB.prepare(
-              "SELECT * FROM orders WHERE tenant_id = ? AND key = ? LIMIT 1"
-            ).bind(tenantId, orderKey).first<any>();
-
-            const newTimeParam = params.get("newTime") || (pendingRow ? pendingRow.note : "") || (orderRow ? orderRow.note : "");
-            const oldTime = orderRow ? orderRow.pickup_time || "" : "";
-            const timeParts = oldTime.split(" ");
-            const oldDate = timeParts[0] || "";
-            let updatedPickupTime = newTimeParam;
-            if (oldDate && oldDate.includes("-") && !newTimeParam.includes("-")) {
-              updatedPickupTime = `${oldDate} ${newTimeParam}`;
-            }
-
-            if (orderRow) {
-              const updatedOrder: Order = {
-                key: orderRow.key,
-                orderId: orderRow.order_id,
-                displayKey: orderRow.display_key,
-                legacyKey: orderRow.legacy_key,
-                businessDate: orderRow.business_date,
-                customer: orderRow.customer_name || "顧客",
-                time: updatedPickupTime,
-                content: orderRow.order_content || "",
-                status: "NEW", // Tự động nhảy đơn mới với giờ nhận mới để quán bấm nhận đơn
-                createdAt: orderRow.created_at ? new Date(orderRow.created_at + "Z").getTime() : Date.now(),
-                userId: orderRow.user_id || undefined,
-                total: orderRow.total_amount,
-                reason: "",
-                note: "",
-                diningOption: (orderRow.dining_option as any) || 'takeaway',
-                tableNumber: orderRow.table_number || undefined,
-                roundCount: Number(orderRow.round_count) || 1,
-                round_count: Number(orderRow.round_count) || 1,
-                lastAppendedAt: orderRow.last_appended_at || null,
-                last_appended_at: orderRow.last_appended_at || null
-              };
-              await saveOrder(env, updatedOrder, tenantId);
-            } else {
-              await env.DB.prepare(
-                "UPDATE orders SET status = 'NEW', pickup_time = ?, reason = '', note = '', updated_at = strftime('%Y-%m-%d %H:%M:%f', 'now') WHERE tenant_id = ? AND key = ?"
-              ).bind(updatedPickupTime, tenantId, orderKey).run();
-            }
-
-            await env.DB.prepare(
-              "DELETE FROM pending_actions WHERE tenant_id = ? AND (order_key = ? OR user_id = ?)"
-            ).bind(tenantId, orderKey, userId).run();
-
-            const liffUrl = tenantCtx?.liffUrl || (await resolveSecret(env.LIFF_URL)) || "https://liff.line.me/";
-            const confirmedFlex = createTimeChangeConfirmedFlexBubble(orderKey, newTimeParam, liffUrl, brandName, displayKey);
-            await replyLineFlexMessage(replyToken, `訂單 ${OrderCode.format(displayKey)} 已確認修改！`, confirmedFlex, env, tenantCtx);
-          } else if (action === "change_cancel") {
-            const orderRow = await env.DB.prepare(
-              "SELECT * FROM orders WHERE tenant_id = ? AND key = ? LIMIT 1"
-            ).bind(tenantId, orderKey).first<any>();
-
-            if (orderRow) {
-              const updatedOrder: Order = {
-                key: orderRow.key,
-                orderId: orderRow.order_id,
-                displayKey: orderRow.display_key,
-                legacyKey: orderRow.legacy_key,
-                businessDate: orderRow.business_date,
-                customer: orderRow.customer_name || "顧客",
-                time: orderRow.pickup_time || "",
-                content: orderRow.order_content || "",
-                status: "REJECTED",
-                createdAt: orderRow.created_at ? new Date(orderRow.created_at + "Z").getTime() : Date.now(),
-                userId: orderRow.user_id || undefined,
-                total: orderRow.total_amount,
-                reason: orderRow.reason || "",
-                note: orderRow.note || "",
-                diningOption: (orderRow.dining_option as any) || 'takeaway',
-                tableNumber: orderRow.table_number || undefined,
-                roundCount: Number(orderRow.round_count) || 1,
-                round_count: Number(orderRow.round_count) || 1,
-                lastAppendedAt: orderRow.last_appended_at || null,
-                last_appended_at: orderRow.last_appended_at || null
-              };
-              await saveOrder(env, updatedOrder, tenantId);
-              if (ctx && ctx.waitUntil) ctx.waitUntil(syncToGoogleSheets(updatedOrder, env, tenantCtx));
-            } else {
-              await env.DB.prepare(
-                "UPDATE orders SET status = 'REJECTED', updated_at = strftime('%Y-%m-%d %H:%M:%f', 'now') WHERE tenant_id = ? AND key = ?"
-              ).bind(tenantId, orderKey).run();
-            }
-
-            await env.DB.prepare(
-              "DELETE FROM pending_actions WHERE tenant_id = ? AND (order_key = ? OR user_id = ?)"
-            ).bind(tenantId, orderKey, userId).run();
-            await replyText(replyToken, `收到，已為您取消訂單 ${OrderCode.format(displayKey)}，謝謝您！`, env, tenantCtx);
-          }
-          continue;
-        } catch (postbackErr) {
-          console.error(`[${brandName}] Postback execution error:`, postbackErr);
-        }
+      const decisions: Record<string, PendingDecision> = {
+        reject_agree: 'cancel', reject_disagree: 'resume', change_agree: 'accept_time', change_cancel: 'cancel'
+      };
+      if (action && decisions[action]) {
+        const resolvedKey = orderKey ? await resolveOrderKey(env, tenantId, orderKey) : null;
+        const committed = resolvedKey && await resolvePendingOrder(env, tenantId, resolvedKey, userId,
+          params.get('actionId') || '', decisions[action], Number(event.timestamp));
+        await replyText(replyToken, committed
+          ? (decisions[action] === 'cancel' ? '訂單已取消。' : '已收到您的確認，店家將重新確認訂單。')
+          : '此確認要求已失效或訂單已更新，請聯絡店家重新確認。', env, tenantCtx);
+        continue;
       }
     }
 
@@ -750,7 +622,7 @@ export async function handleLineWebhook(
 
       if (!orderKey && env.DB) {
         const activeRow = await env.DB.prepare(
-          `SELECT key FROM orders WHERE tenant_id = ? AND user_id = ? AND dining_option = 'dine_in' AND status IN ('NEW', 'ACCEPTED', 'DONE') ORDER BY created_at DESC LIMIT 1`
+          `SELECT key FROM orders WHERE tenant_id = ? AND user_id = ? AND dining_option = 'dine_in' AND status IN ('NEW', 'ACCEPTED', 'READY') ORDER BY created_at DESC LIMIT 1`
         ).bind(tenantId, userId).first<{ key: string }>();
         if (activeRow && activeRow.key) orderKey = activeRow.key;
       }
@@ -1168,211 +1040,33 @@ export async function handleLineWebhook(
 
     if (pKeys.length > 0) {
       if (!aiReplyEnabled(tenantCtx, 'pendingOrderReplies')) continue;
-      const orderKey = pKeys[0];
-      const pending = pMap[orderKey];
-      const questionText = pending?.questionText || "";
-      const lowerText = userText.trim().toLowerCase();
-
-      if (orderKey) {
-        const orderRow = await env.DB.prepare(
-          "SELECT * FROM orders WHERE tenant_id = ? AND key = ?"
-        ).bind(tenantId, orderKey).first<any>();
-        if (orderRow) {
-          const order: Order = {
-            key: orderRow.key,
-                orderId: orderRow.order_id,
-            displayKey: orderRow.display_key,
-            legacyKey: orderRow.legacy_key,
-            businessDate: orderRow.business_date,
-            customer: orderRow.customer_name,
-            time: orderRow.pickup_time,
-            content: orderRow.order_content,
-            status: orderRow.status,
-            createdAt: new Date(orderRow.created_at + "Z").getTime(),
-            userId: orderRow.user_id || undefined,
-            total: orderRow.total_amount,
-            reason: orderRow.reason || "",
-            note: orderRow.note || ""
-          };
-          const pendingType = pending?.type;
-
-          const finishPending = async () => {
-            await env.DB.prepare(
-              "DELETE FROM pending_actions WHERE tenant_id = ? AND user_id = ? AND order_key = ?"
-            ).bind(tenantId, userId, orderKey).run();
-          };
-
-          const currentReason = pending?.reason || order.reason || "";
-          const currentNote = pending?.note || order.note || "";
-
-          // TÁCH RIÊNG TRƯỜNG HỢP "ĐỔI GIỜ NHẬN HÀNG" KHÔNG DÙNG AI
-          if (pendingType === "CHANGE" && currentReason === "時間需調整") {
-            const exactMatch = lowerText === "好" || lowerText === "同意" || lowerText === "ok" || lowerText === "可以" || lowerText === "好的";
-            const isCancel = lowerText.includes("不要") || lowerText.includes("取消") || lowerText.includes("不用");
-
-            if (isCancel) {
-              order.status = "REJECTED";
-              await replyText(replyToken, `收到，已為您取消訂單 ${OrderCode.format(order.displayKey || order.key)}，謝謝您！`, env, tenantCtx);
-              const cleanup = async () => { await saveOrder(env, order, tenantId); await finishPending(); await syncToGoogleSheets(order, env, tenantCtx); };
-              if (ctx && ctx.waitUntil) ctx.waitUntil(cleanup()); else await cleanup();
-            }
-            else if (exactMatch) {
-              const timeParts = (order.time || "").split(" ");
-              const oldDate = timeParts[0] || "";
-              const newSuggestedTime = currentNote;
-
-              if (oldDate && oldDate.includes("-") && !newSuggestedTime.includes("-")) {
-                order.time = `${oldDate} ${newSuggestedTime}`;
-              } else {
-                order.time = newSuggestedTime;
-              }
-              order.reason = "";
-              order.note = "";
-              order.status = "NEW"; // Tái xuất hiện thông báo đơn mới trên Dashboard với giờ mới để quán bấm nhận
-
-              const liffUrl = tenantCtx?.liffUrl || (await resolveSecret(env.LIFF_URL)) || "https://liff.line.me/";
-              const confirmedFlex = createTimeChangeConfirmedFlexBubble(order.key, newSuggestedTime, liffUrl, brandName, order.displayKey);
-              await replyLineFlexMessage(replyToken, `訂單 ${OrderCode.format(order.displayKey || order.key)} 已確認修改！`, confirmedFlex, env, tenantCtx);
-
-              const cleanup = async () => { await saveOrder(env, order, tenantId); await finishPending(); };
-              if (ctx && ctx.waitUntil) ctx.waitUntil(cleanup()); else await cleanup();
-            }
-            else {
-              await replyText(replyToken, `請簡單回覆「好 / 同意」以確認，或回覆「不要了 / 取消」取消訂單。`, env, tenantCtx);
-            }
-            continue;
-          }
-
-          // CÁC TRƯỜNG HỢP KHÁC: DÙNG AI ĐỂ XỬ LÝ
-          let aiDecision: "YES" | "NO" | "UNKNOWN" = questionText ? "UNKNOWN" : "YES";
-          if (questionText) {
-            const menuData = await getMenuData(env, tenantId);
-            const menuContext = formatMenuForPrompt(menuData);
-            const systemPrompt = `你是 ${brandName} 的 AI 訂單助理。\n\n${menuContext}\n\n請對照店家菜單品項與庫存狀況，分析顧客的回覆內容。`;
-
-            const prompt = `店家剛才詢問顧客：「${questionText}」\n顧客的回覆是：「${userText}」\n\n請問顧客的回覆是否已針對問題做出明確決定（例如：已明確選擇欲更換的口味、同意變更、同意取消等）？\n注意：\n1. 若問題是詢問更換口味，但顧客僅回覆「好/同意」而未說明要換什麼口味，請回覆 NO。\n2. 若顧客是反問問題，請回覆 NO。\n3. 若顧客已明確選擇具體品項或同意取消，請回覆 YES。\n請嚴格只回覆 YES 或 NO。`;
-            const changeFewShot: FewShotExample[] = [
-              {
-                role: "user",
-                content: `店家剛才詢問顧客：「不好意思 越南咖啡我們現在賣完了，請問可以幫您換別的嗎？」\n顧客的回覆是：「換雞肉」\n\n請問顧客的回覆是否已針對問題做出明確決定（例如：已明確選擇欲更換的口味、同意變更、同意取消等）？\n注意：\n1. 若問題是詢問更換口味，但顧客僅回覆「好/同意」而未說明要換什麼口味，請回覆 NO。\n2. 若顧客是反問問題，請回覆 NO。\n3. 若顧客已明確選擇具體品項或同意取消，請回覆 YES。\n請嚴格只回覆 YES 或 NO。`
-              },
-              {
-                role: "assistant",
-                content: "YES"
-              },
-              {
-                role: "user",
-                content: `店家剛才詢問顧客：「不好意思 越南咖啡我們現在賣完了，請問可以幫您換別的嗎？」\n顧客的回覆是：「換雞肉好了」\n\n請問顧客的回覆是否已針對問題做出明確決定（例如：已明確選擇欲更換的口味、同意變更、同意取消等）？\n注意：\n1. 若問題是詢問更換口味，但顧客僅回覆「好/同意」而未說明要換什麼口味，請回覆 NO。\n2. 若顧客是反問問題，請回覆 NO。\n3. 若顧客已明確選擇具體品項或同意取消，請回覆 YES。\n請嚴格只回覆 YES 或 NO。`
-              },
-              {
-                role: "assistant",
-                content: "YES"
-              },
-              {
-                role: "user",
-                content: `店家剛才詢問顧客：「不好意思 燒肉賣完了，請問可以幫您換別的嗎？」\n顧客的回覆是：「換烤肉麵包」\n\n請問顧客的回覆是否已針對問題做出明確決定（例如：已明確選擇欲更換的口味、同意變更、同意取消等）？\n注意：\n1. 若問題是詢問更換口味，但顧客僅回覆「好/同意」而未說明要換什麼口味，請回覆 NO。\n2. 若顧客是反問問題，請回覆 NO。\n3. 若顧客已明確選擇具體品項或同意取消，請回覆 YES。\n請嚴格只回覆 YES 或 NO。`
-              },
-              {
-                role: "assistant",
-                content: "YES"
-              },
-              {
-                role: "user",
-                content: `店家剛才詢問顧客：「不好意思 越南咖啡我們現在賣完了，請問可以幫您換別的嗎？」\n顧客的回覆是：「不要換」\n\n請問顧客的回覆是否已針對問題做出明確決定（例如：已明確選擇欲更換的口味、同意變更、同意取消等）？\n注意：\n1. 若問題是詢問更換口味，但顧客僅回覆「好/同意」而未說明要換什麼口味，請回覆 NO。\n2. 若顧客是反問問題，請回覆 NO。\n3. 若顧客已明確選擇具體品項或同意取消，請回覆 YES。\n請嚴格只回覆 YES 或 NO。`
-              },
-              {
-                role: "assistant",
-                content: "YES"
-              },
-              {
-                role: "user",
-                content: `店家剛才詢問顧客：「不好意思 越南咖啡賣完了，請問想換成拿鐵還是美式？」\n顧客的回覆是：「好」\n\n請問顧客的回覆是否已針對問題做出明確決定（例如：已明確選擇欲更換的口味、同意變更、同意取消等）？\n注意：\n1. 若問題是詢問更換口味，但顧客僅回覆「好/同意」而未說明要換什麼口味，請回覆 NO。\n2. 若顧客是反問問題，請回覆 NO。\n3. 若顧客已明確選擇具體品項或同意取消，請回覆 YES。\n請嚴格只回覆 YES 或 NO。`
-              },
-              {
-                role: "assistant",
-                content: "NO"
-              }
-            ];
-
-            const aiRes = await callAI(prompt, env, tenantCtx, 8000, systemPrompt, changeFewShot);
-            if (aiRes) {
-              const up = aiRes.toUpperCase();
-              const hasYes = /\bYES\b/.test(up);
-              const hasNo = /\bNO\b/.test(up);
-              if (hasYes && !hasNo) aiDecision = "YES";
-              else if (hasNo && !hasYes) aiDecision = "NO";
-            }
-          }
-
-          if (pendingType === "CHANGE") {
-            const isCancel = lowerText.includes("不要了") || lowerText.includes("取消") || lowerText.includes("不用了") || lowerText === "不要";
-
-            if (isCancel) {
-              order.status = "REJECTED";
-              await replyText(replyToken, `好的，已為您取消訂單 ${OrderCode.format(order.displayKey || order.key)}。`, env, tenantCtx);
-              const cleanup = async () => { await saveOrder(env, order, tenantId); await finishPending(); await syncToGoogleSheets(order, env, tenantCtx); };
-              if (ctx && ctx.waitUntil) ctx.waitUntil(cleanup()); else await cleanup();
-              continue;
-            }
-
-            if (aiDecision !== "YES") {
-              await replyText(replyToken, `請您明確告訴我們想換什麼品項，或者回覆「取消」直接取消訂單。`, env, tenantCtx);
-              continue;
-            }
-
-            // Trường hợp đổi món / đổi vị:
-            order.content = `【顧客換單】：${userText}\n----原本訂單 👇----\n${order.content}`;
-            order.reason = "";
-            order.note = "";
-            order.status = "NEW"; // Tái kích hoạt chuông và trạng thái đơn mới trên POS để quán nhận
-            await replyText(replyToken, `收到您的回覆！店家已收到您的更換品項需求「${userText}」，將儘速為您確認訂單。`, env, tenantCtx);
-            const cleanup = async () => { await saveOrder(env, order, tenantId); await finishPending(); };
-            if (ctx && ctx.waitUntil) ctx.waitUntil(cleanup()); else await cleanup();
-            continue;
-          }
-
-          if (pendingType === "REJECT") {
-            const isAgree = lowerText === "同意" || lowerText === "好" || lowerText === "ok";
-            const isDifferent = lowerText.includes("不同意") || lowerText.includes("不要") || lowerText === "取消";
-
-            if (isAgree) {
-              order.status = "REJECTED";
-              const reason = order.reason || "（未提供原因）";
-              await replyText(
-                replyToken,
-                `非常抱歉！${brandName} 無法接下您的訂單 ${OrderCode.format(order.displayKey || order.key)}。\n原因：${reason}\n感謝您訂購 ${brandName}，歡迎您下次再訂購。`,
-                env,
-                tenantCtx
-              );
-              const cleanup = async () => { await saveOrder(env, order, tenantId); await finishPending(); await syncToGoogleSheets(order, env, tenantCtx); };
-              if (ctx && ctx.waitUntil) ctx.waitUntil(cleanup()); else await cleanup();
-              continue;
-            }
-
-            if (isDifferent) {
-              order.status = "NEW";
-              await replyText(
-                replyToken,
-                `謝謝您的回覆！我已將訂單 ${OrderCode.format(order.displayKey || order.key)} 回到「等待店家接單」狀態，店家會再為您確認。`,
-                env,
-                tenantCtx
-              );
-              const cleanup = async () => { await saveOrder(env, order, tenantId); await finishPending(); };
-              if (ctx && ctx.waitUntil) ctx.waitUntil(cleanup()); else await cleanup();
-              continue;
-            }
-
-            await replyText(replyToken, `請回覆「同意」或「不同意」。`, env, tenantCtx);
-            continue;
-          }
-        }
+      // An unqualified text reply must never choose among multiple orders.
+      if (pKeys.length !== 1) {
+        await replyText(replyToken, '您有多筆待確認訂單，請使用對應訂單的確認按鈕或聯絡店家。', env, tenantCtx);
+        continue;
       }
-
-      try {
-        await env.DB.prepare("DELETE FROM pending_actions WHERE tenant_id = ? AND user_id = ?")
-          .bind(tenantId, userId).run();
-      } catch { }
-      await replyText(replyToken, `目前有點狀況，請稍後再確認一次。`, env, tenantCtx);
+      const orderKey = pKeys[0], pending = pMap[orderKey];
+      const answer = userText.trim().toLowerCase();
+      const agrees = ['好', '同意', 'ok', '可以', '好的'].includes(answer);
+      const cancels = ['取消', '不要了', '不用了', '取消訂單'].includes(answer);
+      let decision: PendingDecision | undefined;
+      if (cancels) decision = 'cancel';
+      else if (pending.type === 'REJECT') {
+        if (agrees) decision = 'cancel';
+        else if (answer === '不同意') decision = 'resume';
+      } else if (pending.type === 'CHANGE' && pending.reason === '時間需調整') {
+        if (agrees) decision = 'accept_time';
+      } else if (pending.type === 'CHANGE' && !agrees && answer) decision = 'request_items';
+      if (!decision) {
+        await replyText(replyToken, '請使用確認按鈕，或明確回覆您的需求。', env, tenantCtx);
+        continue;
+      }
+      const committed = await resolvePendingOrder(env, tenantId, orderKey, userId,
+        pending.actionId || '', decision, Number(event.timestamp), userText);
+      await replyText(replyToken, committed
+        ? (decision === 'cancel' ? '訂單已取消。' : decision === 'request_items'
+          ? '已記錄您的需求，請等待店家確認品項與金額。' : '已收到您的確認，店家將重新確認訂單。')
+        : '此確認要求已失效或訂單已更新，請聯絡店家重新確認。', env, tenantCtx);
       continue;
     }
 
