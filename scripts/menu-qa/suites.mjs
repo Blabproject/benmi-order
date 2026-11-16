@@ -2,7 +2,7 @@
 export const menuSuites = [
   ['menu-static-contracts', ['--test', ...[
     'menu_sort_button_visibility', 'menu_dirty_detection', 'menu_model', 'modifier_option_name_collision',
-    'menu_workspace', 'item_modifier_workspace', 'menu_display_scale',
+    'menu_workspace', 'item_modifier_workspace', 'menu_display_scale', 'menu_schedule', 'menu_schedule_workspace',
     'category_linked_products_picker', 'pos_tab_persistence',
     'unified_option_groups', 'unified_option_cutover', 'unified_menu_drawer', 'unified_menu_sections',
     'menu_global_group_order', 'customer_option_presentations', 'option_surcharge_cart',

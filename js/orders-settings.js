@@ -8,7 +8,9 @@ let storeOperatingShifts = [];
 window.storeOperatingShifts = storeOperatingShifts;
 let allowScheduledPickup = true;
 let allowDineIn = true;
-let currentTenantFeatures = [];
+// Branding can resolve from localStorage before this script loads. Keep those
+// capabilities so opening #menu-schedule does not redirect on a warm reload.
+let currentTenantFeatures = Array.isArray(window.currentTenantFeatures) ? window.currentTenantFeatures : [];
 window.currentTenantFeatures = currentTenantFeatures;
 function isMenuScheduleFeatureEnabled() {
   const feats = Array.isArray(window.currentTenantFeatures) ? window.currentTenantFeatures : currentTenantFeatures;

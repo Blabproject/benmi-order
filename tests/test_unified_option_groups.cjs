@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { fixture } = require("./helpers/option-groups.cjs");
+const { fixture, getOperatingShiftsExports } = require("./helpers/option-groups.cjs");
 const group = (id = "a_drinks") => ({
   id,
   name: "Drink",
@@ -542,7 +542,7 @@ test("legacy whole-menu writes cannot remove a referenced product or bypass the 
     Map,
     Set,
     crypto: require("node:crypto").webcrypto,
-    require: (name) => (name.includes("option-groups") ? f.api : {}),
+    require: (name) => name.includes("option-groups") ? f.api : name.includes("operating-shifts") ? getOperatingShiftsExports() : {},
   });
   const source =
     fs.readFileSync("benmi-worker-official/src/modules/menu.ts", "utf8") +

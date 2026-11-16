@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const ts = require('../benmi-worker-official/node_modules/typescript');
-const { fixture } = require('./helpers/option-groups.cjs');
+const { fixture, getOperatingShiftsExports } = require('./helpers/option-groups.cjs');
 const { Element } = require('./helpers/menu-drawer-dom.cjs');
 
 async function setup() {
@@ -25,7 +25,7 @@ async function setup() {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText, { exports, console, Date, JSON, Map, Set, Response, Request, URL,
     crypto: require('node:crypto').webcrypto,
-    require: name => name.includes('option-groups') ? f.api : name.includes('http') ? {
+    require: name => name.includes('option-groups') ? f.api : name.includes('operating-shifts') ? getOperatingShiftsExports() : name.includes('http') ? {
       json: (body, status = 200) => new Response(JSON.stringify(body), { status }),
     } : name.includes('bootstrap') ? {
       invalidateBootstrapCache: async tenant => f.deleted.push('bootstrap:' + tenant),

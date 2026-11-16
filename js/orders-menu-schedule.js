@@ -9,10 +9,12 @@
     saving: false,
     pendingTapCatId: null,
     expandedCatIds: new Set(),
-    hoveredWireKey: null,
     dragWire: null,
     baselineSnapshot: '',
-    resizeObserver: null
+    resizeObserver: null,
+    search: '',
+    filter: 'all',
+    showHelp: true
   };
 
   function _msT(key, params) {
@@ -42,6 +44,69 @@
 
   function _msGetShifts() {
     return Array.isArray(window.storeOperatingShifts) ? window.storeOperatingShifts : [];
+  }
+
+  function _msIcon(name) {
+    // Lucide icons (ISC), matching the POS outline icon style.
+    const paths = {
+      back: '<path d="m15 18-6-6 6-6"/>',
+      save: '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/>',
+      clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+      link: '<path d="m10 13 4-4M15 7l2-2a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0M9 17l-2 2a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0"/>',
+      search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+      info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+      close: '<path d="m18 6-12 12M6 6l12 12"/>',
+      sliders: '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+      reset: '<path d="M3 11a9 9 0 1 1 2.7 7M3 4v7h7"/>',
+      grip: '<circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/>'
+    };
+    return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || ''}</svg>`;
+  }
+
+  function _msFilteredCategories(cats) {
+    const query = _msState.search.trim().toLocaleLowerCase();
+    return cats.filter(cat => {
+      const selected = cat.availabilityMode === 'selected_shifts';
+      if (_msState.filter === 'all_shifts' && selected) return false;
+      if (_msState.filter === 'selected_shifts' && !selected) return false;
+      return !query || [cat.title, cat.name, ...(cat.items || []).map(it => it.name)]
+        .some(name => String(name || '').toLocaleLowerCase().includes(query));
+    });
+  }
+
+  function _msSetFilter(filter) {
+    _msState.filter = filter;
+    _msState.pendingTapCatId = null;
+    renderMenuScheduleWorkspace();
+  }
+
+  function _msSetSearch(search) {
+    _msState.search = search;
+    _msState.pendingTapCatId = null;
+    renderMenuScheduleWorkspace();
+  }
+
+  function _msToggleHelp() {
+    _msState.showHelp = !_msState.showHelp;
+    renderMenuScheduleWorkspace();
+  }
+
+  function _msPickCategory(catKey) {
+    _msState.pendingTapCatId = _msState.pendingTapCatId === catKey ? null : catKey;
+    renderMenuScheduleWorkspace();
+  }
+
+  function _msResetAllCategories() {
+    const cats = _msGetCatalogCategories();
+    if (_msState.saving || !cats.some(c => c.availabilityMode === 'selected_shifts')) return;
+    if (!confirm(_msT('menuScheduleResetConfirm'))) return;
+    for (const cat of cats) {
+      cat.availabilityMode = 'all_shifts';
+      cat.shiftIds = [];
+    }
+    _msState.pendingTapCatId = null;
+    if (typeof markMenuDirty === 'function') markMenuDirty();
+    renderMenuScheduleWorkspace();
   }
 
   function _msCatKey(cat) {
@@ -217,23 +282,14 @@
         const y2 = tRect.top + tRect.height / 2 - cRect.top;
         const dx = Math.max(48, Math.abs(x2 - x1) * 0.5);
         const pathD = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
-        const midX = (x1 + x2) / 2;
-        const midY = (y1 + y2) / 2;
         const isMenuWin = shiftTypeMap.get(String(sid)) === 'menu_window';
         const strokeColor = isMenuWin ? '#d97706' : '#2563eb';
-        const wireKey = `${catKey}::${sid}`;
-        const isHovered = _msState.hoveredWireKey === wireKey;
 
         svgContent += `
-          <g class="ms-wire-group" data-wire-cat="${_msEsc(catKey)}" data-wire-shift="${_msEsc(sid)}" style="pointer-events:auto; cursor:pointer;">
-            <path d="${pathD}" fill="none" stroke="transparent" stroke-width="20"></path>
-            <path d="${pathD}" fill="none" stroke="${strokeColor}" stroke-width="${isHovered ? 4.5 : 3}" stroke-linecap="round" opacity="${isHovered ? '1' : '0.84'}"></path>
-            <circle cx="${x1}" cy="${y1}" r="4.5" fill="${strokeColor}"></circle>
-            <circle cx="${x2}" cy="${y2}" r="4.5" fill="${strokeColor}"></circle>
-            <g transform="translate(${midX}, ${midY})">
-              <circle r="${isHovered ? 12 : 10}" fill="#ffffff" stroke="${strokeColor}" stroke-width="2"></circle>
-              <path d="M -3.5 -3.5 L 3.5 3.5 M 3.5 -3.5 L -3.5 3.5" stroke="#dc2626" stroke-width="2" stroke-linecap="round"></path>
-            </g>
+          <g class="ms-wire-group" data-wire-cat="${_msEsc(catKey)}" data-wire-shift="${_msEsc(sid)}">
+            <title>${_msEsc(_msT('menuScheduleUnlinkHint'))}</title>
+            <path class="ms-wire-hit" d="${pathD}" fill="none" stroke="transparent" stroke-width="24"></path>
+            <path class="ms-wire-path" d="${pathD}" fill="none" stroke="${strokeColor}" stroke-width="2.5" stroke-linecap="round"></path>
           </g>
         `;
       }
@@ -258,14 +314,6 @@
         const sId = g.getAttribute('data-wire-shift');
         if (cKey && sId) _msUnlinkCategoryFromShift(cKey, sId);
       });
-      g.addEventListener('mouseenter', () => {
-        _msState.hoveredWireKey = `${g.getAttribute('data-wire-cat')}::${g.getAttribute('data-wire-shift')}`;
-        _msDrawWires();
-      });
-      g.addEventListener('mouseleave', () => {
-        _msState.hoveredWireKey = null;
-        _msDrawWires();
-      });
     });
   }
 
@@ -274,6 +322,10 @@
 
     // 1. Pointer drag from Category port -> Shift card/port (works seamlessly on desktop & touch)
     canvas.querySelectorAll('[data-cat-port]').forEach(portBtn => {
+      // Native button activation supplies the keyboard alternative to dragging.
+      portBtn.addEventListener('click', e => {
+        if (e.detail === 0) _msPickCategory(portBtn.getAttribute('data-cat-port'));
+      });
       portBtn.addEventListener('pointerdown', (e) => {
         if (e.button !== undefined && e.button !== 0 && e.pointerType === 'mouse') return;
         e.preventDefault();
@@ -325,12 +377,16 @@
           document.removeEventListener('pointerup', onUp);
           document.removeEventListener('pointercancel', onUp);
           clearShiftHighlight();
+          if (upEvt.type === 'pointercancel') {
+            _msState.dragWire = null;
+            _msDrawWires();
+            return;
+          }
 
           if (!movedEnough) {
             // Tap-to-connect toggle fallback for accessibility / quick iPad tap
             _msState.dragWire = null;
-            _msState.pendingTapCatId = (_msState.pendingTapCatId === catKey) ? null : catKey;
-            renderMenuScheduleWorkspace();
+            _msPickCategory(catKey);
             return;
           }
 
@@ -366,6 +422,10 @@
 
     canvas.querySelectorAll('[data-shift-card]').forEach(shiftCard => {
       const shiftId = shiftCard.getAttribute('data-shift-card');
+      const shiftPort = shiftCard.querySelector('[data-shift-port]');
+      if (shiftPort) shiftPort.addEventListener('click', () => {
+        if (_msState.pendingTapCatId) _msLinkCategoryToShift(_msState.pendingTapCatId, shiftId);
+      });
       shiftCard.addEventListener('dragover', (e) => {
         e.preventDefault();
         if (e.dataTransfer) e.dataTransfer.dropEffect = 'link';
@@ -394,54 +454,56 @@
   function renderMenuScheduleWorkspace() {
     const root = document.getElementById('menu-schedule-workspace-root');
     if (!root) return;
+    const previousScroll = root.querySelector('.ms-body-scroll')?.scrollTop || 0;
+    const active = root.contains(document.activeElement) ? document.activeElement : null;
+    const focusKey = active?.getAttribute('data-ms-focus');
+    const selectionStart = active?.selectionStart;
+    const selectionEnd = active?.selectionEnd;
 
     const cats = _msGetCatalogCategories();
+    const visibleCats = _msFilteredCategories(cats);
     const shifts = _msGetShifts();
     const isDirty = hasUnsavedMenuScheduleChanges();
-    const catNameMap = new Map(cats.map(c => [_msCatKey(c), c.title || c.name || c.id]));
-
-    const backSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>`;
-    const saveSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>`;
-    const clockSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
-    const portDotSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4" fill="currentColor"></circle></svg>`;
-
-    const pendingCat = _msState.pendingTapCatId ? cats.find(c => _msCatKey(c) === _msState.pendingTapCatId) : null;
+    const selectedCount = cats.filter(c => c.availabilityMode === 'selected_shifts').length;
+    const linkCount = cats.reduce((sum, c) => sum + (c.availabilityMode === 'selected_shifts' ? (c.shiftIds || []).length : 0), 0);
+    const pendingCat = cats.find(c => _msCatKey(c) === _msState.pendingTapCatId);
+    const catName = cat => cat.title || cat.name || _msCatKey(cat);
     const guideContent = pendingCat
-      ? _msT('menuScheduleTapPickHint', { name: pendingCat.title || pendingCat.name || '' })
+      ? _msT('menuScheduleTapPickHint', { name: catName(pendingCat) })
       : _msT('menuScheduleGuideText');
 
-    const catsHtml = cats.length === 0
-      ? `<div style="padding:20px; border:1.5px dashed #cbd5e1; border-radius:14px; color:#64748b; text-align:center;">${_msEsc(_msT('menuScheduleEmptyCats'))}</div>`
-      : cats.map(cat => {
+    const catsHtml = visibleCats.length === 0
+      ? `<div class="ms-empty">${_msIcon('search')}<p>${_msEsc(_msT(cats.length ? 'menuScheduleNoResults' : 'menuScheduleEmptyCats'))}</p></div>`
+      : visibleCats.map(cat => {
           const catKey = _msCatKey(cat);
-          const safeCatKey = catKey.replace(/'/g, "\\'");
+          const catArg = _msEsc(JSON.stringify(catKey));
           const isSelectedMode = cat.availabilityMode === 'selected_shifts';
           const linkedShiftIds = Array.isArray(cat.shiftIds) ? cat.shiftIds : [];
           const isPendingPort = _msState.pendingTapCatId === catKey;
           const isExpanded = _msState.expandedCatIds.has(catKey);
           const itemCount = Array.isArray(cat.items) ? cat.items.length : 0;
+          const itemsId = `ms-items-${catKey}`;
+          const portLabel = _msT('menuScheduleConnectCategoryAria', { name: catName(cat) });
 
           const itemsOverrideHtml = isExpanded ? `
-            <div style="margin-top:10px; padding-top:10px; border-top:1px dashed #cbd5e1; display:flex; flex-direction:column; gap:8px;">
+            <div class="ms-item-overrides" id="${_msEsc(itemsId)}">
               ${(cat.items || []).map((it, idx) => {
                 const itMode = it.availabilityMode || 'inherit';
                 const itShiftIds = Array.isArray(it.shiftIds) ? it.shiftIds : [];
                 return `
-                  <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:8px 10px; display:flex; flex-direction:column; gap:6px;">
-                    <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;">
-                      <span style="font-weight:700; font-size:13px; color:#0f172a;">${_msEsc(it.name)}</span>
-                      <select onchange="window.msSetItemOverrideMode('${safeCatKey}', ${idx}, this.value)" style="min-height:44px; padding:4px 10px; border-radius:8px; border:1px solid #cbd5e1; background:#ffffff; font-size:12.5px; font-weight:700; font-family:inherit; color:#1e293b;">
-                        <option value="inherit" ${itMode === 'inherit' ? 'selected' : ''}>${_msEsc(_msT('menuScheduleItemModeInherit'))}</option>
-                        <option value="all_shifts" ${itMode === 'all_shifts' ? 'selected' : ''}>${_msEsc(_msT('menuScheduleItemModeAll'))}</option>
-                        <option value="selected_shifts" ${itMode === 'selected_shifts' ? 'selected' : ''}>${_msEsc(_msT('menuScheduleItemModeSelected'))}</option>
-                      </select>
-                    </div>
+                  <div class="ms-item-row">
+                    <label class="ms-item-name" for="${_msEsc(itemsId)}-${idx}">${_msEsc(it.name)}</label>
+                    <select id="${_msEsc(itemsId)}-${idx}" data-ms-focus="${_msEsc(`item:${catKey}:${idx}`)}" onchange="window.msSetItemOverrideMode(${catArg}, ${idx}, this.value)">
+                      <option value="inherit" ${itMode === 'inherit' ? 'selected' : ''}>${_msEsc(_msT('menuScheduleItemModeInherit'))}</option>
+                      <option value="all_shifts" ${itMode === 'all_shifts' ? 'selected' : ''}>${_msEsc(_msT('menuScheduleItemModeAll'))}</option>
+                      <option value="selected_shifts" ${itMode === 'selected_shifts' ? 'selected' : ''}>${_msEsc(_msT('menuScheduleItemModeSelected'))}</option>
+                    </select>
                     ${itMode === 'selected_shifts' ? `
-                      <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                      <div class="ms-item-shifts">
                         ${shifts.map(sh => {
                           const checked = itShiftIds.includes(sh.id);
-                          const safeSid = String(sh.id).replace(/'/g, "\\'");
-                          return `<label style="display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:4px 10px; border-radius:8px; border:1px solid ${checked ? '#2563eb' : '#cbd5e1'}; background:${checked ? '#eff6ff' : '#ffffff'}; font-size:12.5px; font-weight:700; cursor:pointer; color:${checked ? '#1d4ed8' : '#334155'};"><input type="checkbox" ${checked ? 'checked' : ''} onchange="window.msToggleItemShift('${safeCatKey}', ${idx}, '${safeSid}', this.checked)"><span>${_msEsc(sh.name)}</span></label>`;
+                          const shiftArg = _msEsc(JSON.stringify(String(sh.id)));
+                          return `<label class="ms-item-shift ${checked ? 'is-checked' : ''}"><input type="checkbox" ${checked ? 'checked' : ''} data-ms-focus="${_msEsc(`item:${catKey}:${idx}:${sh.id}`)}" onchange="window.msToggleItemShift(${catArg}, ${idx}, ${shiftArg}, this.checked)"><span>${_msEsc(sh.name)}</span></label>`;
                         }).join('')}
                       </div>
                     ` : ''}
@@ -452,141 +514,140 @@
           ` : '';
 
           return `
-            <div class="ms-cat-card ${isSelectedMode ? 'is-selected-mode' : ''} ${isPendingPort ? 'is-pending-port' : ''}" data-cat-card="${_msEsc(catKey)}" draggable="true">
+            <article class="ms-cat-card ${isSelectedMode ? 'is-selected-mode' : ''} ${isPendingPort ? 'is-pending-port' : ''}" data-cat-card="${_msEsc(catKey)}" draggable="true">
               <div class="ms-cat-head">
-                <span class="ms-cat-name">${_msEsc(cat.title || cat.name)}</span>
+                <span class="ms-grip">${_msIcon('grip')}</span>
+                <h3 class="ms-cat-name">${_msEsc(catName(cat))}</h3>
                 <span class="ms-count-chip">${itemCount} ${_msEsc(_msT('menuScheduleItemCountUnit'))}</span>
               </div>
               <div class="ms-cat-controls">
-                <span class="ms-mode-badge ${isSelectedMode ? 'is-selected' : ''}">
-                  ${_msEsc(isSelectedMode ? _msT('menuScheduleModeSelected') : _msT('menuScheduleModeAll'))}${isSelectedMode ? ` (${linkedShiftIds.length})` : ''}
-                </span>
-                ${isSelectedMode ? `
-                  <button type="button" class="ms-mini-btn" onclick="window.msResetCategoryToAllShifts('${safeCatKey}')">${_msEsc(_msT('menuScheduleResetAllBtn'))}</button>
-                ` : ''}
+                <span class="ms-mode-badge ${isSelectedMode ? 'is-selected' : ''}">${_msEsc(isSelectedMode ? _msT('menuScheduleSelectedCount', { count: linkedShiftIds.length }) : _msT('menuScheduleModeAll'))}</span>
                 ${itemCount > 0 ? `
-                  <button type="button" class="ms-mini-btn" onclick="window.msToggleExpandItems('${safeCatKey}')">
-                    ${_msEsc(isExpanded ? _msT('menuScheduleHideItemsBtn') : _msT('menuScheduleShowItemsBtn'))}
+                  <button type="button" class="ms-mini-btn" aria-expanded="${isExpanded}" ${isExpanded ? `aria-controls="${_msEsc(itemsId)}"` : ''} data-ms-focus="${_msEsc(`expand:${catKey}`)}" onclick="window.msToggleExpandItems(${catArg})">
+                    ${_msIcon('sliders')}${_msEsc(_msT(isExpanded ? 'menuScheduleHideItemsBtn' : 'menuScheduleShowItemsBtn'))}
                   </button>
+                ` : ''}
+                ${isSelectedMode ? `
+                  <button type="button" class="ms-mini-btn ms-unlink-all" onclick="window.msResetCategoryToAllShifts(${catArg})">${_msIcon('close')}${_msEsc(_msT('menuScheduleResetAllBtn'))}</button>
                 ` : ''}
               </div>
               ${isSelectedMode ? `
+                <div class="ms-mobile-links">${shifts.filter(sh => linkedShiftIds.includes(sh.id)).map(sh => `<span>${_msEsc(sh.name)}</span>`).join('')}</div>
                 <label class="ms-switch-label">
-                  <input type="checkbox" class="ms-switch-input" ${cat.hideWhenUnavailable ? 'checked' : ''} onchange="window.msToggleCategoryHide('${safeCatKey}', this.checked)">
-                  <span class="ms-switch-pill"></span>
-                  <span>${_msEsc(_msT('menuScheduleHideLabel'))}</span>
+                  <input type="checkbox" role="switch" class="ms-switch-input" ${cat.hideWhenUnavailable ? 'checked' : ''} data-ms-focus="${_msEsc(`hide:${catKey}`)}" onchange="window.msToggleCategoryHide(${catArg}, this.checked)">
+                  <span class="ms-switch-pill" aria-hidden="true"></span>
+                  <span class="ms-switch-text">${_msEsc(_msT('menuScheduleHideLabel'))}</span>
+                  <span class="ms-switch-state" aria-hidden="true">${_msEsc(_msT(cat.hideWhenUnavailable ? 'menuScheduleEnabled' : 'menuScheduleDisabled'))}</span>
                 </label>
               ` : ''}
               ${itemsOverrideHtml}
-              <button type="button" class="ms-port-btn ${isSelectedMode ? 'is-linked' : ''} ${isPendingPort ? 'is-pending' : ''}" data-cat-port="${_msEsc(catKey)}" aria-label="${_msEsc(_msT('menuScheduleConnectPortAria'))}" title="${_msEsc(_msT('menuScheduleConnectPortAria'))}">
-                ${portDotSvg}
-              </button>
-            </div>
+              <button type="button" class="ms-port-btn ${isSelectedMode ? 'is-linked' : ''} ${isPendingPort ? 'is-pending' : ''}" data-cat-port="${_msEsc(catKey)}" data-ms-focus="${_msEsc(`port:${catKey}`)}" aria-pressed="${isPendingPort}" aria-label="${_msEsc(portLabel)}" title="${_msEsc(portLabel)}"><span></span></button>
+            </article>
           `;
         }).join('');
 
     const shiftsHtml = shifts.length === 0
-      ? `<div style="padding:20px; border:1.5px dashed #cbd5e1; border-radius:14px; color:#64748b; text-align:center;">${_msEsc(_msT('menuScheduleEmptyShifts'))}</div>`
+      ? `<div class="ms-empty">${_msIcon('clock')}<p>${_msEsc(_msT('menuScheduleEmptyShifts'))}</p><button type="button" class="ms-secondary-btn" onclick="openHoursSettingsFromSchedule()">${_msEsc(_msT('menuScheduleOpenSettingsBtn'))}</button></div>`
       : shifts.map(shift => {
           const sid = String(shift.id);
+          const shiftArg = _msEsc(JSON.stringify(sid));
           const isMenuWin = shift.shiftType === 'menu_window';
+          const inactive = shift.isActive === false;
           const timeChips = _msFormatShiftSummary(shift);
-          const linkedCats = cats.filter(c => c.availabilityMode === 'selected_shifts' && Array.isArray(c.shiftIds) && c.shiftIds.includes(sid));
-          const safeSid = sid.replace(/'/g, "\\'");
-
+          const linkedCats = cats.filter(c => c.availabilityMode === 'selected_shifts' && (c.shiftIds || []).includes(sid));
+          const portLabel = _msT('menuScheduleConnectShiftAria', { name: shift.name });
           return `
-            <div class="ms-shift-card ${isMenuWin ? 'is-menu-window' : ''}" data-shift-card="${_msEsc(sid)}">
-              <div class="ms-shift-port" data-shift-port="${_msEsc(sid)}" style="color:${isMenuWin ? '#d97706' : '#059669'};">
-                ${portDotSvg}
-              </div>
+            <article class="ms-shift-card ${isMenuWin ? 'is-menu-window' : ''} ${inactive ? 'is-inactive' : ''} ${pendingCat ? 'is-connectable' : ''}" data-shift-card="${_msEsc(sid)}">
+              <button type="button" class="ms-shift-port" data-shift-port="${_msEsc(sid)}" data-ms-focus="${_msEsc(`shift:${sid}`)}" aria-label="${_msEsc(portLabel)}" title="${_msEsc(portLabel)}" ${!pendingCat ? 'disabled' : ''}><span></span></button>
               <div class="ms-shift-head">
-                <span class="ms-shift-name">${_msEsc(shift.name)}</span>
-                <span class="ms-type-badge ${isMenuWin ? 'is-menu-window' : ''}">
-                  ${_msEsc(isMenuWin ? _msT('shiftTypeMenuWindow') : _msT('shiftTypeOperating'))}
-                </span>
+                <h3 class="ms-shift-name">${_msEsc(shift.name)}</h3>
+                <span class="ms-type-badge ${isMenuWin ? 'is-menu-window' : ''}">${_msEsc(_msT(inactive ? 'menuScheduleInactive' : (isMenuWin ? 'menuScheduleMenuWindow' : 'menuScheduleOperating')))}</span>
               </div>
-              <div class="ms-time-chips">
-                ${timeChips.map(ch => `<span class="ms-time-chip">${_msEsc(ch)}</span>`).join('')}
-              </div>
+              <div class="ms-time-chips">${timeChips.length ? timeChips.map(ch => `<span class="ms-time-chip">${_msIcon('clock')}${_msEsc(ch)}</span>`).join('') : `<span class="ms-time-chip">${_msEsc(_msT('menuScheduleNoWindows'))}</span>`}</div>
               ${linkedCats.length > 0 ? `
                 <div class="ms-linked-row">
+                  <span class="ms-linked-label">${_msEsc(_msT('menuScheduleLinkedCategories'))}</span>
                   ${linkedCats.map(lc => {
-                    const ck = _msCatKey(lc);
-                    const safeCk = ck.replace(/'/g, "\\'");
-                    return `
-                      <span class="ms-linked-pill">
-                        <span>${_msEsc(catNameMap.get(ck) || lc.title)}</span>
-                        <button type="button" class="ms-linked-unlink" onclick="window.msUnlinkCategoryFromShift('${safeCk}', '${safeSid}')" aria-label="Unlink">×</button>
-                      </span>
-                    `;
+                    const catArg = _msEsc(JSON.stringify(_msCatKey(lc)));
+                    const label = _msT('menuScheduleUnlinkAria', { category: catName(lc), shift: shift.name });
+                    return `<span class="ms-linked-pill"><span>${_msEsc(catName(lc))}</span><button type="button" class="ms-linked-unlink" onclick="window.msUnlinkCategoryFromShift(${catArg}, ${shiftArg})" aria-label="${_msEsc(label)}" title="${_msEsc(label)}">${_msIcon('close')}</button></span>`;
                   }).join('')}
                 </div>
               ` : ''}
-            </div>
+            </article>
           `;
         }).join('');
 
+    root.setAttribute('aria-busy', String(_msState.saving));
     root.innerHTML = `
       <div class="ms-shell">
-        <div class="ms-header">
+        <header class="ms-header">
           <div class="ms-header-left">
-            <button type="button" class="ms-back-btn" onclick="leaveMenuScheduleToMenu()">
-              ${backSvg}
-              <span>${_msEsc(_msT('menuScheduleBackBtn'))}</span>
-            </button>
-            <div>
-              <h2 class="ms-title">${_msEsc(_msT('menuSchedulePageTitle'))}</h2>
+            <button type="button" class="ms-back-btn" onclick="leaveMenuScheduleToMenu()">${_msIcon('back')}<span>${_msEsc(_msT('menuScheduleBackBtn'))}</span></button>
+            <div class="ms-heading">
+              <div class="ms-title-row"><h2 class="ms-title">${_msEsc(_msT('menuSchedulePageTitle'))}</h2><span class="ms-title-tag">${_msIcon('link')}${_msEsc(_msT('menuScheduleVisualTag'))}</span></div>
               <p class="ms-sub">${_msEsc(_msT('menuSchedulePageSub'))}</p>
             </div>
           </div>
           <div class="ms-header-actions">
-            <span class="ms-status-pill ${isDirty ? 'is-dirty' : ''}">
-              ${_msEsc(isDirty ? _msT('menuScheduleUnsavedPill') : _msT('menuScheduleSavedPill'))}
-            </span>
-            <button type="button" class="ms-secondary-btn" onclick="openHoursSettingsFromSchedule()">
-              ${clockSvg}
-              <span>${_msEsc(_msT('menuScheduleOpenSettingsBtn'))}</span>
-            </button>
-            <button type="button" id="btn-save-menu-schedule" class="ms-save-btn" onclick="saveMenuScheduleWorkspace()" ${!isDirty || _msState.saving ? 'disabled' : ''}>
-              ${saveSvg}
-              <span>${_msEsc(_msState.saving ? _msT('saving') : _msT('menuScheduleSaveBtn'))}</span>
-            </button>
+            <button type="button" class="ms-help-btn" aria-label="${_msEsc(_msT('menuScheduleHelp'))}" aria-expanded="${Boolean(_msState.showHelp || pendingCat)}" aria-controls="ms-guide" data-ms-focus="help" onclick="window.msToggleHelp()">${_msIcon('info')}<span>${_msEsc(_msT('menuScheduleHelp'))}</span></button>
+            <span class="ms-status-pill ${isDirty ? 'is-dirty' : ''}" role="status">${_msEsc(_msT(isDirty ? 'menuScheduleUnsavedPill' : 'menuScheduleSavedPill'))}</span>
+            <button type="button" class="ms-secondary-btn" onclick="openHoursSettingsFromSchedule()">${_msIcon('clock')}<span>${_msEsc(_msT('menuScheduleOpenSettingsBtn'))}</span></button>
+            <button type="button" id="btn-save-menu-schedule" class="ms-save-btn" onclick="saveMenuScheduleWorkspace()" ${!isDirty || _msState.saving ? 'disabled' : ''}>${_msIcon('save')}<span>${_msEsc(_msT(_msState.saving ? 'saving' : 'menuScheduleSaveBtn'))}</span></button>
           </div>
-        </div>
-
-        <div class="ms-body-scroll">
-          <div class="ms-guide-banner ${pendingCat ? 'is-selecting' : ''}">
-            <span>${_msEsc(guideContent)}</span>
-            <span class="ms-guide-sub">${_msEsc(_msT('menuScheduleUnlinkHint'))}</span>
-          </div>
-
-          <div id="menu-schedule-canvas" class="ms-canvas-grid">
-            <svg id="menu-schedule-svg-layer" class="ms-svg-layer"></svg>
-            <div class="ms-col">
-              <div class="ms-col-title">${_msEsc(_msT('menuScheduleCategoriesCol'))}</div>
-              ${catsHtml}
+        </header>
+        <div class="ms-body-scroll" ${_msState.saving ? 'inert' : ''}>
+          <div class="ms-workspace">
+            <div id="ms-guide" class="ms-guide-banner ${pendingCat ? 'is-selecting' : ''}" ${!_msState.showHelp && !pendingCat ? 'hidden' : ''}>
+              ${_msIcon('info')}<p role="status">${_msEsc(guideContent)}</p>
+              <button type="button" class="ms-icon-btn" onclick="${pendingCat ? 'window.msCancelConnection()' : 'window.msToggleHelp()'}" aria-label="${_msEsc(_msT(pendingCat ? 'menuScheduleCancelConnection' : 'menuScheduleDismissHelp'))}">${_msIcon('close')}</button>
             </div>
-            <div class="ms-col">
-              <div class="ms-col-title">${_msEsc(_msT('menuScheduleShiftsCol'))}</div>
-              ${shiftsHtml}
+            <div class="ms-toolbar" role="region" aria-label="${_msEsc(_msT('menuScheduleFiltersAria'))}">
+              <label class="ms-search">${_msIcon('search')}<input id="ms-search" type="search" data-ms-focus="search" autocomplete="off" value="${_msEsc(_msState.search)}" placeholder="${_msEsc(_msT('menuScheduleSearchPlaceholder'))}" aria-label="${_msEsc(_msT('menuScheduleSearchPlaceholder'))}" oninput="window.msSetSearch(this.value)"></label>
+              <div class="ms-filters" role="group" aria-label="${_msEsc(_msT('menuScheduleFiltersAria'))}">
+                ${[['all', 'menuScheduleFilterAll', cats.length], ['all_shifts', 'menuScheduleFilterAlways', cats.length - selectedCount], ['selected_shifts', 'menuScheduleFilterSelected', selectedCount]].map(([value, key, count]) => `<button type="button" class="ms-filter-btn ${_msState.filter === value ? 'is-active' : ''}" aria-pressed="${_msState.filter === value}" data-ms-filter="${value}" data-ms-focus="filter:${value}" onclick="window.msSetFilter('${value}')">${_msEsc(_msT(key))}<span>${count}</span></button>`).join('')}
+              </div>
+              <span class="ms-link-count" role="status">${_msEsc(_msT('menuScheduleLinkCount', { count: linkCount }))}</span>
+              <button type="button" class="ms-reset-btn" onclick="window.msResetAllCategories()" ${selectedCount === 0 ? 'disabled' : ''}>${_msIcon('reset')}${_msEsc(_msT('menuScheduleResetDefault'))}</button>
+            </div>
+            <div id="menu-schedule-canvas" class="ms-canvas-grid">
+              <svg id="menu-schedule-svg-layer" class="ms-svg-layer" aria-hidden="true"></svg>
+              <section class="ms-col" aria-labelledby="ms-categories-title">
+                <div class="ms-col-heading"><h3 id="ms-categories-title" class="ms-col-title">${_msEsc(_msT('menuScheduleCategoriesCol'))}</h3><span>${_msEsc(_msT('menuScheduleCategoryHint'))}</span></div>
+                ${catsHtml}
+              </section>
+              <section class="ms-col" aria-labelledby="ms-shifts-title">
+                <div class="ms-col-heading"><h3 id="ms-shifts-title" class="ms-col-title">${_msEsc(_msT('menuScheduleShiftsCol'))}</h3><span>${_msEsc(_msT('menuScheduleShiftCount', { count: shifts.filter(s => s.isActive !== false).length }))}</span></div>
+                ${shiftsHtml}
+              </section>
             </div>
           </div>
         </div>
       </div>
     `;
-
+    root.onkeydown = e => {
+      if (e.key === 'Escape' && _msState.pendingTapCatId) {
+        _msState.pendingTapCatId = null;
+        renderMenuScheduleWorkspace();
+      }
+    };
     const canvas = document.getElementById('menu-schedule-canvas');
     _msBindCanvasInteractions(canvas);
-    if (typeof requestAnimationFrame === 'function') {
-      requestAnimationFrame(() => _msDrawWires());
-    } else {
-      _msDrawWires();
-    }
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(_msDrawWires);
+    else _msDrawWires();
     if (typeof ResizeObserver === 'function' && canvas) {
       if (_msState.resizeObserver) _msState.resizeObserver.disconnect();
-      _msState.resizeObserver = new ResizeObserver(() => _msDrawWires());
+      _msState.resizeObserver = new ResizeObserver(_msDrawWires);
       _msState.resizeObserver.observe(canvas);
     }
+    const nextFocus = focusKey && root.querySelector(`[data-ms-focus="${_msCssEscape(focusKey)}"]`);
+    if (nextFocus) {
+      nextFocus.focus({ preventScroll: true });
+      if (typeof selectionStart === 'number' && typeof nextFocus.setSelectionRange === 'function' && nextFocus.type === 'search') {
+        nextFocus.setSelectionRange(selectionStart, selectionEnd);
+      }
+    }
+    root.querySelector('.ms-body-scroll').scrollTop = previousScroll;
   }
 
   async function initMenuScheduleWorkspace() {
@@ -693,6 +754,14 @@
   window.hasUnsavedMenuScheduleChanges = hasUnsavedMenuScheduleChanges;
   window.leaveMenuScheduleToMenu = leaveMenuScheduleToMenu;
   window.openHoursSettingsFromSchedule = openHoursSettingsFromSchedule;
+  window.msSetSearch = _msSetSearch;
+  window.msSetFilter = _msSetFilter;
+  window.msToggleHelp = _msToggleHelp;
+  window.msResetAllCategories = _msResetAllCategories;
+  window.msCancelConnection = () => {
+    _msState.pendingTapCatId = null;
+    renderMenuScheduleWorkspace();
+  };
   window.msUnlinkCategoryFromShift = _msUnlinkCategoryFromShift;
   window.msResetCategoryToAllShifts = _msResetCategoryToAllShifts;
   window.msToggleCategoryHide = _msToggleCategoryHide;
