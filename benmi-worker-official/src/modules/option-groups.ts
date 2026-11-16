@@ -4,6 +4,12 @@ import { getTenantId } from './menu';
 import { invalidateBootstrapCache } from './bootstrap';
 import { deleteTenantImageFromR2AndD1 } from './image';
 import { pricingRustEnabled, callRustValidateUnifiedItems } from './pricing-engine-client';
+import {
+	hasDbTable,
+	loadCategoryAndItemShiftLinks,
+	loadTenantOperatingShifts,
+	type OperatingShiftDto,
+} from './operating-shifts';
 
 type EntityI18nEntry = Record<string, string | Record<string, string> | undefined>;
 type EntityI18nMap = Record<string, EntityI18nEntry>;
@@ -120,6 +126,9 @@ export type OptionCatalog = {
 	groups: OptionGroup[];
 	links: Row[];
 	categoryLinks: Row[];
+	operatingShifts?: OperatingShiftDto[];
+	categoryShiftLinks?: Array<{ categoryId: string; shiftId: string }>;
+	itemShiftLinks?: Array<{ itemId: string; shiftId: string }>;
 	revision?: number;
 	imageList?: string[];
 };
@@ -245,10 +254,33 @@ export async function loadOptionCatalog(env: Env, tenantId: string): Promise<Opt
 	if (hasAuthoritativeImageSource) {
 		imageList = Array.from(imageNamesSet);
 	}
+	const [operatingShifts, shiftLinks] = await Promise.all([
+		loadTenantOperatingShifts(env.DB, tenantId),
+		loadCategoryAndItemShiftLinks(env.DB, tenantId),
+	]);
+	const categoryShiftLinks: Array<{ categoryId: string; shiftId: string }> = [];
+	for (const [categoryId, sids] of shiftLinks.categoryShiftIds.entries()) {
+		for (const shiftId of sids) categoryShiftLinks.push({ categoryId, shiftId });
+	}
+	const itemShiftLinks: Array<{ itemId: string; shiftId: string }> = [];
+	for (const [itemId, sids] of shiftLinks.itemShiftIds.entries()) {
+		for (const shiftId of sids) itemShiftLinks.push({ itemId, shiftId });
+	}
 	const catalog = {
 		revision: Number((results[6].results[0] as Row)?.revision || 0),
-		products,
-		categories: categories.filter((c) => !['order_customization', 'bundle_pool'].includes(c.category_type)),
+		products: products.map((p) => ({
+			...p,
+			availabilityMode: p.availability_mode || 'inherit',
+			shiftIds: shiftLinks.itemShiftIds.get(String(p.id)) || [],
+		})),
+		categories: categories
+			.filter((c) => !['order_customization', 'bundle_pool'].includes(c.category_type))
+			.map((c) => ({
+				...c,
+				availabilityMode: c.availability_mode || 'all_shifts',
+				hideWhenUnavailable: Boolean(c.hide_when_unavailable),
+				shiftIds: shiftLinks.categoryShiftIds.get(String(c.id)) || [],
+			})),
 		groups: normalized,
 		links: links.map((l) => ({
 			itemId: l.item_id,
@@ -258,6 +290,9 @@ export async function loadOptionCatalog(env: Env, tenantId: string): Promise<Opt
 			sortOrder: Number(l.sort_order ?? 0),
 		})),
 		categoryLinks: [],
+		operatingShifts,
+		categoryShiftLinks,
+		itemShiftLinks,
 		imageList,
 	};
 	return catalog;
@@ -697,10 +732,19 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 			const oldLinkByGroupId = new Map(oldProductLinks.map((l) => [String(l.groupId), l]));
 			catalog.links = catalog.links.filter((l) => l.itemId !== id).concat(links);
 			validateOptionGraph(catalog);
-			const [hasItemI18nCol] = await Promise.all([hasTableColumn(env.DB, 'menu_items', 'i18n_json')]);
+			const [hasItemI18nCol, hasItemAvailCol, hasItemShiftsTbl] = await Promise.all([
+				hasTableColumn(env.DB, 'menu_items', 'i18n_json'),
+				hasTableColumn(env.DB, 'menu_items', 'availability_mode'),
+				hasDbTable(env.DB, 'menu_item_shifts'),
+			]);
+			const rawItemAvailMode = raw.availabilityMode ?? raw.availability_mode;
+			const itemAvailabilityMode =
+				rawItemAvailMode !== undefined
+					? (rawItemAvailMode === 'all_shifts' || rawItemAvailMode === 'selected_shifts' ? rawItemAvailMode : 'inherit')
+					: (previous?.availability_mode || 'inherit');
 			statements.push(
 				env.DB.prepare(
-					`INSERT INTO menu_items (id,tenant_id,category_id,name,price,badge_text,is_recommended,menu_revision,sort_order,image_key${hasItemI18nCol ? ',i18n_json' : ''}) VALUES (?,?,?,?,?,?,?,?,?,?${hasItemI18nCol ? ',?' : ''}) ON CONFLICT(id) DO UPDATE SET category_id=excluded.category_id,name=excluded.name,price=excluded.price,badge_text=excluded.badge_text,is_recommended=excluded.is_recommended,menu_revision=excluded.menu_revision,image_key=excluded.image_key${hasItemI18nCol ? ',i18n_json=excluded.i18n_json' : ''},updated_at=datetime('now')`,
+					`INSERT INTO menu_items (id,tenant_id,category_id,name,price,badge_text,is_recommended,menu_revision,sort_order,image_key${hasItemI18nCol ? ',i18n_json' : ''}${hasItemAvailCol ? ',availability_mode' : ''}) VALUES (?,?,?,?,?,?,?,?,?,?${hasItemI18nCol ? ',?' : ''}${hasItemAvailCol ? ',?' : ''}) ON CONFLICT(id) DO UPDATE SET category_id=excluded.category_id,name=excluded.name,price=excluded.price,badge_text=excluded.badge_text,is_recommended=excluded.is_recommended,menu_revision=excluded.menu_revision,image_key=excluded.image_key${hasItemI18nCol ? ',i18n_json=excluded.i18n_json' : ''}${hasItemAvailCol ? ',availability_mode=excluded.availability_mode' : ''},updated_at=datetime('now')`,
 				).bind(
 					id,
 					tenantId,
@@ -713,8 +757,31 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 					productSortOrder,
 					product.image_key,
 					...(hasItemI18nCol ? [product.i18n_json] : []),
+					...(hasItemAvailCol ? [itemAvailabilityMode] : []),
 				),
 			);
+			if (hasItemShiftsTbl && Array.isArray(raw.shiftIds ?? raw.shift_ids)) {
+				const incomingShiftIds = [...new Set<string>((raw.shiftIds ?? raw.shift_ids).map((s: any) => String(s)).filter(Boolean))];
+				const ownedShiftIds = new Set((catalog.operatingShifts || []).map((s) => s.id));
+				if (incomingShiftIds.some((sid) => !ownedShiftIds.has(sid))) {
+					throw new Error('INVALID_SHIFT_ID');
+				}
+				const existingItemShifts = (catalog.itemShiftLinks || [])
+					.filter((l) => l.itemId === id)
+					.map((l) => l.shiftId);
+				const nextShiftSet = new Set(incomingShiftIds);
+				const prevShiftSet = new Set(existingItemShifts);
+				for (const removedSid of existingItemShifts.filter((sid) => !nextShiftSet.has(sid))) {
+					statements.push(
+						env.DB.prepare('DELETE FROM menu_item_shifts WHERE tenant_id=? AND item_id=? AND shift_id=?').bind(tenantId, id, removedSid),
+					);
+				}
+				for (const addedSid of incomingShiftIds.filter((sid) => !prevShiftSet.has(sid))) {
+					statements.push(
+						env.DB.prepare('INSERT INTO menu_item_shifts (tenant_id,item_id,shift_id) VALUES (?,?,?) ON CONFLICT(tenant_id,item_id,shift_id) DO NOTHING').bind(tenantId, id, addedSid),
+					);
+				}
+			}
 			const newGroupIds = new Set(links.map((l: any) => l.groupId));
 			const removedGroupIds = oldProductLinks
 				.map((l) => String(l.groupId))

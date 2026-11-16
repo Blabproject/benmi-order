@@ -807,12 +807,17 @@ function applyTenantTheme(tenant, skipLocaleInit = false) {
     if (hoursRow) hoursRow.style.display = 'flex';
 
     if (!storeConfig) storeConfig = {};
+    if (Array.isArray(tenant.operatingShifts)) {
+        storeConfig.operatingShifts = tenant.operatingShifts;
+    }
     if (tenant.parsedHours) {
         storeConfig.operatingHours = tenant.parsedHours;
     } else if (tenant.operatingHours) {
         try {
             storeConfig.operatingHours = typeof tenant.operatingHours === 'string' ? JSON.parse(tenant.operatingHours) : tenant.operatingHours;
         } catch(e) {}
+    } else if (Array.isArray(tenant.operatingShifts) && typeof window !== 'undefined' && window.MenuSchedule) {
+        storeConfig.operatingHours = window.MenuSchedule.projectOperatingHoursMap(tenant.operatingShifts);
     }
     if (tenant.liffId) storeConfig.liffId = tenant.liffId;
     if (tenant.features) storeConfig.features = tenant.features;
@@ -969,6 +974,10 @@ function applyPickupConfig() {
                 initPickupTimePicker();
             }
         }
+    }
+    if (typeof renderDynamicCatalog === 'function' && (window.bootstrapData?.catalog || (typeof bootstrapData !== 'undefined' && bootstrapData?.catalog))) {
+        renderDynamicCatalog();
+        if (typeof updateTotal === 'function') updateTotal();
     }
     checkStoreStatus();
 }
@@ -1471,8 +1480,29 @@ async function updateDesktopAuthUI() {
 
 // --- STORE STATUS & BUSINESS HOURS ---
 function hasConfiguredOperatingHours(cfg = storeConfig) {
-    if (!cfg || !cfg.operatingHours || typeof cfg.operatingHours !== 'object') return false;
+    if (!cfg) return false;
+    if (typeof MenuSchedule !== 'undefined' && MenuSchedule.hasOperatingShifts(cfg.operatingShifts)) {
+        return true;
+    }
+    if (!cfg.operatingHours || typeof cfg.operatingHours !== 'object') return false;
     return Object.values(cfg.operatingHours).some(shifts => Array.isArray(shifts) && shifts.length > 0);
+}
+
+function getEffectiveMenuScheduleTime() {
+    const orderType = (typeof window !== 'undefined' && window.selectedOrderType)
+        || (typeof selectedOrderType !== 'undefined' ? selectedOrderType : 'takeaway');
+    const allowScheduled = !storeConfig || storeConfig.allowScheduledPickup !== false;
+    if (orderType === 'takeaway' && allowScheduled && !window.isStaffOrderMode && typeof document !== 'undefined') {
+        const dateEl = document.getElementById('pickup-date');
+        const timeEl = document.getElementById('pickup-time');
+        const dateStr = dateEl && typeof dateEl.value === 'string' ? dateEl.value.trim() : '';
+        const timeStr = timeEl && typeof timeEl.value === 'string' ? timeEl.value.trim() : '';
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr) && /^\d{1,2}:\d{2}$/.test(timeStr)) {
+            return { dateStr, timeStr, isScheduled: true };
+        }
+    }
+    const nowParts = formatTaiwanDateTime(getTaiwanDate());
+    return { dateStr: nowParts.dateStr, timeStr: nowParts.timeStr, isScheduled: false };
 }
 
 function isStoreClosedExpired(closedDate, nowTime = new Date(), operatingHours = null, autoOpenBeforeMinutes = 60) {
@@ -1571,7 +1601,12 @@ function isStoreOpen(twTime) {
             return (timeValue >= 9 && timeValue < 21);
         }
     }
-    
+
+    if (typeof MenuSchedule !== 'undefined' && typeof MenuSchedule.isStoreOpenAt === 'function') {
+        const target = twTime instanceof Date ? formatTaiwanDateTime(twTime) : twTime;
+        return MenuSchedule.isStoreOpenAt(storeConfig?.operatingShifts, storeConfig?.operatingHours, target);
+    }
+
     const day = twTime.getDay();
     const hours = twTime.getHours();
     const minutes = twTime.getMinutes();
@@ -1968,6 +2003,8 @@ window.maybeShowStoreNotice = maybeShowStoreNotice;
 window.closeDesktopLoginModal = closeDesktopLoginModal;
 window.triggerDesktopLineLogin = triggerDesktopLineLogin;
 window.updateDesktopAuthUI = updateDesktopAuthUI;
+window.hasConfiguredOperatingHours = hasConfiguredOperatingHours;
+window.getEffectiveMenuScheduleTime = getEffectiveMenuScheduleTime;
 window.isStoreOpen = isStoreOpen;
 window.checkStoreStatus = checkStoreStatus;
 window.fetchWaitingCounter = fetchWaitingCounter;

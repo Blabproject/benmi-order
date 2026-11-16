@@ -8,6 +8,12 @@ import { customerOrderConfig } from '../utils/order-domain';
 import { createTenantRepository } from '../repositories/tenant.repository';
 import { parseAISettings, validAISettingsPatch } from './ai-settings';
 import { isMultilingualCanaryEnabled, parseSupportedLocales } from './menu-i18n';
+import {
+  loadTenantOperatingShifts,
+  saveTenantOperatingShifts,
+  stripOperatingHoursProjection,
+  syncShiftsFromLegacyOperatingHours,
+} from './operating-shifts';
 
 export async function getConfig(
   request: Request,
@@ -29,7 +35,11 @@ export async function getConfig(
     return json({ error: 'Tenant not found' }, 404, { 'Cache-Control': 'no-store' });
   }
 
-  let operatingHours = parseOperatingHours(domainRow.operating_hours, tenantId);
+  const operatingShifts = await loadTenantOperatingShifts(env.DB, tenantId);
+  const hasRelationalOperating = operatingShifts.some((s) => s.shiftType === 'operating' && s.isActive);
+  let operatingHours = hasRelationalOperating
+    ? stripOperatingHoursProjection(operatingShifts)
+    : parseOperatingHours(domainRow.operating_hours, tenantId);
   if (!operatingHours) {
     operatingHours = parseOperatingHours(null, tenantId);
   }
@@ -90,6 +100,7 @@ export async function getConfig(
     liffId: domainRow.liff_id || null,
     ...orderConfig,
     operatingHours,
+    operatingShifts,
     allowScheduledPickup,
     allowDineIn,
     features: finalFeatures,
@@ -224,8 +235,17 @@ export async function updateConfig(
       normalizedTenantI18n = payload.i18n;
     }
 
+    let savedShiftsResult: Awaited<ReturnType<typeof saveTenantOperatingShifts>> | null = null;
+    if (payload.operatingShifts !== undefined) {
+      try {
+        savedShiftsResult = await saveTenantOperatingShifts(env.DB, tenantId, payload.operatingShifts);
+      } catch (shiftErr: any) {
+        return json({ error: shiftErr?.message || 'INVALID_OPERATING_SHIFTS' }, 400);
+      }
+    }
+
     await tenantRepo.updateTenantConfig(tenantId, {
-      operatingHours: payload.operatingHours,
+      operatingHours: savedShiftsResult ? savedShiftsResult.projectedOperatingHours : payload.operatingHours,
       allowScheduledPickup: payload.allowScheduledPickup,
       allowDineIn: allowDineInVal,
       storeStatus: payload.storeStatus,
@@ -245,10 +265,20 @@ export async function updateConfig(
       brandName
     });
 
+    if (!savedShiftsResult && payload.operatingHours !== undefined) {
+      await syncShiftsFromLegacyOperatingHours(env.DB, tenantId, payload.operatingHours);
+    }
+
     await invalidateBootstrapCache(tenantId, env);
     await invalidateMarketplaceCache(env);
 
     const responseBody: Record<string, any> = { success: true };
+    if (savedShiftsResult) {
+      responseBody.operatingShifts = savedShiftsResult.shifts;
+      responseBody.operatingHours = savedShiftsResult.projectedOperatingHours;
+    } else if (payload.operatingHours !== undefined) {
+      responseBody.operatingShifts = await loadTenantOperatingShifts(env.DB, tenantId);
+    }
     if (normalizedSupportedLocales !== undefined) {
       responseBody.supportedLocales = normalizedSupportedLocales;
     }

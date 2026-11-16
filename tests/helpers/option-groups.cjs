@@ -4,6 +4,7 @@ const ts = require("../../benmi-worker-official/node_modules/typescript");
 const { DatabaseSync } = require("node:sqlite");
 
 let cachedOptionGroupsScript = null;
+let cachedOperatingShiftsScript = null;
 const cachedSqlFiles = new Map();
 let cachedAllMigrationNames = null;
 
@@ -14,6 +15,43 @@ function readCachedSql(file) {
     cachedSqlFiles.set(file, sql);
   }
   return sql;
+}
+
+function getOperatingShiftsExports() {
+  if (!cachedOperatingShiftsScript) {
+    const source = fs.readFileSync(
+      "benmi-worker-official/src/modules/operating-shifts.ts",
+      "utf8",
+    );
+    const transpiled = ts.transpileModule(source, {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2022,
+      },
+    }).outputText;
+    cachedOperatingShiftsScript = new vm.Script(transpiled, {
+      filename: "operating-shifts.ts",
+    });
+  }
+  const modExports = {};
+  const ctx = vm.createContext({
+    exports: modExports,
+    module: { exports: modExports },
+    console,
+    Date,
+    JSON,
+    Map,
+    Set,
+    crypto: require("node:crypto").webcrypto,
+    require: (name) => {
+      if (name.includes("menu-schedule")) {
+        return require("../../js/menu-schedule.js");
+      }
+      return {};
+    },
+  });
+  cachedOperatingShiftsScript.runInContext(ctx);
+  return ctx.module.exports || modExports;
 }
 
 function getOptionGroupsScript() {
@@ -108,6 +146,8 @@ function moduleFor(db) {
               pricingRustEnabled: () => false,
               callRustValidateUnifiedItems: async () => ({ valid: true }),
             }
+        : name.includes("operating-shifts")
+          ? getOperatingShiftsExports()
         : name.includes("bootstrap")
           ? {
               invalidateBootstrapCache: async (tenant) =>
@@ -180,4 +220,4 @@ function schemaTrueFixture() {
   return { db, ...moduleFor(db) };
 }
 
-module.exports = { fixture, schemaTrueFixture, moduleFor, DatabaseSync };
+module.exports = { fixture, schemaTrueFixture, moduleFor, DatabaseSync, getOperatingShiftsExports };

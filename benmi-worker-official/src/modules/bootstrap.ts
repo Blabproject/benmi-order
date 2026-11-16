@@ -5,6 +5,12 @@ import { Env } from '../types/env';
 import { json } from '../utils/http';
 import { getTenantId } from './menu';
 import { resolveTenantContext } from './tenant';
+import {
+  loadCategoryAndItemShiftLinks,
+  loadTenantOperatingShifts,
+  stripOperatingHoursProjection,
+  type OperatingShiftDto,
+} from './operating-shifts';
 
 type EntityI18nEntry = Record<string, string | Record<string, string> | undefined>;
 type EntityI18nMap = Record<string, EntityI18nEntry>;
@@ -198,8 +204,8 @@ export interface BootstrapBundleRule {
   groups: BootstrapBundleGroup[];
 }
 
-// v6 adds multilingual i18n_json metadata & canary supportedLocales resolution.
-export const BOOTSTRAP_VERSION = 6;
+// v7 adds relational operatingShifts and category/item shift availability metadata.
+export const BOOTSTRAP_VERSION = 7;
 
 export interface BootstrapResponse {
   bootstrapVersion: number;
@@ -218,6 +224,7 @@ export interface BootstrapResponse {
     announcement?: string | null;
     storeNotice?: { enabled: boolean; title: string; body: string; version: string } | null;
     operatingHours: string | null;
+    operatingShifts?: OperatingShiftDto[];
     parsedHours: Record<string, Array<{ start: string; end: string }>>;
     formattedHours?: string;
     deliveryPolicy: string | null;
@@ -240,6 +247,9 @@ export interface BootstrapResponse {
     shortName?: string | null;
     allowCustomization: boolean;
     appliedModifiers: string[];
+    availabilityMode?: 'all_shifts' | 'selected_shifts';
+    hideWhenUnavailable?: boolean;
+    shiftIds?: string[];
     modifierGroups?: Array<{
       id: string;
       name: string;
@@ -622,6 +632,9 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
     let itemModifierRows: any[] = [];
     let categoryModifierRows: any[] = [];
     let tenantMetaRow: { i18n_json?: string | null; supported_locales?: string | null } | null = null;
+    let operatingShifts: OperatingShiftDto[] = [];
+    let categoryShiftIdsMap = new Map<string, string[]>();
+    let itemShiftIdsMap = new Map<string, string[]>();
 
     if (env.DB) {
       try {
@@ -632,6 +645,11 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
           hasItemI18nCol,
           hasGroupI18nCol,
           hasOptI18nCol,
+          hasCatAvailCol,
+          hasCatHideCol,
+          hasItemAvailCol,
+          loadedShifts,
+          loadedShiftLinks,
         ] = await Promise.all([
           hasTableColumn(env.DB, 'tenant_config', 'i18n_json'),
           hasTableColumn(env.DB, 'tenant_config', 'supported_locales'),
@@ -639,7 +657,15 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
           hasTableColumn(env.DB, 'menu_items', 'i18n_json'),
           hasTableColumn(env.DB, 'modifier_groups', 'i18n_json'),
           hasTableColumn(env.DB, 'modifier_options', 'i18n_json'),
+          hasTableColumn(env.DB, 'menu_categories', 'availability_mode'),
+          hasTableColumn(env.DB, 'menu_categories', 'hide_when_unavailable'),
+          hasTableColumn(env.DB, 'menu_items', 'availability_mode'),
+          loadTenantOperatingShifts(env.DB, tenantId),
+          loadCategoryAndItemShiftLinks(env.DB, tenantId),
         ]);
+        operatingShifts = loadedShifts;
+        categoryShiftIdsMap = loadedShiftLinks.categoryShiftIds;
+        itemShiftIdsMap = loadedShiftLinks.itemShiftIds;
 
         const baseOrderModifierSql =
           `SELECT g.id AS group_id, g.name AS group_name, g.selection_type,
@@ -669,7 +695,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
                     COALESCE(allow_customization, 1) AS allow_customization,
                     COALESCE(applied_modifiers, '') AS applied_modifiers,
                     pricing_rules,
-                    sort_order${hasCatI18nCol ? ', i18n_json' : ''} 
+                    sort_order${hasCatI18nCol ? ', i18n_json' : ''}${hasCatAvailCol ? ', availability_mode' : ''}${hasCatHideCol ? ', hide_when_unavailable' : ''} 
              FROM menu_categories 
              WHERE tenant_id = ? 
              ORDER BY sort_order ASC, rowid ASC`
@@ -679,7 +705,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
                     COALESCE(badge_text, '') AS badge_text,
                     COALESCE(is_recommended, 0) AS is_recommended,
                     max_per_order,
-                    COALESCE(item_type, 'standard') AS item_type${hasItemI18nCol ? ', i18n_json' : ''}
+                    COALESCE(item_type, 'standard') AS item_type${hasItemI18nCol ? ', i18n_json' : ''}${hasItemAvailCol ? ', availability_mode' : ''}
              FROM menu_items 
              WHERE tenant_id = ? 
              ORDER BY sort_order ASC, rowid ASC`
@@ -1085,6 +1111,8 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
         bundleRule: bundleRule,
         maxPerOrder: item.max_per_order !== null && item.max_per_order !== undefined && item.max_per_order > 0 ? Number(item.max_per_order) : null,
         itemType: item.item_type || 'standard',
+        availabilityMode: (item.availability_mode === 'all_shifts' || item.availability_mode === 'selected_shifts') ? item.availability_mode : 'inherit',
+        shiftIds: itemShiftIdsMap.get(String(item.id)) || [],
         modifierGroups: modGroups.length > 0 ? modGroups : undefined,
         ...(Object.keys(itemI18n).length > 0 ? { i18n: itemI18n } : {}),
         outOfStockUntil: item.out_of_stock_until || null,
@@ -1162,6 +1190,10 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
         const isCustomizationAllowed = Boolean(cat.allow_customization ?? 1) && (appliedModifiers.length > 0 || catModGroups.length > 0);
         const catI18n = parseI18nJson(cat.i18n_json);
 
+        const catShiftIds = categoryShiftIdsMap.get(String(cat.id)) || [];
+        const catAvailMode = cat.availability_mode === 'selected_shifts' ? 'selected_shifts' : 'all_shifts';
+        const catHideUnavailable = Boolean(cat.hide_when_unavailable);
+
         catalog.push({
           id: cat.id,
           slug: cat.slug,
@@ -1171,12 +1203,21 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
           appliedModifiers: appliedModifiers,
           modifierGroups: catModGroups,
           pricingRules: pricingRules,
+          availabilityMode: catAvailMode,
+          hideWhenUnavailable: catHideUnavailable,
+          shiftIds: catShiftIds,
           ...(Object.keys(catI18n).length > 0 ? { i18n: catI18n } : {}),
           sortOrder: cat.sort_order || 0,
           items: catItems
         });
       }
     }
+
+    const hasRelationalOperating = operatingShifts.some((s) => s.shiftType === 'operating' && s.isActive);
+    const resolvedParsedHours = hasRelationalOperating
+      ? stripOperatingHoursProjection(operatingShifts)
+      : parseOperatingHours(operatingHours, tenantId);
+    const resolvedHoursRawForDisplay = hasRelationalOperating ? resolvedParsedHours : operatingHours;
 
     const payload: BootstrapResponse = {
       bootstrapVersion: BOOTSTRAP_VERSION,
@@ -1193,8 +1234,9 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
         announcement: tenantCtx?.announcement || null,
         storeNotice: tenantCtx?.storeNotice && tenantCtx.storeNotice.enabled ? tenantCtx.storeNotice : null,
         operatingHours,
-        parsedHours: parseOperatingHours(operatingHours, tenantId),
-        formattedHours: formatOperatingHoursForDisplay(operatingHours, locale, tenantId),
+        operatingShifts,
+        parsedHours: resolvedParsedHours,
+        formattedHours: formatOperatingHoursForDisplay(resolvedHoursRawForDisplay, locale, tenantId),
         deliveryPolicy,
         allowScheduledPickup: tenantCtx?.allowScheduledPickup !== undefined ? tenantCtx.allowScheduledPickup : true,
         allowDineIn: tenantCtx?.allowDineIn !== undefined ? tenantCtx.allowDineIn : true,

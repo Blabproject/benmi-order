@@ -1318,6 +1318,21 @@ const I18N = {
     itemI18nViBadge: "越南文標籤 (VI)",
     btnItemAiTranslate: "AI 一鍵翻譯",
     btnItemAiTranslating: "AI 翻譯中…",
+    shiftSectionHint: "管理門市營業班別與菜單限定時段，設定後可直接綁定至各分類菜單。",
+    btnAddNamedShift: "+ 新增營業時段",
+    shiftDeleteBtn: "刪除時段",
+    shiftDefaultNamePrefix: "時段",
+    shiftNameLabel: "時段名稱",
+    shiftTypeOperating: "全店營業時段",
+    shiftTypeMenuWindow: "僅供菜單排程",
+    shiftAddWeekdayWindow: "+ 新增星期時段",
+    shiftEmptyHint: "尚未建立任何營業時段，請點擊上方「新增營業時段」。",
+    catScheduleTitle: "供應時段設定（時間排程）",
+    catScheduleAllShifts: "全營業時段供應",
+    catScheduleSelectedShifts: "僅於指定時段供應",
+    catSchedulePickShiftsHint: "請勾選允許點餐的時段：",
+    catScheduleNoShiftsConfigured: "尚未在「系統設定 → 營業時間」建立任何時段。",
+    catScheduleHideWhenUnavailable: "非供應時段對顧客完全隱藏此分類"
   },
   "vi": {
     posLoginTitle: 'Đăng nhập quản lý quán', posLoginHint: 'Nhập PIN quản lý để thao tác đơn hàng.', posLoginPIN: 'PIN quản lý', posLoginSubmit: 'Đăng nhập', posLoginCancel: 'Hủy', posLoginFailed: 'Đăng nhập thất bại. Kiểm tra PIN và thử lại.', posLoginLimited: 'Đã thử quá nhiều lần. Vui lòng thử lại sau.',
@@ -2634,6 +2649,21 @@ const I18N = {
     itemI18nViBadge: "Nhãn tiếng Việt (VI)",
     btnItemAiTranslate: "AI dịch tự động",
     btnItemAiTranslating: "AI đang dịch…",
+    shiftSectionHint: "Quản lý các ca mở cửa và khung giờ phục vụ món để gắn trực tiếp vào từng danh mục thực đơn.",
+    btnAddNamedShift: "+ Thêm ca / khung giờ",
+    shiftDeleteBtn: "Xóa ca này",
+    shiftDefaultNamePrefix: "Ca phục vụ",
+    shiftNameLabel: "Tên ca / khung giờ",
+    shiftTypeOperating: "Ca mở cửa toàn quán",
+    shiftTypeMenuWindow: "Chỉ dùng cho khung giờ món",
+    shiftAddWeekdayWindow: "+ Thêm khung giờ ngày",
+    shiftEmptyHint: "Chưa thiết lập ca mở cửa nào. Nhấn \"Thêm ca / khung giờ\" ở trên để tạo.",
+    catScheduleTitle: "Lịch phục vụ danh mục theo khung giờ",
+    catScheduleAllShifts: "Bán suốt giờ mở cửa",
+    catScheduleSelectedShifts: "Chỉ bán vào các ca đã chọn",
+    catSchedulePickShiftsHint: "Chọn các ca được phép gọi món:",
+    catScheduleNoShiftsConfigured: "Chưa có ca nào trong Cài đặt → Giờ mở cửa.",
+    catScheduleHideWhenUnavailable: "Ẩn hoàn toàn danh mục này khỏi thực đơn khách ngoài giờ phục vụ"
   }
 };
 

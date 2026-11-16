@@ -339,7 +339,11 @@
             edit_round_switch_confirm: '切換輪次並放棄目前修改？',
             portion_suffix: '（第 {n} 份）',
             hours_open_fallback: '開店',
-            err_linepay_generic: '請重新確認付款'
+            err_linepay_generic: '請重新確認付款',
+            outside_schedule_badge: '非供應時段',
+            schedule_window_badge: '{label} 供應',
+            alert_schedule_items_removed: '以下餐點不在所選取餐時段供應，請調整餐點或更換取餐時間：{items}',
+            cart_outside_schedule: '非所選時段供應'
         },
 
         'en': {
@@ -654,7 +658,11 @@
             edit_round_switch_confirm: 'Switch round and discard current edits?',
             portion_suffix: ' (#{n})',
             hours_open_fallback: 'opening',
-            err_linepay_generic: 'Please check payment status'
+            err_linepay_generic: 'Please check payment status',
+            outside_schedule_badge: 'Unavailable now',
+            schedule_window_badge: 'Served: {label}',
+            alert_schedule_items_removed: 'These items are not served at your selected pickup time. Please remove them or change pickup time: {items}',
+            cart_outside_schedule: 'Not served at selected time'
         },
 
         'vi': {
@@ -969,7 +977,11 @@
             edit_round_switch_confirm: 'Chuyển đợt và bỏ bản nháp đang chỉnh?',
             portion_suffix: ' (Phần {n})',
             hours_open_fallback: 'giờ mở cửa',
-            err_linepay_generic: 'Vui lòng kiểm tra lại thanh toán'
+            err_linepay_generic: 'Vui lòng kiểm tra lại thanh toán',
+            outside_schedule_badge: 'Ngoài giờ bán',
+            schedule_window_badge: 'Phục vụ: {label}',
+            alert_schedule_items_removed: 'Các món sau không phục vụ vào giờ nhận đã chọn. Vui lòng bỏ món hoặc đổi giờ nhận: {items}',
+            cart_outside_schedule: 'Không bán vào giờ đã chọn'
         }
     };
 

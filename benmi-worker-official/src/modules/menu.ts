@@ -1,4 +1,5 @@
 import { groupOptions, loadOptionCatalog, validateOptionGraph, unifiedMenuEnabled } from './option-groups';
+import { hasDbTable, loadCategoryAndItemShiftLinks, loadTenantOperatingShifts } from './operating-shifts';
 import { Env } from '../types/env';
 import { Menu } from '../types/index';
 import { json } from '../utils/http';
@@ -641,24 +642,42 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
   validateMenuUpdate(menuData);
   // Anchor the guard before reading ranks and IDs used to construct the write batch.
   const unifiedCatalog = unifiedMenuEnabled(env) ? await loadOptionCatalog(env, tenantId) : null;
-  const [hasCatI18nCol, hasItemI18nCol] = await Promise.all([
+  const [hasCatI18nCol, hasItemI18nCol, hasCatAvailCol, hasCatHideCol, hasItemAvailCol, hasCatShiftsTbl, hasItemShiftsTbl] = await Promise.all([
     hasTableColumn(env.DB, "menu_categories", "i18n_json"),
     hasTableColumn(env.DB, "menu_items", "i18n_json"),
+    hasTableColumn(env.DB, "menu_categories", "availability_mode"),
+    hasTableColumn(env.DB, "menu_categories", "hide_when_unavailable"),
+    hasTableColumn(env.DB, "menu_items", "availability_mode"),
+    hasDbTable(env.DB, "menu_category_shifts"),
+    hasDbTable(env.DB, "menu_item_shifts"),
   ]);
+  const [tenantShifts, existingShiftLinks] = (hasCatShiftsTbl || hasItemShiftsTbl)
+    ? await Promise.all([loadTenantOperatingShifts(env.DB, tenantId), loadCategoryAndItemShiftLinks(env.DB, tenantId)])
+    : [[], { categoryShiftIds: new Map<string, string[]>(), itemShiftIds: new Map<string, string[]>() }];
+  const ownedShiftIds = new Set(tenantShifts.map((s) => s.id));
   // 1. Nạp danh mục và món ăn hiện có để ánh xạ ID tránh xung đột unique
   const { results: existingCats } = await env.DB.prepare(
-    `SELECT id, slug, name, short_name, category_type, sort_order${hasCatI18nCol ? ", i18n_json" : ""} FROM menu_categories WHERE tenant_id = ?`
+    `SELECT id, slug, name, short_name, category_type, sort_order${hasCatI18nCol ? ", i18n_json" : ""}${hasCatAvailCol ? ", availability_mode" : ""}${hasCatHideCol ? ", hide_when_unavailable" : ""} FROM menu_categories WHERE tenant_id = ?`
   ).bind(tenantId).all();
 
   const { results: existingItems } = await env.DB.prepare(
-    `SELECT id, category_id, name${hasItemI18nCol ? ", i18n_json" : ""} FROM menu_items WHERE tenant_id = ?`
+    `SELECT id, category_id, name${hasItemI18nCol ? ", i18n_json" : ""}${hasItemAvailCol ? ", availability_mode" : ""} FROM menu_items WHERE tenant_id = ?`
   ).bind(tenantId).all();
 
   const existingCatI18nMap = new Map<string, string>(
     (existingCats || []).map((row: any) => [String(row.slug), String(row.i18n_json || "{}")])
   );
+  const existingCatAvailMap = new Map<string, string>(
+    (existingCats || []).map((row: any) => [String(row.id), String(row.availability_mode || "all_shifts")])
+  );
+  const existingCatHideMap = new Map<string, number>(
+    (existingCats || []).map((row: any) => [String(row.id), row.hide_when_unavailable ? 1 : 0])
+  );
   const existingItemI18nMap = new Map<string, string>(
     (existingItems || []).map((row: any) => [String(row.id), String(row.i18n_json || "{}")])
+  );
+  const existingItemAvailMap = new Map<string, string>(
+    (existingItems || []).map((row: any) => [String(row.id), String(row.availability_mode || "inherit")])
   );
 
   const { results: existingCustomizations } = await env.DB.prepare(
@@ -982,10 +1001,19 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
       ? serializeI18nJson(catI18nRaw)
       : (existingCatI18nMap.get(slug) || "{}");
 
+    const catAvailRaw = itemsMap && (itemsMap.__availability_mode ?? itemsMap._availability_mode);
+    const catAvailMode = catAvailRaw !== undefined
+      ? (catAvailRaw === 'selected_shifts' ? 'selected_shifts' : 'all_shifts')
+      : (existingCatAvailMap.get(catId) || 'all_shifts');
+    const catHideRaw = itemsMap && (itemsMap.__hide_when_unavailable ?? itemsMap._hide_when_unavailable);
+    const catHideUnavailable = catHideRaw !== undefined
+      ? (catHideRaw ? 1 : 0)
+      : (existingCatHideMap.get(catId) ?? 0);
+
     statements.push(
       env.DB.prepare(
-        `INSERT INTO menu_categories (id, tenant_id, name, short_name, slug, category_type, allow_customization, applied_modifiers, sort_order${hasCatI18nCol ? ", i18n_json" : ""})
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?${hasCatI18nCol ? ", ?" : ""})
+        `INSERT INTO menu_categories (id, tenant_id, name, short_name, slug, category_type, allow_customization, applied_modifiers, sort_order${hasCatI18nCol ? ", i18n_json" : ""}${hasCatAvailCol ? ", availability_mode" : ""}${hasCatHideCol ? ", hide_when_unavailable" : ""})
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?${hasCatI18nCol ? ", ?" : ""}${hasCatAvailCol ? ", ?" : ""}${hasCatHideCol ? ", ?" : ""})
          ON CONFLICT(id) DO UPDATE SET 
            name = excluded.name, 
            short_name = excluded.short_name,
@@ -993,10 +1021,32 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
            category_type = excluded.category_type,
            allow_customization = excluded.allow_customization,
            applied_modifiers = excluded.applied_modifiers,
-           sort_order = excluded.sort_order${hasCatI18nCol ? ",\n           i18n_json = excluded.i18n_json" : ""}
+           sort_order = excluded.sort_order${hasCatI18nCol ? ",\n           i18n_json = excluded.i18n_json" : ""}${hasCatAvailCol ? ",\n           availability_mode = excluded.availability_mode" : ""}${hasCatHideCol ? ",\n           hide_when_unavailable = excluded.hide_when_unavailable" : ""}
              WHERE menu_categories.tenant_id = excluded.tenant_id`
-      ).bind(catId, tenantId, catName, catShortName, slug, customCatType, allowCustomization, appliedModifiers, customCatSort, ...(hasCatI18nCol ? [catI18nJson] : []))
+      ).bind(
+        catId, tenantId, catName, catShortName, slug, customCatType, allowCustomization, appliedModifiers, customCatSort,
+        ...(hasCatI18nCol ? [catI18nJson] : []),
+        ...(hasCatAvailCol ? [catAvailMode] : []),
+        ...(hasCatHideCol ? [catHideUnavailable] : [])
+      )
     );
+
+    const rawCatShiftIds = itemsMap && (itemsMap.__shift_ids ?? itemsMap._shift_ids);
+    if (hasCatShiftsTbl && Array.isArray(rawCatShiftIds)) {
+      const nextShiftIds = [...new Set<string>(rawCatShiftIds.map((s: any) => String(s)).filter(Boolean))];
+      if (nextShiftIds.some((sid) => !ownedShiftIds.has(sid))) {
+        throw new Error('INVALID_SHIFT_ID');
+      }
+      const prevShiftIds = existingShiftLinks.categoryShiftIds.get(catId) || [];
+      const nextSet = new Set(nextShiftIds);
+      const prevSet = new Set(prevShiftIds);
+      for (const removedSid of prevShiftIds.filter((sid) => !nextSet.has(sid))) {
+        statements.push(env.DB.prepare('DELETE FROM menu_category_shifts WHERE tenant_id = ? AND category_id = ? AND shift_id = ?').bind(tenantId, catId, removedSid));
+      }
+      for (const addedSid of nextShiftIds.filter((sid) => !prevSet.has(sid))) {
+        statements.push(env.DB.prepare('INSERT INTO menu_category_shifts (tenant_id, category_id, shift_id) VALUES (?, ?, ?) ON CONFLICT(tenant_id, category_id, shift_id) DO NOTHING').bind(tenantId, catId, addedSid));
+      }
+    }
 
     if (itemsMap && typeof itemsMap === "object") {
       let itemSortOrder = 1;
@@ -1045,10 +1095,17 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
           ? serializeI18nJson(itemI18nRaw)
           : (existingItemI18nMap.get(itemId) || "{}");
 
+        const itemAvailRaw = (itemVal && typeof itemVal === "object")
+          ? (itemVal.availability_mode ?? itemVal.availabilityMode)
+          : undefined;
+        const itemAvailMode = itemAvailRaw !== undefined
+          ? ((itemAvailRaw === 'all_shifts' || itemAvailRaw === 'selected_shifts') ? itemAvailRaw : 'inherit')
+          : (existingItemAvailMap.get(itemId) || 'inherit');
+
         statements.push(
           env.DB.prepare(
-            `INSERT INTO menu_items (id, tenant_id, category_id, name, price, badge_text, is_recommended, sort_order, item_type${hasItemI18nCol ? ", i18n_json" : ""})
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?${hasItemI18nCol ? ", ?" : ""})
+            `INSERT INTO menu_items (id, tenant_id, category_id, name, price, badge_text, is_recommended, sort_order, item_type${hasItemI18nCol ? ", i18n_json" : ""}${hasItemAvailCol ? ", availability_mode" : ""})
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?${hasItemI18nCol ? ", ?" : ""}${hasItemAvailCol ? ", ?" : ""})
              ON CONFLICT(id) DO UPDATE SET 
                category_id = excluded.category_id,
                name = excluded.name,
@@ -1056,10 +1113,31 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
                badge_text = excluded.badge_text, 
                is_recommended = excluded.is_recommended, 
                sort_order = excluded.sort_order,
-               item_type = excluded.item_type${hasItemI18nCol ? ",\n               i18n_json = excluded.i18n_json" : ""}
+               item_type = excluded.item_type${hasItemI18nCol ? ",\n               i18n_json = excluded.i18n_json" : ""}${hasItemAvailCol ? ",\n               availability_mode = excluded.availability_mode" : ""}
              WHERE menu_items.tenant_id = excluded.tenant_id`
-          ).bind(itemId, tenantId, catId, itemName, price, badgeText, isRec, explicitItemSort, itemType, ...(hasItemI18nCol ? [itemI18nJson] : []))
+          ).bind(
+            itemId, tenantId, catId, itemName, price, badgeText, isRec, explicitItemSort, itemType,
+            ...(hasItemI18nCol ? [itemI18nJson] : []),
+            ...(hasItemAvailCol ? [itemAvailMode] : [])
+          )
         );
+
+        const rawItemShiftIds = (itemVal && typeof itemVal === "object") ? (itemVal.shift_ids ?? itemVal.shiftIds) : undefined;
+        if (hasItemShiftsTbl && Array.isArray(rawItemShiftIds)) {
+          const nextShiftIds = [...new Set<string>(rawItemShiftIds.map((s: any) => String(s)).filter(Boolean))];
+          if (nextShiftIds.some((sid) => !ownedShiftIds.has(sid))) {
+            throw new Error('INVALID_SHIFT_ID');
+          }
+          const prevShiftIds = existingShiftLinks.itemShiftIds.get(itemId) || [];
+          const nextSet = new Set(nextShiftIds);
+          const prevSet = new Set(prevShiftIds);
+          for (const removedSid of prevShiftIds.filter((sid) => !nextSet.has(sid))) {
+            statements.push(env.DB.prepare('DELETE FROM menu_item_shifts WHERE tenant_id = ? AND item_id = ? AND shift_id = ?').bind(tenantId, itemId, removedSid));
+          }
+          for (const addedSid of nextShiftIds.filter((sid) => !prevSet.has(sid))) {
+            statements.push(env.DB.prepare('INSERT INTO menu_item_shifts (tenant_id, item_id, shift_id) VALUES (?, ?, ?) ON CONFLICT(tenant_id, item_id, shift_id) DO NOTHING').bind(tenantId, itemId, addedSid));
+          }
+        }
 
         // If modifier groups are provided for this item, persist them
         if (modifierGroups !== null && !unifiedMenuEnabled(env)) {
@@ -1159,12 +1237,23 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
 
   // Explicit category deletion also removes its child items and modifier links.
   for (const id of categoryDeletes) {
+    if (hasItemShiftsTbl) {
+      statements.push(env.DB.prepare('DELETE FROM menu_item_shifts WHERE tenant_id = ? AND item_id IN (SELECT id FROM menu_items WHERE tenant_id = ? AND category_id = ?)').bind(tenantId, tenantId, id));
+    }
+    if (hasCatShiftsTbl) {
+      statements.push(env.DB.prepare('DELETE FROM menu_category_shifts WHERE tenant_id = ? AND category_id = ?').bind(tenantId, id));
+    }
     statements.push(env.DB.prepare('DELETE FROM item_modifier_links WHERE tenant_id = ? AND item_id IN (SELECT id FROM menu_items WHERE tenant_id = ? AND category_id = ?)').bind(tenantId, tenantId, id));
     statements.push(env.DB.prepare('DELETE FROM menu_items WHERE tenant_id = ? AND category_id = ?').bind(tenantId, id));
   }
   if (itemDeletes.length > 0) {
     for (let i = 0; i < itemDeletes.length; i += 50) {
       const chunk = itemDeletes.slice(i, i + 50);
+      if (hasItemShiftsTbl) {
+        statements.push(env.DB.prepare(
+          `DELETE FROM menu_item_shifts WHERE tenant_id = ? AND item_id IN (${chunk.map(() => '?').join(',')})`
+        ).bind(tenantId, ...chunk));
+      }
       statements.push(env.DB.prepare(
         `DELETE FROM item_modifier_links WHERE tenant_id = ? AND item_id IN (${chunk.map(() => '?').join(',')})`
       ).bind(tenantId, ...chunk));

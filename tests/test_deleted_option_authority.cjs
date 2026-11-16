@@ -102,6 +102,7 @@ function bootstrapFor(f) {
   const context = vm.createContext({ exports, console, Date, URL, Map, Set,
     require(name) {
       if (name.includes('option-groups')) return f.api;
+      if (name.includes('operating-shifts')) return require('./helpers/option-groups.cjs').getOperatingShiftsExports();
       if (name.includes('order-detail')) return { detailWrites: () => false };
       if (name.includes('tenant-lifecycle')) return { tenantIsDeleted: async () => false };
       if (name.endsWith('/tenant')) return { resolveTenantContext: async id => ({ tenantId: id, brandName: id }) };
@@ -290,7 +291,13 @@ test('a reconciled cart passes the actual typed server validator with the update
     vm.runInNewContext(ts.transpileModule(fs.readFileSync('benmi-worker-official/src/modules/order-detail.ts', 'utf8'), {
       compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
     }).outputText, { exports, crypto: require('node:crypto').webcrypto,
-      require: name => name.includes('option-groups') ? f.api : require('../js/order-detail-view.js') });
+      require: name => name.includes('option-groups')
+        ? f.api
+        : (name.includes('operating-shifts')
+            ? require('./helpers/option-groups.cjs').getOperatingShiftsExports()
+            : (name.includes('pricing-engine-client')
+                ? { pricingRustEnabled: () => false }
+                : require('../js/order-detail-view.js'))) });
     const result = await exports.buildDetailRound(f.env, 'a', {
       items: app.DetailCheckout.items(), orderSelections: [], total: app.calculateCurrentFoodSubtotal(),
     }, 1);

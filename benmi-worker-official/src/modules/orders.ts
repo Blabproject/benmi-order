@@ -2,7 +2,8 @@ import OrderCode from '../../../js/order-code.js';
 import { attachPayments } from './payments';
 import { writeDetailedOrder } from './order-detail-write';
 import { attachOrderDetails, detailReads } from './order-detail';
-import { unifiedMenuEnabled, validateUnifiedOrderItems } from './option-groups';
+import { unifiedMenuEnabled, validateUnifiedOrderItems, loadOptionCatalog } from './option-groups';
+import { hasDbTable, validateCatalogScheduleForItems } from './operating-shifts';
 import { resolveOrderKey } from './order-identity';
 import { Env } from '../types/env';
 import { Order, DiningOption, AppendOrderPayload, OrderItemInput } from '../types/index';
@@ -412,7 +413,7 @@ export async function createOrder(
     return json({ error: "店家目前暫停接單中，暫無法接收新訂單", code: "STORE_PAUSED" }, 400);
   }
 
-  const cleanTime = String(data.time || "").replace(/\s*\([^)]*\)/g, '').trim();
+  const cleanTime = String(data.time || data.pickupTime || data.pickup_time || "").replace(/\s*\([^)]*\)/g, '').trim();
   let diningOption: DiningOption = (data.dining_option === 'dine_in' || data.diningOption === 'dine_in') ? 'dine_in' : 'takeaway';
 
   // Feature gate check: if tenant lacks 'dine_in' feature, automatically fallback to 'takeaway'
@@ -473,6 +474,24 @@ export async function createOrder(
       } catch (stockCheckErr) {
         console.warn(`[createOrder] Stock check warning:`, stockCheckErr);
       }
+    }
+  }
+
+  // 1.0b Kiểm tra khung giờ phục vụ theo ca (Time-Based Menu Schedule)
+  if (rawItems.length > 0 && env.DB && await hasDbTable(env.DB, 'tenant_operating_shifts')) {
+    try {
+      const catalog = await loadOptionCatalog(env, tenantId);
+      const schedTarget = cleanTime || new Date();
+      const scheduleCheck = validateCatalogScheduleForItems(catalog, rawItems, schedTarget);
+      if (!scheduleCheck.valid) {
+        return json({
+          error: `抱歉，餐點【${scheduleCheck.unavailableItemNames.join('、')}】非目前所選時段供應，請重新選擇！`,
+          code: "ITEM_OUTSIDE_AVAILABILITY_WINDOW",
+          unavailableItems: scheduleCheck.unavailableItemNames
+        }, 400);
+      }
+    } catch (schedErr) {
+      console.warn(`[createOrder] Schedule check warning:`, schedErr);
     }
   }
 

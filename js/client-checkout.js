@@ -334,6 +334,7 @@ function hasAvailableCartItems() {
     for (const key in cart) {
         if (cart[key] > 0) {
             if (typeof isItemOutOfStock === 'function' && isItemOutOfStock(key)) continue;
+            if (typeof isCartItemScheduleUnavailable === 'function' && isCartItemScheduleUnavailable(key)) continue;
             let dName = key;
             try {
                 const itemInfo = _coResolveCatalogItem(key);
@@ -1595,6 +1596,30 @@ function confirmPickupTimeSelection() {
 
     syncPickupTimeDisplay();
     closePickupTimeModal();
+
+    if (typeof renderDynamicCatalog === 'function') {
+        renderDynamicCatalog();
+    }
+    if (typeof updateTotal === 'function') {
+        updateTotal();
+    }
+    if (typeof updateFooterButtonState === 'function') {
+        updateFooterButtonState();
+    }
+
+    if (typeof cart !== 'undefined' && typeof isCartItemScheduleUnavailable === 'function') {
+        const unavailNames = [];
+        for (const key in cart) {
+            if (cart[key] > 0 && isCartItemScheduleUnavailable(key)) {
+                const info = _coResolveCatalogItem(key);
+                const dName = info?.localizedDisplayName || info?.displayName || info?.origName || key;
+                if (dName && !unavailNames.includes(dName)) unavailNames.push(dName);
+            }
+        }
+        if (unavailNames.length > 0 && typeof customAlert === 'function') {
+            customAlert(_coT('alert_schedule_items_removed', { items: unavailNames.join('、') }, `以下餐點不在所選取餐時段供應，請調整餐點或更換取餐時間：${unavailNames.join('、')}`));
+        }
+    }
 }
 
 if (typeof window !== 'undefined') {
@@ -2117,6 +2142,7 @@ function formatOrderTextMessage(orderNum, dateInput, timeInput, currentTotal, ma
     if (!presentation) for (let key in cart) {
         if (cart[key] > 0) {
             if (typeof isItemOutOfStock === 'function' && isItemOutOfStock(key)) continue;
+            if (typeof isCartItemScheduleUnavailable === 'function' && isCartItemScheduleUnavailable(key)) continue;
             const itemInfo = _coResolveCatalogItem(key);
             const { catSlug, origName, displayName, basePrice } = itemInfo;
             if (window.isEditOrderMode && Array.isArray(window.editOrderSoldOutNames)) {
@@ -2260,6 +2286,7 @@ function formatAppendItemsOnlyText(canonical = false) {
     for (let key in cart) {
         if (cart[key] > 0) {
             if (typeof isItemOutOfStock === 'function' && isItemOutOfStock(key)) continue;
+            if (typeof isCartItemScheduleUnavailable === 'function' && isCartItemScheduleUnavailable(key)) continue;
             const itemInfo = _coResolveCatalogItem(key);
             const { catSlug, origName, displayName, basePrice } = itemInfo;
             if (window.isEditOrderMode && Array.isArray(window.editOrderSoldOutNames)) {
@@ -2372,6 +2399,7 @@ function buildStructuredCartItems() {
     for (let key in cart) {
         if (cart[key] > 0) {
             if (typeof isItemOutOfStock === 'function' && isItemOutOfStock(key)) continue;
+            if (typeof isCartItemScheduleUnavailable === 'function' && isCartItemScheduleUnavailable(key)) continue;
             const itemInfo = _coResolveCatalogItem(key);
             const { catSlug, origName, displayName, basePrice, categoryName, itemId } = itemInfo;
             if (window.isEditOrderMode && Array.isArray(window.editOrderSoldOutNames)) {
@@ -2869,15 +2897,27 @@ async function validateCartStockBeforeSubmit() {
 
         // 2. Rà soát từng món trong giỏ hàng so với thực đơn mới nhất
         const outOfStockItems = [];
+        const scheduleInvalidItems = [];
+        const evalShifts = Array.isArray(freshData.tenant?.operatingShifts) ? freshData.tenant.operatingShifts : (storeConfig?.operatingShifts || []);
+        const evalLegacyHours = freshData.tenant?.parsedHours || storeConfig?.operatingHours || null;
+        const schedTargetInfo = (typeof getEffectiveMenuScheduleTime === 'function') ? getEffectiveMenuScheduleTime() : { dateStr: '', timeStr: '', isScheduled: false };
+        const schedTarget = (schedTargetInfo.dateStr && schedTargetInfo.timeStr) ? { dateStr: schedTargetInfo.dateStr, timeStr: schedTargetInfo.timeStr } : new Date();
+        const activeLocale = (typeof window !== 'undefined' && window.currentClientLocale) || 'zh-TW';
+
         if (freshData.catalog && Array.isArray(freshData.catalog)) {
             for (let key in cart) {
                 if (cart[key] > 0) {
                     const match = findItemInCatalog(freshData.catalog, key);
                     const targetItem = match ? match.item : null;
+                    const targetCat = match ? match.category : null;
+                    const schedRes = (targetItem && typeof MenuSchedule !== 'undefined' && typeof MenuSchedule.resolveItemAvailability === 'function')
+                        ? MenuSchedule.resolveItemAvailability(targetCat, targetItem, evalShifts, evalLegacyHours, schedTarget, { locale: activeLocale, inclusiveEnd: Boolean(schedTargetInfo.isScheduled) })
+                        : { available: true };
+                    const isOutsideSchedule = Boolean(targetItem && !targetItem.isOutOfStock && !schedRes.available);
 
-                    console.log(`[Validation] Cart key "${key}" matched:`, targetItem ? `${targetItem.name} (isOutOfStock: ${targetItem.isOutOfStock})` : "NOT FOUND");
+                    console.log(`[Validation] Cart key "${key}" matched:`, targetItem ? `${targetItem.name} (isOutOfStock: ${targetItem.isOutOfStock}, scheduleAvailable: ${schedRes.available})` : "NOT FOUND");
 
-                    if (!targetItem || targetItem.isOutOfStock) {
+                    if (!targetItem || targetItem.isOutOfStock || isOutsideSchedule) {
                         let displayName = targetItem ? _coLocText(targetItem, 'name', targetItem.name) : null;
                         if (!displayName) {
                             try {
@@ -2887,11 +2927,15 @@ async function validateCartStockBeforeSubmit() {
                                 displayName = key;
                             }
                         }
-                        if (displayName && !outOfStockItems.includes(displayName)) {
+                        if (isOutsideSchedule) {
+                            if (displayName && !scheduleInvalidItems.includes(displayName)) {
+                                scheduleInvalidItems.push(displayName);
+                            }
+                        } else if (displayName && !outOfStockItems.includes(displayName)) {
                             outOfStockItems.push(displayName);
                         }
 
-                        // Tự động loại bỏ món đã hết khỏi giỏ hàng
+                        // Tự động loại bỏ món đã hết / ngoài giờ bán khỏi giỏ hàng
                         delete cart[key];
                         if (customizeData && customizeData[key]) delete customizeData[key];
                         if (comboDrinkData && comboDrinkData[key]) delete comboDrinkData[key];
@@ -2901,9 +2945,9 @@ async function validateCartStockBeforeSubmit() {
             }
         }
 
-        console.log("[Validation] Out of stock items detected:", outOfStockItems);
+        console.log("[Validation] Out of stock / out-of-schedule items detected:", { outOfStockItems, scheduleInvalidItems });
 
-        if (outOfStockItems.length > 0) {
+        if (outOfStockItems.length > 0 || scheduleInvalidItems.length > 0) {
             try {
                 if (typeof updateDynamicStockAndPrices === 'function') updateDynamicStockAndPrices();
                 if (typeof renderDynamicCatalog === 'function') renderDynamicCatalog();
@@ -2911,15 +2955,15 @@ async function validateCartStockBeforeSubmit() {
             } catch(renderErr) {
                 console.warn("[Validation] UI re-render notice:", renderErr);
             }
-            return { valid: false, outOfStockItems, paused: false };
+            return { valid: false, outOfStockItems, scheduleInvalidItems, paused: false };
         }
 
         if (typeof updateTotal === 'function') updateTotal();
         if (window.cartOptionsNeedReview) {
             window.cartOptionsNeedReview = false;
-            return { valid: false, optionsChanged: true, outOfStockItems: [], paused: false };
+            return { valid: false, optionsChanged: true, outOfStockItems: [], scheduleInvalidItems: [], paused: false };
         }
-        return { valid: true, outOfStockItems: [], paused: false };
+        return { valid: true, outOfStockItems: [], scheduleInvalidItems: [], paused: false };
     } catch (e) {
         console.error("[Validation] Pre-submit stock validation error:", e);
         return { valid: false, unavailable: true, outOfStockItems: [], paused: false };
@@ -2959,6 +3003,9 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
                 return customAlert(_coT('alert_store_paused', null, '店家目前已暫停接單，暫時無法送出訂單，敬請見諒！'));
             }
 
+            if (validation.scheduleInvalidItems && validation.scheduleInvalidItems.length > 0) {
+                return customAlert(_coT('alert_schedule_items_removed', { items: validation.scheduleInvalidItems.join('、') }, `以下餐點不在所選取餐時段供應，請調整餐點或更換取餐時間：${validation.scheduleInvalidItems.join('、')}`));
+            }
             if (validation.outOfStockItems && validation.outOfStockItems.length > 0) {
                 return _coHandleOutOfStockResponse(validation.outOfStockItems, 'pre', true);
             }

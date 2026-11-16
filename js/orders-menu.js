@@ -334,6 +334,9 @@ async function loadMenuData() {
     if (data.tenant && typeof applyTenantBranding === "function") {
       applyTenantBranding(data.tenant);
     }
+    if (data.tenant && Array.isArray(data.tenant.operatingShifts)) {
+      window.storeOperatingShifts = data.tenant.operatingShifts;
+    }
 
     if (!libraryResponse.ok) throw new Error('Failed to load modifier library');
     const libraryData = await libraryResponse.json();
@@ -371,6 +374,9 @@ async function loadMenuData() {
           type: 'catalog',
           allowCustomization: cat.allowCustomization !== undefined ? cat.allowCustomization : (cat.slug !== 'drinks'),
           appliedModifiers: cat.appliedModifiers || (cat.allowCustomization === false ? [] : ['*']),
+          availabilityMode: (cat.availabilityMode === 'selected_shifts' || cat.availability_mode === 'selected_shifts') ? 'selected_shifts' : 'all_shifts',
+          hideWhenUnavailable: Boolean(cat.hideWhenUnavailable ?? cat.hide_when_unavailable),
+          shiftIds: Array.isArray(cat.shiftIds) ? [...cat.shiftIds] : (Array.isArray(cat.shift_ids) ? [...cat.shift_ids] : []),
           sortOrder: Number(cat.sortOrder !== undefined ? cat.sortOrder : (cat.sort_order !== undefined ? cat.sort_order : (cIdx + 1))),
           ...(cat.i18n && typeof cat.i18n === 'object' && Object.keys(cat.i18n).length > 0 ? { i18n: cat.i18n } : {}),
           items: cat.items.map(it => ({
@@ -383,6 +389,8 @@ async function loadMenuData() {
             isRecommended: it.isRecommended || false,
             bundleRule: it.bundleRule || null,
             itemType: it.itemType || 'standard',
+            availabilityMode: it.availabilityMode || it.availability_mode || 'inherit',
+            shiftIds: Array.isArray(it.shiftIds) ? [...it.shiftIds] : (Array.isArray(it.shift_ids) ? [...it.shift_ids] : []),
             modifierGroups: Array.isArray(it.modifierGroups) ? it.modifierGroups : [],
             originalName: it.name,
             ...(it.i18n && typeof it.i18n === 'object' && Object.keys(it.i18n).length > 0 ? { i18n: it.i18n } : {})
@@ -1927,6 +1935,69 @@ function renderMenuCategoryEditor(index) {
     catalogCard.appendChild(modCard);
   }
 
+  if (cat.type === 'catalog') {
+    const availShifts = Array.isArray(window.storeOperatingShifts) ? window.storeOperatingShifts : [];
+    const curMode = cat.availabilityMode === 'selected_shifts' ? 'selected_shifts' : 'all_shifts';
+    const curShiftIds = Array.isArray(cat.shiftIds) ? cat.shiftIds : [];
+    const curHide = Boolean(cat.hideWhenUnavailable);
+    const schedCard = document.createElement("div");
+    schedCard.className = "cust-category-modifiers-card";
+    schedCard.style.cssText = "margin-bottom:14px;";
+    const clockSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
+
+    const modeButtonsHtml = `
+      <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
+        <button type="button" onclick="setCategoryAvailabilityMode(${index}, 'all_shifts')" style="min-height:48px; padding:10px 14px; border-radius:10px; border:1.5px solid ${curMode === 'all_shifts' ? '#00b900' : '#cbd5e1'}; background:${curMode === 'all_shifts' ? '#ecfdf5' : '#fff'}; color:${curMode === 'all_shifts' ? '#047857' : '#475569'}; font-weight:800; font-size:13.5px; cursor:pointer;">${escapeHtml(t("catScheduleAllShifts"))}</button>
+        <button type="button" onclick="setCategoryAvailabilityMode(${index}, 'selected_shifts')" style="min-height:48px; padding:10px 14px; border-radius:10px; border:1.5px solid ${curMode === 'selected_shifts' ? '#2563eb' : '#cbd5e1'}; background:${curMode === 'selected_shifts' ? '#eff6ff' : '#fff'}; color:${curMode === 'selected_shifts' ? '#1d4ed8' : '#475569'}; font-weight:800; font-size:13.5px; cursor:pointer;">${escapeHtml(t("catScheduleSelectedShifts"))}</button>
+      </div>
+    `;
+
+    let selectedBodyHtml = "";
+    if (curMode === 'selected_shifts') {
+      if (availShifts.length === 0) {
+        selectedBodyHtml = `<div style="margin-top:10px; padding:10px 12px; border-radius:10px; background:#fef3c7; border:1px solid #fde68a; color:#92400e; font-size:13px; font-weight:600;">${escapeHtml(t("catScheduleNoShiftsConfigured"))}</div>`;
+      } else {
+        const shiftChips = availShifts.map(sh => {
+          const isChecked = curShiftIds.includes(sh.id);
+          const safeSid = String(sh.id || '').replace(/'/g, "\\'");
+          const label = (typeof MenuSchedule !== 'undefined' && typeof MenuSchedule.formatShiftsLabel === 'function')
+            ? MenuSchedule.formatShiftsLabel([sh], currentLang)
+            : (sh.name || sh.id);
+          return `
+            <label style="display:inline-flex; align-items:center; gap:8px; min-height:48px; padding:8px 14px; border-radius:10px; border:1.5px solid ${isChecked ? '#2563eb' : '#cbd5e1'}; background:${isChecked ? '#eff6ff' : '#fff'}; color:${isChecked ? '#1d4ed8' : '#334155'}; font-weight:700; font-size:13.5px; cursor:pointer;">
+              <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCategoryShiftId(${index}, '${safeSid}', this.checked)" style="width:20px; height:20px; accent-color:#2563eb;">
+              <span>${escapeHtml(label)}</span>
+            </label>
+          `;
+        }).join("");
+        selectedBodyHtml = `
+          <div style="margin-top:10px;">
+            <div style="font-size:12.5px; color:#64748b; font-weight:700; margin-bottom:6px;">${escapeHtml(t("catSchedulePickShiftsHint"))}</div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px;">${shiftChips}</div>
+          </div>
+        `;
+      }
+      selectedBodyHtml += `
+        <label style="display:flex; align-items:center; gap:10px; min-height:48px; margin-top:10px; padding:8px 12px; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; cursor:pointer; font-size:13.5px; font-weight:700; color:#1e293b;">
+          <input type="checkbox" ${curHide ? 'checked' : ''} onchange="toggleCategoryHideWhenUnavailable(${index}, this.checked)" style="width:20px; height:20px; accent-color:#2563eb;">
+          <span>${escapeHtml(t("catScheduleHideWhenUnavailable"))}</span>
+        </label>
+      `;
+    }
+
+    schedCard.innerHTML = `
+      <div style="padding:12px 14px;">
+        <div style="display:flex; align-items:center; gap:8px; font-weight:800; font-size:14px; color:#0f172a;">
+          ${clockSvg}
+          <span>${escapeHtml(t("catScheduleTitle"))}</span>
+        </div>
+        ${modeButtonsHtml}
+        ${selectedBodyHtml}
+      </div>
+    `;
+    catalogCard.appendChild(schedCard);
+  }
+
   const itemsContainer = document.createElement("div");
   itemsContainer.className = "menu-catalog-items-container";
 
@@ -3124,6 +3195,44 @@ function toggleCategoryModifierItem(catIndex, modId, isChecked) {
     cat.allowCustomization = currentList.length > 0;
   }
 
+  markMenuDirty();
+  renderMenuCategoryEditor(catIndex);
+}
+
+function setCategoryAvailabilityMode(catIndex, mode) {
+  if (!currentMenuData || !currentMenuData[catIndex]) return;
+  syncMenuDataFromDOM();
+  const cat = currentMenuData[catIndex];
+  cat.availabilityMode = mode === 'selected_shifts' ? 'selected_shifts' : 'all_shifts';
+  if (cat.availabilityMode === 'selected_shifts' && cat.hideWhenUnavailable === undefined) {
+    cat.hideWhenUnavailable = true;
+  }
+  if (!Array.isArray(cat.shiftIds)) cat.shiftIds = [];
+  markMenuDirty();
+  renderMenuCategoryEditor(catIndex);
+}
+
+function toggleCategoryShiftId(catIndex, shiftId, isChecked) {
+  if (!currentMenuData || !currentMenuData[catIndex]) return;
+  syncMenuDataFromDOM();
+  const cat = currentMenuData[catIndex];
+  const current = Array.isArray(cat.shiftIds) ? [...cat.shiftIds] : [];
+  if (isChecked) {
+    if (!current.includes(shiftId)) current.push(shiftId);
+  } else {
+    const idx = current.indexOf(shiftId);
+    if (idx >= 0) current.splice(idx, 1);
+  }
+  cat.shiftIds = current;
+  markMenuDirty();
+  renderMenuCategoryEditor(catIndex);
+}
+
+function toggleCategoryHideWhenUnavailable(catIndex, isChecked) {
+  if (!currentMenuData || !currentMenuData[catIndex]) return;
+  syncMenuDataFromDOM();
+  const cat = currentMenuData[catIndex];
+  cat.hideWhenUnavailable = Boolean(isChecked);
   markMenuDirty();
   renderMenuCategoryEditor(catIndex);
 }
@@ -5991,4 +6100,7 @@ async function translateMissingMenuWithAI() {
     updateMenuSaveState();
   }
 }
+window.setCategoryAvailabilityMode = setCategoryAvailabilityMode;
+window.toggleCategoryShiftId = toggleCategoryShiftId;
+window.toggleCategoryHideWhenUnavailable = toggleCategoryHideWhenUnavailable;
 window.translateMissingMenuWithAI = translateMissingMenuWithAI;

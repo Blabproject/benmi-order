@@ -2,6 +2,7 @@ import type { Env } from '../types/env';
 import type { Order } from '../types';
 import type { DetailGroup, DetailLine, DetailRound, OrderDetailSnapshot } from '../types/order-detail';
 import { loadOptionCatalog, effectiveGroups, groupOptions, validateOptionSelection, type OptionCatalog } from './option-groups';
+import { validateCatalogScheduleForItems } from './operating-shifts';
 import DetailView from '../../../js/order-detail-view.js';
 import { pricingRustEnabled, callRustBuildDetailRound } from './pricing-engine-client';
 
@@ -29,6 +30,16 @@ const sameSelections = (a: any[], b: any[]) => JSON.stringify(selectionIdentity(
 export async function buildDetailRound(env: Env, tenant: string, input: any, roundNumber: number,
   previous?: DetailRound, features?: string[]): Promise<DetailRound> {
   const catalog = await loadOptionCatalog(env, tenant);
+  if (!Array.isArray(input.items) || !input.items.length || input.items.length > 200) fail('EMPTY_OR_TOO_MANY_ITEMS');
+  const unchangedLine = (i: any) => {
+    const old = previous?.items.find(l => l.lineId === i.lineId && l.itemId === (i.itemId || i.item_id));
+    const portions = i.bundleSelections?.portions || Array.from({ length: i.quantity }, () => ({ groups: [] }));
+    return old && old.quantity === i.quantity && portions.length === old.portions.length &&
+      portions.every((p: any, index: number) => sameSelections(p.groups || [], old.portions[index].groups)) ? old : undefined;
+  };
+  const itemsToCheckSchedule = input.items.filter((i: any) => !unchangedLine(i));
+  const scheduleCheck = validateCatalogScheduleForItems(catalog, itemsToCheckSchedule, input.time);
+  if (!scheduleCheck.valid) fail('PRODUCT_UNAVAILABLE');
   if (pricingRustEnabled(env, features)) {
     try {
       return await callRustBuildDetailRound(env, catalog, input, roundNumber, previous);
@@ -37,13 +48,6 @@ export async function buildDetailRound(env: Env, tenant: string, input: any, rou
       console.warn('[PricingEngine] Rust engine error, falling back to TypeScript:', err);
     }
   }
-  if (!Array.isArray(input.items) || !input.items.length || input.items.length > 200) fail('EMPTY_OR_TOO_MANY_ITEMS');
-  const unchangedLine = (i: any) => {
-    const old = previous?.items.find(l => l.lineId === i.lineId && l.itemId === (i.itemId || i.item_id));
-    const portions = i.bundleSelections?.portions || Array.from({ length: i.quantity }, () => ({ groups: [] }));
-    return old && old.quantity === i.quantity && portions.length === old.portions.length &&
-      portions.every((p: any, index: number) => sameSelections(p.groups || [], old.portions[index].groups)) ? old : undefined;
-  };
   for (const i of input.items) {
     if (unchangedLine(i)) continue;
     const p = catalog.products.find(p => p.id === (i.itemId || i.item_id));

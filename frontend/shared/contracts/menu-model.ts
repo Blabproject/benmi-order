@@ -92,6 +92,8 @@ export interface MenuItemDraft {
   modifierGroups?: ItemModifierGroupDraft[];
   sortOrder?: number;
   sort_order?: number;
+  availabilityMode?: 'inherit' | 'all_shifts' | 'selected_shifts' | string;
+  shiftIds?: string[];
   originalName?: string;
   [key: string]: unknown;
 }
@@ -106,6 +108,9 @@ export interface MenuCategoryDraft {
   type?: 'catalog' | 'modifier' | 'order_customization' | string;
   allowCustomization?: boolean;
   appliedModifiers?: string[];
+  availabilityMode?: 'all_shifts' | 'selected_shifts' | string;
+  hideWhenUnavailable?: boolean;
+  shiftIds?: string[];
   sortOrder?: number;
   groups?: MenuOptionGroupDraft[];
   items: MenuItemDraft[];
@@ -124,6 +129,10 @@ export interface BootstrapMenuItemDto {
   isRecommended?: boolean;
   bundleRule?: BundleRuleDto | null;
   itemType?: string;
+  availabilityMode?: string;
+  availability_mode?: string;
+  shiftIds?: string[];
+  shift_ids?: string[];
   modifierGroups?: ItemModifierGroupDraft[];
 }
 
@@ -137,6 +146,12 @@ export interface BootstrapMenuCategoryDto {
   allowCustomization?: boolean;
   allow_customization?: boolean | number;
   appliedModifiers?: string[];
+  availabilityMode?: string;
+  availability_mode?: string;
+  hideWhenUnavailable?: boolean;
+  hide_when_unavailable?: boolean | number;
+  shiftIds?: string[];
+  shift_ids?: string[];
   modifierGroups?: Array<{ id?: string }>;
   sortOrder?: number;
   sort_order?: number;
@@ -261,6 +276,8 @@ export interface SerializedMenuItemPayload {
   is_recommended: number;
   item_type: string;
   sort_order: number;
+  availability_mode?: string;
+  shift_ids?: string[];
   modifier_groups?: ItemModifierGroupDraft[];
 }
 
@@ -270,12 +287,16 @@ export interface SerializedMenuCategoryPayload {
   __type: string;
   __allow_customization: number;
   __applied_modifiers: string[];
+  __availability_mode?: string;
+  __hide_when_unavailable?: number;
+  __shift_ids?: string[];
   __sort_order: number;
   [itemName: string]:
     | string
     | number
     | string[]
-    | SerializedMenuItemPayload;
+    | SerializedMenuItemPayload
+    | undefined;
 }
 
 export interface MenuDeletionsDto {
@@ -443,6 +464,16 @@ export function normalizeBootstrapMenuCategories(
       type: 'catalog',
       allowCustomization,
       appliedModifiers: cat.appliedModifiers || (allowCustomization === false ? [] : ['*']),
+      availabilityMode:
+        cat.availabilityMode === 'selected_shifts' || cat.availability_mode === 'selected_shifts'
+          ? 'selected_shifts'
+          : 'all_shifts',
+      hideWhenUnavailable: Boolean(cat.hideWhenUnavailable ?? cat.hide_when_unavailable),
+      shiftIds: Array.isArray(cat.shiftIds)
+        ? [...cat.shiftIds]
+        : Array.isArray(cat.shift_ids)
+          ? [...cat.shift_ids]
+          : [],
       sortOrder: Number(
         cat.sortOrder !== undefined ? cat.sortOrder : cat.sort_order !== undefined ? cat.sort_order : cIdx + 1
       ),
@@ -456,6 +487,12 @@ export function normalizeBootstrapMenuCategories(
         isRecommended: Boolean(it.isRecommended),
         bundleRule: it.bundleRule || null,
         itemType: it.itemType || 'standard',
+        availabilityMode: it.availabilityMode || it.availability_mode || 'inherit',
+        shiftIds: Array.isArray(it.shiftIds)
+          ? [...it.shiftIds]
+          : Array.isArray(it.shift_ids)
+            ? [...it.shift_ids]
+            : [],
         modifierGroups: Array.isArray(it.modifierGroups) ? it.modifierGroups : [],
         originalName: it.name
       }))
@@ -801,6 +838,9 @@ export function serializeMenuData(
       __type: cat.type || 'catalog',
       __allow_customization: cat.allowCustomization !== false ? 1 : 0,
       __applied_modifiers: cat.appliedModifiers || (cat.allowCustomization === false ? [] : ['*']),
+      __availability_mode: cat.availabilityMode === 'selected_shifts' ? 'selected_shifts' : 'all_shifts',
+      __hide_when_unavailable: cat.hideWhenUnavailable ? 1 : 0,
+      __shift_ids: Array.isArray(cat.shiftIds) ? [...cat.shiftIds] : [],
       __sort_order: currentOrder
     };
 
@@ -828,6 +868,12 @@ export function serializeMenuData(
               ? item.sort_order
               : itemIdx + 1
       };
+      if (item.availabilityMode && item.availabilityMode !== 'inherit') {
+        serializedItem.availability_mode = item.availabilityMode;
+      }
+      if (Array.isArray(item.shiftIds) && item.shiftIds.length > 0) {
+        serializedItem.shift_ids = [...item.shiftIds];
+      }
 
       const linkedGroups: ItemModifierGroupDraft[] = (
         Array.isArray(item.modifierGroups) ? item.modifierGroups : []

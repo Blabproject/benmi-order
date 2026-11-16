@@ -308,6 +308,8 @@
             if (!qty || qty <= 0) continue;
 
             if (typeof isItemOutOfStock === 'function' && isItemOutOfStock(key)) continue;
+            if (typeof isCartItemScheduleUnavailable === 'function' && isCartItemScheduleUnavailable(key)) continue;
+            if (target.isCartItemScheduleUnavailable && target.isCartItemScheduleUnavailable(key)) continue;
 
             let itemId = key;
             let origName = key;

@@ -68,6 +68,7 @@ async function fetchMenu() {
                 storeStatus: bootstrapData.tenant.storeStatus,
                 prepTimeMinutes: bootstrapData.tenant.prepTimeMinutes,
                 operatingHours: bootstrapData.tenant.parsedHours,
+                operatingShifts: bootstrapData.tenant.operatingShifts || [],
                 liffId: bootstrapData.tenant.liffId
             } : null;
             window.storeConfig = storeConfig;
@@ -133,11 +134,74 @@ function formatBundleButtonLabel(item, hasModifiers) {
 }
 
 // --- DYNAMIC CATALOG RENDERING (UNIFIED FOR ALL TENANTS) ---
+function getMenuScheduleEvalContext() {
+    const bData = window.bootstrapData || (typeof bootstrapData !== 'undefined' ? bootstrapData : null);
+    const cfg = (typeof window !== 'undefined' && window.storeConfig) || (typeof storeConfig !== 'undefined' ? storeConfig : null) || {};
+    const shifts = Array.isArray(cfg.operatingShifts)
+        ? cfg.operatingShifts
+        : (Array.isArray(bData?.tenant?.operatingShifts) ? bData.tenant.operatingShifts : []);
+    const legacyHours = cfg.operatingHours || bData?.tenant?.parsedHours || null;
+    const locale = (typeof window !== 'undefined' && window.currentClientLocale) || 'zh-TW';
+    const targetInfo = (typeof getEffectiveMenuScheduleTime === 'function')
+        ? getEffectiveMenuScheduleTime()
+        : (typeof window !== 'undefined' && typeof window.getEffectiveMenuScheduleTime === 'function'
+            ? window.getEffectiveMenuScheduleTime()
+            : { target: new Date(), isScheduled: false });
+    const target = targetInfo.dateStr && targetInfo.timeStr
+        ? { dateStr: targetInfo.dateStr, timeStr: targetInfo.timeStr }
+        : (targetInfo.target || new Date());
+    return {
+        bData,
+        shifts,
+        legacyHours,
+        target,
+        options: {
+            locale,
+            inclusiveEnd: Boolean(targetInfo.isScheduled)
+        }
+    };
+}
+
+function getCategoryScheduleState(cat) {
+    const sched = (typeof MenuSchedule !== 'undefined' && MenuSchedule) || (typeof window !== 'undefined' ? window.MenuSchedule : null);
+    if (!sched || typeof sched.resolveCategoryAvailability !== 'function' || !cat) {
+        return { available: true, hidden: false, mode: 'all_shifts', shiftIds: [], activeShiftIds: [], activeShiftNames: [], scheduleLabel: '' };
+    }
+    const ctx = getMenuScheduleEvalContext();
+    return sched.resolveCategoryAvailability(cat, ctx.shifts, ctx.legacyHours, ctx.target, ctx.options);
+}
+
+function getItemScheduleState(cat, item) {
+    const sched = (typeof MenuSchedule !== 'undefined' && MenuSchedule) || (typeof window !== 'undefined' ? window.MenuSchedule : null);
+    if (!sched || typeof sched.resolveItemAvailability !== 'function' || !item) {
+        return { available: true, hidden: false, mode: 'all_shifts', shiftIds: [], activeShiftIds: [], activeShiftNames: [], scheduleLabel: '' };
+    }
+    const ctx = getMenuScheduleEvalContext();
+    return sched.resolveItemAvailability(cat, item, ctx.shifts, ctx.legacyHours, ctx.target, ctx.options);
+}
+
 function renderDynamicCatalog() {
     const bData = window.bootstrapData || bootstrapData;
     if (!bData || !bData.catalog) return;
 
-    const catalogSections = bData.catalog.map(cat => ({ type: 'catalog', sortOrder: cat.sortOrder || 0, category: cat }));
+    const catalogSections = [];
+    for (const cat of bData.catalog) {
+        const catAvail = getCategoryScheduleState(cat);
+        if (!catAvail.available && catAvail.hidden) continue;
+        const allItems = Array.isArray(cat.items) ? cat.items : [];
+        const visibleItems = allItems.filter(item => {
+            const itemAvail = getItemScheduleState(cat, item);
+            return itemAvail.available || !itemAvail.hidden;
+        });
+        if (allItems.length > 0 && visibleItems.length === 0) continue;
+        catalogSections.push({
+            type: 'catalog',
+            sortOrder: cat.sortOrder || 0,
+            category: cat,
+            availability: catAvail,
+            visibleItems
+        });
+    }
     const globalCustomizationGroups = (bData.customizations || [])
         .filter(group => !group.scope || group.scope === 'order')
         .sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0));
@@ -189,6 +253,7 @@ function renderDynamicCatalog() {
             renderCustomizationsPanel(sec, section.groups, section.title);
         } else {
             const cat = section.category;
+            const catAvail = section.availability || getCategoryScheduleState(cat);
             sec.id = `sec-${cat.slug}`;
             const titleDiv = document.createElement('div');
             titleDiv.className = 'section-title';
@@ -199,15 +264,23 @@ function renderDynamicCatalog() {
                 || cat.pricingRules?.promo_label
                 || '';
             const promoBadge = localizedPromo ? `<span style="margin-left:auto; font-size:12px; font-weight:700; color:#059669; background:#ecfdf5; border:1px solid #a7f3d0; padding:2px 8px; border-radius:9999px;">${_cmEsc(localizedPromo)}</span>` : '';
-            titleDiv.innerHTML = `<span>${_cmEsc(catDisplayName)}</span>${promoBadge}`;
+            const scheduleBadgeText = catAvail.mode === 'selected_shifts'
+                ? (catAvail.available
+                    ? (catAvail.scheduleLabel ? _cmT('schedule_window_badge', { label: catAvail.scheduleLabel }, `${catAvail.scheduleLabel} 限定`, `Chỉ bán ${catAvail.scheduleLabel}`) : '')
+                    : _cmT('outside_schedule_badge', null, '非供應時段', 'Ngoài khung giờ'))
+                : '';
+            const scheduleBadge = scheduleBadgeText
+                ? `<span style="${promoBadge ? 'margin-left:8px;' : 'margin-left:auto;'} font-size:12px; font-weight:700; color:${catAvail.available ? '#475569' : '#b45309'}; background:${catAvail.available ? '#f1f5f9' : '#fef3c7'}; border:1px solid ${catAvail.available ? '#cbd5e1' : '#fde68a'}; padding:2px 8px; border-radius:9999px;">${_cmEsc(scheduleBadgeText)}</span>`
+                : '';
+            titleDiv.innerHTML = `<span>${_cmEsc(catDisplayName)}</span>${promoBadge}${scheduleBadge}`;
             sec.appendChild(titleDiv);
 
             const gridDiv = document.createElement('div');
             gridDiv.className = 'grid';
             gridDiv.id = `grid-${cat.slug}`;
 
-            (cat.items || []).forEach(item => {
-                gridDiv.appendChild(createDynamicItemCard(cat.slug, item));
+            (section.visibleItems || cat.items || []).forEach(item => {
+                gridDiv.appendChild(createDynamicItemCard(cat.slug, item, cat));
             });
 
             sec.appendChild(gridDiv);
@@ -463,13 +536,18 @@ function handleItemCardClick(catSlug, itemName, event) {
     }
 }
 
-function createDynamicItemCard(catSlug, item) {
+function createDynamicItemCard(catSlug, item, catObj) {
     const div = document.createElement('div');
     div.className = 'card';
     div.id = `item-${catSlug}-${item.name}`;
 
+    const bData = window.bootstrapData || bootstrapData;
+    const resolvedCat = catObj || (bData?.catalog || []).find(c => c.slug === catSlug) || null;
+    const itemAvail = getItemScheduleState(resolvedCat, item);
     const isOos = item.isOutOfStock;
-    if (isOos) {
+    const isOutsideSchedule = !itemAvail.available;
+    const isUnavailable = Boolean(isOos || isOutsideSchedule);
+    if (isUnavailable) {
         div.style.opacity = '0.65';
         div.style.pointerEvents = 'none';
     }
@@ -496,10 +574,10 @@ function createDynamicItemCard(catSlug, item) {
         ? `<img class="item-img" src="${imgSrc}" alt="${_cmEsc(itemDisplayName)}" loading="lazy" onclick="openImageLightbox(this.src)" style="cursor: zoom-in;" onerror="this.style.display='none'">`
         : '';
 
-    const bData = window.bootstrapData || bootstrapData;
+    const bDataRef = bData;
     const itemTrans = window.itemTranslations || {};
     const localizedDesc = typeof locText === 'function' ? locText(item, 'description', '') : '';
-    const trans = localizedDesc || (bData?.translations && bData.translations[item.name]) || itemTrans[item.name] || item.description || '';
+    const trans = localizedDesc || (bDataRef?.translations && bDataRef.translations[item.name]) || itemTrans[item.name] || item.description || '';
     const transHTML = trans ? `<div style="font-size: 13px; color: #9ca3af; margin-top: 2px;">${_cmEsc(trans)}</div>` : '';
 
     const safeItemName = item.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -507,7 +585,7 @@ function createDynamicItemCard(catSlug, item) {
 
     const cartObj = window.cart || cart || {};
     const qty = cartObj[`${catSlug}_${item.name}`] || 0;
-    const footerHTML = getDynamicItemFooterHTML(catSlug, item.name, item.price, isOos);
+    const footerHTML = getDynamicItemFooterHTML(catSlug, item.name, item.price, isOos, isOutsideSchedule);
     const getItemModsFn = typeof getItemModifiers === 'function' ? getItemModifiers : (window.getItemModifiers || (typeof getCategoryModifiers === 'function' ? getCategoryModifiers : (window.getCategoryModifiers || (() => []))));
     const itemModifiers = getItemModsFn(catSlug, item.name);
     const hasModifiers = Array.isArray(itemModifiers) && itemModifiers.length > 0;
@@ -516,7 +594,7 @@ function createDynamicItemCard(catSlug, item) {
     const customizeCardLabel = _cmT('customize_card_label', null, '客製化（加料 / 辣度 / 備註）', 'Tùy chỉnh (thêm món / độ cay / ghi chú)');
 
     const customizeBtnHTML = `
-        <button class="customize-btn" id="customize-btn-${catSlug}-${item.name}" onclick="openItemCustomizeModal('${safeCatSlug}','${safeItemName}', 0)" style="pointer-events: auto; display: ${(!isOos && qty > 0 && hasModifiers && !hasBundleRule) ? 'flex' : 'none'}; align-items: center; justify-content: center; gap: 5px;">
+        <button class="customize-btn" id="customize-btn-${catSlug}-${item.name}" onclick="openItemCustomizeModal('${safeCatSlug}','${safeItemName}', 0)" style="pointer-events: auto; display: ${(!isUnavailable && qty > 0 && hasModifiers && !hasBundleRule) ? 'flex' : 'none'}; align-items: center; justify-content: center; gap: 5px;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
             <span>${_cmEsc(customizeCardLabel)}</span>
         </button>
@@ -550,16 +628,26 @@ function createDynamicItemCard(catSlug, item) {
     return div;
 }
 
-function getDynamicItemFooterHTML(catSlug, itemName, price, isOos) {
+function getDynamicItemFooterHTML(catSlug, itemName, price, isOos, isOutsideSchedule = false) {
     const cartObj = window.cart || cart || {};
     const qty = cartObj[`${catSlug}_${itemName}`] || 0;
     const safeItemName = itemName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     const safeCatSlug = catSlug.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     const soldOutTodayText = _cmT('sold_out_today', null, '今日已售完', 'Hôm nay đã hết');
-    return isOos ? `
+    const outsideScheduleText = _cmT('outside_schedule_badge', null, '非供應時段', 'Ngoài khung giờ');
+    if (isOos) {
+        return `
         <div class="card-price" style="color: #9ca3af;">$${price}</div>
         <div style="color: #dc2626; font-weight: 900; font-size: 14px; background: #fee2e2; padding: 4px 10px; border-radius: 6px;">${_cmEsc(soldOutTodayText)}</div>
-    ` : `
+    `;
+    }
+    if (isOutsideSchedule) {
+        return `
+        <div class="card-price" style="color: #9ca3af;">$${price}</div>
+        <div style="color: #b45309; font-weight: 800; font-size: 13px; background: #fef3c7; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 6px;">${_cmEsc(outsideScheduleText)}</div>
+    `;
+    }
+    return `
         <div class="card-price">$${price}</div>
         <div class="qty-control">
             <button class="btn-qty" onclick="event.stopPropagation(); updateQty('${safeCatSlug}','${safeItemName}',-1)">-</button>
@@ -574,16 +662,32 @@ function updateDynamicStockAndPrices() {
     if (!bData || !bData.catalog) return;
     const cartObj = window.cart || cart || {};
 
+    let needsStructureRerender = false;
     bData.catalog.forEach(cat => {
-        cat.items.forEach(item => {
+        const catAvail = getCategoryScheduleState(cat);
+        const catSecEl = document.getElementById(`sec-${cat.slug}`);
+        const shouldHideCat = !catAvail.available && catAvail.hidden;
+        if ((shouldHideCat && catSecEl) || (!shouldHideCat && !catSecEl && (cat.items || []).length > 0)) {
+            needsStructureRerender = true;
+            return;
+        }
+        (cat.items || []).forEach(item => {
+            const itemAvail = getItemScheduleState(cat, item);
             const card = document.getElementById(`item-${cat.slug}-${item.name}`);
+            const shouldHideItem = !itemAvail.available && itemAvail.hidden;
+            if ((shouldHideItem && card) || (!shouldHideItem && !card && !shouldHideCat)) {
+                needsStructureRerender = true;
+                return;
+            }
             if (!card) return;
-            card.style.opacity = item.isOutOfStock ? '0.65' : '1';
-            card.style.pointerEvents = item.isOutOfStock ? 'none' : 'auto';
+            const isOutsideSchedule = !itemAvail.available;
+            const isUnavailable = Boolean(item.isOutOfStock || isOutsideSchedule);
+            card.style.opacity = isUnavailable ? '0.65' : '1';
+            card.style.pointerEvents = isUnavailable ? 'none' : 'auto';
 
             const footer = card.querySelector('.card-footer');
             if (footer) {
-                footer.innerHTML = getDynamicItemFooterHTML(cat.slug, item.name, item.price, item.isOutOfStock);
+                footer.innerHTML = getDynamicItemFooterHTML(cat.slug, item.name, item.price, item.isOutOfStock, isOutsideSchedule);
             }
 
             const getItemModsFn = typeof getItemModifiers === 'function' ? getItemModifiers : (window.getItemModifiers || (typeof getCategoryModifiers === 'function' ? getCategoryModifiers : (window.getCategoryModifiers || (() => []))));
@@ -594,19 +698,23 @@ function updateDynamicStockAndPrices() {
             const custBtn = card.querySelector('.customize-btn');
             if (custBtn) {
                 const qty = cartObj[`${cat.slug}_${item.name}`] || 0;
-                custBtn.style.display = (!item.isOutOfStock && qty > 0 && hasModifiers && !hasBundleRule) ? 'flex' : 'none';
+                custBtn.style.display = (!isUnavailable && qty > 0 && hasModifiers && !hasBundleRule) ? 'flex' : 'none';
             }
 
             const bundleEditBtn = card.querySelector('.bundle-edit-btn');
             if (bundleEditBtn) {
                 const qty = cartObj[`${cat.slug}_${item.name}`] || 0;
-                bundleEditBtn.style.display = (!item.isOutOfStock && qty > 0 && hasBundleRule) ? 'flex' : 'none';
+                bundleEditBtn.style.display = (!isUnavailable && qty > 0 && hasBundleRule) ? 'flex' : 'none';
                 const bundleBtnText = formatBundleButtonLabel(item, hasModifiers);
                 const span = bundleEditBtn.querySelector('span');
                 if (span) span.textContent = bundleBtnText;
             }
         });
     });
+
+    if (needsStructureRerender) {
+        renderDynamicCatalog();
+    }
 }
 
 function resolveCatalogItem(key) {
@@ -701,6 +809,9 @@ function resolveCatalogItem(key) {
 
 // Window Public Bindings
 window.fetchMenu = fetchMenu;
+window.getMenuScheduleEvalContext = getMenuScheduleEvalContext;
+window.getCategoryScheduleState = getCategoryScheduleState;
+window.getItemScheduleState = getItemScheduleState;
 window.openImageLightbox = openImageLightbox;
 window.closeImageLightbox = closeImageLightbox;
 window.renderDynamicCatalog = renderDynamicCatalog;

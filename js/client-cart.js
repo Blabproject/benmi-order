@@ -705,6 +705,9 @@ function updateTotal() {
     }
 
     const resolveFn = typeof resolveCatalogItem === 'function' ? resolveCatalogItem : (window.resolveCatalogItem || (k => ({ origName: k, displayName: k })));
+    const isSchedUnavailFn = typeof isCartItemScheduleUnavailable === 'function'
+        ? isCartItemScheduleUnavailable
+        : (typeof window !== 'undefined' && typeof window.isCartItemScheduleUnavailable === 'function' ? window.isCartItemScheduleUnavailable : () => false);
 
     for (let key in cartObj) {
         if (cartObj[key] > 0) {
@@ -722,8 +725,10 @@ function updateTotal() {
                     window.editOrderSoldOutNames.some(s => s && s.trim() && (dName.includes(s.trim()) || (itemName && itemName.includes(s.trim()))))
                 ))
             );
+            const isScheduleUnavailable = !isOutOfStock && Boolean(isSchedUnavailFn(key));
+            const isUnavailable = Boolean(isOutOfStock || isScheduleUnavailable);
 
-            if (!isOutOfStock) {
+            if (!isUnavailable) {
                 totalQty += qty;
             }
 
@@ -737,7 +742,9 @@ function updateTotal() {
                 displayName: localizedDName,
                 qty,
                 price: itemBasePrice,
-                isOutOfStock
+                isOutOfStock,
+                isScheduleUnavailable,
+                isUnavailable
             });
         }
     }
@@ -750,11 +757,11 @@ function updateTotal() {
 
         const catMeta = categoryMetaMap[slug] || {};
         const catRule = catMeta.pricingRules;
-        const activeCatItems = catItems.filter(it => !it.isOutOfStock);
+        const activeCatItems = catItems.filter(it => !it.isUnavailable);
         const bundleRes = calculateCategoryBundleSubtotal(catRule, activeCatItems);
 
         catItems.forEach(it => {
-            const { key, catSlug, itemName, displayName, qty, price, isOutOfStock } = it;
+            const { key, catSlug, itemName, displayName, qty, price, isOutOfStock, isScheduleUnavailable, isUnavailable } = it;
             let itemModifiersTotal = 0;
             let portionsHTML = '';
             const portionDetails = [];
@@ -804,9 +811,9 @@ function updateTotal() {
                         }
                     }
                     if (c.note && c.note.trim() !== '') parts.push(c.note.trim());
-                    if (!isOutOfStock && typeof calculatePortionExtra === 'function') {
+                    if (!isUnavailable && typeof calculatePortionExtra === 'function') {
                         itemModifiersTotal += calculatePortionExtra(key, c);
-                    } else if (!isOutOfStock) {
+                    } else if (!isUnavailable) {
                         Object.values(c.single || {}).forEach(value => { if (value) itemModifiersTotal += getPrice(value); });
                         Object.entries(c.multiple || {}).forEach(([value, selected]) => { if (selected) itemModifiersTotal += getPrice(value); });
                         Object.values(c.subOptions || {}).forEach(sub => { itemModifiersTotal += Number(sub?.price || 0); });
@@ -820,18 +827,24 @@ function updateTotal() {
             if (hasBundleGroups && window.bundleCartData && window.bundleCartData[key] && window.bundlePortionExtra) {
                 bundleExtra = window.bundleCartData[key].slice(0, qty).reduce((sum, portion) => sum + (window.bundlePortionExtra(portion) || 0), 0);
             }
-            if (!isOutOfStock) itemModifiersTotal += bundleExtra;
+            if (!isUnavailable) itemModifiersTotal += bundleExtra;
 
-            let lineTotal = (!isOutOfStock && wasmCart?.lineTotals?.[key] !== undefined)
+            let lineTotal = (!isUnavailable && wasmCart?.lineTotals?.[key] !== undefined)
                 ? wasmCart.lineTotals[key]
                 : ((qty * price) + itemModifiersTotal);
 
-            if (isOutOfStock) {
+            if (isUnavailable) {
+                const unavailTag = isScheduleUnavailable && !isOutOfStock
+                    ? escapeCartText(t('cart_outside_schedule', null, '非所選時段供應'))
+                    : escapeCartText(t('cart_item_removed', null, '已移除'));
+                const tagColors = (isScheduleUnavailable && !isOutOfStock)
+                    ? 'background:#fef3c7; color:#b45309;'
+                    : 'background:#fee2e2; color:#dc2626;';
                 summaryHTML += `
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; opacity:0.6; text-decoration:line-through; color:#94a3b8;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; opacity:0.65; text-decoration:line-through; color:#94a3b8;">
                         <div style="font-weight:700;">
                             <span>${qty}x ${escapeCartText(displayName)}</span>
-                            <span style="display:inline-block; margin-left:6px; font-size:11px; font-weight:700; background:#fee2e2; color:#dc2626; padding:1px 6px; border-radius:4px; text-decoration:none; vertical-align:middle;">${escapeCartText(t('cart_item_removed', null, '已移除'))}</span>
+                            <span style="display:inline-block; margin-left:6px; font-size:11px; font-weight:700; ${tagColors} padding:1px 6px; border-radius:4px; text-decoration:none; vertical-align:middle;">${unavailTag}</span>
                         </div>
                         <div style="font-weight:700; color:#94a3b8;">$${lineTotal}</div>
                     </div>
@@ -1145,8 +1158,23 @@ function updateTotal() {
     return total;
 }
 
+function isCartItemScheduleUnavailable(key) {
+    const resolveFn = typeof resolveCatalogItem === 'function' ? resolveCatalogItem : (window.resolveCatalogItem || null);
+    if (!resolveFn) return false;
+    const itemInfo = resolveFn(key);
+    if (!itemInfo || !itemInfo.targetItem) return false;
+    if (typeof getItemScheduleState === 'function') {
+        return !getItemScheduleState(itemInfo.targetCat, itemInfo.targetItem).available;
+    }
+    if (typeof window !== 'undefined' && typeof window.getItemScheduleState === 'function') {
+        return !window.getItemScheduleState(itemInfo.targetCat, itemInfo.targetItem).available;
+    }
+    return false;
+}
+
 // Window Public Bindings
 window.parseCartKey = parseCartKey;
+window.isCartItemScheduleUnavailable = isCartItemScheduleUnavailable;
 window.calculateCurrentFoodSubtotal = calculateCurrentFoodSubtotal;
 window.updateCustomizationThresholdUI = updateCustomizationThresholdUI;
 window.validateCustomizationThresholds = validateCustomizationThresholds;
