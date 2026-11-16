@@ -305,6 +305,48 @@ test('Full SQLite migrations + zhenbaochufang seed + bootstrap + config shifts +
   assert.equal(catDAfterSync.hide_when_unavailable, 1);
   assert.equal(db.prepare("SELECT COUNT(*) AS c FROM menu_category_shifts WHERE category_id='cat_zb_fried_rice'").get().c, 2);
 
+  // 4b. Verify per-item shift link, uncheck all shifts, and revert back to 'inherit'
+  const testItemDraft = draftCats.find(c => c.databaseId === 'cat_zb_fried_rice').items.find(it => it.id === 'zb_d_01');
+  testItemDraft.availabilityMode = 'selected_shifts';
+  testItemDraft.shiftIds = ['shift_zb_lunch'];
+  await updateMenu(new Request('https://example.test/api/menu?tenant_id=zhenbaochufang', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(MenuEditorModel.serializeMenuData(draftCats, {
+      getTenantId: () => 'zhenbaochufang',
+      createUuid: () => 'test-uuid',
+      getDuplicateItemMessage: () => 'duplicate'
+    }))
+  }), env);
+  assert.equal(db.prepare("SELECT availability_mode FROM menu_items WHERE id='zb_d_01'").get().availability_mode, 'selected_shifts');
+  assert.equal(db.prepare("SELECT COUNT(*) AS c FROM menu_item_shifts WHERE item_id='zb_d_01'").get().c, 1);
+
+  // Uncheck the item's shift -> must delete row in menu_item_shifts
+  testItemDraft.shiftIds = [];
+  await updateMenu(new Request('https://example.test/api/menu?tenant_id=zhenbaochufang', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(MenuEditorModel.serializeMenuData(draftCats, {
+      getTenantId: () => 'zhenbaochufang',
+      createUuid: () => 'test-uuid',
+      getDuplicateItemMessage: () => 'duplicate'
+    }))
+  }), env);
+  assert.equal(db.prepare("SELECT COUNT(*) AS c FROM menu_item_shifts WHERE item_id='zb_d_01'").get().c, 0);
+
+  // Revert item back to inherit -> must update availability_mode back to 'inherit'
+  testItemDraft.availabilityMode = 'inherit';
+  await updateMenu(new Request('https://example.test/api/menu?tenant_id=zhenbaochufang', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(MenuEditorModel.serializeMenuData(draftCats, {
+      getTenantId: () => 'zhenbaochufang',
+      createUuid: () => 'test-uuid',
+      getDuplicateItemMessage: () => 'duplicate'
+    }))
+  }), env);
+  assert.equal(db.prepare("SELECT availability_mode FROM menu_items WHERE id='zb_d_01'").get().availability_mode, 'inherit');
+
   // 5. Verify direct backend validation rejects Category D at Lunch & Fri Late, accepts at Dinner & Mon-Thu Late
   const optionCatalog = await loadOptionCatalog(env, 'zhenbaochufang');
   const lunchInvalid = validateCatalogScheduleForItems(

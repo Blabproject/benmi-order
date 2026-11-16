@@ -213,16 +213,17 @@
           if (item.i18n && typeof item.i18n === 'object' && Object.keys(item.i18n).length > 0) {
             serializedItem.i18n = item.i18n;
           }
-          if (item.availabilityMode && item.availabilityMode !== 'inherit') {
-            serializedItem.availability_mode = item.availabilityMode;
-          } else if (item.availability_mode && item.availability_mode !== 'inherit') {
-            serializedItem.availability_mode = item.availability_mode;
-          }
-          if (Array.isArray(item.shiftIds) && item.shiftIds.length > 0) {
-            serializedItem.shift_ids = [...item.shiftIds];
-          } else if (Array.isArray(item.shift_ids) && item.shift_ids.length > 0) {
-            serializedItem.shift_ids = [...item.shift_ids];
-          }
+          const rawAvailMode = item.availabilityMode ?? item.availability_mode;
+          serializedItem.availability_mode =
+            (rawAvailMode === 'all_shifts' || rawAvailMode === 'selected_shifts')
+              ? rawAvailMode
+              : 'inherit';
+          const rawShiftIds = Array.isArray(item.shiftIds)
+            ? item.shiftIds
+            : (Array.isArray(item.shift_ids) ? item.shift_ids : []);
+          serializedItem.shift_ids = serializedItem.availability_mode === 'selected_shifts'
+            ? [...rawShiftIds]
+            : [];
           const sharedGroups = [];
           const customCatsSource = Object.prototype.hasOwnProperty.call(dependencies, 'sharedCategories')
             ? (dependencies.sharedCategories === null ? [] : dependencies.sharedCategories)

@@ -1126,8 +1126,10 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
         );
 
         const rawItemShiftIds = (itemVal && typeof itemVal === "object") ? (itemVal.shift_ids ?? itemVal.shiftIds) : undefined;
-        if (hasItemShiftsTbl && Array.isArray(rawItemShiftIds)) {
-          const nextShiftIds = [...new Set<string>(rawItemShiftIds.map((s: any) => String(s)).filter(Boolean))];
+        if (hasItemShiftsTbl && (Array.isArray(rawItemShiftIds) || (itemAvailRaw !== undefined && itemAvailMode !== 'selected_shifts'))) {
+          const nextShiftIds = (itemAvailMode === 'selected_shifts' && Array.isArray(rawItemShiftIds))
+            ? [...new Set<string>(rawItemShiftIds.map((s: any) => String(s)).filter(Boolean))]
+            : [];
           if (nextShiftIds.some((sid) => !ownedShiftIds.has(sid))) {
             throw new Error('INVALID_SHIFT_ID');
           }

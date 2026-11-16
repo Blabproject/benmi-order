@@ -868,12 +868,18 @@ export function serializeMenuData(
               ? item.sort_order
               : itemIdx + 1
       };
-      if (item.availabilityMode && item.availabilityMode !== 'inherit') {
-        serializedItem.availability_mode = item.availabilityMode;
-      }
-      if (Array.isArray(item.shiftIds) && item.shiftIds.length > 0) {
-        serializedItem.shift_ids = [...item.shiftIds];
-      }
+      const rawAvailMode = item.availabilityMode ?? item.availability_mode;
+      serializedItem.availability_mode =
+        rawAvailMode === 'all_shifts' || rawAvailMode === 'selected_shifts'
+          ? rawAvailMode
+          : 'inherit';
+      const rawShiftIds = Array.isArray(item.shiftIds)
+        ? item.shiftIds
+        : Array.isArray(item.shift_ids)
+          ? item.shift_ids
+          : [];
+      serializedItem.shift_ids =
+        serializedItem.availability_mode === 'selected_shifts' ? [...rawShiftIds] : [];
 
       const linkedGroups: ItemModifierGroupDraft[] = (
         Array.isArray(item.modifierGroups) ? item.modifierGroups : []
