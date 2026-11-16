@@ -11,8 +11,16 @@
 INSERT OR IGNORE INTO tenants (id, name)
 VALUES ('zhenbaochufang', '珍寶廚坊');
 
-INSERT OR IGNORE INTO tenant_config (tenant_id, brand_name)
-VALUES ('zhenbaochufang', '珍寶廚坊');
+INSERT OR IGNORE INTO tenant_config (tenant_id, brand_name, features)
+VALUES ('zhenbaochufang', '珍寶廚坊', '["menu_schedule"]');
+
+UPDATE tenant_config
+SET features = CASE
+    WHEN COALESCE(TRIM(features), '') IN ('', '[]') THEN '["menu_schedule"]'
+    WHEN INSTR(features, '"menu_schedule"') > 0 THEN features
+    ELSE json_insert(features, '$[#]', 'menu_schedule')
+END
+WHERE tenant_id = 'zhenbaochufang';
 
 DELETE FROM menu_category_shifts WHERE tenant_id='zhenbaochufang';
 DELETE FROM menu_item_shifts WHERE tenant_id='zhenbaochufang';

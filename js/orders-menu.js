@@ -337,6 +337,9 @@ async function loadMenuData() {
     if (data.tenant && Array.isArray(data.tenant.operatingShifts)) {
       window.storeOperatingShifts = data.tenant.operatingShifts;
     }
+    if (typeof syncMenuScheduleEntryButtonVisibility === "function") {
+      syncMenuScheduleEntryButtonVisibility();
+    }
 
     if (!libraryResponse.ok) throw new Error('Failed to load modifier library');
     const libraryData = await libraryResponse.json();
@@ -1935,7 +1938,7 @@ function renderMenuCategoryEditor(index) {
     catalogCard.appendChild(modCard);
   }
 
-  if (cat.type === 'catalog') {
+  if (cat.type === 'catalog' && typeof isMenuScheduleFeatureEnabled === 'function' && isMenuScheduleFeatureEnabled()) {
     const availShifts = Array.isArray(window.storeOperatingShifts) ? window.storeOperatingShifts : [];
     const curMode = cat.availabilityMode === 'selected_shifts' ? 'selected_shifts' : 'all_shifts';
     const curShiftIds = Array.isArray(cat.shiftIds) ? cat.shiftIds : [];
@@ -1987,9 +1990,12 @@ function renderMenuCategoryEditor(index) {
 
     schedCard.innerHTML = `
       <div style="padding:12px 14px;">
-        <div style="display:flex; align-items:center; gap:8px; font-weight:800; font-size:14px; color:#0f172a;">
-          ${clockSvg}
-          <span>${escapeHtml(t("catScheduleTitle"))}</span>
+        <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;">
+          <div style="display:flex; align-items:center; gap:8px; font-weight:800; font-size:14px; color:#0f172a;">
+            ${clockSvg}
+            <span>${escapeHtml(t("catScheduleTitle"))}</span>
+          </div>
+          <button type="button" onclick="switchTab('menu-schedule')" style="min-height:40px; padding:6px 12px; border-radius:8px; border:1px solid #bfdbfe; background:#eff6ff; color:#1d4ed8; font-weight:800; font-size:12.5px; cursor:pointer;">${escapeHtml(t("catScheduleOpenCanvasBtn"))}</button>
         </div>
         ${modeButtonsHtml}
         ${selectedBodyHtml}
@@ -6100,6 +6106,14 @@ async function translateMissingMenuWithAI() {
     updateMenuSaveState();
   }
 }
+function syncMenuScheduleEntryButtonVisibility() {
+  const btn = document.getElementById("btn-menu-schedule-builder");
+  if (!btn) return;
+  const enabled = typeof isMenuScheduleFeatureEnabled === "function" && isMenuScheduleFeatureEnabled();
+  btn.style.display = enabled ? "inline-flex" : "none";
+}
+
+window.syncMenuScheduleEntryButtonVisibility = syncMenuScheduleEntryButtonVisibility;
 window.setCategoryAvailabilityMode = setCategoryAvailabilityMode;
 window.toggleCategoryShiftId = toggleCategoryShiftId;
 window.toggleCategoryHideWhenUnavailable = toggleCategoryHideWhenUnavailable;

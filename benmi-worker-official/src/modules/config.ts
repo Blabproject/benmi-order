@@ -13,7 +13,18 @@ import {
   saveTenantOperatingShifts,
   stripOperatingHoursProjection,
   syncShiftsFromLegacyOperatingHours,
+  parseFeaturesArray,
 } from './operating-shifts';
+
+async function resolveConfigFeatures(
+  tenantCtx: TenantContext | null | undefined,
+  tenantRepo: ReturnType<typeof createTenantRepository>,
+  tenantId: string
+): Promise<string[]> {
+  if (Array.isArray(tenantCtx?.features)) return tenantCtx.features;
+  const cur = await tenantRepo.getTenantConfigRow(tenantId);
+  return parseFeaturesArray(cur?.features);
+}
 
 export async function getConfig(
   request: Request,
@@ -35,8 +46,13 @@ export async function getConfig(
     return json({ error: 'Tenant not found' }, 404, { 'Cache-Control': 'no-store' });
   }
 
-  const operatingShifts = await loadTenantOperatingShifts(env.DB, tenantId);
-  const hasRelationalOperating = operatingShifts.some((s) => s.shiftType === 'operating' && s.isActive);
+  const finalFeatures = parseFeaturesArray(domainRow.features).length > 0
+    ? parseFeaturesArray(domainRow.features)
+    : (tenantCtx?.features || []);
+  const hasMenuSchedule = finalFeatures.includes('menu_schedule');
+
+  const operatingShifts = hasMenuSchedule ? await loadTenantOperatingShifts(env.DB, tenantId) : [];
+  const hasRelationalOperating = hasMenuSchedule && operatingShifts.some((s) => s.shiftType === 'operating' && s.isActive);
   let operatingHours = hasRelationalOperating
     ? stripOperatingHoursProjection(operatingShifts)
     : parseOperatingHours(domainRow.operating_hours, tenantId);
@@ -53,17 +69,6 @@ export async function getConfig(
   if (domainRow.allow_dine_in !== undefined && domainRow.allow_dine_in !== null) {
     allowDineIn = Boolean(domainRow.allow_dine_in);
   }
-
-  let features: string[] = [];
-  try {
-    if (domainRow.features) {
-      features = typeof domainRow.features === 'string' ? JSON.parse(domainRow.features) : domainRow.features;
-    }
-  } catch {
-    features = [];
-  }
-
-  const finalFeatures = Array.isArray(features) && features.length > 0 ? features : (tenantCtx?.features || []);
 
   let orderConfig;
   try {
@@ -190,20 +195,24 @@ export async function updateConfig(
       storeNotice = serializeStoreNotice(payload.storeNotice, current?.store_notice);
     }
 
+    const needsFeatureCheck =
+      payload.supportedLocales !== undefined ||
+      payload.i18n !== undefined ||
+      payload.operatingShifts !== undefined ||
+      payload.operatingHours !== undefined;
+    const existingFeatures = needsFeatureCheck
+      ? await resolveConfigFeatures(tenantCtx, tenantRepo, tenantId)
+      : [];
+    const hasMenuSchedule = existingFeatures.includes('menu_schedule');
+
     if (payload.supportedLocales !== undefined || payload.i18n !== undefined) {
-      let existingFeatures: string[] = Array.isArray(tenantCtx?.features) ? tenantCtx.features : [];
-      if (!tenantCtx) {
-        const cur = await tenantRepo.getTenantConfigRow(tenantId);
-        if (cur?.features) {
-          try {
-            const parsed = typeof cur.features === 'string' ? JSON.parse(cur.features) : cur.features;
-            if (Array.isArray(parsed)) existingFeatures = parsed;
-          } catch {}
-        }
-      }
       if (!isMultilingualCanaryEnabled(tenantId, env, { features: existingFeatures })) {
         return json({ error: 'FEATURE_LOCKED', feature: 'multilingual' }, 403);
       }
+    }
+
+    if (payload.operatingShifts !== undefined && !hasMenuSchedule) {
+      return json({ error: 'FEATURE_LOCKED', feature: 'menu_schedule' }, 403);
     }
 
     let normalizedSupportedLocales: string[] | undefined;
@@ -265,7 +274,7 @@ export async function updateConfig(
       brandName
     });
 
-    if (!savedShiftsResult && payload.operatingHours !== undefined) {
+    if (!savedShiftsResult && payload.operatingHours !== undefined && hasMenuSchedule) {
       await syncShiftsFromLegacyOperatingHours(env.DB, tenantId, payload.operatingHours);
     }
 
@@ -276,7 +285,7 @@ export async function updateConfig(
     if (savedShiftsResult) {
       responseBody.operatingShifts = savedShiftsResult.shifts;
       responseBody.operatingHours = savedShiftsResult.projectedOperatingHours;
-    } else if (payload.operatingHours !== undefined) {
+    } else if (payload.operatingHours !== undefined && hasMenuSchedule) {
       responseBody.operatingShifts = await loadTenantOperatingShifts(env.DB, tenantId);
     }
     if (normalizedSupportedLocales !== undefined) {

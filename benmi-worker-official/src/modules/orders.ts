@@ -3,7 +3,7 @@ import { attachPayments } from './payments';
 import { writeDetailedOrder } from './order-detail-write';
 import { attachOrderDetails, detailReads } from './order-detail';
 import { unifiedMenuEnabled, validateUnifiedOrderItems, loadOptionCatalog } from './option-groups';
-import { hasDbTable, validateCatalogScheduleForItems } from './operating-shifts';
+import { hasDbTable, validateCatalogScheduleForItems, hasTenantMenuScheduleFeature } from './operating-shifts';
 import { resolveOrderKey } from './order-identity';
 import { Env } from '../types/env';
 import { Order, DiningOption, AppendOrderPayload, OrderItemInput } from '../types/index';
@@ -477,8 +477,8 @@ export async function createOrder(
     }
   }
 
-  // 1.0b Kiểm tra khung giờ phục vụ theo ca (Time-Based Menu Schedule)
-  if (rawItems.length > 0 && env.DB && await hasDbTable(env.DB, 'tenant_operating_shifts')) {
+  // 1.0b Kiểm tra khung giờ phục vụ theo ca (Time-Based Menu Schedule - gated by 'menu_schedule' package)
+  if (rawItems.length > 0 && env.DB && await hasDbTable(env.DB, 'tenant_operating_shifts') && await hasTenantMenuScheduleFeature(env.DB, tenantId, tenantCtx)) {
     try {
       const catalog = await loadOptionCatalog(env, tenantId);
       const schedTarget = cleanTime || new Date();

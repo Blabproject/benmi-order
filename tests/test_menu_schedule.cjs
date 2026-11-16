@@ -430,5 +430,82 @@ test('Full SQLite migrations + zhenbaochufang seed + bootstrap + config shifts +
   // Loaded shifts helper sanity check
   const persistedShifts = await loadTenantOperatingShifts(env.DB, 'zhenbaochufang');
   assert.equal(persistedShifts.length, 3);
+  assert.equal(bsData.tenant.features.includes('menu_schedule'), true);
+  db.close();
+});
+
+test('Feature package menu_schedule strictly isolates non-subscribed tenants across config, bootstrap, menu, and orders', async () => {
+  const db = createFullMigratedDb();
+  const env = createEnvForDb(db);
+  db.exec(`
+    INSERT INTO tenants (id, name) VALUES ('standard_store', 'Standard Store');
+    INSERT INTO tenant_config (tenant_id, brand_name, features, operating_hours)
+      VALUES ('standard_store', 'Standard Store', '[]', '{"1":[{"start":"09:00","end":"21:00"}]}');
+    INSERT INTO tenant_operating_shifts (id, tenant_id, name, shift_type, sort_order, is_active)
+      VALUES ('shift_std_dinner', 'standard_store', 'Dinner', 'operating', 1, 1);
+    INSERT INTO tenant_operating_hours (id, tenant_id, shift_id, day_of_week, start_time, end_time, is_active)
+      VALUES ('oh_std_1', 'standard_store', 'shift_std_dinner', 1, '17:00', '20:00', 1);
+    INSERT INTO menu_categories (id, tenant_id, name, slug, category_type, sort_order, availability_mode, hide_when_unavailable)
+      VALUES ('cat_std_main', 'standard_store', 'Main', 'main', 'catalog', 1, 'selected_shifts', 1);
+    INSERT INTO menu_category_shifts (tenant_id, category_id, shift_id)
+      VALUES ('standard_store', 'cat_std_main', 'shift_std_dinner');
+    INSERT INTO menu_items (id, tenant_id, category_id, name, price, sort_order, item_type, availability_mode)
+      VALUES ('std_item_1', 'standard_store', 'cat_std_main', 'Bento', 100, 1, 'standard', 'inherit');
+  `);
+
+  // 1. /api/config hides shifts and rejects shift mutations with 403 FEATURE_LOCKED
+  const cfgRes = await getConfig(new Request('https://example.test/api/config?tenant_id=standard_store'), env);
+  assert.equal(cfgRes.status, 200);
+  const cfgData = await cfgRes.json();
+  assert.deepEqual(cfgData.operatingShifts, []);
+  assert.equal(cfgData.operatingHours['1'][0].start, '09:00');
+
+  const lockedRes = await updateConfig(new Request('https://example.test/api/config?tenant_id=standard_store', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ operatingShifts: [{ id: 's1', name: 'Dinner', windows: [] }] })
+  }), env);
+  assert.equal(lockedRes.status, 403);
+  const lockedBody = await lockedRes.json();
+  assert.equal(lockedBody.feature, 'menu_schedule');
+
+  // Legacy operatingHours save continues to work cleanly for standard tenants
+  const legacyHoursRes = await updateConfig(new Request('https://example.test/api/config?tenant_id=standard_store', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ operatingHours: { '1': [{ start: '10:00', end: '20:00' }] } })
+  }), env);
+  assert.equal(legacyHoursRes.status, 200);
+
+  // 2. /api/tenant/bootstrap strips shifts and resets availabilityMode to all_shifts
+  const bsRes = await getTenantBootstrap(new Request('https://example.test/api/tenant/bootstrap?tenant_id=standard_store&nocache=1'), env);
+  assert.equal(bsRes.status, 200);
+  const bsData = await bsRes.json();
+  assert.deepEqual(bsData.tenant.operatingShifts, []);
+  assert.equal(bsData.catalog[0].availabilityMode, 'all_shifts');
+  assert.equal(bsData.catalog[0].hideWhenUnavailable, false);
+  assert.deepEqual(bsData.catalog[0].shiftIds, []);
+
+  // 3. createOrder does not enforce shift restrictions when menu_schedule package is absent
+  const orderRes = await createOrder(new Request('https://example.test/api/create?tenant_id=standard_store', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: 'U_std',
+      customer: 'Standard Customer',
+      dining_option: 'takeaway',
+      time: '2026-11-16 12:00',
+      total: 100,
+      items: [{
+        itemId: 'std_item_1',
+        category: 'main',
+        itemName: 'Bento',
+        quantity: 1,
+        price: 100,
+        subtotal: 100
+      }]
+    })
+  }), env);
+  assert.equal(orderRes.status, 200);
   db.close();
 });

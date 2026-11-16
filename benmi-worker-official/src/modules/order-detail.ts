@@ -2,7 +2,7 @@ import type { Env } from '../types/env';
 import type { Order } from '../types';
 import type { DetailGroup, DetailLine, DetailRound, OrderDetailSnapshot } from '../types/order-detail';
 import { loadOptionCatalog, effectiveGroups, groupOptions, validateOptionSelection, type OptionCatalog } from './option-groups';
-import { validateCatalogScheduleForItems } from './operating-shifts';
+import { validateCatalogScheduleForItems, hasTenantMenuScheduleFeature } from './operating-shifts';
 import DetailView from '../../../js/order-detail-view.js';
 import { pricingRustEnabled, callRustBuildDetailRound } from './pricing-engine-client';
 
@@ -38,8 +38,10 @@ export async function buildDetailRound(env: Env, tenant: string, input: any, rou
       portions.every((p: any, index: number) => sameSelections(p.groups || [], old.portions[index].groups)) ? old : undefined;
   };
   const itemsToCheckSchedule = input.items.filter((i: any) => !unchangedLine(i));
-  const scheduleCheck = validateCatalogScheduleForItems(catalog, itemsToCheckSchedule, input.time);
-  if (!scheduleCheck.valid) fail('PRODUCT_UNAVAILABLE');
+  if (itemsToCheckSchedule.length > 0 && await hasTenantMenuScheduleFeature(env.DB, tenant, features)) {
+    const scheduleCheck = validateCatalogScheduleForItems(catalog, itemsToCheckSchedule, input.time);
+    if (!scheduleCheck.valid) fail('PRODUCT_UNAVAILABLE');
+  }
   if (pricingRustEnabled(env, features)) {
     try {
       return await callRustBuildDetailRound(env, catalog, input, roundNumber, previous);

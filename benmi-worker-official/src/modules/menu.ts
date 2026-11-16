@@ -1,5 +1,5 @@
 import { groupOptions, loadOptionCatalog, validateOptionGraph, unifiedMenuEnabled } from './option-groups';
-import { hasDbTable, loadCategoryAndItemShiftLinks, loadTenantOperatingShifts } from './operating-shifts';
+import { hasDbTable, loadCategoryAndItemShiftLinks, loadTenantOperatingShifts, hasTenantMenuScheduleFeature } from './operating-shifts';
 import { Env } from '../types/env';
 import { Menu } from '../types/index';
 import { json } from '../utils/http';
@@ -642,7 +642,8 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
   validateMenuUpdate(menuData);
   // Anchor the guard before reading ranks and IDs used to construct the write batch.
   const unifiedCatalog = unifiedMenuEnabled(env) ? await loadOptionCatalog(env, tenantId) : null;
-  const [hasCatI18nCol, hasItemI18nCol, hasCatAvailCol, hasCatHideCol, hasItemAvailCol, hasCatShiftsTbl, hasItemShiftsTbl] = await Promise.all([
+  const hasMenuSchedule = await hasTenantMenuScheduleFeature(env.DB, tenantId, null);
+  const [hasCatI18nCol, hasItemI18nCol, hasCatAvailCol, hasCatHideCol, hasItemAvailCol, rawHasCatShiftsTbl, rawHasItemShiftsTbl] = await Promise.all([
     hasTableColumn(env.DB, "menu_categories", "i18n_json"),
     hasTableColumn(env.DB, "menu_items", "i18n_json"),
     hasTableColumn(env.DB, "menu_categories", "availability_mode"),
@@ -651,6 +652,8 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
     hasDbTable(env.DB, "menu_category_shifts"),
     hasDbTable(env.DB, "menu_item_shifts"),
   ]);
+  const hasCatShiftsTbl = hasMenuSchedule && rawHasCatShiftsTbl;
+  const hasItemShiftsTbl = hasMenuSchedule && rawHasItemShiftsTbl;
   const [tenantShifts, existingShiftLinks] = (hasCatShiftsTbl || hasItemShiftsTbl)
     ? await Promise.all([loadTenantOperatingShifts(env.DB, tenantId), loadCategoryAndItemShiftLinks(env.DB, tenantId)])
     : [[], { categoryShiftIds: new Map<string, string[]>(), itemShiftIds: new Map<string, string[]>() }];
@@ -1001,11 +1004,11 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
       ? serializeI18nJson(catI18nRaw)
       : (existingCatI18nMap.get(slug) || "{}");
 
-    const catAvailRaw = itemsMap && (itemsMap.__availability_mode ?? itemsMap._availability_mode);
+    const catAvailRaw = hasMenuSchedule ? (itemsMap && (itemsMap.__availability_mode ?? itemsMap._availability_mode)) : undefined;
     const catAvailMode = catAvailRaw !== undefined
       ? (catAvailRaw === 'selected_shifts' ? 'selected_shifts' : 'all_shifts')
       : (existingCatAvailMap.get(catId) || 'all_shifts');
-    const catHideRaw = itemsMap && (itemsMap.__hide_when_unavailable ?? itemsMap._hide_when_unavailable);
+    const catHideRaw = hasMenuSchedule ? (itemsMap && (itemsMap.__hide_when_unavailable ?? itemsMap._hide_when_unavailable)) : undefined;
     const catHideUnavailable = catHideRaw !== undefined
       ? (catHideRaw ? 1 : 0)
       : (existingCatHideMap.get(catId) ?? 0);
@@ -1095,7 +1098,7 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
           ? serializeI18nJson(itemI18nRaw)
           : (existingItemI18nMap.get(itemId) || "{}");
 
-        const itemAvailRaw = (itemVal && typeof itemVal === "object")
+        const itemAvailRaw = (hasMenuSchedule && itemVal && typeof itemVal === "object")
           ? (itemVal.availability_mode ?? itemVal.availabilityMode)
           : undefined;
         const itemAvailMode = itemAvailRaw !== undefined

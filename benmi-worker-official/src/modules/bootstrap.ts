@@ -9,6 +9,7 @@ import {
   loadCategoryAndItemShiftLinks,
   loadTenantOperatingShifts,
   stripOperatingHoursProjection,
+  hasTenantMenuScheduleFeature,
   type OperatingShiftDto,
 } from './operating-shifts';
 
@@ -632,6 +633,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
     let itemModifierRows: any[] = [];
     let categoryModifierRows: any[] = [];
     let tenantMetaRow: { i18n_json?: string | null; supported_locales?: string | null } | null = null;
+    const hasMenuScheduleFeature = await hasTenantMenuScheduleFeature(env.DB, tenantId, tenantCtx);
     let operatingShifts: OperatingShiftDto[] = [];
     let categoryShiftIdsMap = new Map<string, string[]>();
     let itemShiftIdsMap = new Map<string, string[]>();
@@ -660,8 +662,8 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
           hasTableColumn(env.DB, 'menu_categories', 'availability_mode'),
           hasTableColumn(env.DB, 'menu_categories', 'hide_when_unavailable'),
           hasTableColumn(env.DB, 'menu_items', 'availability_mode'),
-          loadTenantOperatingShifts(env.DB, tenantId),
-          loadCategoryAndItemShiftLinks(env.DB, tenantId),
+          hasMenuScheduleFeature ? loadTenantOperatingShifts(env.DB, tenantId) : Promise.resolve([]),
+          hasMenuScheduleFeature ? loadCategoryAndItemShiftLinks(env.DB, tenantId) : Promise.resolve({ categoryShiftIds: new Map(), itemShiftIds: new Map() }),
         ]);
         operatingShifts = loadedShifts;
         categoryShiftIdsMap = loadedShiftLinks.categoryShiftIds;
@@ -1190,9 +1192,9 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
         const isCustomizationAllowed = Boolean(cat.allow_customization ?? 1) && (appliedModifiers.length > 0 || catModGroups.length > 0);
         const catI18n = parseI18nJson(cat.i18n_json);
 
-        const catShiftIds = categoryShiftIdsMap.get(String(cat.id)) || [];
-        const catAvailMode = cat.availability_mode === 'selected_shifts' ? 'selected_shifts' : 'all_shifts';
-        const catHideUnavailable = Boolean(cat.hide_when_unavailable);
+        const catShiftIds = hasMenuScheduleFeature ? (categoryShiftIdsMap.get(String(cat.id)) || []) : [];
+        const catAvailMode = (hasMenuScheduleFeature && cat.availability_mode === 'selected_shifts') ? 'selected_shifts' : 'all_shifts';
+        const catHideUnavailable = hasMenuScheduleFeature ? Boolean(cat.hide_when_unavailable) : false;
 
         catalog.push({
           id: cat.id,
@@ -1208,12 +1210,14 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
           shiftIds: catShiftIds,
           ...(Object.keys(catI18n).length > 0 ? { i18n: catI18n } : {}),
           sortOrder: cat.sort_order || 0,
-          items: catItems
+          items: hasMenuScheduleFeature
+            ? catItems
+            : catItems.map((it: any) => ({ ...it, availabilityMode: 'inherit', shiftIds: [] }))
         });
       }
     }
 
-    const hasRelationalOperating = operatingShifts.some((s) => s.shiftType === 'operating' && s.isActive);
+    const hasRelationalOperating = hasMenuScheduleFeature && operatingShifts.some((s) => s.shiftType === 'operating' && s.isActive);
     const resolvedParsedHours = hasRelationalOperating
       ? stripOperatingHoursProjection(operatingShifts)
       : parseOperatingHours(operatingHours, tenantId);

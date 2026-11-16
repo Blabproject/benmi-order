@@ -10,6 +10,11 @@ let allowScheduledPickup = true;
 let allowDineIn = true;
 let currentTenantFeatures = [];
 window.currentTenantFeatures = currentTenantFeatures;
+function isMenuScheduleFeatureEnabled() {
+  const feats = Array.isArray(window.currentTenantFeatures) ? window.currentTenantFeatures : currentTenantFeatures;
+  return Array.isArray(feats) && feats.includes('menu_schedule');
+}
+window.isMenuScheduleFeatureEnabled = isMenuScheduleFeatureEnabled;
 let currentStoreLogoUrl = null;
 let pendingLogoDataUri = null;
 
@@ -384,6 +389,9 @@ async function loadStoreStatus() {
   if (typeof updateHistoryFilterVisibility === "function") {
     updateHistoryFilterVisibility();
   }
+  if (typeof window.syncMenuScheduleEntryButtonVisibility === "function") {
+    window.syncMenuScheduleEntryButtonVisibility();
+  }
   renderLanguageSetting();
   renderDineInSetting();
   renderReportsSetting();
@@ -524,6 +532,9 @@ async function loadOperatingHours() {
   renderDineInSetting();
   if (typeof updateHistoryFilterVisibility === "function") {
     updateHistoryFilterVisibility();
+  }
+  if (typeof window.syncMenuScheduleEntryButtonVisibility === "function") {
+    window.syncMenuScheduleEntryButtonVisibility();
   }
 }
 
@@ -877,12 +888,60 @@ function syncProjectOperatingHoursFromShifts() {
   window.storeOperatingShifts = storeOperatingShifts;
 }
 
+function renderLegacyDailyOperatingHours(container) {
+  const dayNamesList = DAY_NAMES[currentLang] || DAY_NAMES["zh-TW"];
+  for (let i = 1; i <= 7; i++) {
+    const dayIdx = i === 7 ? 0 : i;
+    const shifts = (storeOperatingHours && storeOperatingHours[dayIdx]) || [];
+    const isOpen = shifts.length > 0;
+    const row = document.createElement("div");
+    row.style.cssText = "background: #fff; border: 1.5px solid var(--border, #e2e8f0); border-radius: 12px; padding: 14px 16px; transition: all 0.15s ease;";
+    let shiftsHtml = "";
+    shifts.forEach((shift, sIdx) => {
+      shiftsHtml += `
+        <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+          <input type="time" id="sh-start-${dayIdx}-${sIdx}" value="${shift.start}" style="flex:1; padding:8px 12px; font-family:inherit; border:1.5px solid var(--border, #cbd5e1); border-radius:8px; font-size:var(--pos-text-body); font-weight:600; outline:none;">
+          <span style="font-weight:900; color:#64748b;">-</span>
+          <input type="time" id="sh-end-${dayIdx}-${sIdx}" value="${shift.end}" style="flex:1; padding:8px 12px; font-family:inherit; border:1.5px solid var(--border, #cbd5e1); border-radius:8px; font-size:var(--pos-text-body); font-weight:600; outline:none;">
+          <button type="button" onclick="removeShift(${dayIdx}, ${sIdx})" style="background:#fee2e2; border:1px solid #fca5a5; color:#dc2626; cursor:pointer; font-size:var(--pos-text-body); width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">✕</button>
+        </div>`;
+    });
+    row.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:var(--pos-text-body); font-weight:800; color:#1e293b;">
+          <input type="checkbox" ${isOpen ? 'checked' : ''} onchange="toggleDayStatus(${dayIdx}, this.checked)" style="width:20px; height:20px; accent-color:var(--primary, #00b900);">
+          <span style="color:${isOpen ? '#0f172a' : '#94a3b8'};">${dayNamesList[dayIdx]}</span>
+        </label>
+        ${isOpen ? `<button type="button" onclick="addShift(${dayIdx})" style="font-size:var(--pos-text-meta); background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:800;">${t('btnAddShift')}</button>` : `<span style="font-size:var(--pos-text-meta); color:#ef4444; font-weight:800; background:#fef2f2; padding:4px 8px; border-radius:6px; border:1px solid #fee2e2;">${t('closedDay')}</span>`}
+      </div>
+      ${isOpen ? `<div id="shifts-box-${dayIdx}">${shiftsHtml}</div>` : ''}`;
+    container.appendChild(row);
+  }
+}
+
 function renderOperatingHours() {
   const container = document.getElementById("hours-settings-list") || document.getElementById("settings-hours-container");
   if (!container) return;
   container.innerHTML = "";
+  if (!isMenuScheduleFeatureEnabled()) {
+    renderLegacyDailyOperatingHours(container);
+    return;
+  }
+
   const dayNamesList = DAY_NAMES[currentLang] || DAY_NAMES["zh-TW"];
   const orderedDays = [1, 2, 3, 4, 5, 6, 0];
+
+  const guideBox = document.createElement("div");
+  guideBox.style.cssText = "background:#f0f9ff; border:1.5px solid #bae6fd; border-radius:12px; padding:12px 14px; margin-bottom:12px; display:flex; flex-direction:column; gap:6px;";
+  guideBox.innerHTML = `
+    <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;">
+      <strong style="font-size:13.5px; color:#0369a1;">${escapeShiftHtml(t("shiftGuideTitle"))}</strong>
+      <button type="button" onclick="switchTab('menu-schedule')" style="min-height:40px; padding:6px 12px; border-radius:8px; border:1px solid #0284c7; background:#fff; color:#0369a1; font-weight:800; font-size:12.5px; cursor:pointer;">${escapeShiftHtml(t("shiftOpenVisualMapBtn"))}</button>
+    </div>
+    <div style="font-size:13px; color:#0c4a6e; line-height:1.45;">${escapeShiftHtml(t("shiftGuideStep1"))}</div>
+    <div style="font-size:13px; color:#0c4a6e; line-height:1.45;">${escapeShiftHtml(t("shiftGuideStep2"))}</div>
+  `;
+  container.appendChild(guideBox);
 
   const headerBar = document.createElement("div");
   headerBar.style.cssText = "display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:center; margin-bottom:12px;";
@@ -903,15 +962,20 @@ function renderOperatingHours() {
   storeOperatingShifts.forEach((shift, sIdx) => {
     const card = document.createElement("div");
     card.style.cssText = "background:#fff; border:1.5px solid var(--border, #e2e8f0); border-radius:14px; padding:14px 16px; margin-bottom:12px; display:flex; flex-direction:column; gap:12px;";
+    const isMenuWindow = shift.shiftType === 'menu_window';
+    const typeDescText = isMenuWindow ? t("shiftTypeMenuWindowDesc") : t("shiftTypeOperatingDesc");
 
     const topRow = `
-      <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
-        <input type="text" value="${escapeShiftHtml(shift.name)}" placeholder="${escapeShiftHtml(t("shiftNameLabel"))}" onchange="updateNamedShiftField(${sIdx}, 'name', this.value)" style="flex:1; min-width:160px; min-height:48px; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:15px; font-weight:700; color:#0f172a; font-family:inherit;">
-        <select onchange="updateNamedShiftField(${sIdx}, 'shiftType', this.value)" style="min-height:48px; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:14px; font-weight:700; background:#f8fafc; color:#1e293b; font-family:inherit;">
-          <option value="operating" ${shift.shiftType !== 'menu_window' ? 'selected' : ''}>${escapeShiftHtml(t("shiftTypeOperating"))}</option>
-          <option value="menu_window" ${shift.shiftType === 'menu_window' ? 'selected' : ''}>${escapeShiftHtml(t("shiftTypeMenuWindow"))}</option>
-        </select>
-        <button type="button" onclick="removeNamedShift(${sIdx})" style="min-height:48px; padding:10px 14px; border-radius:10px; border:1px solid #fca5a5; background:#fef2f2; color:#dc2626; font-weight:800; font-size:13px; cursor:pointer;">${escapeShiftHtml(t("shiftDeleteBtn"))}</button>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+          <input type="text" value="${escapeShiftHtml(shift.name)}" placeholder="${escapeShiftHtml(t("shiftNameLabel"))}" onchange="updateNamedShiftField(${sIdx}, 'name', this.value)" style="flex:1; min-width:160px; min-height:48px; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:15px; font-weight:700; color:#0f172a; font-family:inherit;">
+          <select onchange="updateNamedShiftField(${sIdx}, 'shiftType', this.value)" style="min-height:48px; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:14px; font-weight:700; background:${isMenuWindow ? '#fef3c7' : '#f8fafc'}; color:${isMenuWindow ? '#92400e' : '#1e293b'}; font-family:inherit;">
+            <option value="operating" ${!isMenuWindow ? 'selected' : ''}>${escapeShiftHtml(t("shiftTypeOperating"))}</option>
+            <option value="menu_window" ${isMenuWindow ? 'selected' : ''}>${escapeShiftHtml(t("shiftTypeMenuWindow"))}</option>
+          </select>
+          <button type="button" onclick="removeNamedShift(${sIdx})" style="min-height:48px; padding:10px 14px; border-radius:10px; border:1px solid #fca5a5; background:#fef2f2; color:#dc2626; font-weight:800; font-size:13px; cursor:pointer;">${escapeShiftHtml(t("shiftDeleteBtn"))}</button>
+        </div>
+        <div style="font-size:12.5px; color:${isMenuWindow ? '#b45309' : '#64748b'}; padding-left:2px;">${escapeShiftHtml(typeDescText)}</div>
       </div>
     `;
 
@@ -968,7 +1032,12 @@ function updateNamedShiftField(sIdx, field, val) {
   const shift = storeOperatingShifts[sIdx];
   if (!shift) return;
   if (field === "name") shift.name = String(val || "").trim() || `${t("shiftDefaultNamePrefix") || "時段"} ${sIdx + 1}`;
-  if (field === "shiftType") shift.shiftType = val === "menu_window" ? "menu_window" : "operating";
+  if (field === "shiftType") {
+    shift.shiftType = val === "menu_window" ? "menu_window" : "operating";
+    syncProjectOperatingHoursFromShifts();
+    renderOperatingHours();
+    return;
+  }
   syncProjectOperatingHoursFromShifts();
 }
 
@@ -1039,49 +1108,71 @@ function removeShiftBand(sIdx, bandKey) {
 }
 
 function syncOperatingHoursFromDOM() {
+  if (!isMenuScheduleFeatureEnabled()) {
+    if (!storeOperatingHours) return;
+    for (let i = 0; i < 7; i++) {
+      const shifts = storeOperatingHours[i];
+      if (shifts && shifts.length > 0) {
+        shifts.forEach((shift, sIdx) => {
+          const elStart = document.getElementById(`sh-start-${i}-${sIdx}`);
+          const elEnd = document.getElementById(`sh-end-${i}-${sIdx}`);
+          if (elStart && elEnd) { shift.start = elStart.value; shift.end = elEnd.value; }
+        });
+      }
+    }
+    return;
+  }
   syncProjectOperatingHoursFromShifts();
 }
 
 function toggleDayStatus(dayIdx, isChecked) {
   if (!storeOperatingHours) storeOperatingHours = createDefaultOperatingHours();
   storeOperatingHours[dayIdx] = isChecked ? [{ start: "08:00", end: "21:00" }] : [];
-  storeOperatingShifts = deriveShiftsFromLegacyHours(storeOperatingHours);
-  window.storeOperatingShifts = storeOperatingShifts;
+  if (isMenuScheduleFeatureEnabled()) {
+    storeOperatingShifts = deriveShiftsFromLegacyHours(storeOperatingHours);
+    window.storeOperatingShifts = storeOperatingShifts;
+  }
   renderOperatingHours();
 }
 
 function addShift(dayIdx) {
   if (!storeOperatingHours) storeOperatingHours = createDefaultOperatingHours();
+  if (!isMenuScheduleFeatureEnabled()) syncOperatingHoursFromDOM();
   if (!storeOperatingHours[dayIdx]) storeOperatingHours[dayIdx] = [];
   storeOperatingHours[dayIdx].push({ start: "12:00", end: "13:00" });
-  storeOperatingShifts = deriveShiftsFromLegacyHours(storeOperatingHours);
-  window.storeOperatingShifts = storeOperatingShifts;
+  if (isMenuScheduleFeatureEnabled()) {
+    storeOperatingShifts = deriveShiftsFromLegacyHours(storeOperatingHours);
+    window.storeOperatingShifts = storeOperatingShifts;
+  }
   renderOperatingHours();
 }
 
 function removeShift(dayIdx, sIdx) {
   if (!storeOperatingHours) return;
+  if (!isMenuScheduleFeatureEnabled()) syncOperatingHoursFromDOM();
   if (storeOperatingHours[dayIdx]) {
     storeOperatingHours[dayIdx].splice(sIdx, 1);
   }
-  storeOperatingShifts = deriveShiftsFromLegacyHours(storeOperatingHours);
-  window.storeOperatingShifts = storeOperatingShifts;
+  if (isMenuScheduleFeatureEnabled()) {
+    storeOperatingShifts = deriveShiftsFromLegacyHours(storeOperatingHours);
+    window.storeOperatingShifts = storeOperatingShifts;
+  }
   renderOperatingHours();
 }
 
 async function saveOperatingHours() {
-  syncProjectOperatingHoursFromShifts();
+  syncOperatingHoursFromDOM();
   const btn = document.getElementById("btn-save-hours");
   const oldText = btn ? btn.innerText : "";
   if (btn) { btn.innerText = t("saving"); btn.disabled = true; }
   try {
+    const bodyPayload = isMenuScheduleFeatureEnabled()
+      ? { operatingShifts: storeOperatingShifts, operatingHours: storeOperatingHours }
+      : { operatingHours: storeOperatingHours };
     const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        operatingShifts: storeOperatingShifts,
-        operatingHours: storeOperatingHours
-      })
+      body: JSON.stringify(bodyPayload)
     });
     if (!res.ok) throw new Error("API returned " + res.status);
     const saved = await res.json().catch(() => ({}));
@@ -1095,6 +1186,12 @@ async function saveOperatingHours() {
     renderOperatingHours();
     if (typeof renderMenuCategoryEditor === "function" && document.getElementById("menu-editor-container")) {
       renderMenuCategoryEditor();
+    }
+    if (typeof window.renderMenuScheduleWorkspace === "function") {
+      const viewSched = document.getElementById("view-menu-schedule");
+      if (viewSched && viewSched.style.display !== "none") {
+        window.renderMenuScheduleWorkspace();
+      }
     }
     alert(t("saveSuccess"));
   } catch (e) {

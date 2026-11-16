@@ -162,7 +162,19 @@ function getMenuScheduleEvalContext() {
     };
 }
 
+function isClientMenuScheduleEnabled() {
+    const cfg = (typeof window !== 'undefined' && window.storeConfig) || (typeof storeConfig !== 'undefined' ? storeConfig : null) || {};
+    const bData = (typeof window !== 'undefined' && window.bootstrapData) || (typeof bootstrapData !== 'undefined' ? bootstrapData : null);
+    const features = Array.isArray(cfg.features)
+        ? cfg.features
+        : (Array.isArray(bData?.tenant?.features) ? bData.tenant.features : []);
+    return features.includes('menu_schedule');
+}
+
 function getCategoryScheduleState(cat) {
+    if (!isClientMenuScheduleEnabled()) {
+        return { available: true, hidden: false, mode: 'all_shifts', shiftIds: [], activeShiftIds: [], activeShiftNames: [], scheduleLabel: '' };
+    }
     const sched = (typeof MenuSchedule !== 'undefined' && MenuSchedule) || (typeof window !== 'undefined' ? window.MenuSchedule : null);
     if (!sched || typeof sched.resolveCategoryAvailability !== 'function' || !cat) {
         return { available: true, hidden: false, mode: 'all_shifts', shiftIds: [], activeShiftIds: [], activeShiftNames: [], scheduleLabel: '' };
@@ -172,6 +184,9 @@ function getCategoryScheduleState(cat) {
 }
 
 function getItemScheduleState(cat, item) {
+    if (!isClientMenuScheduleEnabled()) {
+        return { available: true, hidden: false, mode: 'all_shifts', shiftIds: [], activeShiftIds: [], activeShiftNames: [], scheduleLabel: '' };
+    }
     const sched = (typeof MenuSchedule !== 'undefined' && MenuSchedule) || (typeof window !== 'undefined' ? window.MenuSchedule : null);
     if (!sched || typeof sched.resolveItemAvailability !== 'function' || !item) {
         return { available: true, hidden: false, mode: 'all_shifts', shiftIds: [], activeShiftIds: [], activeShiftNames: [], scheduleLabel: '' };

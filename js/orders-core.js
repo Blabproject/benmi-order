@@ -269,6 +269,13 @@ function applyTenantBranding(tenant) {
   } else {
     window.currentTenantFeatures = [];
   }
+  window.__posFeaturesResolved = true;
+  if (typeof window.syncMenuScheduleEntryButtonVisibility === "function") {
+    window.syncMenuScheduleEntryButtonVisibility();
+  }
+  if (typeof activeTab !== "undefined" && activeTab === "menu-schedule" && typeof window.isMenuScheduleFeatureEnabled === "function" && !window.isMenuScheduleFeatureEnabled()) {
+    switchTab("menu");
+  }
   if (tenant) {
     setTenantLocaleConfig(
       tenant.locale || window.currentTenantLocale || "zh-TW",
@@ -484,7 +491,7 @@ async function ensureTenantCustomizations() {
 window.ensureTenantCustomizations = ensureTenantCustomizations;
 
 // Global POS State
-var VALID_POS_TABS = ["live", "history", "menu", "reports", "settings", "payments", "staff-order"];
+var VALID_POS_TABS = ["live", "history", "menu", "menu-schedule", "reports", "settings", "payments", "staff-order"];
 
 function getInitialTab() {
   if (typeof window === "undefined") return "live";
@@ -986,7 +993,23 @@ function isDineInSupported() {
 window.isDineInSupported = isDineInSupported;
 
 function switchTab(tab) {
-  if (activeTab === "menu" && tab !== "menu" && typeof confirmLeaveMenu === "function" && !confirmLeaveMenu()) {
+  if (activeTab === "menu-schedule" && tab !== "menu-schedule" && typeof hasUnsavedMenuScheduleChanges === "function" && hasUnsavedMenuScheduleChanges()) {
+    const leaveMsg = (typeof t === "function" && t("menuScheduleUnsavedLeave")) || "Leave without saving schedule changes?";
+    if (!confirm(leaveMsg)) {
+      try {
+        if (typeof window !== "undefined" && window.location && (window.location.hash || "") !== "#menu-schedule") {
+          const revertUrl = new URL(window.location.href);
+          revertUrl.hash = "menu-schedule";
+          window.history.replaceState(null, "", revertUrl.toString());
+        }
+      } catch (e) {}
+      return;
+    }
+  }
+  if (tab === "menu-schedule" && window.__posFeaturesResolved && typeof isMenuScheduleFeatureEnabled === "function" && !isMenuScheduleFeatureEnabled()) {
+    tab = "menu";
+  }
+  if (activeTab === "menu" && tab !== "menu" && tab !== "menu-schedule" && typeof confirmLeaveMenu === "function" && !confirmLeaveMenu()) {
     try {
       if (typeof window !== "undefined" && window.location && (window.location.hash || "") !== "#menu") {
         const revertUrl = new URL(window.location.href);
@@ -1031,14 +1054,14 @@ function switchTab(tab) {
   if (tabLive) tabLive.classList.toggle("active", tab === "live");
   if (tabHistory) tabHistory.classList.toggle("active", tab === "history");
   if (tabReports) tabReports.classList.toggle("active", tab === "reports");
-  if (tabMenu) tabMenu.classList.toggle("active", tab === "menu");
+  if (tabMenu) tabMenu.classList.toggle("active", tab === "menu" || tab === "menu-schedule");
   if (tabSettings) tabSettings.classList.toggle("active", tab === "settings");
   if (tabStaffOrder) tabStaffOrder.classList.toggle("active", tab === "staff-order");
 
   document.querySelectorAll(".mini-btn").forEach(t => t.classList.remove("active"));
 
   if (typeof updateSidebarActive === "function") {
-    updateSidebarActive(tab);
+    updateSidebarActive(tab === "menu-schedule" ? "menu" : tab);
   }
 
   const viewLive = document.getElementById("view-live");
@@ -1046,6 +1069,7 @@ function switchTab(tab) {
   const viewReports = document.getElementById("view-reports");
   const viewSettings = document.getElementById("view-settings");
   const viewMenu = document.getElementById("view-menu");
+  const viewMenuSchedule = document.getElementById("view-menu-schedule");
   const viewStaffOrder = document.getElementById("view-staff-order");
 
   if (viewLive) viewLive.style.display = tab === "live" ? "flex" : "none";
@@ -1053,6 +1077,7 @@ function switchTab(tab) {
   if (viewReports) viewReports.style.display = tab === "reports" ? "block" : "none";
   if (viewSettings) viewSettings.style.display = tab === "settings" ? "block" : "none";
   if (viewMenu) viewMenu.style.display = tab === "menu" ? "block" : "none";
+  if (viewMenuSchedule) viewMenuSchedule.style.display = tab === "menu-schedule" ? "block" : "none";
   if (viewStaffOrder) viewStaffOrder.style.display = tab === "staff-order" ? "block" : "none";
   const viewPayments = document.getElementById("view-payments");
   if (viewPayments) viewPayments.style.display = tab === "payments" ? "block" : "none";
@@ -1080,6 +1105,10 @@ function switchTab(tab) {
   } else if (tab === "menu") {
     if (typeof openMenuSettings === "function") {
       openMenuSettings();
+    }
+  } else if (tab === "menu-schedule") {
+    if (typeof initMenuScheduleWorkspace === "function") {
+      initMenuScheduleWorkspace();
     }
   } else if (tab === "settings") {
     if (typeof openSettings === "function") {

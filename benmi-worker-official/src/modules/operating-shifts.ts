@@ -18,6 +18,44 @@ export interface OperatingShiftDto {
   windows: OperatingShiftWindowDto[];
 }
 
+export function parseFeaturesArray(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw.map((x) => String(x)).filter(Boolean);
+  }
+  if (typeof raw === 'string' && raw.trim() !== '') {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.map((x) => String(x)).filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+export async function hasTenantMenuScheduleFeature(
+  db: D1Database | undefined | null,
+  tenantId: string,
+  tenantCtxOrFeatures?: { features?: unknown } | string[] | null
+): Promise<boolean> {
+  if (Array.isArray(tenantCtxOrFeatures)) {
+    return tenantCtxOrFeatures.includes('menu_schedule');
+  }
+  if (tenantCtxOrFeatures && typeof tenantCtxOrFeatures === 'object' && Array.isArray(tenantCtxOrFeatures.features)) {
+    return tenantCtxOrFeatures.features.includes('menu_schedule');
+  }
+  if (!db || typeof (db as any).prepare !== 'function' || !tenantId) return false;
+  try {
+    const row = await db
+      .prepare('SELECT features FROM tenant_config WHERE tenant_id = ? LIMIT 1')
+      .bind(tenantId)
+      .first<{ features?: unknown }>();
+    return parseFeaturesArray(row?.features).includes('menu_schedule');
+  } catch {
+    return false;
+  }
+}
+
 export async function hasDbTable(db: D1Database | undefined | null, tableName: string): Promise<boolean> {
   if (!db || typeof (db as any).prepare !== 'function') return false;
   const safeTable = tableName.replace(/[^a-zA-Z0-9_]/g, '');
