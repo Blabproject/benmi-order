@@ -3654,16 +3654,24 @@ body.ug-open { overflow: hidden; }
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  height: 100%;
   overflow: hidden;
   background: #f8fafc;
+}
+
+#menu-schedule-workspace-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
 }
 
 .ms-shell {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
   min-height: 0;
+  width: 100%;
 }
 
 .ms-header {
@@ -3786,6 +3794,8 @@ body.ug-open { overflow: hidden; }
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 18px 24px 36px;
 }
 
