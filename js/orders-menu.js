@@ -3050,14 +3050,17 @@ function syncMenuDataFromDOM() {
 }
 
 function serializeMenuData(categories) {
+  const targetCategories = Array.isArray(categories)
+    ? categories
+    : (typeof currentMenuData !== 'undefined' && Array.isArray(currentMenuData) ? currentMenuData : []);
   const deps = {
     getTenantId: () => getTenantIdFromUrl(),
     createUuid: () => crypto.randomUUID(),
-    sharedCategories: typeof currentMenuData !== 'undefined' ? currentMenuData : categories,
+    sharedCategories: typeof currentMenuData !== 'undefined' ? currentMenuData : targetCategories,
     isCustomizationCategory: typeof isCustomizationCategory === 'function' ? isCustomizationCategory : undefined,
     getDuplicateItemMessage: () => t('menuDuplicateItem')
   };
-  return getMenuModel().serializeMenuData(categories, deps);
+  return getMenuModel().serializeMenuData(targetCategories, deps);
 }
 window.serializeMenuData = serializeMenuData;
 

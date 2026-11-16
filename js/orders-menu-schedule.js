@@ -626,13 +626,20 @@
 
   async function saveMenuScheduleWorkspace() {
     if (_msState.saving) return;
+    if (typeof isMenuLoadedCompletely !== 'undefined' && !isMenuLoadedCompletely) {
+      alert(_msT('menuIncompleteReload'));
+      return;
+    }
     _msState.saving = true;
     renderMenuScheduleWorkspace();
     try {
       if (typeof serializeMenuData !== 'function') {
         throw new Error('Menu serializer unavailable');
       }
-      const serialized = serializeMenuData();
+      const catsSource = (typeof currentMenuData !== 'undefined' && Array.isArray(currentMenuData))
+        ? currentMenuData
+        : (Array.isArray(window.currentMenuData) ? window.currentMenuData : []);
+      const serialized = serializeMenuData(catsSource);
       const tenantId = getTenantIdFromUrl();
       const res = await fetch(`${WORKER_BASE}/api/menu?tenant_id=${encodeURIComponent(tenantId)}`, {
         method: 'POST',
@@ -645,6 +652,9 @@
       }
       if (typeof loadMenuData === 'function') {
         await loadMenuData();
+      }
+      if (typeof clearMenuDirty === 'function') {
+        clearMenuDirty();
       }
       _msState.baselineSnapshot = _msBuildSnapshot();
       if (typeof showToast === 'function') {
