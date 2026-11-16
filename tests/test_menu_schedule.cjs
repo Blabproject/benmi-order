@@ -24,6 +24,7 @@ const MenuEditorModel = require('../js/orders-menu-model.js');
 const { validateCatalogScheduleForItems, loadTenantOperatingShifts } = require('../benmi-worker-official/src/modules/operating-shifts.ts');
 const { loadOptionCatalog } = require('../benmi-worker-official/src/modules/option-groups.ts');
 const { getTenantBootstrap } = require('../benmi-worker-official/src/modules/bootstrap.ts');
+const { updateMenuSchedule } = require('../benmi-worker-official/src/modules/menu-schedule-settings.ts');
 const { getConfig, updateConfig } = require('../benmi-worker-official/src/modules/config.ts');
 const { syncMenuToD1, updateMenu } = (() => {
   const mod = require('../benmi-worker-official/src/modules/menu.ts');
@@ -550,4 +551,68 @@ test('Feature package menu_schedule strictly isolates non-subscribed tenants acr
   }), env);
   assert.equal(orderRes.status, 200);
   db.close();
+});
+
+function schedulePatchFixture(t) {
+  const db = createFullMigratedDb(); seedZhenbaochufang(db); t.after(() => db.close());
+  const env = createEnvForDb(db), tenantId = 'zhenbaochufang';
+  const cat = db.prepare("SELECT * FROM menu_categories WHERE tenant_id=? AND category_type='catalog' ORDER BY id LIMIT 1").get(tenantId);
+  const item = db.prepare('SELECT * FROM menu_items WHERE tenant_id=? AND category_id=? LIMIT 1').get(tenantId, cat.id);
+  const shiftIds = db.prepare('SELECT id FROM tenant_operating_shifts WHERE tenant_id=? ORDER BY id').all(tenantId).map(row => row.id);
+  const categoryState = () => {
+    const row = db.prepare('SELECT * FROM menu_categories WHERE id=?').get(cat.id);
+    return { availabilityMode: row.availability_mode, shiftIds: db.prepare('SELECT shift_id FROM menu_category_shifts WHERE category_id=? ORDER BY shift_id').all(cat.id).map(r => r.shift_id), hideWhenUnavailable: Boolean(row.hide_when_unavailable) };
+  };
+  const itemState = () => {
+    const row = db.prepare('SELECT * FROM menu_items WHERE id=?').get(item.id);
+    return { availabilityMode: row.availability_mode, shiftIds: db.prepare('SELECT shift_id FROM menu_item_shifts WHERE item_id=? ORDER BY shift_id').all(item.id).map(r => r.shift_id) };
+  };
+  const save = (body, tenant = tenantId) => updateMenuSchedule(new Request(`https://test/api/menu/schedule?tenant_id=${tenant}`, { method: 'PATCH', body: JSON.stringify(body) }), env);
+  return { db, env, cat, item, shiftIds, categoryState, itemState, save };
+}
+
+test('narrow schedule PATCH preserves menu columns, row identities and modifiers, including a zero-shift item', async t => {
+  const f = schedulePatchFixture(t);
+  const before = f.db.prepare('SELECT rowid,* FROM menu_items WHERE id=?').get(f.item.id);
+  const modifiers = JSON.stringify(f.db.prepare('SELECT * FROM modifier_options ORDER BY id').all());
+  await getTenantBootstrap(new Request('https://test/api/tenant/bootstrap?tenant_id=zhenbaochufang'), f.env);
+  const response = await f.save({ categories: [{ id: f.cat.id, availabilityMode: 'selected_shifts', shiftIds: [f.shiftIds[0]], hideWhenUnavailable: true, previous: f.categoryState() }], items: [{ id: f.item.id, categoryId: f.cat.id, availabilityMode: 'selected_shifts', shiftIds: [], previous: f.itemState() }] });
+  assert.equal(response.status, 200, await response.text());
+  const after = f.db.prepare('SELECT rowid,* FROM menu_items WHERE id=?').get(f.item.id);
+  const { availability_mode: oldMode, menu_revision: oldRevision, ...oldFields } = before;
+  const { availability_mode: newMode, menu_revision: newRevision, ...newFields } = after;
+  assert.deepEqual(newFields, oldFields);
+  assert.equal(after.availability_mode, 'selected_shifts');
+  assert.equal(JSON.stringify(f.db.prepare('SELECT * FROM modifier_options ORDER BY id').all()), modifiers);
+  assert.deepEqual(f.itemState().shiftIds, []);
+  assert.equal(await f.env.ORDER_STATE.get('tenant:zhenbaochufang:bootstrap:v2'), null);
+  assert.equal(f.db.prepare('SELECT COUNT(*) n FROM menu_write_guards').get().n, 0);
+});
+
+test('schedule PATCH rejects stale drafts and cross-tenant IDs before writing', async t => {
+  const f = schedulePatchFixture(t);
+  const patch = { categories: [{ id: f.cat.id, availabilityMode: 'selected_shifts', shiftIds: [], hideWhenUnavailable: true, previous: f.categoryState() }], items: [] };
+  assert.equal((await f.save(patch)).status, 200);
+  assert.equal((await f.save(patch)).status, 409);
+  const state = f.categoryState();
+  assert.equal((await f.save({ categories: [{ ...patch.categories[0], id: 'foreign-category', previous: state }], items: [] })).status, 404);
+  assert.equal((await f.save({ categories: [{ ...patch.categories[0], previous: state, shiftIds: ['foreign-shift'] }], items: [] })).status, 400);
+  assert.equal((await f.save({ categories: [], items: [{ id: f.item.id, categoryId: 'foreign-category', availabilityMode: 'inherit', shiftIds: [], previous: f.itemState() }] })).status, 404);
+  assert.equal((await f.save({ categories: [], items: [{ id: f.item.id, categoryId: f.cat.id, price: 1, availabilityMode: 'inherit', shiftIds: [], previous: f.itemState() }] })).status, 400);
+  assert.deepEqual(f.categoryState(), state);
+  assert.equal((await f.save({ categories: [], items: [] }, 'no-menu-schedule-package')).status, 403);
+});
+
+test('schedule PATCH catalog guard rolls back all schedule writes after an interleaved edit', async t => {
+  const f = schedulePatchFixture(t), previous = f.categoryState(), batch = f.env.DB.batch;
+  f.env.DB.batch = async statements => {
+    if (statements.some(s => s.sql.includes('INSERT INTO menu_write_guards'))) {
+      f.db.prepare('UPDATE menu_items SET price=price+1 WHERE id=?').run(f.item.id);
+    }
+    return batch(statements);
+  };
+  const response = await f.save({ categories: [{ id: f.cat.id, availabilityMode: 'selected_shifts', shiftIds: [], hideWhenUnavailable: true, previous }], items: [] });
+  assert.equal(response.status, 409, await response.text());
+  assert.deepEqual(f.categoryState(), previous);
+  assert.equal(f.db.prepare('SELECT COUNT(*) n FROM menu_write_guards').get().n, 0);
 });

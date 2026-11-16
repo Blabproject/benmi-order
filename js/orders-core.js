@@ -1005,6 +1005,7 @@ function switchTab(tab) {
       } catch (e) {}
       return;
     }
+    if (typeof window.discardMenuScheduleChanges === "function") window.discardMenuScheduleChanges();
   }
   if (tab === "menu-schedule" && window.__posFeaturesResolved && typeof isMenuScheduleFeatureEnabled === "function" && !isMenuScheduleFeatureEnabled()) {
     tab = "menu";

@@ -205,6 +205,25 @@ function clearMenuDirty() {
   updateMenuSaveState();
 }
 
+// A schedule save acknowledges only persisted schedule fields. Keep unrelated
+// unsaved prices, names and modifier edits in the main menu draft.
+window.acknowledgeMenuScheduleSave = function (patch) {
+  if (!savedMenuSnapshot) return;
+  const saved = JSON.parse(savedMenuSnapshot);
+  for (const cat of saved) {
+    const id = String(cat.databaseId || cat.catId || cat.id || '');
+    const entry = patch.categories.find(entry => entry.id === id);
+    if (entry) Object.assign(cat, { availabilityMode: entry.availabilityMode, shiftIds: [...entry.shiftIds], hideWhenUnavailable: entry.hideWhenUnavailable });
+    for (const item of cat.items || []) {
+      const itemPatch = patch.items.find(entry => entry.id === String(item.id) && entry.categoryId === id);
+      if (itemPatch) Object.assign(item, { availabilityMode: itemPatch.availabilityMode, shiftIds: [...itemPatch.shiftIds] });
+    }
+  }
+  savedMenuSnapshot = canonicalMenuSnapshot(saved);
+  isMenuDirty = canonicalMenuSnapshot(currentMenuData) !== savedMenuSnapshot;
+  updateMenuSaveState();
+};
+
 function confirmLeaveMenu() {
   if (isMenuSaving || isStockSaving) return false;
   checkMenuDirty();

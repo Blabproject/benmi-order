@@ -608,3 +608,18 @@ test('an unavailable Unified catalog refresh cannot turn a successful stock writ
   assert.equal(app.target().isOos, true);assert.equal(app.getIsMenuDirty(), false);
   assert.equal(app.control('stockModal').style.display, 'none');assert.deepEqual(app.alerts, []);
 });
+
+test('acknowledging a schedule save retains unrelated unsaved menu edits', () => {
+  const env = createDOMEnvironment(), s = env.sandbox;
+  env.setCurrentMenuData([{ id: 'cat', type: 'catalog', title: 'Rice', availabilityMode: 'all_shifts', shiftIds: [], hideWhenUnavailable: false, items: [{ id: 'item', name: 'Rice', price: 50, availabilityMode: 'inherit', shiftIds: [] }] }]);
+  env.setIsMenuLoadedCompletely(true);
+  s.clearMenuDirty();
+  const cat = env.getCurrentMenuData()[0];
+  cat.items[0].price = 60;
+  cat.availabilityMode = 'selected_shifts'; cat.shiftIds = ['lunch'];
+  s.acknowledgeMenuScheduleSave({ categories: [{ id: 'cat', availabilityMode: 'selected_shifts', shiftIds: ['lunch'], hideWhenUnavailable: false }], items: [] });
+  assert.equal(env.getIsMenuDirty(), true);
+  assert.equal(JSON.parse(s.savedMenuSnapshot)[0].items[0].price, 50);
+  cat.items[0].price = 50;
+  assert.equal(s.checkMenuDirty(), false);
+});

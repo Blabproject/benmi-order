@@ -296,3 +296,18 @@ test('orders.html: includes versioned tab scripts and initializes with getInitia
   assert.ok(html.includes('getInitialTab()'), 'orders.html must call getInitialTab() on DOMContentLoaded');
   assert.ok(html.includes('switchTab(initialTab)'), 'orders.html must switch to initialTab on DOMContentLoaded');
 });
+
+test('leaving the schedule matrix discards schedule changes only after confirmation', () => {
+  const { sandbox: s, mockWindow: w } = createCoreSandbox('https://pos.blabfood.app/orders.html?tenant=store#menu-schedule');
+  let discards = 0;
+  s.hasUnsavedMenuScheduleChanges = () => true;
+  w.discardMenuScheduleChanges = () => { discards++; };
+  s.confirm = () => false;
+  s.switchTab('settings');
+  assert.equal(s.activeTab, 'menu-schedule');
+  assert.equal(discards, 0);
+  s.confirm = () => true;
+  s.switchTab('settings');
+  assert.equal(s.activeTab, 'settings');
+  assert.equal(discards, 1);
+});
