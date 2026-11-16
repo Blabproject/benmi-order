@@ -3155,7 +3155,7 @@ function applyLanguageToDOM() {
   if (btnMenuSchedText && dict.menuScheduleNavBtn) btnMenuSchedText.innerText = dict.menuScheduleNavBtn;
   if (typeof window !== "undefined" && typeof window.renderMenuScheduleWorkspace === "function") {
     const viewSched = document.getElementById("view-menu-schedule");
-    if (viewSched && viewSched.style && viewSched.style.display === "block") {
+    if (viewSched && viewSched.style && (viewSched.style.display === "flex" || viewSched.style.display === "block")) {
       window.renderMenuScheduleWorkspace();
     }
   }

@@ -1943,65 +1943,28 @@ function renderMenuCategoryEditor(index) {
     const curMode = cat.availabilityMode === 'selected_shifts' ? 'selected_shifts' : 'all_shifts';
     const curShiftIds = Array.isArray(cat.shiftIds) ? cat.shiftIds : [];
     const curHide = Boolean(cat.hideWhenUnavailable);
-    const schedCard = document.createElement("div");
-    schedCard.className = "cust-category-modifiers-card";
-    schedCard.style.cssText = "margin-bottom:14px;";
-    const clockSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
+    const matchedShifts = availShifts.filter(sh => curShiftIds.includes(sh.id));
+    const clockSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
 
-    const modeButtonsHtml = `
-      <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
-        <button type="button" onclick="setCategoryAvailabilityMode(${index}, 'all_shifts')" style="min-height:48px; padding:10px 14px; border-radius:10px; border:1.5px solid ${curMode === 'all_shifts' ? '#00b900' : '#cbd5e1'}; background:${curMode === 'all_shifts' ? '#ecfdf5' : '#fff'}; color:${curMode === 'all_shifts' ? '#047857' : '#475569'}; font-weight:800; font-size:13.5px; cursor:pointer;">${escapeHtml(t("catScheduleAllShifts"))}</button>
-        <button type="button" onclick="setCategoryAvailabilityMode(${index}, 'selected_shifts')" style="min-height:48px; padding:10px 14px; border-radius:10px; border:1.5px solid ${curMode === 'selected_shifts' ? '#2563eb' : '#cbd5e1'}; background:${curMode === 'selected_shifts' ? '#eff6ff' : '#fff'}; color:${curMode === 'selected_shifts' ? '#1d4ed8' : '#475569'}; font-weight:800; font-size:13.5px; cursor:pointer;">${escapeHtml(t("catScheduleSelectedShifts"))}</button>
-      </div>
-    `;
-
-    let selectedBodyHtml = "";
+    let summaryLabel = t("catScheduleAllShifts");
     if (curMode === 'selected_shifts') {
-      if (availShifts.length === 0) {
-        selectedBodyHtml = `<div style="margin-top:10px; padding:10px 12px; border-radius:10px; background:#fef3c7; border:1px solid #fde68a; color:#92400e; font-size:13px; font-weight:600;">${escapeHtml(t("catScheduleNoShiftsConfigured"))}</div>`;
-      } else {
-        const shiftChips = availShifts.map(sh => {
-          const isChecked = curShiftIds.includes(sh.id);
-          const safeSid = String(sh.id || '').replace(/'/g, "\\'");
-          const label = (typeof MenuSchedule !== 'undefined' && typeof MenuSchedule.formatShiftsLabel === 'function')
-            ? MenuSchedule.formatShiftsLabel([sh], currentLang)
-            : (sh.name || sh.id);
-          return `
-            <label style="display:inline-flex; align-items:center; gap:8px; min-height:48px; padding:8px 14px; border-radius:10px; border:1.5px solid ${isChecked ? '#2563eb' : '#cbd5e1'}; background:${isChecked ? '#eff6ff' : '#fff'}; color:${isChecked ? '#1d4ed8' : '#334155'}; font-weight:700; font-size:13.5px; cursor:pointer;">
-              <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCategoryShiftId(${index}, '${safeSid}', this.checked)" style="width:20px; height:20px; accent-color:#2563eb;">
-              <span>${escapeHtml(label)}</span>
-            </label>
-          `;
-        }).join("");
-        selectedBodyHtml = `
-          <div style="margin-top:10px;">
-            <div style="font-size:12.5px; color:#64748b; font-weight:700; margin-bottom:6px;">${escapeHtml(t("catSchedulePickShiftsHint"))}</div>
-            <div style="display:flex; flex-wrap:wrap; gap:8px;">${shiftChips}</div>
-          </div>
-        `;
-      }
-      selectedBodyHtml += `
-        <label style="display:flex; align-items:center; gap:10px; min-height:48px; margin-top:10px; padding:8px 12px; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; cursor:pointer; font-size:13.5px; font-weight:700; color:#1e293b;">
-          <input type="checkbox" ${curHide ? 'checked' : ''} onchange="toggleCategoryHideWhenUnavailable(${index}, this.checked)" style="width:20px; height:20px; accent-color:#2563eb;">
-          <span>${escapeHtml(t("catScheduleHideWhenUnavailable"))}</span>
-        </label>
-      `;
+      const names = matchedShifts.map(sh => sh.name).filter(Boolean);
+      summaryLabel = names.length > 0
+        ? `${t("catScheduleSelectedShifts")}: ${names.join(", ")}${curHide ? ` (${t("menuScheduleHideLabel")})` : ""}`
+        : t("catScheduleSelectedShifts");
     }
 
-    schedCard.innerHTML = `
-      <div style="padding:12px 14px;">
-        <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;">
-          <div style="display:flex; align-items:center; gap:8px; font-weight:800; font-size:14px; color:#0f172a;">
-            ${clockSvg}
-            <span>${escapeHtml(t("catScheduleTitle"))}</span>
-          </div>
-          <button type="button" onclick="switchTab('menu-schedule')" style="min-height:40px; padding:6px 12px; border-radius:8px; border:1px solid #bfdbfe; background:#eff6ff; color:#1d4ed8; font-weight:800; font-size:12.5px; cursor:pointer;">${escapeHtml(t("catScheduleOpenCanvasBtn"))}</button>
-        </div>
-        ${modeButtonsHtml}
-        ${selectedBodyHtml}
+    const schedStrip = document.createElement("div");
+    schedStrip.className = "menu-cat-schedule-strip";
+    schedStrip.innerHTML = `
+      <div class="menu-cat-schedule-strip-left">
+        ${clockSvg}
+        <span>${escapeHtml(t("catScheduleTitle"))}:</span>
+        <span style="padding:3px 9px; border-radius:9999px; font-size:12px; font-weight:800; background:${curMode === 'selected_shifts' ? '#eff6ff' : '#ecfdf5'}; color:${curMode === 'selected_shifts' ? '#1d4ed8' : '#047857'}; border:1px solid ${curMode === 'selected_shifts' ? '#bfdbfe' : '#a7f3d0'};">${escapeHtml(summaryLabel)}</span>
       </div>
+      <button type="button" class="menu-cat-schedule-strip-btn" onclick="switchTab('menu-schedule')">${escapeHtml(t("catScheduleOpenCanvasBtn"))}</button>
     `;
-    catalogCard.appendChild(schedCard);
+    catalogCard.appendChild(schedStrip);
   }
 
   const itemsContainer = document.createElement("div");

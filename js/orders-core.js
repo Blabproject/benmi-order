@@ -1077,7 +1077,7 @@ function switchTab(tab) {
   if (viewReports) viewReports.style.display = tab === "reports" ? "block" : "none";
   if (viewSettings) viewSettings.style.display = tab === "settings" ? "block" : "none";
   if (viewMenu) viewMenu.style.display = tab === "menu" ? "block" : "none";
-  if (viewMenuSchedule) viewMenuSchedule.style.display = tab === "menu-schedule" ? "block" : "none";
+  if (viewMenuSchedule) viewMenuSchedule.style.display = tab === "menu-schedule" ? "flex" : "none";
   if (viewStaffOrder) viewStaffOrder.style.display = tab === "staff-order" ? "block" : "none";
   const viewPayments = document.getElementById("view-payments");
   if (viewPayments) viewPayments.style.display = tab === "payments" ? "block" : "none";

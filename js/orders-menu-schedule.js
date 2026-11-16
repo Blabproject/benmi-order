@@ -176,6 +176,14 @@
     renderMenuScheduleWorkspace();
   }
 
+  function _msCssEscape(str) {
+    const s = String(str ?? '');
+    if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+      return CSS.escape(s);
+    }
+    return s.replace(/([^\w-])/g, '\\$1');
+  }
+
   function _msDrawWires() {
     const canvas = document.getElementById('menu-schedule-canvas');
     const svg = document.getElementById('menu-schedule-svg-layer');
@@ -195,14 +203,14 @@
     for (const cat of cats) {
       if (cat.availabilityMode !== 'selected_shifts') continue;
       const catKey = _msCatKey(cat);
-      const portEl = canvas.querySelector(`[data-cat-port="${CSS.escape(catKey)}"]`);
+      const portEl = canvas.querySelector(`[data-cat-port="${_msCssEscape(catKey)}"]`);
       if (!portEl) continue;
       const pRect = portEl.getBoundingClientRect();
       const x1 = pRect.left + pRect.width / 2 - cRect.left;
       const y1 = pRect.top + pRect.height / 2 - cRect.top;
 
       for (const sid of (cat.shiftIds || [])) {
-        const targetEl = canvas.querySelector(`[data-shift-port="${CSS.escape(String(sid))}"]`);
+        const targetEl = canvas.querySelector(`[data-shift-port="${_msCssEscape(String(sid))}"]`);
         if (!targetEl) continue;
         const tRect = targetEl.getBoundingClientRect();
         const x2 = tRect.left + tRect.width / 2 - cRect.left;
@@ -218,8 +226,8 @@
 
         svgContent += `
           <g class="ms-wire-group" data-wire-cat="${_msEsc(catKey)}" data-wire-shift="${_msEsc(sid)}" style="pointer-events:auto; cursor:pointer;">
-            <path d="${pathD}" fill="none" stroke="transparent" stroke-width="18"></path>
-            <path d="${pathD}" fill="none" stroke="${strokeColor}" stroke-width="${isHovered ? 4.5 : 3}" stroke-linecap="round" opacity="${isHovered ? '1' : '0.82'}"></path>
+            <path d="${pathD}" fill="none" stroke="transparent" stroke-width="20"></path>
+            <path d="${pathD}" fill="none" stroke="${strokeColor}" stroke-width="${isHovered ? 4.5 : 3}" stroke-linecap="round" opacity="${isHovered ? '1' : '0.84'}"></path>
             <circle cx="${x1}" cy="${y1}" r="4.5" fill="${strokeColor}"></circle>
             <circle cx="${x2}" cy="${y2}" r="4.5" fill="${strokeColor}"></circle>
             <g transform="translate(${midX}, ${midY})">
@@ -282,9 +290,7 @@
 
         const clearShiftHighlight = () => {
           if (highlightedShiftEl) {
-            highlightedShiftEl.style.borderColor = highlightedShiftEl.getAttribute('data-default-border') || '#e2e8f0';
-            highlightedShiftEl.style.background = '#ffffff';
-            highlightedShiftEl.style.boxShadow = 'none';
+            highlightedShiftEl.classList.remove('is-drop-hover');
             highlightedShiftEl = null;
           }
         };
@@ -303,14 +309,14 @@
           };
           _msDrawWires();
 
-          const under = document.elementFromPoint(moveEvt.clientX, moveEvt.clientY);
+          const under = typeof document.elementFromPoint === 'function'
+            ? document.elementFromPoint(moveEvt.clientX, moveEvt.clientY)
+            : null;
           const targetShiftCard = under && under.closest ? under.closest('[data-shift-card]') : null;
           if (highlightedShiftEl && highlightedShiftEl !== targetShiftCard) clearShiftHighlight();
           if (targetShiftCard) {
             highlightedShiftEl = targetShiftCard;
-            targetShiftCard.style.borderColor = '#2563eb';
-            targetShiftCard.style.background = '#eff6ff';
-            targetShiftCard.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.22)';
+            targetShiftCard.classList.add('is-drop-hover');
           }
         };
 
@@ -328,7 +334,9 @@
             return;
           }
 
-          const under = document.elementFromPoint(upEvt.clientX, upEvt.clientY);
+          const under = typeof document.elementFromPoint === 'function'
+            ? document.elementFromPoint(upEvt.clientX, upEvt.clientY)
+            : null;
           const targetShiftCard = under && under.closest ? under.closest('[data-shift-card]') : null;
           const shiftId = targetShiftCard ? targetShiftCard.getAttribute('data-shift-card') : null;
           _msState.dragWire = null;
@@ -361,17 +369,16 @@
       shiftCard.addEventListener('dragover', (e) => {
         e.preventDefault();
         if (e.dataTransfer) e.dataTransfer.dropEffect = 'link';
-        shiftCard.style.borderColor = '#2563eb';
-        shiftCard.style.background = '#eff6ff';
+        shiftCard.classList.add('is-drop-hover');
       });
-      shiftCard.addEventListener('dragleave', () => {
-        shiftCard.style.borderColor = shiftCard.getAttribute('data-default-border') || '#e2e8f0';
-        shiftCard.style.background = '#ffffff';
+      shiftCard.addEventListener('dragleave', (e) => {
+        if (!e.relatedTarget || !shiftCard.contains(e.relatedTarget)) {
+          shiftCard.classList.remove('is-drop-hover');
+        }
       });
       shiftCard.addEventListener('drop', (e) => {
         e.preventDefault();
-        shiftCard.style.borderColor = shiftCard.getAttribute('data-default-border') || '#e2e8f0';
-        shiftCard.style.background = '#ffffff';
+        shiftCard.classList.remove('is-drop-hover');
         const catKey = e.dataTransfer ? e.dataTransfer.getData('text/plain') : null;
         if (catKey && shiftId) _msLinkCategoryToShift(catKey, shiftId);
       });
@@ -396,6 +403,7 @@
     const backSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>`;
     const saveSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>`;
     const clockSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
+    const portDotSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4" fill="currentColor"></circle></svg>`;
 
     const pendingCat = _msState.pendingTapCatId ? cats.find(c => _msCatKey(c) === _msState.pendingTapCatId) : null;
     const guideContent = pendingCat
@@ -422,7 +430,7 @@
                   <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:8px 10px; display:flex; flex-direction:column; gap:6px;">
                     <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;">
                       <span style="font-weight:700; font-size:13px; color:#0f172a;">${_msEsc(it.name)}</span>
-                      <select onchange="window.msSetItemOverrideMode('${safeCatKey}', ${idx}, this.value)" style="min-height:40px; padding:4px 8px; border-radius:8px; border:1px solid #cbd5e1; background:#fff; font-size:12.5px; font-weight:700; font-family:inherit;">
+                      <select onchange="window.msSetItemOverrideMode('${safeCatKey}', ${idx}, this.value)" style="min-height:44px; padding:4px 10px; border-radius:8px; border:1px solid #cbd5e1; background:#ffffff; font-size:12.5px; font-weight:700; font-family:inherit; color:#1e293b;">
                         <option value="inherit" ${itMode === 'inherit' ? 'selected' : ''}>${_msEsc(_msT('menuScheduleItemModeInherit'))}</option>
                         <option value="all_shifts" ${itMode === 'all_shifts' ? 'selected' : ''}>${_msEsc(_msT('menuScheduleItemModeAll'))}</option>
                         <option value="selected_shifts" ${itMode === 'selected_shifts' ? 'selected' : ''}>${_msEsc(_msT('menuScheduleItemModeSelected'))}</option>
@@ -433,7 +441,7 @@
                         ${shifts.map(sh => {
                           const checked = itShiftIds.includes(sh.id);
                           const safeSid = String(sh.id).replace(/'/g, "\\'");
-                          return `<label style="display:inline-flex; align-items:center; gap:6px; min-height:38px; padding:4px 10px; border-radius:8px; border:1px solid ${checked ? '#2563eb' : '#cbd5e1'}; background:${checked ? '#eff6ff' : '#fff'}; font-size:12px; font-weight:700; cursor:pointer;"><input type="checkbox" ${checked ? 'checked' : ''} onchange="window.msToggleItemShift('${safeCatKey}', ${idx}, '${safeSid}', this.checked)"><span>${_msEsc(sh.name)}</span></label>`;
+                          return `<label style="display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:4px 10px; border-radius:8px; border:1px solid ${checked ? '#2563eb' : '#cbd5e1'}; background:${checked ? '#eff6ff' : '#ffffff'}; font-size:12.5px; font-weight:700; cursor:pointer; color:${checked ? '#1d4ed8' : '#334155'};"><input type="checkbox" ${checked ? 'checked' : ''} onchange="window.msToggleItemShift('${safeCatKey}', ${idx}, '${safeSid}', this.checked)"><span>${_msEsc(sh.name)}</span></label>`;
                         }).join('')}
                       </div>
                     ` : ''}
@@ -444,35 +452,34 @@
           ` : '';
 
           return `
-            <div data-cat-card="${_msEsc(catKey)}" draggable="true" style="position:relative; background:#ffffff; border:1.5px solid ${isPendingPort ? '#2563eb' : (isSelectedMode ? '#93c5fd' : '#e2e8f0')}; border-radius:14px; padding:14px 58px 14px 16px; box-shadow:0 1px 3px rgba(15,23,42,0.04); transition:border-color 0.15s ease;">
-              <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">
-                <span style="font-size:16px; font-weight:800; color:#0f172a;">${_msEsc(cat.title || cat.name)}</span>
-                <span style="font-size:12px; font-weight:700; padding:2px 8px; border-radius:9999px; background:#f1f5f9; color:#475569;">${itemCount} ${_msEsc(_msT('menuScheduleItemCountUnit'))}</span>
+            <div class="ms-cat-card ${isSelectedMode ? 'is-selected-mode' : ''} ${isPendingPort ? 'is-pending-port' : ''}" data-cat-card="${_msEsc(catKey)}" draggable="true">
+              <div class="ms-cat-head">
+                <span class="ms-cat-name">${_msEsc(cat.title || cat.name)}</span>
+                <span class="ms-count-chip">${itemCount} ${_msEsc(_msT('menuScheduleItemCountUnit'))}</span>
               </div>
-              <div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
-                <span style="font-size:12.5px; font-weight:800; padding:4px 10px; border-radius:8px; background:${isSelectedMode ? '#eff6ff' : '#ecfdf5'}; color:${isSelectedMode ? '#1d4ed8' : '#047857'}; border:1px solid ${isSelectedMode ? '#bfdbfe' : '#a7f3d0'};">
+              <div class="ms-cat-controls">
+                <span class="ms-mode-badge ${isSelectedMode ? 'is-selected' : ''}">
                   ${_msEsc(isSelectedMode ? _msT('menuScheduleModeSelected') : _msT('menuScheduleModeAll'))}${isSelectedMode ? ` (${linkedShiftIds.length})` : ''}
                 </span>
                 ${isSelectedMode ? `
-                  <button type="button" onclick="window.msResetCategoryToAllShifts('${safeCatKey}')" style="min-height:38px; padding:4px 10px; border-radius:8px; border:1px solid #cbd5e1; background:#f8fafc; color:#475569; font-size:12px; font-weight:700; cursor:pointer;">${_msEsc(_msT('menuScheduleResetAllBtn'))}</button>
+                  <button type="button" class="ms-mini-btn" onclick="window.msResetCategoryToAllShifts('${safeCatKey}')">${_msEsc(_msT('menuScheduleResetAllBtn'))}</button>
+                ` : ''}
+                ${itemCount > 0 ? `
+                  <button type="button" class="ms-mini-btn" onclick="window.msToggleExpandItems('${safeCatKey}')">
+                    ${_msEsc(isExpanded ? _msT('menuScheduleHideItemsBtn') : _msT('menuScheduleShowItemsBtn'))}
+                  </button>
                 ` : ''}
               </div>
               ${isSelectedMode ? `
-                <label style="display:inline-flex; align-items:center; gap:8px; min-height:44px; margin-top:8px; cursor:pointer; font-size:13px; font-weight:700; color:#334155;">
-                  <input type="checkbox" ${cat.hideWhenUnavailable ? 'checked' : ''} onchange="window.msToggleCategoryHide('${safeCatKey}', this.checked)" style="width:19px; height:19px; accent-color:#2563eb;">
+                <label class="ms-switch-label">
+                  <input type="checkbox" class="ms-switch-input" ${cat.hideWhenUnavailable ? 'checked' : ''} onchange="window.msToggleCategoryHide('${safeCatKey}', this.checked)">
+                  <span class="ms-switch-pill"></span>
                   <span>${_msEsc(_msT('menuScheduleHideLabel'))}</span>
                 </label>
               ` : ''}
-              ${itemCount > 0 ? `
-                <div style="margin-top:6px;">
-                  <button type="button" onclick="window.msToggleExpandItems('${safeCatKey}')" style="min-height:36px; padding:4px 10px; border-radius:8px; border:1px solid #e2e8f0; background:#f8fafc; color:#334155; font-size:12px; font-weight:700; cursor:pointer;">
-                    ${_msEsc(isExpanded ? _msT('menuScheduleHideItemsBtn') : _msT('menuScheduleShowItemsBtn'))}
-                  </button>
-                </div>
-              ` : ''}
               ${itemsOverrideHtml}
-              <button type="button" data-cat-port="${_msEsc(catKey)}" aria-label="${_msEsc(_msT('menuScheduleConnectPortAria'))}" title="${_msEsc(_msT('menuScheduleConnectPortAria'))}" style="position:absolute; right:-22px; top:50%; transform:translateY(-50%); width:44px; height:44px; border-radius:9999px; border:2.5px solid ${isPendingPort ? '#1d4ed8' : (isSelectedMode ? '#2563eb' : '#94a3b8')}; background:${isPendingPort ? '#2563eb' : '#ffffff'}; color:${isPendingPort ? '#ffffff' : '#2563eb'}; display:flex; align-items:center; justify-content:center; cursor:grab; box-shadow:0 2px 8px rgba(15,23,42,0.12); z-index:4; touch-action:none;">
-                <span style="width:12px; height:12px; border-radius:9999px; background:currentColor; pointer-events:none;"></span>
+              <button type="button" class="ms-port-btn ${isSelectedMode ? 'is-linked' : ''} ${isPendingPort ? 'is-pending' : ''}" data-cat-port="${_msEsc(catKey)}" aria-label="${_msEsc(_msT('menuScheduleConnectPortAria'))}" title="${_msEsc(_msT('menuScheduleConnectPortAria'))}">
+                ${portDotSvg}
               </button>
             </div>
           `;
@@ -483,34 +490,33 @@
       : shifts.map(shift => {
           const sid = String(shift.id);
           const isMenuWin = shift.shiftType === 'menu_window';
-          const defaultBorder = isMenuWin ? '#fde68a' : '#e2e8f0';
           const timeChips = _msFormatShiftSummary(shift);
           const linkedCats = cats.filter(c => c.availabilityMode === 'selected_shifts' && Array.isArray(c.shiftIds) && c.shiftIds.includes(sid));
           const safeSid = sid.replace(/'/g, "\\'");
 
           return `
-            <div data-shift-card="${_msEsc(sid)}" data-default-border="${defaultBorder}" style="position:relative; background:#ffffff; border:1.5px solid ${defaultBorder}; border-radius:14px; padding:14px 16px 14px 34px; box-shadow:0 1px 3px rgba(15,23,42,0.04); transition:border-color 0.15s ease, background 0.15s ease;">
-              <div data-shift-port="${_msEsc(sid)}" style="position:absolute; left:-22px; top:50%; transform:translateY(-50%); width:44px; height:44px; border-radius:9999px; border:2.5px solid ${isMenuWin ? '#d97706' : '#059669'}; background:#ffffff; display:flex; align-items:center; justify-content:center; z-index:4;">
-                <span style="width:10px; height:10px; border-radius:9999px; background:${isMenuWin ? '#d97706' : '#059669'};"></span>
+            <div class="ms-shift-card ${isMenuWin ? 'is-menu-window' : ''}" data-shift-card="${_msEsc(sid)}">
+              <div class="ms-shift-port" data-shift-port="${_msEsc(sid)}" style="color:${isMenuWin ? '#d97706' : '#059669'};">
+                ${portDotSvg}
               </div>
-              <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;">
-                <span style="font-size:16px; font-weight:800; color:#0f172a;">${_msEsc(shift.name)}</span>
-                <span style="font-size:12px; font-weight:800; padding:3px 9px; border-radius:9999px; background:${isMenuWin ? '#fef3c7' : '#ecfdf5'}; color:${isMenuWin ? '#92400e' : '#047857'}; border:1px solid ${isMenuWin ? '#fde68a' : '#a7f3d0'};">
+              <div class="ms-shift-head">
+                <span class="ms-shift-name">${_msEsc(shift.name)}</span>
+                <span class="ms-type-badge ${isMenuWin ? 'is-menu-window' : ''}">
                   ${_msEsc(isMenuWin ? _msT('shiftTypeMenuWindow') : _msT('shiftTypeOperating'))}
                 </span>
               </div>
-              <div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;">
-                ${timeChips.map(ch => `<span style="font-size:12.5px; font-weight:700; color:#475569; background:#f8fafc; border:1px solid #e2e8f0; padding:3px 8px; border-radius:8px;">${_msEsc(ch)}</span>`).join('')}
+              <div class="ms-time-chips">
+                ${timeChips.map(ch => `<span class="ms-time-chip">${_msEsc(ch)}</span>`).join('')}
               </div>
               ${linkedCats.length > 0 ? `
-                <div style="margin-top:10px; padding-top:8px; border-top:1px dashed #e2e8f0; display:flex; flex-wrap:wrap; gap:6px;">
+                <div class="ms-linked-row">
                   ${linkedCats.map(lc => {
                     const ck = _msCatKey(lc);
                     const safeCk = ck.replace(/'/g, "\\'");
                     return `
-                      <span style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:9999px; background:#eff6ff; border:1px solid #bfdbfe; color:#1d4ed8; font-size:12.5px; font-weight:800;">
+                      <span class="ms-linked-pill">
                         <span>${_msEsc(catNameMap.get(ck) || lc.title)}</span>
-                        <button type="button" onclick="window.msUnlinkCategoryFromShift('${safeCk}', '${safeSid}')" aria-label="Unlink" style="background:transparent; border:none; color:#dc2626; font-weight:900; font-size:14px; cursor:pointer; padding:0 2px; line-height:1;">×</button>
+                        <button type="button" class="ms-linked-unlink" onclick="window.msUnlinkCategoryFromShift('${safeCk}', '${safeSid}')" aria-label="Unlink">×</button>
                       </span>
                     `;
                   }).join('')}
@@ -521,47 +527,49 @@
         }).join('');
 
     root.innerHTML = `
-      <div style="display:flex; flex-direction:column; gap:14px; max-width:1280px; margin:0 auto;">
-        <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; background:#ffffff; border:1.5px solid var(--border, #e2e8f0); border-radius:16px; padding:14px 18px;">
-          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px;">
-            <button type="button" onclick="leaveMenuScheduleToMenu()" style="min-height:48px; padding:10px 14px; border-radius:10px; border:1.5px solid #cbd5e1; background:#f8fafc; color:#0f172a; font-weight:800; font-size:14px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+      <div class="ms-shell">
+        <div class="ms-header">
+          <div class="ms-header-left">
+            <button type="button" class="ms-back-btn" onclick="leaveMenuScheduleToMenu()">
               ${backSvg}
               <span>${_msEsc(_msT('menuScheduleBackBtn'))}</span>
             </button>
             <div>
-              <h2 style="margin:0; font-size:18px; font-weight:900; color:#0f172a;">${_msEsc(_msT('menuSchedulePageTitle'))}</h2>
-              <div style="font-size:13px; color:#64748b; margin-top:2px;">${_msEsc(_msT('menuSchedulePageSub'))}</div>
+              <h2 class="ms-title">${_msEsc(_msT('menuSchedulePageTitle'))}</h2>
+              <p class="ms-sub">${_msEsc(_msT('menuSchedulePageSub'))}</p>
             </div>
           </div>
-          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px;">
-            <span style="padding:6px 12px; border-radius:9999px; font-size:12.5px; font-weight:800; background:${isDirty ? '#fef3c7' : '#ecfdf5'}; color:${isDirty ? '#92400e' : '#047857'}; border:1px solid ${isDirty ? '#fde68a' : '#a7f3d0'};">
+          <div class="ms-header-actions">
+            <span class="ms-status-pill ${isDirty ? 'is-dirty' : ''}">
               ${_msEsc(isDirty ? _msT('menuScheduleUnsavedPill') : _msT('menuScheduleSavedPill'))}
             </span>
-            <button type="button" onclick="openHoursSettingsFromSchedule()" style="min-height:48px; padding:10px 14px; border-radius:10px; border:1.5px solid #cbd5e1; background:#fff; color:#334155; font-weight:800; font-size:13.5px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+            <button type="button" class="ms-secondary-btn" onclick="openHoursSettingsFromSchedule()">
               ${clockSvg}
               <span>${_msEsc(_msT('menuScheduleOpenSettingsBtn'))}</span>
             </button>
-            <button type="button" id="btn-save-menu-schedule" onclick="saveMenuScheduleWorkspace()" ${!isDirty || _msState.saving ? 'disabled' : ''} style="min-height:48px; padding:10px 18px; border-radius:10px; border:none; background:${isDirty ? '#00b900' : '#94a3b8'}; color:#fff; font-weight:900; font-size:14px; display:inline-flex; align-items:center; gap:6px; cursor:${isDirty ? 'pointer' : 'not-allowed'};">
+            <button type="button" id="btn-save-menu-schedule" class="ms-save-btn" onclick="saveMenuScheduleWorkspace()" ${!isDirty || _msState.saving ? 'disabled' : ''}>
               ${saveSvg}
               <span>${_msEsc(_msState.saving ? _msT('saving') : _msT('menuScheduleSaveBtn'))}</span>
             </button>
           </div>
         </div>
 
-        <div style="background:${pendingCat ? '#eff6ff' : '#f0f9ff'}; border:1.5px solid ${pendingCat ? '#60a5fa' : '#bae6fd'}; border-radius:12px; padding:12px 16px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;">
-          <span style="font-size:13.5px; font-weight:700; color:${pendingCat ? '#1d4ed8' : '#0c4a6e'}; line-height:1.45;">${_msEsc(guideContent)}</span>
-          <span style="font-size:12.5px; font-weight:700; color:#64748b;">${_msEsc(_msT('menuScheduleUnlinkHint'))}</span>
-        </div>
-
-        <div id="menu-schedule-canvas" style="position:relative; display:grid; grid-template-columns:minmax(280px, 1fr) minmax(280px, 1fr); gap:88px; align-items:start; padding:10px 24px 28px 12px; overflow-x:auto;">
-          <svg id="menu-schedule-svg-layer" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:2;"></svg>
-          <div style="display:flex; flex-direction:column; gap:14px; position:relative; z-index:3;">
-            <div style="font-size:14px; font-weight:900; color:#475569; text-transform:uppercase; letter-spacing:0.03em; padding-left:4px;">${_msEsc(_msT('menuScheduleCategoriesCol'))}</div>
-            ${catsHtml}
+        <div class="ms-body-scroll">
+          <div class="ms-guide-banner ${pendingCat ? 'is-selecting' : ''}">
+            <span>${_msEsc(guideContent)}</span>
+            <span class="ms-guide-sub">${_msEsc(_msT('menuScheduleUnlinkHint'))}</span>
           </div>
-          <div style="display:flex; flex-direction:column; gap:14px; position:relative; z-index:3;">
-            <div style="font-size:14px; font-weight:900; color:#475569; text-transform:uppercase; letter-spacing:0.03em; padding-left:4px;">${_msEsc(_msT('menuScheduleShiftsCol'))}</div>
-            ${shiftsHtml}
+
+          <div id="menu-schedule-canvas" class="ms-canvas-grid">
+            <svg id="menu-schedule-svg-layer" class="ms-svg-layer"></svg>
+            <div class="ms-col">
+              <div class="ms-col-title">${_msEsc(_msT('menuScheduleCategoriesCol'))}</div>
+              ${catsHtml}
+            </div>
+            <div class="ms-col">
+              <div class="ms-col-title">${_msEsc(_msT('menuScheduleShiftsCol'))}</div>
+              ${shiftsHtml}
+            </div>
           </div>
         </div>
       </div>
