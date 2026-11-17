@@ -345,6 +345,18 @@ test("customer cards keep their badge without adding a separate recommendation i
   }
 });
 
+test('customer descriptions use only the current tenant catalog and translations', () => {
+  const app = setup([], { lang: 'zh-TW' });
+  app.context.bootstrapData = { catalog: [], translations: {} };
+  app.context.itemTranslations = { '火腿': 'Vietnamese Ham' };
+  vm.runInContext(fs.readFileSync('js/client-menu.js', 'utf8'), app.context);
+  const item = { name: '火腿', price: 10 };
+  assert.doesNotMatch(app.context.createDynamicItemCard('food', item).textContent, /Vietnamese Ham/);
+  assert.match(app.context.createDynamicItemCard('food', { ...item, description: '店家提供的說明' }).textContent, /店家提供的說明/);
+  app.context.bootstrapData.translations = { '火腿': 'Tenant translation' };
+  assert.match(app.context.createDynamicItemCard('food', item).textContent, /Tenant translation/);
+});
+
 test("unavailable linked child choices are rejected and can be removed without losing the parent selection", () => {
   const coffee = option("Coffee", 0, {
     productId: "coffee",

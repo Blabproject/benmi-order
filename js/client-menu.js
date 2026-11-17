@@ -497,9 +497,8 @@ function createDynamicItemCard(catSlug, item) {
         : '';
 
     const bData = window.bootstrapData || bootstrapData;
-    const itemTrans = window.itemTranslations || {};
     const localizedDesc = typeof locText === 'function' ? locText(item, 'description', '') : '';
-    const trans = localizedDesc || (bData?.translations && bData.translations[item.name]) || itemTrans[item.name] || item.description || '';
+    const trans = localizedDesc || (bData?.translations && bData.translations[item.name]) || item.description || '';
     const transHTML = trans ? `<div style="font-size: 13px; color: #9ca3af; margin-top: 2px;">${_cmEsc(trans)}</div>` : '';
 
     const safeItemName = item.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");

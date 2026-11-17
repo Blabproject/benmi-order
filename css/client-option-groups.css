@@ -216,12 +216,16 @@
 
 .uoc-panel [data-choose] {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  min-width: 0;
+  min-width: 48px;
   max-width: 100%;
   box-sizing: border-box;
   white-space: normal;
+}
+
+.uoc-panel .modifier-pill[data-choose] {
+  text-align: center;
 }
 
 .uoc-choice-name {
@@ -231,6 +235,8 @@
 }
 
 .uoc-choice-price {
+  grid-column: 2;
+  grid-row: 1;
   white-space: nowrap;
   line-height: 1.6;
 }
