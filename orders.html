@@ -1056,6 +1056,24 @@
                   <div class="pos-display-preview-meta" data-pos-display-i18n="displayPreviewOptions">客製化：微辣，不加蔥</div>
                   <div class="pos-display-preview-total"><span data-pos-display-i18n="displayPreviewTotal">總金額</span><strong>$180</strong></div>
                 </div>
+                <section id="pos-screen-orientation" hidden aria-labelledby="pos-screen-orientation-title">
+                  <fieldset class="pos-display-options" aria-describedby="pos-screen-orientation-status">
+                    <legend class="pos-display-label" id="pos-screen-orientation-title" data-pos-display-i18n="orientationTitle">螢幕方向</legend>
+                    <label class="pos-display-option">
+                      <input type="radio" name="pos-screen-orientation" value="auto" onchange="selectPOSScreenOrientation(this.value)" disabled>
+                      <strong data-pos-display-i18n="orientationAuto">自動旋轉</strong>
+                    </label>
+                    <label class="pos-display-option">
+                      <input type="radio" name="pos-screen-orientation" value="portrait" onchange="selectPOSScreenOrientation(this.value)" disabled>
+                      <strong data-pos-display-i18n="orientationPortrait">鎖定直向</strong>
+                    </label>
+                    <label class="pos-display-option">
+                      <input type="radio" name="pos-screen-orientation" value="landscape" onchange="selectPOSScreenOrientation(this.value)" disabled>
+                      <strong data-pos-display-i18n="orientationLandscape">鎖定橫向</strong>
+                    </label>
+                  </fieldset>
+                  <p class="pos-display-description" id="pos-screen-orientation-status" role="status" aria-live="polite" data-pos-display-i18n="orientationDeviceHint">立即套用，僅儲存在此裝置，重新開啟應用程式後仍會保留。</p>
+                </section>
               </div>
             </div>
 
@@ -3253,7 +3271,7 @@
   </section>
 
   <!-- Benmi POS Modular Architecture Scripts -->
-  <script src="js/orders-i18n.js?v=20261115_multilingual_pkg_v1"></script>
+  <script src="js/orders-i18n.js?v=20261117_screen_orientation_v1"></script>
   <script src="js/orders-core.js?v=20261115_multilingual_pkg_v1"></script>
   <script src="js/orders-audio.js?v=20261114_deadcode_cleanup_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
@@ -3263,7 +3281,8 @@
   <script src="js/orders-modals.js?v=20261112_print_recovery_v1"></script>
   <script src="js/qrcode.min.js?v=20261107_table_qr_v1"></script>
   <script src="js/store-notice-format.js?v=20261111_store_notice_v1"></script>
-  <script src="js/orders-settings.js?v=20261115_multilingual_pkg_v1"></script>
+  <script src="js/orders-settings.js?v=20261117_screen_orientation_v1"></script>
+  <script src="js/orders-orientation.js?v=20261117_screen_orientation_v1"></script>
   <script src="js/orders-menu-model.js?v=20261115_multilingual_pkg_v1"></script>
   <script src="js/orders-menu.js?v=20261115_bridge_globals_v1"></script>
   <script src="js/orders-bundle-wizard.js?v=20261007_dev_main_sync_v1"></script>

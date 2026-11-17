@@ -16,6 +16,7 @@
   - Tự động mở đúng thực đơn, đơn hàng và cấu hình máy in của quán đó ở mọi lần mở app tiếp theo.
   - Quản lý hủy ghép đôi / đổi quán được bảo vệ bằng mã PIN trong mục Cài Đặt.
 - **Màn hình POS tối ưu Tablet-First**: Thao tác chạm nhanh, nút bấm lớn tối thiểu 48px, lưới đơn hàng trực quan, hỗ trợ đa ngôn ngữ (**Tiếng Việt** & **繁體中文**).
+- **Tùy chỉnh hướng màn hình**: Vào **Cài đặt > Hiển thị > Hướng màn hình** để chọn **Tự động xoay**, **Khóa dọc** hoặc **Khóa ngang**. Áp dụng ngay và lưu riêng trên thiết bị bằng Android SharedPreferences; mặc định khóa ngang. Cần cài APK có plugin `POSScreenOrientation`; APK cũ sẽ hiển thị hướng dẫn cập nhật. Web không hiển thị tùy chọn này.
 - **In hóa đơn siêu tốc (ESC/POS)**: Hỗ trợ các dòng máy in bill nhiệt 58mm và 80mm thông dụng (Xprinter, Rongta, Epson, Star Micronics, Sunmi...) qua **Mạng LAN/Wi-Fi (TCP Socket Port 9100)** hoặc **Bluetooth Classic (SPP RFCOMM)**. Hỗ trợ tự động cắt giấy (auto-cut).
 - **In tem nhãn decal ly/món (TSPL)**: Hỗ trợ các dòng máy in tem nhãn mã vận đơn/decal (Aimo D520BT, Xprinter XP-365B, XP-420B, Phomemo, Munbyn...) để dán ly trà sữa, hộp thức ăn hoặc dán túi giao hàng.
 - **Bộ căn chỉnh nhãn chuyên sâu (TSPL Calibration)**:
@@ -217,3 +218,10 @@ Vào biểu tượng **⚙️ Cài đặt (Settings) > Máy in & xuất vé**:
 - Muốn cài đè v1.8.5 và giữ dữ liệu phải ký bằng cùng keystore của bản cũ. Không gỡ ứng dụng đang sử dụng chỉ để vượt lỗi chữ ký.
 
 Bản build trên máy này dùng khóa debug mới (lưu cục bộ, không commit: `android/local-signing/debug-v1.8.6.keystore`), khác chữ ký v1.8.5. Hai APK v1.8.6 đã build không cài đè v1.8.5; cần ký lại bằng khóa cũ để cập nhật tại chỗ.
+
+### Production v1.1.3 (17/11/2026)
+
+- `versionCode 31`, package `com.benmi.pos`, tải giao diện production tại `https://pos.blabfood.app`.
+- Cài đặt > Hiển thị > Hướng màn hình: Tự động xoay, Khóa dọc, Khóa ngang; lưu riêng trên thiết bị và khôi phục khi mở app.
+- APK: `benmi-pos-universal-v1.1.3.apk`; liên kết tải production: `https://pos.blabfood.app/apps/android-pos/benmi-pos-universal-v1.1.3.apk`.
+- Ký bằng cùng khóa với Universal v1.1.2 để hỗ trợ cập nhật tại chỗ.

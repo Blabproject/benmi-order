@@ -407,6 +407,7 @@ function openSettings() {
   loadRestaurantTablesSetting();
   renderReportsSetting();
   renderStorePairingSection();
+  if (typeof window.loadPOSScreenOrientationSetting === 'function') window.loadPOSScreenOrientationSetting();
   loadPOSPrinterSettings();
   initSettingsScrollSpy();
   let lastTab = "setting-card-status";

@@ -44,6 +44,13 @@ function legacyPagesCoexistencePlugin(): Plugin {
           fs.copyFileSync(src, path.join(outDir, file));
         }
       }
+      // Publish installable Android releases alongside the POS web app.
+      const apkDir = path.join(rootDir, 'apps/android-pos');
+      const apkOutDir = path.join(outDir, 'apps/android-pos');
+      fs.mkdirSync(apkOutDir, { recursive: true });
+      for (const file of fs.readdirSync(apkDir).filter(name => name.endsWith('.apk'))) {
+        fs.copyFileSync(path.join(apkDir, file), path.join(apkOutDir, file));
+      }
       for (const dir of LEGACY_ASSET_DIRS) {
         const srcDir = path.join(rootDir, dir);
         if (fs.existsSync(srcDir)) {
