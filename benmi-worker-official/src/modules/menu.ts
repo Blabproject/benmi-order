@@ -1,4 +1,4 @@
-import { groupOptions, loadOptionCatalog, validateOptionGraph, unifiedMenuEnabled } from './option-groups';
+import { assertProductsCanBeDeleted, loadOptionCatalog, validateOptionGraph, unifiedMenuEnabled } from './option-groups';
 import { Env } from '../types/env';
 import { Menu } from '../types/index';
 import { json } from '../utils/http';
@@ -1213,10 +1213,10 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
 
   if (unifiedCatalog) {
     const removed = new Set([...itemDeletes,...unifiedCatalog.products.filter(p=>categoryDeletes.includes(p.category_id)).map(p=>p.id)]);
-    if (unifiedCatalog.groups.some(g=>groupOptions(unifiedCatalog,g).some(o=>(o.productId && removed.has(o.productId)) || o.subOptions.some(sub=>sub.productId && removed.has(sub.productId))))) throw new Error('PRODUCT_IS_LINKED');
-    unifiedCatalog.products=unifiedCatalog.products.filter(p=>!removed.has(p.id));
     const removedGroups=new Set(customDeletes.flatMap(id=>[id,id.startsWith('mg_')?id.slice(3):`mg_${id}`]));
     unifiedCatalog.groups=unifiedCatalog.groups.filter(g=>!removedGroups.has(g.id));
+    assertProductsCanBeDeleted(unifiedCatalog, removed);
+    unifiedCatalog.products=unifiedCatalog.products.filter(p=>!removed.has(p.id));
     unifiedCatalog.links=unifiedCatalog.links.filter(l=>!removed.has(l.itemId) && !removedGroups.has(l.groupId));
     unifiedCatalog.categoryLinks=unifiedCatalog.categoryLinks.filter(l=>!categoryDeletes.includes(l.categoryId) && !removedGroups.has(l.groupId));
     validateOptionGraph(unifiedCatalog);

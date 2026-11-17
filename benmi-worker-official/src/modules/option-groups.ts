@@ -337,6 +337,17 @@ export function effectiveGroups(catalog: OptionCatalog, productId: string): Opti
 		})
 		.filter(Boolean) as OptionGroup[];
 }
+/** Category sources follow the live catalog; only stored product references block deletion. */
+export function assertProductsCanBeDeleted(catalog: OptionCatalog, productIds: Set<string>) {
+	for (const group of catalog.groups) {
+		const linked = group.options.some((option) =>
+			(option.productId && productIds.has(option.productId)) ||
+			option.subOptions.some((sub: SubOption | string) => typeof sub !== 'string' && sub.productId && productIds.has(sub.productId)),
+		) || group.sources.some((source) => source.type === 'item_list' && source.itemIds?.some((id: string) => productIds.has(id)));
+		if (linked) throw new Error('PRODUCT_IS_LINKED');
+	}
+}
+
 export function validateOptionGraph(catalog: OptionCatalog) {
 	// Guard against direct self-links: a group cannot be linked to a product that is an option within that group
 	for (const link of catalog.links) {
@@ -523,8 +534,7 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 			const entity = kind === 'product' ? catalog.products.find((p) => p.id === id) : catalog.groups.find((g) => g.id === id);
 			if (!entity || Number(raw.revision) !== Number(kind === 'product' ? entity.menu_revision : entity.revision))
 				return json({ error: 'MENU_CONFLICT' }, 409);
-			if (kind === 'product' && catalog.groups.some((g) => groupOptions(catalog, g).some((o) => o.productId === id || o.subOptions.some((sub: SubOption | string) => typeof sub !== 'string' && sub.productId === id))))
-				throw new Error('PRODUCT_IS_LINKED');
+			if (kind === 'product') assertProductsCanBeDeleted(catalog, new Set([id]));
 			const affectedItemIds = kind === 'group' ? new Set<string>(catalog.links.filter((l) => l.groupId === id).map((l) => l.itemId)) : new Set<string>();
 			if (kind === 'product') {
 				catalog.products = catalog.products.filter((p) => p.id !== id);
