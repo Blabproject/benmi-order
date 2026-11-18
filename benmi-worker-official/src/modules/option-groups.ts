@@ -614,13 +614,35 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 				!Array.isArray(raw.links)
 			)
 				throw new Error('INVALID_PRODUCT');
-			const links = raw.links.map((l: any, idx: number) => ({
-				itemId: id,
-				groupId: String(l.groupId),
-				optionIds: Array.isArray(l.optionIds) ? l.optionIds : null,
-				disabled: Boolean(l.disabled),
-				sortOrder: idx,
-			}));
+			const groupSort = (groupId: string) => Number(catalog.groups.find((g) => g.id === groupId)?.sortOrder ?? 0);
+			const links = raw.links
+				.map((l: any, idx: number) => ({
+					raw: l,
+					idx,
+					disabled: Boolean(l.disabled),
+					explicitOrder:
+						l.sortOrder !== undefined && l.sortOrder !== null && Number.isFinite(Number(l.sortOrder))
+							? Number(l.sortOrder)
+							: null,
+					groupOrder: groupSort(String(l.groupId)),
+				}))
+				.sort((a: any, b: any) => {
+					if (a.disabled !== b.disabled) return a.disabled ? 1 : -1;
+					if (a.explicitOrder !== null && b.explicitOrder !== null) {
+						if (a.explicitOrder !== b.explicitOrder) return a.explicitOrder - b.explicitOrder;
+						if (a.groupOrder !== b.groupOrder) return a.groupOrder - b.groupOrder;
+					} else if (a.explicitOrder !== null || b.explicitOrder !== null) {
+						return a.explicitOrder !== null ? -1 : 1;
+					}
+					return a.idx - b.idx;
+				})
+				.map((entry: any, idx: number) => ({
+					itemId: id,
+					groupId: String(entry.raw.groupId),
+					optionIds: Array.isArray(entry.raw.optionIds) ? entry.raw.optionIds : null,
+					disabled: entry.disabled,
+					sortOrder: idx,
+				}));
 			if (new Set(links.map((l: any) => l.groupId)).size !== links.length) throw new Error('DUPLICATE_GROUP');
 			for (const link of links) {
 				const group = catalog.groups.find((g) => g.id === link.groupId && g.scope !== 'order');

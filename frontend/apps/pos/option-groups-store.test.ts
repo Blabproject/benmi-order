@@ -150,4 +150,92 @@ describe('createOptionGroupsStore', () => {
     expect(store.getSnapshot().drawer).toBeNull();
     expect(onDrawerOpenChange).toHaveBeenLastCalledWith(false);
   });
+
+  it('preserves canonical link display order on load, appends newly selected groups at end, and supports moveProductGroup / moveGroupOption', async () => {
+    const catalog: OptionCatalogDto = {
+      categories: [{ id: 'c1', name: '飯糰' }],
+      products: [{ id: 'p1', category_id: 'c1', name: '辣味飯糰', price: 50, menu_revision: 1 }],
+      groups: [
+        {
+          id: 'g_rice',
+          name: '選米',
+          scope: 'item',
+          sortOrder: 1,
+          minSelection: 0,
+          maxSelection: 1,
+          options: [
+            { id: 'o_white', name: '白米', price: 0, isLocallyOutOfStock: false },
+            { id: 'o_purple', name: '紫米', price: 5, isLocallyOutOfStock: false },
+          ],
+        },
+        {
+          id: 'g_add15',
+          name: '加料 15元',
+          scope: 'item',
+          sortOrder: 2,
+          minSelection: 0,
+          maxSelection: 6,
+          options: [{ id: 'o_egg', name: '滷蛋', price: 15, isLocallyOutOfStock: false }],
+        },
+        {
+          id: 'g_add25',
+          name: '加料 25元',
+          scope: 'item',
+          sortOrder: 0,
+          minSelection: 0,
+          maxSelection: 3,
+          options: [{ id: 'o_pork', name: '豬排', price: 25, isLocallyOutOfStock: false }],
+        },
+      ],
+      // Raw catalog.links is out of group.sortOrder order with tied sortOrder=0
+      links: [
+        { groupId: 'g_add15', itemId: 'p1', optionIds: null, sortOrder: 0 },
+        { groupId: 'g_rice', itemId: 'p1', optionIds: null, sortOrder: 0 },
+      ],
+    };
+
+    const calls: Array<{ url: string; body?: string }> = [];
+    const fetcher = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const href = String(url);
+      calls.push({ url: href, body: typeof init?.body === 'string' ? init.body : undefined });
+      if (href.includes('/api/menu/options')) {
+        return new Response(JSON.stringify(catalog), { status: 200 });
+      }
+      if (href.includes('/api/menu/product?')) {
+        return new Response(JSON.stringify({ success: true, id: 'p1', catalog }), { status: 200 });
+      }
+      if (href.includes('/api/menu/option-group?')) {
+        return new Response(JSON.stringify({ success: true, id: 'g_rice', catalog }), { status: 200 });
+      }
+      return new Response('{}', { status: 404 });
+    });
+
+    const { store } = makeBridge(fetcher);
+    await store.openProduct('p1', 'product-options');
+    let prodDraft = store.getSnapshot().drawer?.draft as { links: Array<{ groupId: string; sortOrder?: number }> };
+    // Sorted by group.sortOrder tie-breaker (g_rice=1 before g_add15=2)
+    expect(prodDraft.links.map((l) => l.groupId)).toEqual(['g_rice', 'g_add15']);
+
+    // Adding g_add25 (whose global group.sortOrder is 0) must append at end instead of jumping ahead of g_rice
+    store.openProductGroupsPicker();
+    store.toggleSelectionId('group', 'g_add25', true);
+    expect(store.applyRoute()).toBe(true);
+    prodDraft = store.getSnapshot().drawer?.draft as { links: Array<{ groupId: string; sortOrder?: number }> };
+    expect(prodDraft.links.map((l) => l.groupId)).toEqual(['g_rice', 'g_add15', 'g_add25']);
+
+    // Move g_add25 up by 1
+    store.moveProductGroup('g_add25', -1);
+    prodDraft = store.getSnapshot().drawer?.draft as { links: Array<{ groupId: string; sortOrder?: number }> };
+    expect(prodDraft.links.map((l) => l.groupId)).toEqual(['g_rice', 'g_add25', 'g_add15']);
+    expect(await store.save()).toBe(true);
+    const prodSave = JSON.parse(calls.find((c) => c.url.includes('/api/menu/product?'))?.body || '{}');
+    expect(prodSave.links.map((l: { groupId: string }) => l.groupId)).toEqual(['g_rice', 'g_add25', 'g_add15']);
+
+    // Reorder options inside g_rice
+    await store.openGroup('g_rice');
+    store.moveGroupOption('o_purple', -1);
+    expect(await store.save()).toBe(true);
+    const grpSave = JSON.parse(calls.find((c) => c.url.includes('/api/menu/option-group?'))?.body || '{}');
+    expect(grpSave.options.map((o: { id: string }) => o.id)).toEqual(['o_purple', 'o_white']);
+  });
 });

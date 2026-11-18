@@ -995,3 +995,45 @@ test("saving option group linked to item with existing legacy bundle rule ID upd
   f.db.close();
 });
 
+test("saving product links respects explicit sortOrder, tie-breaks by group sortOrder, and pushes disabled links after active links", async () => {
+  const f = fixture();
+  await ok(await f.save("group", { ...group(), id: "a_g1", name: "G1", sortOrder: 1, options: [{ id: "o1", name: "O1", price: 0, quantity: 1 }] }));
+  await ok(await f.save("group", { ...group(), id: "a_g2", name: "G2", sortOrder: 2, options: [{ id: "o2", name: "O2", price: 0, quantity: 1 }] }));
+  await ok(await f.save("group", { ...group(), id: "a_g3", name: "G3", sortOrder: 0, options: [{ id: "o3", name: "O3", price: 0, quantity: 1 }] }));
+
+  const cat1 = await f.api.loadOptionCatalog(f.env, "a");
+  const prod = cat1.products.find((p) => p.id === "a_main");
+  // Deliberately send links out of explicit sortOrder order with a disabled link at index 0
+  const saved1 = await ok(await f.save("product", {
+    id: prod.id,
+    name: prod.name,
+    price: prod.price,
+    categoryId: prod.category_id,
+    revision: prod.menu_revision,
+    links: [
+      { groupId: "a_g2", optionIds: null, disabled: true, sortOrder: 0 },
+      { groupId: "a_g1", optionIds: null, disabled: false, sortOrder: 2 },
+      { groupId: "a_g3", optionIds: null, disabled: false, sortOrder: 1 },
+    ],
+  }));
+  assert.deepEqual(f.api.effectiveGroups(saved1.catalog, "a_main").map((g) => g.id), ["a_g3", "a_g1"]);
+
+  // Tied sortOrder=0 breaks cleanly by modifier_groups.sort_order (a_g3=0, a_g1=1, a_g2=2)
+  const prod2 = saved1.catalog.products.find((p) => p.id === "a_main");
+  const saved2 = await ok(await f.save("product", {
+    id: prod2.id,
+    name: prod2.name,
+    price: prod2.price,
+    categoryId: prod2.category_id,
+    revision: prod2.menu_revision,
+    links: [
+      { groupId: "a_g2", optionIds: null, disabled: false, sortOrder: 0 },
+      { groupId: "a_g1", optionIds: null, disabled: false, sortOrder: 0 },
+      { groupId: "a_g3", optionIds: null, disabled: false, sortOrder: 0 },
+    ],
+  }));
+  assert.deepEqual(f.api.effectiveGroups(saved2.catalog, "a_main").map((g) => g.id), ["a_g3", "a_g1", "a_g2"]);
+
+  f.db.close();
+});
+
