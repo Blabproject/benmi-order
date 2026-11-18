@@ -75,6 +75,8 @@ export default defineConfig({
     emptyOutDir: true,
     manifest: true,
     sourcemap: false,
+    // Keep 100vh/top-right-bottom-left/classic @media fallbacks for older Android POS WebViews.
+    cssTarget: ['chrome79', 'safari13'],
     rollupOptions: {
       input: {
         'pos-sandbox': path.resolve(rootDir, 'frontend/apps/pos/sandbox.html'),

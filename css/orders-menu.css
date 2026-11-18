@@ -1983,7 +1983,7 @@
 #itemDetailModal.menu-editor-drawer .item-detail-page-container,
 #modal-bundle-editor.menu-editor-drawer .bundle-editor-page-container {
   width: min(600px, calc(100vw - 64px)) !important; max-width: none !important;
-  height: 100dvh !important; max-height: 100dvh !important; min-height: 0 !important;
+  height: 100vh !important; height: 100dvh !important; max-height: 100vh !important; max-height: 100dvh !important; min-height: 0 !important;
   margin: 0 !important; padding: 0 !important; overflow: hidden !important;
   background: white !important; border-radius: 16px 0 0 16px !important;
   box-shadow: -12px 0 40px rgba(20, 28, 23, .12) !important;
