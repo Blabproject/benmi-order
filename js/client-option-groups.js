@@ -453,7 +453,7 @@
     el.className = "uoc-overlay";
     el.hidden = true;
     el.innerHTML =
-      '<section class="uoc-panel" role="dialog" aria-modal="true" aria-labelledby="uoc-title"><header><button type="button" data-back hidden></button><h2 id="uoc-title" tabindex="-1"></h2><button type="button" data-close>×</button></header><div class="uoc-portion-tabs"></div><nav class="bundle-v2-step-nav" aria-label=""></nav><div class="uoc-image-status" role="status" aria-live="polite" aria-atomic="true"></div><div class="uoc-body"></div><footer><p role="alert"></p><button type="button" data-confirm></button></footer></section>';
+      '<section class="uoc-panel" role="dialog" aria-modal="true" aria-labelledby="uoc-title"><header><button type="button" data-back hidden></button><h2 id="uoc-title" tabindex="-1"></h2><button type="button" data-close>×</button></header><div class="uoc-portion-tabs"></div><div class="uoc-copy-bar" hidden></div><nav class="bundle-v2-step-nav" aria-label=""></nav><div class="uoc-image-status" role="status" aria-live="polite" aria-atomic="true"></div><div class="uoc-body"></div><footer><p role="alert"></p><button type="button" data-confirm></button></footer></section>';
     // A photo can disappear after preflight. Replace the list with loading
     // before rebuilding it, rather than collapsing an image inside a live row.
     el.addEventListener("error", (event) => {
@@ -494,11 +494,19 @@
       }
       if (b.dataset.back !== undefined) return goBack();
       if (b.dataset.copy !== undefined) {
+        const prevIndex = context.index - 1;
+        if (prevIndex < 0) return;
         const previous =
-          context.drafts[context.index - 1] || loadPortion(context.index - 1);
+          context.drafts[prevIndex] || loadPortion(prevIndex);
         context.groups = copy(previous.groups);
-        context.note = previous.note;
+        context.note = previous.note || "";
         context.error = "";
+        context.drafts[context.index] = {
+          groups: copy(context.groups),
+          note: context.note,
+        };
+        if (context.index >= Number(cart[context.key] || 0))
+          context.addedPortions?.add(context.index);
         return render(true);
       }
       if (b.dataset.remove !== undefined) {
@@ -506,6 +514,8 @@
           Number(b.dataset.index),
           1,
         );
+        if (context.index >= Number(cart[context.key] || 0))
+          context.addedPortions?.add(context.index);
         context.error = "";
         return render();
       }
@@ -534,6 +544,8 @@
           selection.items.push(make(o));
           added = true;
         }
+        if (context.index >= Number(cart[context.key] || 0))
+          context.addedPortions?.add(context.index);
         context.error = "";
         if (
           added &&
@@ -552,8 +564,11 @@
       if (b.dataset.confirm !== undefined) confirm();
     });
     el.addEventListener("input", (event) => {
-      if (event.target.dataset.note !== undefined)
+      if (event.target.dataset.note !== undefined) {
         context.note = event.target.value.slice(0, 50);
+        if (context.index >= Number(cart[context.key] || 0))
+          context.addedPortions?.add(context.index);
+      }
     });
     el.addEventListener("change", (event) => {
       const input = event.target;
@@ -569,6 +584,8 @@
           name: s.name || s,
           price: Number(s.price || 0),
         });
+      if (context.index >= Number(cart[context.key] || 0))
+        context.addedPortions?.add(context.index);
       context.error = "";
       render();
     });
@@ -699,6 +716,14 @@
           `<button type="button" class="bundle-v2-nav ${gi === context.step ? "active" : ""}" data-step="${gi}" aria-current="${gi === context.step ? "step" : "false"}">${!invalid([g], [context.groups[gi]]) ? "✓ " : ""}${esc(loc(g, "name", g.name))}</button>`,
       )
       .join("");
+    const copyBar = el.querySelector(".uoc-copy-bar");
+    if (copyBar) {
+      const showCopy = !nested && !loading && context.index > 0;
+      copyBar.hidden = !showCopy;
+      copyBar.innerHTML = showCopy
+        ? `<button type="button" class="bundle-v2-copy btn-copy-prev-custom" data-copy>${esc(t("copy_prev_choice", null, "複製上一份的選擇"))}</button>`
+        : "";
+    }
     body.setAttribute("aria-busy", String(loading));
     const loadingText = t("loading_options", null, "載入選項中…");
     el.querySelector(".uoc-image-status").textContent = loading ? loadingText : "";
@@ -718,9 +743,6 @@
           .join("");
     } else {
       body.innerHTML =
-        (context.index > 0
-          ? `<button type="button" class="bundle-v2-copy btn-copy-prev-custom" data-copy>${esc(t("copy_prev_choice", null, "複製上一份的選擇"))}</button>`
-          : "") +
         context.rule.groups
           .map((g, gi) =>
             context.mode === "chips" || gi === context.step
@@ -776,6 +798,7 @@
     };
   }
   function switchPortion(index) {
+    if (index === context.index && !context.views.length) return;
     context.drafts[context.index] = {
       groups: copy(context.groups),
       note: context.note,
@@ -857,32 +880,76 @@
       context.error = "";
       return render(true);
     }
-    if (invalid(context.rule.groups, context.groups)) {
-      context.step = context.rule.groups.findIndex((g, gi) =>
-        invalid([g], [context.groups[gi]]),
-      );
-      context.error = t(
-        "opt_err_check_required_oos",
-        null,
-        "請檢查必選項目與已售完的選項",
-      );
-      return render(true);
+    context.drafts[context.index] = {
+      groups: context.groups,
+      note: context.note,
+    };
+    const { key, cat, name } = context;
+    const qtyNow = Number(cart[key] || 0);
+    const commitIndices = Object.keys(context.drafts)
+      .map(Number)
+      .filter(
+        (pIdx) =>
+          pIdx < qtyNow ||
+          pIdx === context.index ||
+          context.addedPortions?.has(pIdx),
+      )
+      .sort((a, b) => a - b);
+    for (const pIdx of commitIndices) {
+      const portion = context.drafts[pIdx];
+      if (invalid(context.rule.groups, portion.groups)) {
+        context.index = pIdx;
+        context.groups = copy(portion.groups);
+        context.note = portion.note || "";
+        context.views = [];
+        context.step = Math.max(
+          0,
+          context.rule.groups.findIndex((g, gi) =>
+            invalid([g], [portion.groups[gi]]),
+          ),
+        );
+        context.error = t(
+          "opt_err_check_required_oos",
+          null,
+          "請檢查必選項目與已售完的選項",
+        );
+        return render(true);
+      }
     }
-    const { key, index, cat, name } = context;
     window.bundleCartData = window.bundleCartData || {};
     window.bundleCartData[key] = window.bundleCartData[key] || [];
     window.customizeData = window.customizeData || {};
     window.customizeData[key] = window.customizeData[key] || [];
-    window.customizeData[key][index] = {
-      single: {},
-      multiple: {},
-      note: context.note,
-    };
-    window.bundleCartData[key][index] = {
-      portionIndex: index,
-      groups: receipt(context.groups),
-    };
-    cart[key] = Math.max(Number(cart[key] || 0), index + 1);
+    const maxCommittedIndex = commitIndices.length
+      ? Math.max(...commitIndices)
+      : context.index;
+    const nextQty = Math.max(qtyNow, maxCommittedIndex + 1);
+    for (let i = 0; i < nextQty; i++) {
+      if (context.drafts[i] && commitIndices.includes(i)) {
+        const portion = context.drafts[i];
+        window.customizeData[key][i] = {
+          single: {},
+          multiple: {},
+          note: portion.note || "",
+        };
+        window.bundleCartData[key][i] = {
+          portionIndex: i,
+          groups: receipt(portion.groups),
+        };
+      } else if (!window.bundleCartData[key][i]) {
+        const fallbackPortion = loadPortion(i);
+        window.customizeData[key][i] = {
+          single: {},
+          multiple: {},
+          note: fallbackPortion.note || "",
+        };
+        window.bundleCartData[key][i] = {
+          portionIndex: i,
+          groups: receipt(fallbackPortion.groups),
+        };
+      }
+    }
+    cart[key] = nextQty;
     const qty = document.getElementById(`qty-${cat}-${name}`);
     if (qty) qty.textContent = String(cart[key]);
     const b = document.getElementById(`bundle-edit-btn-${cat}-${name}`);
@@ -923,6 +990,7 @@
         step: 0,
         views: [],
         drafts: {},
+        addedPortions: new Set(),
         images: new Map(),
         renderVersion: 0,
         error: "",

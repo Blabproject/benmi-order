@@ -470,3 +470,127 @@ test('customer menu renders before any optional locale global exists, using the 
     assert.match(card.querySelector('.bundle-edit-btn').textContent, lang==='vi'?/Tuỳ chọn/:/選項/);
   }
 });
+
+test("confirming after editing multiple portions persists every portion and validates invalid earlier tabs", () => {
+  const rice = group("Rice", [
+    option("White", 0, { isDefault: true }),
+    option("Purple", 5),
+  ], { minSelection: 0, maxSelection: 1 });
+  const req = group("Sauce", [option("Soy", 0)], { minSelection: 1, maxSelection: 1 });
+  const app = setup([rice], { qty: 3 });
+
+  app.open(2);
+  app.click('[data-portion="0"]');
+  app.click('[data-choose="0"][data-option="1"]');
+  app.get("[data-note]").value = "P1 note";
+  app.emit("input", app.get("[data-note]"));
+
+  app.click('[data-portion="1"]');
+  app.click("[data-copy]");
+  assert.equal(app.get('[data-choose="0"][data-option="1"]').getAttribute("aria-pressed"), "true");
+  assert.equal(app.get("[data-note]").textContent, "P1 note");
+
+  app.click('[data-portion="2"]');
+  app.click("[data-copy]");
+  app.get("[data-note]").value = "P3 note";
+  app.emit("input", app.get("[data-note]"));
+
+  // Peeking at + 新增一份 without changing anything and switching back keeps qty at 3
+  app.click('[data-portion="3"]');
+  app.click('[data-portion="2"]');
+  app.click("[data-confirm]");
+
+  assert.equal(app.context.cart[app.key], 3);
+  assert.deepEqual(
+    app.context.bundleCartData[app.key].map((p) => p.groups[0].items[0].optionId),
+    ["Purple", "Purple", "Purple"],
+  );
+  assert.deepEqual(
+    app.context.customizeData[app.key].map((c) => c.note),
+    ["P1 note", "P1 note", "P3 note"],
+  );
+
+  // If portion 0 is invalid when confirming from portion 1, confirm jumps back to portion 0
+  const reqApp = setup([req], {
+    qty: 2,
+    saved: [
+      { groups: [{ groupId: "Sauce", items: [{ optionId: "Soy", quantity: 1 }] }] },
+      { groups: [{ groupId: "Sauce", items: [{ optionId: "Soy", quantity: 1 }] }] },
+    ],
+  });
+  reqApp.open(0);
+  reqApp.click('[data-choose="0"][data-option="0"]');
+  reqApp.click('[data-portion="1"]');
+  reqApp.click("[data-confirm]");
+  assert.equal(reqApp.modal().hidden, false);
+  assert.equal(reqApp.get('[data-portion="0"]').getAttribute("aria-pressed"), "true");
+  assert.notEqual(reqApp.get('[role="alert"]').textContent, "");
+});
+
+test("legacy client-customizations modal preserves multi-portion edits and copy-previous across tabs", () => {
+  const { JSDOM } = require("jsdom");
+  const dom = new JSDOM("<!DOCTYPE html><html lang='zh-TW'><body></body></html>");
+  const doc = dom.window.document;
+  const key = "cat_Tea";
+  const mods = [{
+    id: "sugar",
+    slug: "sugar",
+    name: "甜度",
+    selectionType: "single",
+    options: [
+      { id: "full", name: "全糖", price: 0, isDefault: true },
+      { id: "boba", name: "加珍珠", price: 10, isDefault: false },
+    ],
+  }];
+  let closed = 0;
+  let updated = 0;
+  const ctx = {
+    document: doc,
+    console,
+    setTimeout,
+    clearTimeout,
+    window: null,
+    currentLocale: "zh-TW",
+    cart: { [key]: 2 },
+    customizeData: {
+      [key]: [
+        { single: { sugar: "全糖" }, multiple: {}, subOptions: {}, selectedDetails: {}, note: "" },
+        { single: { sugar: "全糖" }, multiple: {}, subOptions: {}, selectedDetails: {}, note: "" },
+      ],
+    },
+    getItemModifiers: () => mods,
+    resolveCatalogItem: () => ({ displayName: "Tea", price: 30 }),
+    getModifierPrice: (n) => (n === "加珍珠" ? 10 : 0),
+    calculatePortionExtra: (_k, p) => (p?.single?.sugar === "加珍珠" ? 10 : 0),
+    closePopup() {
+      closed++;
+      const existing = doc.getElementById("item-customize-overlay");
+      if (existing) existing.remove();
+    },
+    updateTotal() { updated++; },
+  };
+  ctx.window = ctx;
+  ctx.scrollTo = () => {};
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync("js/client-customizations.js", "utf8"), ctx);
+  ctx.getItemModifiers = () => mods;
+
+  ctx.openItemCustomizeModal("cat", "Tea", 1);
+  // Switch to portion 0, change to 加珍珠 (+10)
+  doc.querySelector('[data-portion="0"]').click();
+  const pearlChip = [...doc.querySelectorAll(".modifier-pill")].find((el) => el.textContent.includes("加珍珠"));
+  assert.ok(pearlChip);
+  pearlChip.click();
+  // Switch to portion 1, click 與上一份相同 (.btn-copy-prev-custom)
+  doc.querySelector('[data-portion="1"]').click();
+  const copyBtn = doc.querySelector(".btn-copy-prev-custom");
+  assert.ok(copyBtn, "copy button should show when editing existing portion 2");
+  copyBtn.click();
+  // Confirm and check both portions persisted
+  doc.querySelector(".btn-customize-confirm").click();
+  assert.equal(ctx.cart[key], 2);
+  assert.equal(ctx.customizeData[key][0].single.sugar, "加珍珠");
+  assert.equal(ctx.customizeData[key][1].single.sugar, "加珍珠");
+  assert.equal(updated >= 1, true);
+  assert.equal(doc.getElementById("item-customize-overlay"), null);
+});

@@ -225,3 +225,10 @@ Bản build trên máy này dùng khóa debug mới (lưu cục bộ, không com
 - Cài đặt > Hiển thị > Hướng màn hình: Tự động xoay, Khóa dọc, Khóa ngang; lưu riêng trên thiết bị và khôi phục khi mở app.
 - APK: `benmi-pos-universal-v1.1.3.apk`; liên kết tải production: `https://pos.blabfood.app/apps/android-pos/benmi-pos-universal-v1.1.3.apk`.
 - Ký bằng cùng khóa với Universal v1.1.2 để hỗ trợ cập nhật tại chỗ.
+
+### Production v1.1.4 (19/11/2026)
+
+- `versionCode 32`, package `com.benmi.pos`, tải giao diện production tại `https://pos.blabfood.app`.
+- Bao gồm bản vá `MainActivity.onCreate` khôi phục hướng màn hình trước `super.onCreate(savedInstanceState)` (fix lệch UI khởi động theo hướng ngang/dọc) và đồng bộ web assets mới nhất.
+- APK: `benmi-pos-universal-v1.1.4.apk` (và `blab-pos.apk`); liên kết tải production: `https://pos.blabfood.app/apps/android-pos/benmi-pos-universal-v1.1.4.apk`.
+- Ký bằng cùng khóa với Universal v1.1.2 / v1.1.3 để hỗ trợ cập nhật tại chỗ.

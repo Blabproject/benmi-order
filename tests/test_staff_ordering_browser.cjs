@@ -326,3 +326,95 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  }
  assert.deepEqual(errors,[]);
 });
+
+for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: staff multi-portion editing and copy-previous persist all portions`,async t=>{
+ const f=await fixture(t);
+ await f.apply("UPDATE tenant_config SET features='[\"dine_in\"]',allow_dine_in=1,allow_scheduled_pickup=0 WHERE tenant_id='a';");
+ await f.apply(`INSERT INTO menu_items(id,tenant_id,category_id,name,price,sort_order) VALUES('rice-ball','a','food-a','辣味飯糰',50,1);`);
+ await f.apply(`
+  INSERT INTO modifier_groups(id,tenant_id,name,selection_type,is_required,min_selection,max_selection,scope)
+  VALUES('add15','a','加料 15 元','multiple',0,0,6,'item'),
+        ('rice','a','選米','single',0,0,1,'item'),
+        ('add25','a','加料 25 元','multiple',0,0,6,'item');
+  INSERT INTO modifier_options(id,tenant_id,group_id,name,price,is_default) VALUES
+  ('egg','a','add15','滷蛋',15,0),('pe','a','add15','皮蛋',15,0),
+  ('white','a','rice','白米',0,1),('purple','a','rice','紫米',5,0),
+  ('cheese','a','add25','起司',25,0);
+  INSERT INTO item_modifier_links(tenant_id,item_id,group_id) VALUES('a','rice-ball','add15'),('a','rice-ball','rice'),('a','rice-ball','add25');
+ `);
+ const distRoot=path.join(process.cwd(),'dist');
+ if(!fs.existsSync(path.join(distRoot,'.vite/manifest.json'))||!fs.existsSync(path.join(distRoot,'orders.html'))){
+  require('node:child_process').execFileSync(process.execPath,[path.join(process.cwd(),'node_modules/vite/bin/vite.js'),'build','--config','vite.config.mts'],{cwd:process.cwd(),stdio:'inherit'});
+ }
+ const server=http.createServer((req,res)=>{
+  const rel=new URL(req.url,'http://local').pathname.slice(1);
+  const file=path.resolve(distRoot,rel);
+  if((!file.startsWith(distRoot+path.sep)&&file!==distRoot)||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404);res.end();return;}
+  const contentType=file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':file.endsWith('.png')?'image/png':file.endsWith('.svg')?'image/svg+xml':file.endsWith('.wasm')?'application/wasm':'text/html';
+  res.setHeader('Content-Type',contentType);res.end(fs.readFileSync(file));
+ });
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>server.close(r)));
+ const browser=await engine.launch();t.after(()=>browser.close());
+ const ctx=await browser.newContext({viewport:{width:1180,height:820},hasTouch:true});
+ const page=await ctx.newPage();
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(()=>{
+  if(!localStorage.getItem('staff_order_lang'))localStorage.setItem('staff_order_lang','zh-TW');
+  if(!localStorage.getItem('benmi_lang'))localStorage.setItem('benmi_lang','zh-TW');
+ });
+ await page.route('**/api/**',async route=>{
+  const r=route.request(),url=new URL(r.url()),p=url.pathname;
+  const request=new Request(r.url(),{method:r.method(),headers:r.headers(),...(['GET','HEAD'].includes(r.method())?{}:{body:r.postData()})});
+  let response;
+  if(p==='/api/config'){const tc=await createTenantRepository(f.env.DB,f.env.ORDER_STATE,f.env).getTenantContext('a');response=await getConfig(request,f.env,tc);}
+  else if(p.startsWith('/api/staff'))response=await handleStaffRoute(request,f.env,p,f.context('a'));
+  else if(p==='/api/tenant/bootstrap')response=await getTenantBootstrap(request,f.env);
+  else if(p==='/api/menu/options')response=await getOptionCatalog(request,f.env);
+  else response=new Response('{}');
+  await route.fulfill({status:response.status,body:await response.text(),headers:{'Content-Type':'application/json'}});
+ });
+ await page.route('https://static.line-scdn.net/**',r=>r.fulfill({body:''}));
+ await page.goto(`http://127.0.0.1:${server.address().port}/orders.html?tenant=a&env=dev#staff-order`);
+ if(await page.locator('#i18n-btn-start-shift').isVisible())await page.locator('#i18n-btn-start-shift').click();
+ await page.waitForFunction(()=>document.getElementById('staff-order-iframe')?.contentWindow?.StaffOrder?.ready());
+ const staffFrame=page.frameLocator('#staff-order-iframe');
+ const riceCard=staffFrame.locator('#item-food-辣味飯糰 .staff-tile-main, #item-food-辣味飯糰').first();
+ await riceCard.tap();
+ await riceCard.tap();
+ await riceCard.tap();
+ await staffFrame.locator('#item-food-辣味飯糰 .staff-tile-opt-btn').tap();
+ await staffFrame.locator('#unified-option-modal [data-portion="0"]').tap();
+ await staffFrame.locator('#unified-option-modal [data-choose="1"][data-option="1"]').tap();
+ assert.match(await staffFrame.locator('#unified-option-modal [data-confirm]').textContent(),/\$55/);
+ await staffFrame.locator('#unified-option-modal [data-portion="1"]').tap();
+ await staffFrame.locator('#unified-option-modal [data-copy]').tap();
+ assert.equal(await staffFrame.locator('#unified-option-modal [data-choose="1"][data-option="1"]').getAttribute('aria-pressed'),'true');
+ assert.match(await staffFrame.locator('#unified-option-modal [data-confirm]').textContent(),/\$55/);
+ await staffFrame.locator('#unified-option-modal [data-portion="2"]').tap();
+ await staffFrame.locator('#unified-option-modal [data-copy]').tap();
+ assert.equal(await staffFrame.locator('#unified-option-modal [data-choose="1"][data-option="1"]').getAttribute('aria-pressed'),'true');
+ assert.match(await staffFrame.locator('#unified-option-modal [data-confirm]').textContent(),/\$55/);
+ await staffFrame.locator('#unified-option-modal [data-confirm]').tap();
+ assert.match(await staffFrame.locator('#cart-summary').innerText(),/\$165/);
+ await staffFrame.locator('.staff-cart-line-info').first().tap();
+ for(const p of ['0','1','2']){
+  await staffFrame.locator(`#unified-option-modal [data-portion="${p}"]`).tap();
+  assert.equal(await staffFrame.locator('#unified-option-modal [data-choose="1"][data-option="1"]').getAttribute('aria-pressed'),'true');
+ }
+ await staffFrame.locator('#unified-option-modal [data-confirm]').tap();
+ await staffFrame.locator('[data-staff-table="table-a"]').tap();
+ await Promise.all([
+  page.waitForResponse(r=>r.url().includes('/api/staff/orders')&&r.request().method()==='POST'),
+  staffFrame.locator('#btn-desktop-submit').tap()
+ ]);
+ const orders=await f.DB.prepare("SELECT * FROM orders WHERE tenant_id='a'").all();
+ assert.equal(orders.results.length,1);
+ assert.equal(orders.results[0].total_amount,165);
+ const detail=await f.call(`/api/staff/orders/${orders.results[0].key}`);
+ const portions=detail.detailSnapshot.rounds[0].items[0].portions;
+ assert.equal(portions.length,3);
+ for(const portion of portions){
+  assert(portion.groups.some(g=>g.items.some(i=>i.name==='紫米')));
+ }
+ assert.deepEqual(errors,[]);
+});
