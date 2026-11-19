@@ -3708,7 +3708,12 @@ body.ug-open { overflow: hidden; }
 .ms-store-hour-chip strong { font-weight: 650; color: #1c2620; }
 .ms-store-hour-chip.is-closed { background: #f3f5f4; color: #849088; }
 .ms-shift-error { color: #b91c1c; font-size: var(--menu-font-sm); font-weight: 600; }
-.ms-shift-error:not(:empty) { margin-bottom: 14px; padding: 10px 14px; border-radius: 10px; border: 1px solid #fecaca; background: #fef2f2; }
+.ms-shift-error:not(:empty) { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 14px; margin-bottom: 14px; padding: 12px 14px; border-radius: 12px; border: 1px solid #fecaca; background: #fef2f2; }
+.ms-shift-error-body { flex: 1 1 260px; min-width: 0; }
+.ms-shift-error-title { display: block; color: #991b1b; font-weight: 650; }
+.ms-shift-error-list { margin: 4px 0 0; padding-left: 18px; color: #7f1d1d; font-weight: 500; line-height: 1.5; }
+.ms-shift-error-hours-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 10px 14px; border-radius: 10px; border: 1px solid #fca5a5; background: #fff; color: #991b1b; font-weight: 600; flex-shrink: 0; transition: background .15s, border-color .15s; }
+.ms-shift-error-hours-btn:hover { background: #fee2e2; border-color: #f87171; }
 .ms-shift-fieldset { border: 0; padding: 0; margin: 0; }
 .ms-shift-cards { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
 .ms-shift-empty { margin: 0; padding: 18px; border-radius: 12px; background: #fff; border: 1px dashed #cfd8d3; color: #6b7870; text-align: center; }

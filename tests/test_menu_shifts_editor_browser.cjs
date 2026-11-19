@@ -29,7 +29,11 @@ for (const [locale, width] of [['vi', 768], ['zh-TW', 1024], ['vi', 390]]) {
     const firstStart=()=>page.locator('#menu-shifts-cards input[type=time]').first();
     await firstStart().fill('10:00'); await firstStart().press('Tab');
     await page.locator('#btn-save-menu-shifts').click();
-    assert.equal(writes.length,0); assert(await page.locator('#menu-shifts-error').textContent());
+    assert.equal(writes.length,0);
+    assert(await page.locator('#menu-shifts-error .ms-shift-error-list').textContent());
+    await page.evaluate(() => { window.__openedHours = 0; window.__origOpenHours = window.openHoursSettingsFromSchedule; window.openHoursSettingsFromSchedule = () => { window.__openedHours++; }; });
+    await page.locator('.ms-shift-error-hours-btn').click();
+    assert.equal(await page.evaluate(() => { window.openHoursSettingsFromSchedule = window.__origOpenHours; return window.__openedHours; }), 1);
     await firstStart().fill('11:00'); await firstStart().press('Tab');
     const name=page.locator('#menu-shifts-cards input[type=text]').first(); await name.fill('午餐 A'); await name.press('Tab');
     assert(await page.locator('.ms-table-scroll').evaluate(el=>el.inert));

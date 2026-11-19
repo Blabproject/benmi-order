@@ -1,14 +1,15 @@
 // Menu shift CRUD lives beside menu assignments, with an independent revisioned draft.
 let menuShiftDraft = [], menuShiftBaseline = '', menuShiftRevision, menuShiftHours = null;
-let menuShiftEditing = false, menuShiftSaving = false, menuShiftError = '';
+let menuShiftEditing = false, menuShiftSaving = false, menuShiftError = '', menuShiftServerConflicts = [];
 const menuShiftDirty = () => menuShiftEditing && JSON.stringify(menuShiftDraft) !== menuShiftBaseline;
 window.hasUnsavedMenuShiftChanges = menuShiftDirty;
-window.discardMenuShiftChanges = () => { menuShiftDraft = JSON.parse(menuShiftBaseline || '[]'); menuShiftEditing = false; menuShiftError = ''; };
+window.discardMenuShiftChanges = () => { menuShiftDraft = JSON.parse(menuShiftBaseline || '[]'); menuShiftEditing = false; menuShiftError = ''; menuShiftServerConflicts = []; };
 function shiftEditorSnapshot(data) {
   menuShiftDraft = JSON.parse(JSON.stringify(data.operatingShifts));
   menuShiftBaseline = JSON.stringify(menuShiftDraft);
   menuShiftRevision = data.scheduleRevision;
   menuShiftHours = data.operatingHours;
+  menuShiftServerConflicts = [];
   if (typeof acceptMenuShiftsSnapshot === 'function') acceptMenuShiftsSnapshot(data);
   else window.storeOperatingShifts = data.operatingShifts;
 }
@@ -39,17 +40,25 @@ function renderMenuShiftEditor() {
   }
   const dayNamesList = DAY_NAMES[currentLang] || DAY_NAMES['zh-TW'], orderedDays = [1,2,3,4,5,6,0];
   let coverage = [];
+  let timeInvalid = false;
   try { coverage = MenuSchedule.shiftCoverageIssues(menuShiftDraft, menuShiftHours); }
-  catch { menuShiftError = t('shiftInvalidTime'); }
-  const coverageText = coverage.map(c => `${c.shiftName} · ${dayNamesList[c.dayOfWeek]} ${c.startTime}–${c.endTime}`).join('; ');
+  catch { timeInvalid = true; }
+  const activeConflicts = coverage.length ? coverage : menuShiftServerConflicts;
+  const coverageReasons = formatShiftCoverageReasons(activeConflicts, menuShiftHours, dayNamesList);
   const hoursChips = orderedDays.map(day => {
     const ranges = (menuShiftHours?.[day] || []).map(w => `${w.start}–${w.end}`).join(', ');
     return `<span class="ms-store-hour-chip ${ranges ? '' : 'is-closed'}"><strong>${escapeShiftHtml(dayNamesList[day])}</strong><span>${escapeShiftHtml(ranges || t('closedDay'))}</span></span>`;
   }).join('');
-  const errorMessage = menuShiftError || (coverage.length ? t('shiftCoverageError') + ' ' + coverageText : '');
   const trashIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>';
   const closeIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
   const plusIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>';
+  const clockIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+  const plainError = timeInvalid ? t('shiftInvalidTime') : (coverageReasons.length ? '' : menuShiftError);
+  const errorBannerHtml = plainError
+    ? `<div class="ms-shift-error-body"><span class="ms-shift-error-title">${escapeShiftHtml(plainError)}</span></div>`
+    : coverageReasons.length
+      ? `<div class="ms-shift-error-body"><div class="ms-shift-error-title">${escapeShiftHtml(t('shiftCoverageError'))}</div><ul class="ms-shift-error-list">${coverageReasons.map(reason => `<li>${escapeShiftHtml(reason)}</li>`).join('')}</ul></div><button type="button" class="ms-shift-error-hours-btn" onclick="openHoursSettingsFromSchedule()">${clockIcon}<span>${escapeShiftHtml(t('shiftCoverageEditHoursBtn'))}</span></button>`
+      : '';
 
   container.innerHTML = `<div class="ms-shift-panel">
     <div class="ms-shift-panel-head">
@@ -59,7 +68,7 @@ function renderMenuShiftEditor() {
       </div>
     </div>
     <div class="ms-store-hours-strip">${hoursChips}</div>
-    <div id="menu-shifts-error" class="ms-shift-error" tabindex="-1" role="status">${escapeShiftHtml(errorMessage)}</div>
+    <div id="menu-shifts-error" class="ms-shift-error" tabindex="-1" role="status">${errorBannerHtml}</div>
     <fieldset class="ms-shift-fieldset" ${menuShiftSaving ? 'disabled' : ''}>
       <div id="menu-shifts-cards" class="ms-shift-cards"></div>
       <div class="ms-shift-panel-footer">
@@ -118,20 +127,56 @@ function renderMenuShiftEditor() {
     cards.appendChild(card);
   });
 }
+function formatShiftCoverageReasons(conflicts, hours, dayNamesList) {
+  if (!Array.isArray(conflicts) || !conflicts.length) return [];
+  const groups = new Map();
+  for (const c of conflicts) {
+    const dayIdx = Number(c.dayOfWeek);
+    const storeRanges = (hours?.[dayIdx] || []).map(w => `${w.start}–${w.end}`).join(', ');
+    const key = `${c.shiftId || c.shiftName}|${c.startTime}|${c.endTime}|${storeRanges}`;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        shiftName: c.shiftName,
+        startTime: c.startTime,
+        endTime: c.endTime,
+        storeHours: storeRanges,
+        days: []
+      });
+    }
+    const dayLabel = dayNamesList[dayIdx] || String(dayIdx);
+    const group = groups.get(key);
+    if (!group.days.includes(dayLabel)) group.days.push(dayLabel);
+  }
+  return [...groups.values()].map(g => g.storeHours
+    ? t('shiftCoverageReasonOpen', { shift: g.shiftName, days: g.days.join(', '), start: g.startTime, end: g.endTime, hours: g.storeHours })
+    : t('shiftCoverageReasonClosed', { shift: g.shiftName, days: g.days.join(', '), start: g.startTime, end: g.endTime })
+  );
+}
 async function saveMenuShifts() {
   if (menuShiftSaving || !menuShiftDirty()) return;
+  let shouldFocusError = false;
   try {
     const conflicts = MenuSchedule.shiftCoverageIssues(menuShiftDraft, menuShiftHours);
-    if (conflicts.length) throw new Error(t('shiftCoverageError'));
-    menuShiftSaving = true; menuShiftError = ''; renderMenuShiftEditor();
+    if (conflicts.length) {
+      menuShiftError = '';
+      menuShiftServerConflicts = [];
+      shouldFocusError = true;
+      return;
+    }
+    menuShiftSaving = true; menuShiftError = ''; menuShiftServerConflicts = []; renderMenuShiftEditor();
     const response = await fetch(`${WORKER_BASE}/api/menu/shifts?tenant_id=${encodeURIComponent(getTenantIdFromUrl())}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ operatingShifts: menuShiftDraft, scheduleRevision: menuShiftRevision }) });
     const data = await response.json();
-    if (!response.ok) throw new Error(formatScheduleError(data));
+    if (!response.ok) {
+      if (data?.error === 'SHIFTS_OUTSIDE_OPERATING_HOURS' && Array.isArray(data.conflicts) && data.conflicts.length) {
+        menuShiftServerConflicts = data.conflicts;
+      }
+      throw new Error(formatScheduleError(data));
+    }
     shiftEditorSnapshot(data);
     if (typeof window.onMenuShiftsSaved === 'function') window.onMenuShiftsSaved();
     if (typeof showToast === 'function') showToast(t('saveSuccess'));
-  } catch (error) { menuShiftError = error.message; }
-  finally { menuShiftSaving = false; renderMenuScheduleWorkspace(); if (menuShiftError) document.getElementById('menu-shifts-error')?.focus(); }
+  } catch (error) { menuShiftError = error.message; shouldFocusError = true; }
+  finally { menuShiftSaving = false; renderMenuScheduleWorkspace(); if (shouldFocusError) document.getElementById('menu-shifts-error')?.focus(); }
 }
 function buildShiftTimeBands(shift) {
   const bands = [];
@@ -155,6 +200,12 @@ function buildShiftTimeBands(shift) {
   return bands;
 }
 
+function clearAndRenderShiftEditor() {
+  menuShiftError = '';
+  menuShiftServerConflicts = [];
+  renderMenuShiftEditor();
+}
+
 function addNamedShift() {
   if (!Array.isArray(menuShiftDraft)) menuShiftDraft = [];
   const nextIdx = menuShiftDraft.length + 1;
@@ -167,7 +218,7 @@ function addNamedShift() {
     windows: Object.entries(menuShiftHours || {}).flatMap(([day, ranges]) => ranges.map(w => ({ dayOfWeek: Number(day), startTime: w.start, endTime: w.end, isActive: true })))
   });
 
-  menuShiftError = ''; renderMenuShiftEditor();
+  clearAndRenderShiftEditor();
 }
 
 function updateNamedShiftField(sIdx, field, val) {
@@ -180,14 +231,14 @@ function updateNamedShiftField(sIdx, field, val) {
     renderMenuShiftEditor();
     return;
   }
-  menuShiftError = ''; renderMenuShiftEditor();
+  clearAndRenderShiftEditor();
 }
 
 function removeNamedShift(sIdx) {
   if (!confirm(t('shiftDeleteConfirm'))) return;
   menuShiftDraft.splice(sIdx, 1);
 
-  menuShiftError = ''; renderMenuShiftEditor();
+  clearAndRenderShiftEditor();
 }
 
 function toggleShiftBandDay(sIdx, bandKey, dayIdx) {
@@ -202,7 +253,7 @@ function toggleShiftBandDay(sIdx, bandKey, dayIdx) {
     shift.windows.push({ dayOfWeek: dayIdx, startTime: startTime || "11:00", endTime: endTime || "21:00", isActive: true });
   }
 
-  menuShiftError = ''; renderMenuShiftEditor();
+  clearAndRenderShiftEditor();
 }
 
 function updateShiftBandTime(sIdx, bandKey, field, newVal) {
@@ -221,7 +272,7 @@ function updateShiftBandTime(sIdx, bandKey, field, newVal) {
     matched.forEach(w => { w[field] = newVal; });
   }
 
-  menuShiftError = ''; renderMenuShiftEditor();
+  clearAndRenderShiftEditor();
 }
 
 function addShiftBand(sIdx) {
@@ -238,7 +289,7 @@ function addShiftBand(sIdx) {
   }
   shift.windows.push({ dayOfWeek: pickDay, startTime: candidateStart, endTime: candidateEnd, isActive: true });
 
-  menuShiftError = ''; renderMenuShiftEditor();
+  clearAndRenderShiftEditor();
 }
 
 function removeShiftBand(sIdx, bandKey) {
@@ -247,6 +298,6 @@ function removeShiftBand(sIdx, bandKey) {
   const [startTime, endTime] = String(bandKey).split("|");
   shift.windows = shift.windows.filter(w => !(w.startTime === startTime && w.endTime === endTime));
 
-  menuShiftError = ''; renderMenuShiftEditor();
+  clearAndRenderShiftEditor();
 }
 
