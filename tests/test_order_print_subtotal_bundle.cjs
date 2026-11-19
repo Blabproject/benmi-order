@@ -395,6 +395,24 @@ const snapStickerText = canvases[0].text.join('\n');
 assert(snapStickerText.includes('肉鬆'));
 assert(!snapStickerText.includes('加料 10元'));
 assert(!snapStickerText.includes('+$10'));
+
+// Fallback when order_items.selected_options comes from DetailView.lines without detailSnapshot
+const projectedFallbackOrder = {
+  key: 'ORD-FALLBACK-PROJ',
+  items: [
+    {
+      item_name: '傳統飯糰',
+      quantity: 1,
+      subtotal: 50,
+      selected_options: JSON.stringify([
+        { groupId: 'rice', optionId: 'r-2', label: '選米', value: '白米', price: 0, choice: '選米: 白米' },
+        { groupId: 'no-addon', optionId: 'n-1', label: '不加配料', value: '不加酸菜', price: 0, choice: '不加配料: 不加酸菜' }
+      ])
+    }
+  ]
+};
+const projFallbackParsed = service.parseOrderItems(projectedFallbackOrder, false);
+assert.equal(projFallbackParsed[0].options, '白米、不加酸菜');
 console.log("  ✓ detailSnapshot receipts, summary labels, and stickers omit group names and surcharges");
 
 console.log("\n=================================================");
