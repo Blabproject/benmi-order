@@ -179,7 +179,7 @@
         const count = cats.reduce((sum, cat) => sum + (cat.items || []).filter(it => itemOn(cat, it, String(sh.id))).length, 0);
         return `<th scope="col" class="ms-shift-heading ${sh.isActive === false ? 'is-inactive' : ''}"><div class="ms-shift-head-inner"><div class="ms-shift-head-meta"><span class="ms-shift-name">${esc(sh.name)}</span>${sh.isActive === false ? `<span class="ms-inactive">${esc(tr('menuScheduleInactive'))}</span>` : ''}<span class="ms-shift-times">${summary(sh).map(esc).join('<br>') || esc(tr('menuScheduleNoWindows'))}</span></div><div class="ms-shift-head-foot"><span class="ms-shift-count">${esc(tr('menuScheduleAvailableCount', { count, total: items.length }))}</span></div></div></th>`;
       }).join('')}</tr></thead><tbody>${rows || `<tr><td class="ms-empty" colspan="${allShifts.length + 1}">${esc(tr('menuScheduleEmptyCats'))}</td></tr>`}</tbody></table></div>`}
-      <div class="ms-outside"><div><h3>${esc(tr('menuScheduleOutsideTitle'))}</h3><p>${esc(tr('menuScheduleOutsideSub'))}</p>${!hidden && !shown && cats.length ? `<p class="ms-policy-mixed">${esc(tr('menuScheduleOutsideMixed'))}</p>` : ''}</div><div class="ms-outside-options" role="group" aria-label="${esc(tr('menuScheduleOutsideTitle'))}"><button type="button" aria-pressed="${hidden}" data-ms-focus="outside:hide" onclick="window.msSetOutside(true)" ${state.saving || !cats.length ? 'disabled' : ''}>${esc(tr('menuScheduleOutsideHide'))}</button><button type="button" aria-pressed="${shown}" data-ms-focus="outside:show" onclick="window.msSetOutside(false)" ${state.saving || !cats.length ? 'disabled' : ''}>${esc(tr('menuScheduleOutsideShow'))}</button></div></div>
+      <div class="ms-outside" ${window.hasUnsavedMenuShiftChanges?.() ? 'inert' : ''}><div><h3>${esc(tr('menuScheduleOutsideTitle'))}</h3><p>${esc(tr('menuScheduleOutsideSub'))}</p>${!hidden && !shown && cats.length ? `<p class="ms-policy-mixed">${esc(tr('menuScheduleOutsideMixed'))}</p>` : ''}</div><div class="ms-outside-options" role="group" aria-label="${esc(tr('menuScheduleOutsideTitle'))}"><button type="button" aria-pressed="${hidden}" data-ms-focus="outside:hide" onclick="window.msSetOutside(true)" ${state.saving || !cats.length ? 'disabled' : ''}>${esc(tr('menuScheduleOutsideHide'))}</button><button type="button" aria-pressed="${shown}" data-ms-focus="outside:show" onclick="window.msSetOutside(false)" ${state.saving || !cats.length ? 'disabled' : ''}>${esc(tr('menuScheduleOutsideShow'))}</button></div></div>
     </section></div>`;
     if (typeof renderMenuShiftEditor === 'function') renderMenuShiftEditor();
     root.querySelectorAll('[data-mixed]').forEach(input => { input.indeterminate = true; });
@@ -238,8 +238,17 @@
   window.hasUnsavedMenuScheduleChanges = () => dirty() || Boolean(window.hasUnsavedMenuShiftChanges?.());
   window.onMenuShiftsSaved = () => {
     const valid = new Set(shifts().map(s => String(s.id)));
-    for (const cat of categories()) for (const entity of [cat, ...(cat.items || [])]) if (Array.isArray(entity.shiftIds)) entity.shiftIds = entity.shiftIds.filter(id => valid.has(String(id)));
-    state.baseline = JSON.stringify(snapshot());
+    const strip = entity => {
+      if (Array.isArray(entity.shiftIds)) entity.shiftIds = entity.shiftIds.filter(id => valid.has(String(id)));
+    };
+    for (const cat of categories()) for (const entity of [cat, ...(cat.items || [])]) strip(entity);
+    if (state.baseline) {
+      const base = JSON.parse(state.baseline);
+      for (const cat of base) { strip(cat); for (const it of cat.items || []) strip(it); }
+      state.baseline = JSON.stringify(base);
+    } else {
+      state.baseline = JSON.stringify(snapshot());
+    }
   };
   window.discardMenuScheduleChanges = () => { discard(); window.discardMenuShiftChanges?.(); };
   window.leaveMenuScheduleToMenu = () => { if (typeof switchTab === 'function') switchTab('menu'); };

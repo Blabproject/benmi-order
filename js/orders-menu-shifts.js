@@ -30,7 +30,8 @@ function closeMenuShiftEditor() {
 }
 function renderMenuShiftEditor() {
   const root = document.getElementById('menu-schedule-workspace-root');
-  root?.querySelectorAll('.ms-actions, .ms-filter-bar, .ms-table-scroll, .ms-outside').forEach(el => { el.inert = menuShiftEditing; });
+  const lockAssignments = menuShiftDirty();
+  root?.querySelectorAll('.ms-actions, .ms-table-scroll, .ms-outside').forEach(el => { el.inert = lockAssignments; });
   const container = document.getElementById('menu-shifts-editor');
   if (!container) return;
   const slidersIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="21" y2="21"/><line x1="4" x2="20" y1="3" y2="3"/><line x1="4" x2="20" y1="12" y2="12"/><circle cx="14" cy="12" r="2"/><circle cx="8" cy="3" r="2"/><circle cx="16" cy="21" r="2"/></svg>';
@@ -78,6 +79,7 @@ function renderMenuShiftEditor() {
           <button type="button" id="btn-save-menu-shifts" class="ms-save-btn" onclick="saveMenuShifts()" ${!menuShiftDirty() ? 'disabled' : ''}>${escapeShiftHtml(t(menuShiftSaving ? 'saving' : 'btnSaveMenuShifts'))}</button>
         </div>
       </div>
+      ${lockAssignments ? `<p class="ms-shift-lock-hint" role="status">${escapeShiftHtml(t('shiftDirtyLockHint'))}</p>` : ''}
     </fieldset>
   </div>`;
   const cards = container.querySelector('#menu-shifts-cards');

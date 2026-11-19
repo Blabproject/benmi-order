@@ -26,6 +26,9 @@ for (const [locale, width] of [['vi', 768], ['zh-TW', 1024], ['vi', 390]]) {
     await page.evaluate(({shifts,locale})=>{window.currentTenantFeatures=['menu_schedule'];window.storeOperatingShifts=shifts;window.WORKER_BASE='https://worker.test';window.getTenantIdFromUrl=()=> 'store';window.currentMenuData=[{id:'main',type:'catalog',title:'Main',items:[{id:'food',name:'Rice',price:50}]}];window.alert=()=>{};window.confirm=()=>true;window.localStorage={getItem:()=>locale};}, {shifts,locale});
     for(const script of ['menu-schedule','orders-i18n','orders-settings','orders-menu-shifts','orders-menu-schedule']) await page.addScriptTag({path:`js/${script}.js`});
     await page.evaluate(async ({shifts,locale})=>{currentLang=locale;window.currentLang=locale;storeOperatingShifts=shifts;window.storeOperatingShifts=shifts;await initMenuScheduleWorkspace();await openMenuShiftEditor();},{shifts,locale});
+    assert.equal(await page.locator('.ms-table-scroll').evaluate(el => el.inert), false);
+    await page.locator('.ms-expand-btn').first().click();
+    assert.equal(await page.locator('.ms-item-row').count(), 1);
     const firstStart=()=>page.locator('#menu-shifts-cards input[type=time]').first();
     await firstStart().fill('10:00'); await firstStart().press('Tab');
     await page.locator('#btn-save-menu-shifts').click();
@@ -37,10 +40,12 @@ for (const [locale, width] of [['vi', 768], ['zh-TW', 1024], ['vi', 390]]) {
     await firstStart().fill('11:00'); await firstStart().press('Tab');
     const name=page.locator('#menu-shifts-cards input[type=text]').first(); await name.fill('午餐 A'); await name.press('Tab');
     assert(await page.locator('.ms-table-scroll').evaluate(el=>el.inert));
+    assert(await page.locator('.ms-shift-lock-hint').isVisible());
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
     await page.screenshot({path:path.join(artifacts,`editor-${browserName}-${locale}-${width}.png`),fullPage:true});
     await page.locator('#btn-save-menu-shifts').click();
     await page.waitForFunction(()=>!hasUnsavedMenuShiftChanges());
+    assert.equal(await page.locator('.ms-table-scroll').evaluate(el => el.inert), false);
     assert.equal(writes.length,1); assert.equal(writes[0].scheduleRevision,3); assert.equal(writes[0].operatingShifts[0].name,'午餐 A'); assert.equal(writes[0].operatingHours,undefined);
     assert.deepEqual(pageErrors,[]);
   });

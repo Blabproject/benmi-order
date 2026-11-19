@@ -142,6 +142,15 @@ test('conflicts retain the draft and both languages translate matrix controls', 
   assert.match(d.querySelector('.ms-outside').textContent, /完全隱藏/);
 });
 
+test('onMenuShiftsSaved prunes deleted shift IDs without wiping unsaved assignment edits', async t => {
+  const { w } = await workspace(t);
+  w.msToggleItem('rice', 'one', 'dinner', true);
+  assert.equal(w.hasUnsavedMenuAssignments(), true);
+  w.storeOperatingShifts = w.storeOperatingShifts.filter(s => s.id === 'lunch');
+  w.onMenuShiftsSaved();
+  assert.equal(w.hasUnsavedMenuAssignments(), true);
+});
+
 test('cached tenant capabilities survive settings startup without enabling unsubscribed tenants', async t => {
   const { w } = await workspace(t);
   w.currentTenantFeatures = ['menu_schedule', 'reports']; w.__posFeaturesResolved = true;
