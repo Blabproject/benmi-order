@@ -30,6 +30,7 @@ const window = {
 };
 const sandbox = {
   OrderCode: require('../js/order-code.js'),
+  OrderDetailView: require('../js/order-detail-view.js'),
   window,
   document,
   console,
@@ -270,6 +271,131 @@ canvases.length = 0;
 service.drawReceiptToCanvas(singleBundleOrder, false, 80);
 assert(!canvases[0].text.join('\n').includes('+$'), 'Receipt drawing must omit bundle surcharge annotations');
 assert(canvases[0].text.includes('$125'), 'Receipt drawing must preserve the line total');
+
+// --- TEST 6: detailSnapshot receipt, TSPL summary, and TSPL stickers omit option group names and surcharges ---
+console.log("\n[Test 6] detailSnapshot print option formatting (content only, no group name or surcharge)");
+const snapshotOrder = {
+  key: 'ORD-SNAP-006',
+  displayKey: 'B1119-T037',
+  diningOption: 'takeaway',
+  customer: '外帶顧客',
+  time: '2026-11-19 10:17',
+  total: 165,
+  detailSnapshot: {
+    schemaVersion: 1,
+    total: 165,
+    rounds: [
+      {
+        roundNumber: 1,
+        createdAt: '2026-11-19T02:17:00Z',
+        note: '',
+        discount: 0,
+        total: 165,
+        groups: [
+          {
+            groupId: 'utensils',
+            groupName: '餐具',
+            items: [
+              { optionId: 'no-utensils', itemId: 'no-utensils', name: '不需要', quantity: 1, surcharge: 0, groups: [], subOptions: [] }
+            ]
+          }
+        ],
+        items: [
+          {
+            lineId: 'l-single',
+            itemId: 'i-single',
+            name: '招牌飯糰',
+            categoryId: 'cat-1',
+            category: '飯糰',
+            quantity: 1,
+            unitPrice: 55,
+            subtotal: 55,
+            note: '',
+            portions: [
+              {
+                portionIndex: 0,
+                note: '',
+                groups: [
+                  { groupId: 'rice', groupName: '選米', items: [{ optionId: 'r-1', itemId: 'r-1', name: '紫米', quantity: 1, surcharge: 0, groups: [], subOptions: [] }] }
+                ]
+              }
+            ]
+          },
+          {
+            lineId: 'l-multi',
+            itemId: 'i-multi',
+            name: '傳統飯糰',
+            categoryId: 'cat-1',
+            category: '飯糰',
+            quantity: 2,
+            unitPrice: 50,
+            subtotal: 110,
+            note: '',
+            portions: [
+              {
+                portionIndex: 0,
+                note: '',
+                groups: [
+                  { groupId: 'rice', groupName: '選米', items: [{ optionId: 'r-2', itemId: 'r-2', name: '白米', quantity: 1, surcharge: 0, groups: [], subOptions: [] }] },
+                  { groupId: 'spice', groupName: '辣度（不吃辣就不用勾選噢）', items: [{ optionId: 's-1', itemId: 's-1', name: '小辣', quantity: 1, surcharge: 0, groups: [], subOptions: [] }] }
+                ]
+              },
+              {
+                portionIndex: 1,
+                note: '',
+                groups: [
+                  { groupId: 'rice', groupName: '選米', items: [{ optionId: 'r-2', itemId: 'r-2', name: '白米', quantity: 1, surcharge: 0, groups: [], subOptions: [] }] },
+                  { groupId: 'spice', groupName: '辣度（不吃辣就不用勾選噢）', items: [{ optionId: 's-1', itemId: 's-1', name: '小辣', quantity: 1, surcharge: 0, groups: [], subOptions: [] }] },
+                  { groupId: 'addon', groupName: '加料 10元', items: [{ optionId: 'a-1', itemId: 'a-1', name: '肉鬆', quantity: 1, surcharge: 10, groups: [], subOptions: [] }] }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+};
+
+const snapUnexpanded = service.parseOrderItems(snapshotOrder, false);
+assert.equal(snapUnexpanded[0].options, '紫米');
+assert.equal(snapUnexpanded[1].options, '第1份: 白米\n第1份: 小辣\n第2份: 白米\n第2份: 小辣\n第2份: 肉鬆');
+
+const snapExpanded = service.parseOrderItems(snapshotOrder, true);
+assert.equal(snapExpanded.length, 3);
+assert.equal(snapExpanded[0].options, '紫米');
+assert.equal(snapExpanded[1].options, '白米\n小辣');
+assert.equal(snapExpanded[2].options, '白米\n小辣\n肉鬆');
+
+canvases.length = 0;
+service.drawReceiptToCanvas(snapshotOrder, false, 80);
+const snapReceiptText = canvases[0].text.join('\n');
+assert(snapReceiptText.includes('  • 餐具：不需要'), 'Global customization label must be preserved on receipt');
+assert(snapReceiptText.includes('  ↳ 紫米'));
+assert(snapReceiptText.includes('  ↳ 第1份: 白米'));
+assert(snapReceiptText.includes('  ↳ 第1份: 小辣'));
+assert(snapReceiptText.includes('  ↳ 第2份: 白米'));
+assert(snapReceiptText.includes('  ↳ 第2份: 小辣'));
+assert(snapReceiptText.includes('  ↳ 第2份: 肉鬆'));
+assert(!snapReceiptText.includes('選米'), 'Receipt must omit option group name 選米');
+assert(!snapReceiptText.includes('辣度（不吃辣就不用勾選噢）'), 'Receipt must omit option group name 辣度');
+assert(!snapReceiptText.includes('加料 10元'), 'Receipt must omit option group name 加料 10元');
+assert(!snapReceiptText.includes('+$10'), 'Receipt must omit option surcharge (+$10)');
+
+canvases.length = 0;
+service.drawOrderLabelToCanvas(snapshotOrder, false, 100, 150, 203);
+const snapSummaryLabelText = canvases[0].text.join('\n');
+assert(snapSummaryLabelText.includes('第2份: 肉鬆'));
+assert(!snapSummaryLabelText.includes('加料 10元'));
+assert(!snapSummaryLabelText.includes('+$10'));
+
+canvases.length = 0;
+service.drawItemStickerToCanvas(snapExpanded[2], snapshotOrder, 3, 3, 40, 30, 203);
+const snapStickerText = canvases[0].text.join('\n');
+assert(snapStickerText.includes('肉鬆'));
+assert(!snapStickerText.includes('加料 10元'));
+assert(!snapStickerText.includes('+$10'));
+console.log("  ✓ detailSnapshot receipts, summary labels, and stickers omit group names and surcharges");
 
 console.log("\n=================================================");
 console.log("🎉 ALL ORDER PRINT SUBTOTAL & BUNDLE TESTS PASSED!");

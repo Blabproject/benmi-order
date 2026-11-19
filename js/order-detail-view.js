@@ -41,14 +41,19 @@
       label: `${snapshot.rounds.length > 1 ? `[第${r.roundNumber}輪] ` : ''}${c.label}` })));
   }
   function printItems(snapshot, expand) {
+    // Printed receipts and stickers show only the selected option content (omit group labels and surcharges).
+    const printOptions = (groups, prefix = '') => choices(groups)
+      .filter(c => c.value)
+      .map(c => `${prefix}${c.value}`);
     return lines(snapshot).flatMap(line => {
       const base = { ...line, detailLine: line.detailLine, price: `$${line.subtotal}`, unitPrice: `$${line.unit_price}`,
-        baseOptions: '', options: line.options.map(o => o.choice + (o.price ? ` (+$${o.price})` : '')).join('\n'),
+        baseOptions: '', options: line.detailLine.portions.flatMap(p =>
+          printOptions(p.groups, line.quantity > 1 ? `第${p.portionIndex + 1}份: ` : '')).join('\n'),
         round: snapshot.rounds.length > 1 ? `[第${line.round_number}輪]` : '' };
       if (!expand) return [base];
       return line.detailLine.portions.map(p => ({ ...base, quantity: 1, originalQty: line.quantity,
         unitIndex: p.portionIndex + 1, note: [line.detailLine.note, p.note].filter(Boolean).join('\n'),
-        options: choices(p.groups).map(c => `${c.label}: ${c.value}${c.price ? ` (+$${c.price})` : ''}`).join('\n') }));
+        options: printOptions(p.groups).join('\n') }));
     });
   }
   function notes(snapshot) {
