@@ -359,7 +359,7 @@ const snapshotOrder = {
 
 const snapUnexpanded = service.parseOrderItems(snapshotOrder, false);
 assert.equal(snapUnexpanded[0].options, '紫米');
-assert.equal(snapUnexpanded[1].options, '第1份: 白米\n第1份: 小辣\n第2份: 白米\n第2份: 小辣\n第2份: 肉鬆');
+assert.equal(snapUnexpanded[1].options, '第1份: 白米、小辣\n第2份: 白米、小辣、肉鬆');
 
 const snapExpanded = service.parseOrderItems(snapshotOrder, true);
 assert.equal(snapExpanded.length, 3);
@@ -372,11 +372,8 @@ service.drawReceiptToCanvas(snapshotOrder, false, 80);
 const snapReceiptText = canvases[0].text.join('\n');
 assert(snapReceiptText.includes('  • 餐具：不需要'), 'Global customization label must be preserved on receipt');
 assert(snapReceiptText.includes('  ↳ 紫米'));
-assert(snapReceiptText.includes('  ↳ 第1份: 白米'));
-assert(snapReceiptText.includes('  ↳ 第1份: 小辣'));
-assert(snapReceiptText.includes('  ↳ 第2份: 白米'));
-assert(snapReceiptText.includes('  ↳ 第2份: 小辣'));
-assert(snapReceiptText.includes('  ↳ 第2份: 肉鬆'));
+assert(snapReceiptText.includes('  ↳ 第1份: 白米、小辣'));
+assert(snapReceiptText.includes('  ↳ 第2份: 白米、小辣、肉鬆'));
 assert(!snapReceiptText.includes('選米'), 'Receipt must omit option group name 選米');
 assert(!snapReceiptText.includes('辣度（不吃辣就不用勾選噢）'), 'Receipt must omit option group name 辣度');
 assert(!snapReceiptText.includes('加料 10元'), 'Receipt must omit option group name 加料 10元');
@@ -385,7 +382,7 @@ assert(!snapReceiptText.includes('+$10'), 'Receipt must omit option surcharge (+
 canvases.length = 0;
 service.drawOrderLabelToCanvas(snapshotOrder, false, 100, 150, 203);
 const snapSummaryLabelText = canvases[0].text.join('\n');
-assert(snapSummaryLabelText.includes('第2份: 肉鬆'));
+assert(snapSummaryLabelText.includes('第2份: 白米、小辣、肉鬆'));
 assert(!snapSummaryLabelText.includes('加料 10元'));
 assert(!snapSummaryLabelText.includes('+$10'));
 

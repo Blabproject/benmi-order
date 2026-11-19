@@ -173,7 +173,7 @@ test('DetailView.printItems omits option group names and surcharges while Detail
   const snapshot = { schemaVersion: 1, total: 110, rounds: [{ roundNumber: 1, groups: [], note: '', discount: 0, total: 110, items: [detailLine] }] };
 
   const unexpanded = DetailView.printItems(snapshot, false);
-  assert.equal(unexpanded[0].options, '第1份: 白米\n第1份: 小辣\n第2份: 白米\n第2份: 肉鬆');
+  assert.equal(unexpanded[0].options, '第1份: 白米、小辣\n第2份: 白米、肉鬆');
 
   const expanded = DetailView.printItems(snapshot, true);
   assert.equal(expanded.length, 2);
