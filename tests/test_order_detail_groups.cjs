@@ -159,3 +159,31 @@ test('multi-portion items with no customizations or notes do not render empty po
   assert.equal(rootLegacy.querySelectorAll('.detail-portion-block').length, 0);
   assert.equal(rootLegacy.textContent.includes('Phần 1'), false);
 });
+
+test('DetailView.printItems omits option group names and surcharges while DetailView.lines and POS modal retain group labels', () => {
+  const app = setup();
+  const detailLine = line({
+    quantity: 2,
+    note: '',
+    portions: [
+      { portionIndex: 0, note: '', groups: [group('選米', [choice('白米')]), group('辣度', [choice('小辣')])] },
+      { portionIndex: 1, note: '', groups: [group('選米', [choice('白米')]), group('加料 10元', [choice('肉鬆', 1, 10)])] }
+    ]
+  });
+  const snapshot = { schemaVersion: 1, total: 110, rounds: [{ roundNumber: 1, groups: [], note: '', discount: 0, total: 110, items: [detailLine] }] };
+
+  const unexpanded = DetailView.printItems(snapshot, false);
+  assert.equal(unexpanded[0].options, '第1份: 白米\n第1份: 小辣\n第2份: 白米\n第2份: 肉鬆');
+
+  const expanded = DetailView.printItems(snapshot, true);
+  assert.equal(expanded.length, 2);
+  assert.equal(expanded[0].options, '白米\n小辣');
+  assert.equal(expanded[1].options, '白米\n肉鬆');
+
+  // POS review modal and DetailView.lines still keep group labels intact.
+  const lineView = DetailView.lines(snapshot);
+  assert.equal(lineView[0].options[0].choice, '第1份: 選米: 白米');
+  const modalHtml = app.context.formatContentHtml({ key: 'order', detailSnapshot: snapshot });
+  assert.equal(modalHtml.includes('選米'), true);
+  assert.equal(modalHtml.includes('加料 10元'), true);
+});
