@@ -9,6 +9,7 @@ import { handleLineWebhook } from './modules/line';
 import { createOrder, appendOrder, updateOrder, getOrders, getWaitingCount, getHistorySummary, getOrdersByDate, getHistoryAll, getOrderEditContext, modifyOrder } from './modules/orders';
 import { getConfig, updateConfig } from './modules/config';
 import { getMenu, updateMenu, updateStockStatus, updateBundleRule, saveBundleProduct, getTenantId } from './modules/menu';
+import { menuShifts } from './modules/menu-shifts';
 import { updateMenuSchedule } from './modules/menu-schedule-settings';
 import { handleAuth, handleAuthChange, handleCreateTempLink, handleVerifyTempLink } from './modules/auth';
 import { getImageList, getImage, updateImage, deleteImage } from './modules/image';
@@ -106,6 +107,7 @@ export default {
       if (request.method === "POST" && path === "/api/menu/ai-translate") return handleMenuAiTranslate(request, env, tenantCtx);
       if (request.method === "GET" && path === "/api/menu") return getMenu(request, env);
       if (request.method === "POST" && path === "/api/menu") return updateMenu(request, env);
+      if (['GET', 'PUT'].includes(request.method) && path === '/api/menu/shifts') return menuShifts(request, env);
       if (request.method === "PATCH" && path === "/api/menu/schedule") return updateMenuSchedule(request, env);
       if (request.method === "POST" && path === "/api/menu/stock-status") return updateStockStatus(request, env);
       if (request.method === "POST" && path === "/api/menu/bundle-rules") return updateBundleRule(request, env);

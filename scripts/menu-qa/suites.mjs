@@ -14,7 +14,7 @@ export const menuSuites = [
     'tests/test_menu_compatibility_regression.cjs', 'tests/test_cluster1_category_item_modifiers.cjs',
     'tests/test_cluster2_combo_bundle_rules.cjs', 'tests/test_cluster3_4_5_full_schema_cutover.cjs']],
   ...['chromium', 'webkit'].map(browser => [`menu-components-${browser}`, ['--test', ...[
-    'customer_option_steps', 'customer_option_images', 'customer_option_children',
+    'customer_option_steps', 'customer_option_images', 'customer_option_children', 'menu_shifts_editor',
     'required_option_popup', 'combo_price_recovery', 'order_detail_groups', 'stock_drawer',
   ].map(name => `tests/test_${name}_browser.cjs`)], { MENU_QA_BROWSER: browser }]),
   ['menu-runtime', ['--test', 'tests/menu-qa/runtime.test.mjs']],

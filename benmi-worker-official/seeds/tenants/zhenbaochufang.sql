@@ -57,10 +57,7 @@ INSERT INTO tenant_operating_hours (id, tenant_id, shift_id, day_of_week, start_
 ('oh_zb_late_3',   'zhenbaochufang', 'shift_zb_late',   3, '21:00', '22:30', 1),
 ('oh_zb_late_4',   'zhenbaochufang', 'shift_zb_late',   4, '21:00', '22:30', 1);
 
--- Synchronize tenant_config.operating_hours derived projection
-UPDATE tenant_config
-SET operating_hours = '{"0":[],"1":[{"start":"11:00","end":"13:30","shiftId":"shift_zb_lunch","shiftName":"午餐時段"},{"start":"16:30","end":"19:00","shiftId":"shift_zb_dinner","shiftName":"晚餐時段"},{"start":"21:00","end":"22:30","shiftId":"shift_zb_late","shiftName":"宵夜時段"}],"2":[{"start":"11:00","end":"13:30","shiftId":"shift_zb_lunch","shiftName":"午餐時段"},{"start":"16:30","end":"19:00","shiftId":"shift_zb_dinner","shiftName":"晚餐時段"},{"start":"21:00","end":"22:30","shiftId":"shift_zb_late","shiftName":"宵夜時段"}],"3":[{"start":"11:00","end":"13:30","shiftId":"shift_zb_lunch","shiftName":"午餐時段"},{"start":"16:30","end":"19:00","shiftId":"shift_zb_dinner","shiftName":"晚餐時段"},{"start":"21:00","end":"22:30","shiftId":"shift_zb_late","shiftName":"宵夜時段"}],"4":[{"start":"11:00","end":"13:30","shiftId":"shift_zb_lunch","shiftName":"午餐時段"},{"start":"16:30","end":"19:00","shiftId":"shift_zb_dinner","shiftName":"晚餐時段"},{"start":"21:00","end":"22:30","shiftId":"shift_zb_late","shiftName":"宵夜時段"}],"5":[{"start":"11:00","end":"13:30","shiftId":"shift_zb_lunch","shiftName":"午餐時段"},{"start":"16:30","end":"19:00","shiftId":"shift_zb_dinner","shiftName":"晚餐時段"}],"6":[]}'
-WHERE tenant_id = 'zhenbaochufang';
+-- Menu shifts do not modify the customer operating hours in tenant_config.
 
 -- 2. Categories A-F
 INSERT INTO menu_categories (id, tenant_id, name, short_name, slug, category_type, selection_type, is_required, min_selection, max_selection, sort_order, allow_customization, applied_modifiers, pricing_rules, availability_mode, hide_when_unavailable) VALUES

@@ -5,6 +5,7 @@ import type { CustomerOrderDomain, OrderDomainRow } from '../utils/order-domain'
 import { resolveSecret } from '../utils/secrets';
 import { tenantIsDeleted } from '../utils/tenant-lifecycle';
 import { parseAISettings } from '../modules/ai-settings';
+import { writeConfigWithHoursGuard } from '../modules/operating-shifts';
 import type {
   TenantRepository,
   TenantConfigRow,
@@ -288,7 +289,7 @@ export function createTenantRepository(
       const hasAISettings = input.aiSettings !== undefined;
       const aiBindings = hasAISettings ? [input.aiSettings!, input.aiOrderRedirectEnabled === undefined ? null : (input.aiOrderRedirectEnabled ? 1 : 0)] : [];
 
-      await db.prepare(`
+      const configStatement = db.prepare(`
         INSERT INTO tenant_config (tenant_id, brand_name, operating_hours, allow_scheduled_pickup, allow_dine_in, store_status, liff_id, logo_url, store_address, announcement, store_notice, features, prep_time_minutes, payment_methods, auto_open_before_minutes, ${hasAISettings ? 'ai_settings, ai_order_redirect_enabled,' : ''} updated_at)
         VALUES (?, ?, ?, COALESCE(?, 1), COALESCE(?, 1), COALESCE(?, 'open'), ?, ?, ?, ?, ?, COALESCE(?, '[]'), COALESCE(?, 5), COALESCE(?, '["line_pay"]'), COALESCE(?, 60), ${hasAISettings ? '?, COALESCE(?, 1),' : ''} CURRENT_TIMESTAMP)
         ON CONFLICT(tenant_id) DO UPDATE SET
@@ -338,7 +339,8 @@ export function createTenantRepository(
         prepTimeVal, prepTimeVal,
         paymentMethodsVal, paymentMethodsVal,
         autoOpenBeforeMinutesVal, autoOpenBeforeMinutesVal
-      ).run();
+      );
+      await writeConfigWithHoursGuard(db, tenantId, input.operatingHours, configStatement, input.scheduleRevision);
 
       if (input.supportedLocales !== undefined && await hasTenantConfigColumn('supported_locales')) {
         const serializedLocales = typeof input.supportedLocales === 'string'
@@ -420,18 +422,18 @@ export function createTenantRepository(
       const tenantName = input.name || input.brand_name;
 
       // 1. Insert or update tenants table
-      await db.prepare(
+      const tenantStatement = db.prepare(
         `INSERT INTO tenants (id, name, updated_at)
          VALUES (?, ?, datetime('now'))
          ON CONFLICT(id) DO UPDATE SET name = excluded.name, updated_at = datetime('now')`
-      ).bind(input.tenant_id, tenantName).run();
+      ).bind(input.tenant_id, tenantName);
 
       // 2. Insert or update tenant_config table
       const quickRepliesJson = Array.isArray(input.quick_replies)
         ? JSON.stringify(input.quick_replies)
         : (typeof input.quick_replies === 'string' ? input.quick_replies : null);
 
-      await db.prepare(
+      const adminConfigStatement = db.prepare(
         `INSERT INTO tenant_config (
           tenant_id, line_channel_token, line_channel_secret, liff_id, liff_url,
           groq_api_key, groq_model, openrouter_api_key, openrouter_model,
@@ -483,7 +485,8 @@ export function createTenantRepository(
         input.locale || 'zh-TW',
         input.google_sheets_url || null,
         input.is_active ?? 1
-      ).run();
+      );
+      await writeConfigWithHoursGuard(db, input.tenant_id, input.operating_hours == null ? undefined : input.operating_hours, adminConfigStatement, undefined, [tenantStatement]);
 
       if (input.staff_ordering_enabled !== undefined && input.staff_ordering_enabled !== null) {
         await db.prepare('UPDATE tenant_config SET staff_ordering_enabled=? WHERE tenant_id=?')

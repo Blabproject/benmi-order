@@ -8,7 +8,6 @@ import { resolveTenantContext } from './tenant';
 import {
   loadCategoryAndItemShiftLinks,
   loadTenantOperatingShifts,
-  stripOperatingHoursProjection,
   hasTenantMenuScheduleFeature,
   type OperatingShiftDto,
 } from './operating-shifts';
@@ -205,8 +204,8 @@ export interface BootstrapBundleRule {
   groups: BootstrapBundleGroup[];
 }
 
-// v7 adds relational operatingShifts and category/item shift availability metadata.
-export const BOOTSTRAP_VERSION = 7;
+// v8 keeps customer operating hours independent from menu shifts.
+export const BOOTSTRAP_VERSION = 8;
 
 export interface BootstrapResponse {
   bootstrapVersion: number;
@@ -1217,11 +1216,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
       }
     }
 
-    const hasRelationalOperating = hasMenuScheduleFeature && operatingShifts.some((s) => s.shiftType === 'operating' && s.isActive);
-    const resolvedParsedHours = hasRelationalOperating
-      ? stripOperatingHoursProjection(operatingShifts)
-      : parseOperatingHours(operatingHours, tenantId);
-    const resolvedHoursRawForDisplay = hasRelationalOperating ? resolvedParsedHours : operatingHours;
+    const resolvedParsedHours = parseOperatingHours(operatingHours, tenantId);
 
     const payload: BootstrapResponse = {
       bootstrapVersion: BOOTSTRAP_VERSION,
@@ -1240,7 +1235,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
         operatingHours,
         operatingShifts,
         parsedHours: resolvedParsedHours,
-        formattedHours: formatOperatingHoursForDisplay(resolvedHoursRawForDisplay, locale, tenantId),
+        formattedHours: formatOperatingHoursForDisplay(operatingHours, locale, tenantId),
         deliveryPolicy,
         allowScheduledPickup: tenantCtx?.allowScheduledPickup !== undefined ? tenantCtx.allowScheduledPickup : true,
         allowDineIn: tenantCtx?.allowDineIn !== undefined ? tenantCtx.allowDineIn : true,

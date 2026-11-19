@@ -25,6 +25,7 @@ const { validateCatalogScheduleForItems, loadTenantOperatingShifts } = require('
 const { loadOptionCatalog } = require('../benmi-worker-official/src/modules/option-groups.ts');
 const { getTenantBootstrap } = require('../benmi-worker-official/src/modules/bootstrap.ts');
 const { updateMenuSchedule } = require('../benmi-worker-official/src/modules/menu-schedule-settings.ts');
+const { menuShifts } = require('../benmi-worker-official/src/modules/menu-shifts.ts');
 const { getConfig, updateConfig } = require('../benmi-worker-official/src/modules/config.ts');
 const { syncMenuToD1, updateMenu } = (() => {
   const mod = require('../benmi-worker-official/src/modules/menu.ts');
@@ -117,6 +118,9 @@ function seedZhenbaochufang(db) {
     'utf8'
   );
   db.exec(sql);
+  const hours = { '0': [], '6': [] };
+  for (let d = 1; d <= 5; d++) hours[d] = [{ start: '09:00', end: '23:00' }];
+  db.prepare('UPDATE tenant_config SET operating_hours=? WHERE tenant_id=?').run(JSON.stringify(hours), 'zhenbaochufang');
 }
 
 test('MenuSchedule evaluates shifts, overnight windows, menu_window, inclusiveEnd, and 3-tier inheritance', () => {
@@ -165,15 +169,17 @@ test('MenuSchedule evaluates shifts, overnight windows, menu_window, inclusiveEn
     }
   ];
 
+  const hours = MenuSchedule.projectOperatingHoursMap(shifts);
+
   // Store open/closed across Mon-Sun
-  assert.equal(MenuSchedule.isStoreOpenAt(shifts, null, '2026-11-16 12:00'), true);  // Mon lunch
-  assert.equal(MenuSchedule.isStoreOpenAt(shifts, null, '2026-11-16 15:00'), false); // Mon afternoon break
-  assert.equal(MenuSchedule.isStoreOpenAt(shifts, null, '2026-11-20 21:30'), false); // Fri late closed
-  assert.equal(MenuSchedule.isStoreOpenAt(shifts, null, '2026-11-21 12:00'), false); // Sat closed
+  assert.equal(MenuSchedule.isStoreOpenAt(shifts, hours, '2026-11-16 12:00'), true);  // Mon lunch
+  assert.equal(MenuSchedule.isStoreOpenAt(shifts, hours, '2026-11-16 15:00'), false); // Mon afternoon break
+  assert.equal(MenuSchedule.isStoreOpenAt(shifts, hours, '2026-11-20 21:30'), false); // Fri late closed
+  assert.equal(MenuSchedule.isStoreOpenAt(shifts, hours, '2026-11-21 12:00'), false); // Sat closed
 
   // Boundary inclusiveEnd check (19:00 slot vs 19:00 live ASAP)
-  assert.equal(MenuSchedule.isStoreOpenAt(shifts, null, '2026-11-16 19:00', { inclusiveEnd: false }), false);
-  assert.equal(MenuSchedule.isStoreOpenAt(shifts, null, '2026-11-16 19:00', { inclusiveEnd: true }), true);
+  assert.equal(MenuSchedule.isStoreOpenAt(shifts, hours, '2026-11-16 19:00', { inclusiveEnd: false }), false);
+  assert.equal(MenuSchedule.isStoreOpenAt(shifts, hours, '2026-11-16 19:00', { inclusiveEnd: true }), true);
 
   // Category D: selected dinner + late, hidden when unavailable
   const catD = {
@@ -181,36 +187,37 @@ test('MenuSchedule evaluates shifts, overnight windows, menu_window, inclusiveEn
     hideWhenUnavailable: true,
     shiftIds: ['shift_dinner', 'shift_late']
   };
-  const lunchEval = MenuSchedule.resolveCategoryAvailability(catD, shifts, null, '2026-11-16 12:00', { locale: 'zh-TW' });
+  const lunchEval = MenuSchedule.resolveCategoryAvailability(catD, shifts, hours, '2026-11-16 12:00', { locale: 'zh-TW' });
   assert.equal(lunchEval.available, false);
   assert.equal(lunchEval.hidden, true);
 
-  const dinnerEval = MenuSchedule.resolveCategoryAvailability(catD, shifts, null, '2026-11-16 17:30', { locale: 'zh-TW' });
+  const dinnerEval = MenuSchedule.resolveCategoryAvailability(catD, shifts, hours, '2026-11-16 17:30', { locale: 'zh-TW' });
   assert.equal(dinnerEval.available, true);
   assert.equal(dinnerEval.hidden, false);
   assert.deepEqual(dinnerEval.activeShiftIds, ['shift_dinner']);
 
-  const thuLateEval = MenuSchedule.resolveCategoryAvailability(catD, shifts, null, '2026-11-19 21:30', { locale: 'vi' });
+  const thuLateEval = MenuSchedule.resolveCategoryAvailability(catD, shifts, hours, '2026-11-19 21:30', { locale: 'vi' });
   assert.equal(thuLateEval.available, true);
   assert.equal(thuLateEval.activeShiftNames[0], '宵夜');
 
-  const friLateEval = MenuSchedule.resolveCategoryAvailability(catD, shifts, null, '2026-11-20 21:30');
+  const friLateEval = MenuSchedule.resolveCategoryAvailability(catD, shifts, hours, '2026-11-20 21:30');
   assert.equal(friLateEval.available, false);
   assert.equal(friLateEval.hidden, true);
 
   // menu_window intersection with store operating hours (Fri 20:00 is inside menu_window 18:30-21:30, but Fri store closes at 19:00)
   const hhCat = { availabilityMode: 'selected_shifts', hideWhenUnavailable: false, shiftIds: ['shift_happy_hour'] };
-  assert.equal(MenuSchedule.resolveCategoryAvailability(hhCat, shifts, null, '2026-11-20 18:45').available, true);
-  assert.equal(MenuSchedule.resolveCategoryAvailability(hhCat, shifts, null, '2026-11-20 20:00').available, false);
+  assert.equal(MenuSchedule.resolveCategoryAvailability(hhCat, shifts, hours, '2026-11-20 18:45').available, true);
+  assert.equal(MenuSchedule.resolveCategoryAvailability(hhCat, shifts, hours, '2026-11-20 20:00').available, false);
 
   // 3-tier item override: 'all_shifts' item inside 'selected_shifts' category
   const alwaysAvailableItem = { availabilityMode: 'all_shifts' };
-  assert.equal(MenuSchedule.resolveItemAvailability(catD, alwaysAvailableItem, shifts, null, '2026-11-16 12:00').available, true);
+  assert.equal(MenuSchedule.resolveItemAvailability(catD, alwaysAvailableItem, shifts, hours, '2026-11-16 12:00').available, true);
 
   // Overnight shift crossing midnight
   const nightShifts = shifts.map(s => s.id === 'shift_overnight' ? { ...s, isActive: true } : s);
-  assert.equal(MenuSchedule.isStoreOpenAt(nightShifts, null, '2026-11-21 23:15'), true); // Sat night
-  assert.equal(MenuSchedule.isStoreOpenAt(nightShifts, null, '2026-11-22 01:30'), true); // Sun 01:30 AM from Sat shift
+  const nightHours = MenuSchedule.projectOperatingHoursMap(nightShifts);
+  assert.equal(MenuSchedule.isStoreOpenAt(nightShifts, nightHours, '2026-11-21 23:15'), true); // Sat night
+  assert.equal(MenuSchedule.isStoreOpenAt(nightShifts, nightHours, '2026-11-22 01:30'), true); // Sun 01:30 AM from Sat shift
 });
 
 test('Full SQLite migrations + zhenbaochufang seed + bootstrap + config shifts + menu preserve + order validation', async () => {
@@ -230,7 +237,7 @@ test('Full SQLite migrations + zhenbaochufang seed + bootstrap + config shifts +
   const bsRes = await getTenantBootstrap(new Request('https://example.test/api/tenant/bootstrap?tenant_id=zhenbaochufang'), env);
   assert.equal(bsRes.status, 200);
   const bsData = await bsRes.json();
-  assert.equal(bsData.bootstrapVersion, 7);
+  assert.equal(bsData.bootstrapVersion, 8);
   assert.equal(bsData.tenant.operatingShifts.length, 3);
   const friedRiceCat = bsData.catalog.find(c => c.id === 'cat_zb_fried_rice');
   assert.ok(friedRiceCat, 'Category D present in catalog');
@@ -238,7 +245,7 @@ test('Full SQLite migrations + zhenbaochufang seed + bootstrap + config shifts +
   assert.equal(friedRiceCat.hideWhenUnavailable, true);
   assert.deepEqual(friedRiceCat.shiftIds.sort(), ['shift_zb_dinner', 'shift_zb_late']);
 
-  // 3. Verify saving shifts via updateConfig keeps shift IDs intact and syncs tenant_config.operating_hours
+  // 3. Saving shifts keeps IDs intact without changing customer hours.
   const cfgGetRes = await getConfig(new Request('https://example.test/api/config?tenant_id=zhenbaochufang'), env);
   const cfgData = await cfgGetRes.json();
   assert.equal(cfgData.operatingShifts.length, 3);
@@ -251,7 +258,9 @@ test('Full SQLite migrations + zhenbaochufang seed + bootstrap + config shifts +
   }), env);
   assert.equal(cfgUpdateRes.status, 200);
   const cfgAfter = await cfgUpdateRes.json();
-  assert.equal(cfgAfter.operatingHours['1'].some(w => w.end === '19:30'), true);
+  assert.equal(cfgAfter.operatingHours, undefined);
+  assert.equal(cfgAfter.operatingShifts.find(s => s.id === dinnerShift.id).windows[0].endTime, '19:30');
+  assert.deepEqual((await (await getConfig(new Request('https://example.test/api/config?tenant_id=zhenbaochufang'), env)).json()).operatingHours, cfgData.operatingHours);
   assert.equal(
     db.prepare("SELECT COUNT(*) AS c FROM menu_category_shifts WHERE tenant_id='zhenbaochufang' AND shift_id='shift_zb_dinner'").get().c,
     1,
@@ -615,4 +624,111 @@ test('schedule PATCH catalog guard rolls back all schedule writes after an inter
   assert.equal(response.status, 409, await response.text());
   assert.deepEqual(f.categoryState(), previous);
   assert.equal(f.db.prepare('SELECT COUNT(*) n FROM menu_write_guards').get().n, 0);
+});
+
+
+test('store hours and menu shifts remain independent through writes, persistence and cached bootstrap', async () => {
+  const db = createFullMigratedDb();
+  seedZhenbaochufang(db);
+  const env = createEnvForDb(db), url = 'https://example.test/api/config?tenant_id=zhenbaochufang';
+  const bootstrap = async () => (await getTenantBootstrap(new Request(url.replace('/api/config', '/api/tenant/bootstrap')), env)).json();
+  const save = body => updateConfig(new Request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), env);
+  const readHours = () => db.prepare('SELECT operating_hours FROM tenant_config WHERE tenant_id=?').get('zhenbaochufang').operating_hours;
+  const before = await bootstrap(), originalHours = readHours();
+  const shifts = await loadTenantOperatingShifts(env.DB, 'zhenbaochufang');
+  shifts[0].windows.forEach(w => { w.startTime = '14:00'; w.endTime = '15:00'; });
+  assert.equal((await save({ operatingShifts: shifts })).status, 200);
+  assert.equal(readHours(), originalHours);
+  const afterShifts = await bootstrap();
+  assert.deepEqual(afterShifts.tenant.parsedHours, before.tenant.parsedHours);
+  assert.equal(afterShifts.tenant.formattedHours, before.tenant.formattedHours);
+  assert.equal(afterShifts.tenant.operatingShifts[0].windows[0].startTime, '14:00');
+  assert.equal(MenuSchedule.isStoreOpenAt(shifts, afterShifts.tenant.parsedHours, '2026-11-16 10:00'), true);
+  assert.equal(MenuSchedule.isStoreOpenAt(shifts, { '1': [] }, '2026-11-16 14:30'), false);
+  assert.equal(MenuSchedule.isStoreOpenAt(shifts, null, '2026-11-16 14:30'), false);
+
+  const linksBefore = db.prepare('SELECT * FROM menu_category_shifts ORDER BY category_id, shift_id').all();
+  const shiftsBefore = await loadTenantOperatingShifts(env.DB, 'zhenbaochufang');
+  const invalidHours = { '1': [{ start: '08:00', end: '10:30' }] };
+  assert.equal((await save({ operatingHours: invalidHours })).status, 409);
+  const nextHours = JSON.parse(originalHours);
+  nextHours['1'][0].start = '08:00';
+  assert.equal((await save({ operatingHours: nextHours })).status, 200);
+  assert.deepEqual(await loadTenantOperatingShifts(env.DB, 'zhenbaochufang'), shiftsBefore);
+  assert.deepEqual(db.prepare('SELECT * FROM menu_category_shifts ORDER BY category_id, shift_id').all(), linksBefore);
+  const afterHours = await bootstrap();
+  assert.deepEqual(afterHours.tenant.parsedHours, nextHours);
+  assert.match(afterHours.tenant.formattedHours, /08:00 - 23:00/);
+  assert.equal((await save({ operatingShifts: [] })).status, 200);
+  assert.deepEqual((await bootstrap()).tenant.parsedHours, nextHours);
+  db.close();
+});
+
+
+test('coverage validates full intervals, breaks, midnight/week rollover, inactive shifts and adjacent windows', () => {
+  const sh = (dayOfWeek, startTime, endTime) => [{ id: 's', name: 'Service', windows: [{ dayOfWeek, startTime, endTime }] }];
+  const issues = (d, a, b, hours) => MenuSchedule.shiftCoverageIssues(sh(d, a, b), hours).length;
+  assert.equal(issues(1,'11:00','19:00',{'1':[{start:'11:00',end:'19:00'}]}),0);
+  assert.equal(issues(1,'10:59','19:00',{'1':[{start:'11:00',end:'19:00'}]}),1);
+  assert.equal(issues(1,'11:00','19:01',{'1':[{start:'11:00',end:'19:00'}]}),1);
+  assert.equal(issues(1,'11:00','19:00',{'1':[{start:'11:00',end:'13:00'},{start:'17:00',end:'19:00'}]}),1);
+  assert.equal(issues(1,'11:00','19:00',{'1':[{start:'11:00',end:'13:00'},{start:'13:00',end:'19:00'}]}),0);
+  assert.equal(issues(6,'23:00','02:00',{'6':[{start:'22:00',end:'01:00'}],'0':[{start:'01:00',end:'03:00'}]}),0);
+  assert.equal(issues(0,'00:30','02:00',{'6':[{start:'22:00',end:'03:00'}]}),0);
+  assert.equal(issues(6,'23:00','03:01',{'6':[{start:'22:00',end:'03:00'}]}),1);
+  assert.equal(issues(1,'00:00','24:00',{'1':[{start:'00:00',end:'24:00'}]}),0);
+  assert.equal(MenuSchedule.shiftCoverageIssues([{...sh(0,'12:00','13:00')[0],isActive:false}],{}).length,0);
+  assert.throws(()=>MenuSchedule.normalizeBusinessHours({'1':[{start:'24:00',end:'12:00'}]}));
+});
+
+test('shift CRUD and hours writes enforce scope, expected revisions and transaction-level concurrency', async () => {
+  const db = createFullMigratedDb(); seedZhenbaochufang(db); const env = createEnvForDb(db);
+  const url = 'https://example.test/api/menu/shifts?tenant_id=zhenbaochufang';
+  const get = async () => (await menuShifts(new Request(url),env)).json();
+  const put = body => menuShifts(new Request(url,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),env);
+  let snapshot = await get(); const before = JSON.stringify(snapshot.operatingShifts);
+  const invalid = structuredClone(snapshot.operatingShifts); invalid[0].windows[0].startTime='08:00';
+  let response = await put({operatingShifts:invalid,scheduleRevision:snapshot.scheduleRevision});
+  assert.equal(response.status,409); assert.equal((await response.json()).error,'SHIFTS_OUTSIDE_OPERATING_HOURS');
+  assert.equal(JSON.stringify((await get()).operatingShifts),before);
+  const firstWindow = snapshot.operatingShifts[0].windows[0];
+  const windowBefore = db.prepare('SELECT rowid,created_at FROM tenant_operating_hours WHERE id=?').get(firstWindow.id);
+  const valid=structuredClone(snapshot.operatingShifts); valid[0].name='Edited lunch'; valid[0].windows[0].endTime='14:00';
+  assert.equal((await put({operatingShifts:valid,scheduleRevision:snapshot.scheduleRevision})).status,200);
+  assert.deepEqual(db.prepare('SELECT rowid,created_at FROM tenant_operating_hours WHERE id=?').get(firstWindow.id),windowBefore);
+  assert.equal((await put({operatingShifts:snapshot.operatingShifts,scheduleRevision:snapshot.scheduleRevision})).status,409);
+  snapshot = await get();
+  const hijack = structuredClone(snapshot.operatingShifts); hijack[0].windows[0].id=hijack[1].windows[0].id;
+  assert.equal((await put({operatingShifts:hijack,scheduleRevision:snapshot.scheduleRevision})).status,400);
+  const configUrl='https://example.test/api/config?tenant_id=zhenbaochufang';
+  let res = await updateConfig(new Request(configUrl,{method:'POST',body:JSON.stringify({operatingHours:{'1':[]},scheduleRevision:snapshot.scheduleRevision})}),env);
+  assert.equal(res.status,409);
+  // Interleave an hours edit after validation but before the D1 transaction starts.
+  const normalBatch=env.DB.batch; let injected=false;
+  env.DB.batch=async statements=>{
+    if(!injected && statements[0]?.sql.includes('INSERT INTO menu_write_guards')) {
+      injected=true; db.prepare('UPDATE tenant_config SET operating_hours=? WHERE tenant_id=?').run(JSON.stringify({'1':[]}), 'zhenbaochufang');
+    }
+    return normalBatch(statements);
+  };
+  res=await put({operatingShifts:valid,scheduleRevision:snapshot.scheduleRevision});
+  assert.equal(res.status,409); assert.equal((await res.json()).error,'MENU_SCHEDULE_CONFLICT');
+  assert.equal((await loadTenantOperatingShifts(env.DB,'zhenbaochufang'))[0].name,'Edited lunch');
+  // The inverse interleaving (a shift extends while hours are being shortened) also rolls back.
+  env.DB.batch=normalBatch;
+  const broad = {}; for(let d=1;d<=5;d++)broad[d]=[{start:'09:00',end:'23:00'}];
+  db.prepare('UPDATE tenant_config SET operating_hours=? WHERE tenant_id=?').run(JSON.stringify(broad),'zhenbaochufang');
+  const cfg=await (await getConfig(new Request(configUrl),env)).json();
+  injected=false;
+  env.DB.batch=async statements=>{
+    if(!injected && statements[0]?.sql.includes('INSERT INTO menu_write_guards')) {
+      injected=true; db.prepare("UPDATE tenant_operating_hours SET end_time='23:30' WHERE id='oh_zb_late_1'").run();
+    }
+    return normalBatch(statements);
+  };
+  const hoursBefore=db.prepare('SELECT operating_hours FROM tenant_config WHERE tenant_id=?').get('zhenbaochufang').operating_hours;
+  res=await updateConfig(new Request(configUrl,{method:'POST',body:JSON.stringify({operatingHours:broad,scheduleRevision:cfg.scheduleRevision})}),env);
+  assert.equal(res.status,409);
+  assert.equal(db.prepare('SELECT operating_hours FROM tenant_config WHERE tenant_id=?').get('zhenbaochufang').operating_hours,hoursBefore);
+  db.close();
 });

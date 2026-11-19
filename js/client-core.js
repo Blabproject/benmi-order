@@ -816,8 +816,6 @@ function applyTenantTheme(tenant, skipLocaleInit = false) {
         try {
             storeConfig.operatingHours = typeof tenant.operatingHours === 'string' ? JSON.parse(tenant.operatingHours) : tenant.operatingHours;
         } catch(e) {}
-    } else if (Array.isArray(tenant.operatingShifts) && typeof window !== 'undefined' && window.MenuSchedule) {
-        storeConfig.operatingHours = window.MenuSchedule.projectOperatingHoursMap(tenant.operatingShifts);
     }
     if (tenant.liffId) storeConfig.liffId = tenant.liffId;
     if (tenant.features) storeConfig.features = tenant.features;
@@ -1481,9 +1479,6 @@ async function updateDesktopAuthUI() {
 // --- STORE STATUS & BUSINESS HOURS ---
 function hasConfiguredOperatingHours(cfg = storeConfig) {
     if (!cfg) return false;
-    if (typeof MenuSchedule !== 'undefined' && MenuSchedule.hasOperatingShifts(cfg.operatingShifts)) {
-        return true;
-    }
     if (!cfg.operatingHours || typeof cfg.operatingHours !== 'object') return false;
     return Object.values(cfg.operatingHours).some(shifts => Array.isArray(shifts) && shifts.length > 0);
 }
@@ -1772,7 +1767,7 @@ async function initApp() {
         const cachedRaw = localStorage.getItem(`tenant_bootstrap_${tenantId}`);
         if (cachedRaw) {
             const parsed = JSON.parse(cachedRaw);
-            if (parsed?.tenant?.id === tenantId && Number(parsed.bootstrapVersion) >= 3 && parsed.menuComplete === true) {
+            if (parsed?.tenant?.id === tenantId && Number(parsed.bootstrapVersion) >= 8 && parsed.menuComplete === true) {
                 bootstrapData = parsed;
                 window.bootstrapData = parsed;
                 if (typeof buildModifierPriceMap === 'function') {

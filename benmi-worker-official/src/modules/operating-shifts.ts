@@ -110,17 +110,6 @@ export function serializeShiftI18n(input: unknown): string {
   return Object.keys(parsed).length > 0 ? JSON.stringify(parsed) : '{}';
 }
 
-export function stripOperatingHoursProjection(shifts: OperatingShiftDto[]): Record<string, Array<{ start: string; end: string }>> {
-  const raw = MenuSchedule.projectOperatingHoursMap(shifts) as Record<string, Array<{ start: string; end: string }>>;
-  const clean: Record<string, Array<{ start: string; end: string }>> = {};
-  for (let d = 0; d < 7; d++) {
-    const key = String(d);
-    const list = Array.isArray(raw[key]) ? raw[key] : [];
-    clean[key] = list.map((s: any) => ({ start: String(s.start), end: String(s.end) }));
-  }
-  return clean;
-}
-
 export async function loadTenantOperatingShifts(db: D1Database | undefined | null, tenantId: string): Promise<OperatingShiftDto[]> {
   if (!db) return [];
   const [hasShiftsTable, hasHoursTable] = await Promise.all([
@@ -245,7 +234,7 @@ export function normalizeIncomingShifts(rawShifts: unknown, tenantId: string): O
       if (!Number.isInteger(day) || day < 0 || day > 6) throw new Error('INVALID_SHIFT_DAY');
       const sMin = MenuSchedule.parseMinutes(startTime, false);
       const eMin = MenuSchedule.parseMinutes(endTime, true);
-      if (Number.isNaN(sMin) || Number.isNaN(eMin)) throw new Error('INVALID_SHIFT_TIME');
+      if (Number.isNaN(sMin) || sMin >= 1440 || Number.isNaN(eMin)) throw new Error('INVALID_SHIFT_TIME');
       const normStart = startTime.length === 4 ? `0${startTime}` : startTime;
       const normEnd = endTime.length === 4 ? `0${endTime}` : endTime;
       const dedupKey = `${day}:${normStart}:${normEnd}`;
@@ -272,13 +261,57 @@ export function normalizeIncomingShifts(rawShifts: unknown, tenantId: string): O
   });
 }
 
+export class ScheduleIntegrityError extends Error {
+  constructor(message: string, public status = 409, public conflicts: unknown[] = []) { super(message); }
+}
+
+export async function readScheduleContext(db: D1Database, tenantId: string) {
+  // Read the revision first: any interleaved write is detected by the transaction guard.
+  const row = await db.prepare('SELECT revision FROM menu_catalog_revisions WHERE tenant_id=?').bind(tenantId).first<{ revision: number }>();
+  const config = await db.prepare('SELECT operating_hours FROM tenant_config WHERE tenant_id=?').bind(tenantId).first<{ operating_hours: string | null }>();
+  return { revision: Number(row?.revision || 0), hoursRaw: config?.operating_hours ?? null };
+}
+
+export function assertShiftCoverage(shifts: OperatingShiftDto[], hours: unknown) {
+  let conflicts: unknown[];
+  try { conflicts = MenuSchedule.shiftCoverageIssues(shifts, hours); }
+  catch { throw new ScheduleIntegrityError('INVALID_OPERATING_HOURS', 400); }
+  if (conflicts.length) throw new ScheduleIntegrityError('SHIFTS_OUTSIDE_OPERATING_HOURS', 409, conflicts);
+}
+
+export async function guardedScheduleBatch(db: D1Database, tenantId: string, snapshot: { revision: number; hoursRaw: string | null }, statements: D1PreparedStatement[], expectedRevision?: number) {
+  if (expectedRevision !== undefined && (!Number.isSafeInteger(expectedRevision) || expectedRevision !== snapshot.revision)) throw new ScheduleIntegrityError('MENU_SCHEDULE_CONFLICT');
+  const id = crypto.randomUUID();
+  const guard = db.prepare(`INSERT INTO menu_write_guards (id,valid) VALUES (?, CASE WHEN
+    COALESCE((SELECT revision FROM menu_catalog_revisions WHERE tenant_id=?),0)=?
+    AND (SELECT operating_hours FROM tenant_config WHERE tenant_id=?) IS ? THEN 1 ELSE 0 END)`)
+    .bind(id, tenantId, snapshot.revision, tenantId, snapshot.hoursRaw);
+  try { await db.batch([guard, ...statements, db.prepare('DELETE FROM menu_write_guards WHERE id=?').bind(id)]); }
+  catch (error) {
+    if (/CHECK constraint failed.*valid|menu_write_guards/i.test(String(error))) throw new ScheduleIntegrityError('MENU_SCHEDULE_CONFLICT');
+    throw error;
+  }
+}
+
+/** All config/admin hours writers use this boundary, preserving other config fields. */
+export async function writeConfigWithHoursGuard(db: D1Database, tenantId: string, hours: unknown, statement: D1PreparedStatement, expectedRevision?: number, beforeStatements: D1PreparedStatement[] = []) {
+  if (hours === undefined || !await hasTenantMenuScheduleFeature(db, tenantId)) {
+    if (beforeStatements.length) await db.batch([...beforeStatements, statement]); else await statement.run();
+    return;
+  }
+  const snapshot = await readScheduleContext(db, tenantId);
+  const shifts = await loadTenantOperatingShifts(db, tenantId);
+  assertShiftCoverage(shifts, hours);
+  await guardedScheduleBatch(db, tenantId, snapshot, [...beforeStatements, statement], expectedRevision);
+}
+
 export async function saveTenantOperatingShifts(
   db: D1Database,
   tenantId: string,
-  rawShifts: unknown
+  rawShifts: unknown,
+  expectedRevision?: number
 ): Promise<{
   shifts: OperatingShiftDto[];
-  projectedOperatingHours: Record<string, Array<{ start: string; end: string }>>;
 }> {
   const [hasShiftsTable, hasHoursTable] = await Promise.all([
     hasDbTable(db, 'tenant_operating_shifts'),
@@ -288,8 +321,21 @@ export async function saveTenantOperatingShifts(
     throw new Error('OPERATING_SHIFTS_SCHEMA_NOT_READY');
   }
 
+  const snapshot = await readScheduleContext(db, tenantId);
   const shifts = normalizeIncomingShifts(rawShifts, tenantId);
+  assertShiftCoverage(shifts, snapshot.hoursRaw);
   const incomingShiftIds = shifts.map((s) => s.id);
+  const windowOwners = new Map<string, string>();
+  for (const shift of shifts) for (const w of shift.windows) {
+    if (!w.id || windowOwners.has(w.id)) throw new Error('DUPLICATE_SHIFT_WINDOW_ID');
+    windowOwners.set(w.id, shift.id);
+  }
+  const windowIds = [...windowOwners.keys()];
+  for (let i = 0; i < windowIds.length; i += 50) {
+    const chunk = windowIds.slice(i, i + 50);
+    const rows = await db.prepare(`SELECT id, tenant_id, shift_id FROM tenant_operating_hours WHERE id IN (${chunk.map(() => '?').join(',')})`).bind(...chunk).all<{ id: string; tenant_id: string; shift_id: string }>();
+    for (const row of rows.results || []) if (row.tenant_id !== tenantId || row.shift_id !== windowOwners.get(row.id)) throw new Error('FORBIDDEN_SHIFT_WINDOW_ID');
+  }
   if (incomingShiftIds.length > 0) {
     for (let i = 0; i < incomingShiftIds.length; i += 50) {
       const chunk = incomingShiftIds.slice(i, i + 50);
@@ -343,7 +389,7 @@ export async function saveTenantOperatingShifts(
     for (const ew of existingWins) {
       if (!ew.id) continue;
       const stillMatches = shift.windows.some(
-        (nw) => nw.id === ew.id && nw.dayOfWeek === ew.dayOfWeek && nw.startTime === ew.startTime && nw.endTime === ew.endTime
+        (nw) => nw.id === ew.id
       );
       if (!stillMatches) {
         windowIdsToDelete.add(ew.id);
@@ -373,114 +419,11 @@ export async function saveTenantOperatingShifts(
     }
   }
 
-  const projectedOperatingHours = stripOperatingHoursProjection(shifts);
-  statements.push(
-    db.prepare('UPDATE tenant_config SET operating_hours = ?, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = ?')
-      .bind(JSON.stringify(projectedOperatingHours), tenantId)
-  );
-
-  if (statements.length > 0) {
-    await db.batch(statements);
-  }
+  await guardedScheduleBatch(db, tenantId, snapshot, statements, expectedRevision);
 
   return {
     shifts: await loadTenantOperatingShifts(db, tenantId),
-    projectedOperatingHours,
   };
-}
-
-export async function syncShiftsFromLegacyOperatingHours(
-  db: D1Database,
-  tenantId: string,
-  legacyHoursInput: unknown
-): Promise<void> {
-  const [hasShiftsTable, hasHoursTable] = await Promise.all([
-    hasDbTable(db, 'tenant_operating_shifts'),
-    hasDbTable(db, 'tenant_operating_hours'),
-  ]);
-  if (!hasShiftsTable || !hasHoursTable) return;
-
-  let parsedMap: Record<string, Array<{ start: string; end: string }>> | null = null;
-  if (typeof legacyHoursInput === 'string') {
-    try {
-      const p = JSON.parse(legacyHoursInput);
-      if (p && typeof p === 'object' && !Array.isArray(p)) parsedMap = p;
-    } catch {
-      return;
-    }
-  } else if (legacyHoursInput && typeof legacyHoursInput === 'object' && !Array.isArray(legacyHoursInput)) {
-    parsedMap = legacyHoursInput as any;
-  }
-  if (!parsedMap) return;
-
-  const existingShifts = await loadTenantOperatingShifts(db, tenantId);
-  const menuWindowShifts = existingShifts.filter((s) => s.shiftType === 'menu_window');
-  const operatingShifts = existingShifts.filter((s) => s.shiftType === 'operating');
-
-  // Collect all unique (start, end) time ranges from the legacy map in order
-  const rangeGroups = new Map<string, { startTime: string; endTime: string; days: number[] }>();
-  for (const dayKey of ['1', '2', '3', '4', '5', '6', '0']) {
-    const dayNum = Number(dayKey);
-    const list = Array.isArray(parsedMap[dayKey]) ? parsedMap[dayKey] : (Array.isArray((parsedMap as any)[dayNum]) ? (parsedMap as any)[dayNum] : []);
-    for (const s of list) {
-      if (!s || !s.start || !s.end) continue;
-      const startTime = String(s.start).trim();
-      const endTime = String(s.end).trim();
-      if (Number.isNaN(MenuSchedule.parseMinutes(startTime, false)) || Number.isNaN(MenuSchedule.parseMinutes(endTime, true))) continue;
-      const key = `${startTime}-${endTime}`;
-      if (!rangeGroups.has(key)) rangeGroups.set(key, { startTime, endTime, days: [] });
-      const group = rangeGroups.get(key)!;
-      if (!group.days.includes(dayNum)) group.days.push(dayNum);
-    }
-  }
-
-  // Match existing operating shifts by range first so shift IDs & category links are preserved
-  const usedShiftIds = new Set<string>();
-  const nextOperatingShifts: OperatingShiftDto[] = [];
-  let sortIdx = 0;
-
-  for (const [rangeKey, group] of rangeGroups.entries()) {
-    let matched = operatingShifts.find(
-      (s) =>
-        !usedShiftIds.has(s.id) &&
-        s.windows.some((w) => `${w.startTime}-${w.endTime}` === rangeKey)
-    );
-    if (!matched && operatingShifts[sortIdx] && !usedShiftIds.has(operatingShifts[sortIdx].id)) {
-      matched = operatingShifts[sortIdx];
-    }
-    if (matched) usedShiftIds.add(matched.id);
-
-    const shiftId = matched ? matched.id : `shift_${tenantId}_${sortIdx + 1}`;
-    const shiftName = matched ? matched.name : (rangeGroups.size === 1 ? '全天營業' : `時段 ${sortIdx + 1}`);
-    nextOperatingShifts.push({
-      id: shiftId,
-      name: shiftName,
-      i18n: matched?.i18n,
-      shiftType: 'operating',
-      sortOrder: sortIdx,
-      isActive: true,
-      windows: group.days.map((day) => ({
-        dayOfWeek: day,
-        startTime: group.startTime,
-        endTime: group.endTime,
-        isActive: true,
-      })),
-    });
-    sortIdx++;
-  }
-
-  // Keep existing operating shifts that temporarily have 0 days if they are still linked, just mark empty windows
-  for (const oldShift of operatingShifts) {
-    if (!usedShiftIds.has(oldShift.id)) {
-      nextOperatingShifts.push({
-        ...oldShift,
-        sortOrder: sortIdx++,
-        windows: [],
-      });
-    }
-  }
-
-  await saveTenantOperatingShifts(db, tenantId, [...nextOperatingShifts, ...menuWindowShifts]);
 }
 
 export function validateCatalogScheduleForItems(

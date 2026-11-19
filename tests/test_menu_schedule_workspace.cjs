@@ -178,3 +178,36 @@ test('dimmed outside-shift items show serving hours and cannot be ordered', t =>
   assert.match(card.querySelector('.card-footer').textContent, /17:00-19:00/);
   assert.equal(card.querySelector('.qty-control'), null);
 });
+
+
+test('hours stay in Settings; CRUD, validation and draft retention live in the menu shift workspace', async t => {
+  const dom = new JSDOM('<div id="hours-settings-list"></div><button id="btn-save-hours">Save</button><div id="menu-schedule-workspace-root"><div id="menu-shifts-editor"></div></div>', { url:'https://pos.test',runScripts:'outside-only' });
+  t.after(()=>dom.window.close()); const w=dom.window;
+  w.currentTenantFeatures=['menu_schedule']; w.WORKER_BASE='https://worker.test'; w.getTenantIdFromUrl=()=> 'store'; w.alert=()=>{}; w.confirm=()=>true;
+  w.eval(readFileSync('js/orders-i18n.js','utf8'));
+  w.eval(readFileSync('js/menu-schedule.js','utf8'));
+  w.eval(readFileSync('js/orders-settings.js','utf8')+`
+storeOperatingHours={'1':[{start:'09:00',end:'23:00'}]};storeScheduleRevision=3;window.readHoursDraft=()=>JSON.stringify(storeOperatingHours);renderOperatingHours();` + readFileSync('js/orders-menu-shifts.js','utf8'));
+  assert.equal(w.document.querySelector('#btn-save-menu-shifts'),null);
+  const hoursBefore=w.readHoursDraft();
+  w.renderMenuScheduleWorkspace=()=>{w.renderMenuShiftEditor();};
+  const server={scheduleRevision:3,operatingHours:{'1':[{start:'09:00',end:'23:00'}]},operatingShifts:[{id:'dinner',name:'Dinner',shiftType:'operating',windows:[{id:'w',dayOfWeek:1,startTime:'17:00',endTime:'19:00'}]}]};
+  const writes=[];let conflict=false;
+  w.fetch=async (_url,options={})=>{
+    if(options.method){const body=JSON.parse(options.body);writes.push(body);if(conflict)return{ok:false,json:async()=>({error:'MENU_SCHEDULE_CONFLICT'})};return{ok:true,json:async()=>({...server,...body,scheduleRevision:4})};}
+    return{ok:true,json:async()=>server};
+  };
+  await w.openMenuShiftEditor();
+  w.updateShiftBandTime(0,'17:00|19:00','endTime','23:30');
+  await w.saveMenuShifts();assert.equal(writes.length,0);
+  assert(w.document.getElementById('menu-shifts-error').textContent.includes(w.t('shiftCoverageError')));
+  w.updateShiftBandTime(0,'17:00|23:30','endTime','20:00');
+  assert.equal(w.readHoursDraft(),hoursBefore);
+  conflict=true;await w.saveMenuShifts();
+  assert.equal(writes[0].scheduleRevision,3);
+  assert.equal(writes[0].operatingShifts[0].windows[0].endTime,'20:00');
+  assert.equal(w.hasUnsavedMenuShiftChanges(),true);
+  assert(w.document.getElementById('menu-shifts-error').textContent.includes(w.t('menuScheduleConflict')));
+  conflict=false;await w.saveMenuShifts();assert.equal(w.hasUnsavedMenuShiftChanges(),false);
+  for(const lang of ['vi','zh-TW']){w.currentLang=lang;w.renderMenuShiftEditor();assert.notEqual(w.document.getElementById('btn-save-menu-shifts').textContent,'btnSaveMenuShifts');}
+});

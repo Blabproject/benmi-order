@@ -61,6 +61,7 @@ export interface TenantAdminSummaryRow {
 }
 
 export interface UpdateTenantConfigInput {
+  scheduleRevision?: number;
   operatingHours?: string | null;
   allowScheduledPickup?: boolean | number | null;
   allowDineIn?: boolean | number | null;

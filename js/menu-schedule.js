@@ -34,6 +34,53 @@
     return h * 60 + m;
   }
 
+  // All weekly ranges use the restaurant's local weekday/time, independent of browser timezone.
+  function normalizeBusinessHours(input) {
+    const raw = typeof input === 'string' ? JSON.parse(input) : input;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('INVALID_OPERATING_HOURS');
+    if (Object.keys(raw).some(key => !/^[0-6]$/.test(key))) throw new Error('INVALID_OPERATING_HOURS');
+    const result = {};
+    for (let day = 0; day < 7; day++) {
+      const ranges = raw[day] === undefined ? [] : raw[day];
+      if (!Array.isArray(ranges)) throw new Error('INVALID_OPERATING_HOURS');
+      result[day] = ranges.map(range => {
+        if (!range || !Number.isFinite(parseMinutes(range.start, false)) || parseMinutes(range.start, false) >= 1440 || !Number.isFinite(parseMinutes(range.end, true))) throw new Error('INVALID_OPERATING_HOURS');
+        return { start: pad2(Math.floor(parseMinutes(range.start, false) / 60)) + ':' + pad2(parseMinutes(range.start, false) % 60), end: pad2(Math.floor(parseMinutes(range.end, true) / 60)) + ':' + pad2(parseMinutes(range.end, true) % 60) };
+      });
+    }
+    return result;
+  }
+
+  function shiftCoverageIssues(shifts, hoursInput) {
+    const hours = normalizeBusinessHours(hoursInput), intervals = [];
+    function range(day, start, end) {
+      const a = parseMinutes(start, false), b = parseMinutes(end, true);
+      if (!Number.isInteger(day) || day < 0 || day > 6 || !Number.isFinite(a) || a >= 1440 || !Number.isFinite(b)) throw new Error('INVALID_SHIFT_TIME');
+      return [day * 1440 + a, day * 1440 + b + (b <= a ? 1440 : 0)];
+    }
+    for (let day = 0; day < 7; day++) for (const h of hours[day]) {
+      const [a, b] = range(day, h.start, h.end);
+      for (const offset of [-10080, 0, 10080]) intervals.push([a + offset, b + offset]);
+    }
+    intervals.sort((a, b) => a[0] - b[0]);
+    const merged = [];
+    for (const current of intervals) {
+      const last = merged[merged.length - 1];
+      if (last && current[0] <= last[1]) last[1] = Math.max(last[1], current[1]);
+      else merged.push([...current]);
+    }
+    const issues = [];
+    for (const shift of shifts || []) {
+      if (shift.isActive === false) continue;
+      for (const w of shift.windows || []) {
+        if (w.isActive === false) continue;
+        const [a, b] = range(Number(w.dayOfWeek), w.startTime, w.endTime);
+        if (!merged.some(([start, end]) => start <= a && end >= b)) issues.push({ shiftId: shift.id, shiftName: shift.name, dayOfWeek: Number(w.dayOfWeek), startTime: w.startTime, endTime: w.endTime });
+      }
+    }
+    return issues;
+  }
+
   function getTaipeiParts(input) {
     if (input && typeof input === 'object' && !(input instanceof Date)) {
       const dateStr = typeof input.dateStr === 'string' ? input.dateStr.trim() : '';
@@ -264,11 +311,7 @@
   }
 
   function isStoreOpenAt(shifts, legacyHours, targetInput, options) {
-    const normalized = normalizeOperatingShifts(shifts);
-    const operatingShifts = normalized.filter(s => s.isActive !== false && s.shiftType === 'operating');
-    if (operatingShifts.length > 0) {
-      return operatingShifts.some(s => isShiftActiveAt(s, targetInput, options));
-    }
+    // Named shifts control menu availability; only the store hours control opening.
     return isLegacyHoursOpenAt(legacyHours, targetInput, options);
   }
 
@@ -302,7 +345,7 @@
     const normalized = normalizeOperatingShifts(shifts);
     const idSet = new Set((Array.isArray(shiftIds) ? shiftIds : []).map(String));
     const matchedShifts = normalized.filter(s => idSet.has(s.id) && s.isActive !== false);
-    const hasConfiguredStore = hasOperatingShifts(normalized) || Boolean(
+    const hasConfiguredStore = Boolean(
       legacyHours && typeof legacyHours === 'object' && Object.values(legacyHours).some(arr => Array.isArray(arr) && arr.length > 0)
     );
 
@@ -376,6 +419,8 @@
 
   return {
     parseMinutes,
+    normalizeBusinessHours,
+    shiftCoverageIssues,
     getTaipeiParts,
     normalizeOperatingShifts,
     hasOperatingShifts,

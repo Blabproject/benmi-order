@@ -11,9 +11,9 @@ import { isMultilingualCanaryEnabled, parseSupportedLocales } from './menu-i18n'
 import {
   loadTenantOperatingShifts,
   saveTenantOperatingShifts,
-  stripOperatingHoursProjection,
-  syncShiftsFromLegacyOperatingHours,
   parseFeaturesArray,
+  readScheduleContext,
+  ScheduleIntegrityError,
 } from './operating-shifts';
 
 async function resolveConfigFeatures(
@@ -51,11 +51,10 @@ export async function getConfig(
     : (tenantCtx?.features || []);
   const hasMenuSchedule = finalFeatures.includes('menu_schedule');
 
+  const scheduleContext = hasMenuSchedule ? await readScheduleContext(env.DB, tenantId) : null;
+  if (scheduleContext) domainRow.operating_hours = scheduleContext.hoursRaw;
   const operatingShifts = hasMenuSchedule ? await loadTenantOperatingShifts(env.DB, tenantId) : [];
-  const hasRelationalOperating = hasMenuSchedule && operatingShifts.some((s) => s.shiftType === 'operating' && s.isActive);
-  let operatingHours = hasRelationalOperating
-    ? stripOperatingHoursProjection(operatingShifts)
-    : parseOperatingHours(domainRow.operating_hours, tenantId);
+  let operatingHours = parseOperatingHours(domainRow.operating_hours, tenantId);
   if (!operatingHours) {
     operatingHours = parseOperatingHours(null, tenantId);
   }
@@ -106,6 +105,7 @@ export async function getConfig(
     ...orderConfig,
     operatingHours,
     operatingShifts,
+    scheduleRevision: scheduleContext?.revision,
     allowScheduledPickup,
     allowDineIn,
     features: finalFeatures,
@@ -244,17 +244,23 @@ export async function updateConfig(
       normalizedTenantI18n = payload.i18n;
     }
 
-    let savedShiftsResult: Awaited<ReturnType<typeof saveTenantOperatingShifts>> | null = null;
+    if (payload.operatingShifts !== undefined && payload.operatingHours !== undefined) return json({ error: 'SAVE_HOURS_AND_SHIFTS_SEPARATELY' }, 400);
+
     if (payload.operatingShifts !== undefined) {
+      if (Object.keys(payload).some(k => !['operatingShifts', 'scheduleRevision'].includes(k))) return json({ error: 'INVALID_SHIFT_PATCH' }, 400);
       try {
-        savedShiftsResult = await saveTenantOperatingShifts(env.DB, tenantId, payload.operatingShifts);
-      } catch (shiftErr: any) {
-        return json({ error: shiftErr?.message || 'INVALID_OPERATING_SHIFTS' }, 400);
+        const saved = await saveTenantOperatingShifts(env.DB, tenantId, payload.operatingShifts, payload.scheduleRevision);
+        await invalidateBootstrapCache(tenantId, env);
+        return json({ success: true, operatingShifts: saved.shifts });
+      } catch (error: any) {
+        if (error instanceof ScheduleIntegrityError) throw error;
+        return json({ error: error?.message || 'INVALID_OPERATING_SHIFTS' }, 400);
       }
     }
 
     await tenantRepo.updateTenantConfig(tenantId, {
-      operatingHours: savedShiftsResult ? savedShiftsResult.projectedOperatingHours : payload.operatingHours,
+      operatingHours: payload.operatingHours,
+      scheduleRevision: payload.scheduleRevision,
       allowScheduledPickup: payload.allowScheduledPickup,
       allowDineIn: allowDineInVal,
       storeStatus: payload.storeStatus,
@@ -274,19 +280,14 @@ export async function updateConfig(
       brandName
     });
 
-    if (!savedShiftsResult && payload.operatingHours !== undefined && hasMenuSchedule) {
-      await syncShiftsFromLegacyOperatingHours(env.DB, tenantId, payload.operatingHours);
-    }
-
     await invalidateBootstrapCache(tenantId, env);
     await invalidateMarketplaceCache(env);
 
     const responseBody: Record<string, any> = { success: true };
-    if (savedShiftsResult) {
-      responseBody.operatingShifts = savedShiftsResult.shifts;
-      responseBody.operatingHours = savedShiftsResult.projectedOperatingHours;
-    } else if (payload.operatingHours !== undefined && hasMenuSchedule) {
-      responseBody.operatingShifts = await loadTenantOperatingShifts(env.DB, tenantId);
+    if (payload.operatingHours !== undefined) {
+      const snapshot = hasMenuSchedule ? await readScheduleContext(env.DB, tenantId) : null;
+      responseBody.scheduleRevision = snapshot?.revision;
+      responseBody.operatingHours = parseOperatingHours(snapshot ? snapshot.hoursRaw : payload.operatingHours, tenantId);
     }
     if (normalizedSupportedLocales !== undefined) {
       responseBody.supportedLocales = normalizedSupportedLocales;
@@ -297,6 +298,7 @@ export async function updateConfig(
     }
     return json(responseBody);
   } catch (e: any) {
+    if (e instanceof ScheduleIntegrityError) return json({ error: e.message, conflicts: e.conflicts }, e.status);
     if (e instanceof HttpError) return json({ error: e.message }, e.status);
     console.error('[updateConfig] Error:', e);
     return json({ error: e.message }, 500);
