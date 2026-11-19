@@ -466,7 +466,7 @@
       const key = order.key;
       const legacyKey = order.legacyKey;
       if (this.getPrintReports().some(report => report.key === key && (report.autoAttempted || report.attempted))) return;
-      this._inFlightOrderKeys ||= new Set();
+      if (!this._inFlightOrderKeys) this._inFlightOrderKeys = new Set();
       if (this.isOrderAlreadyPrinted(key) || (legacyKey && this.isOrderAlreadyPrinted(legacyKey))) return;
       if (this._inFlightOrderKeys.has(key) || (legacyKey && this._inFlightOrderKeys.has(legacyKey))) return;
 
@@ -502,8 +502,8 @@
       const settings = this.getSettings();
       const snapshot = order.detailSnapshot;
       if (!snapshot?.rounds?.length) return;
-      this._inFlightOrderKeys ||= new Set();
-      this._inFlightStaffRounds ||= new Set();
+      if (!this._inFlightOrderKeys) this._inFlightOrderKeys = new Set();
+      if (!this._inFlightStaffRounds) this._inFlightStaffRounds = new Set();
       for (const round of snapshot.rounds.filter(r=>r.roundNumber >= from && r.roundNumber <= to)) {
         if (round.legacyContent !== undefined) continue;
         const roundKey = `${this.getTenantId()}:${order.orderId || order.key}:${round.roundNumber}`;

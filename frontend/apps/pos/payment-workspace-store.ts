@@ -1,4 +1,5 @@
 import { formatOrderCode } from '@shared/contracts/order-formatters';
+import { createTimeoutSignal } from '@shared/infra/http';
 import type {
   PaymentAttentionCountDto,
   PaymentConfigResponseDto,
@@ -286,15 +287,21 @@ export function createPaymentWorkspaceStore(deps: PaymentWorkspaceDependencies) 
     const key = sessionKey();
     const separator = path.includes('?') ? '&' : '?';
     const url = `${deps.getWorkerBase()}${path}${separator}tenant_id=${encodeURIComponent(deps.getTenantId())}`;
-    const response = await fetcher(url, {
-      method: body === undefined ? 'GET' : 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(bearer ? { Authorization: `Bearer ${bearer}` } : {})
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal: signal || AbortSignal.timeout(body === undefined ? 8000 : 95000)
-    });
+    const timeout = signal ? null : createTimeoutSignal(body === undefined ? 8000 : 95000);
+    let response: Response;
+    try {
+      response = await fetcher(url, {
+        method: body === undefined ? 'GET' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(bearer ? { Authorization: `Bearer ${bearer}` } : {})
+        },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: signal || timeout?.signal
+      });
+    } finally {
+      timeout?.clear();
+    }
     if (response.status === 401 && scope === contextKey()) {
       try {
         getStorage()?.removeItem(key);

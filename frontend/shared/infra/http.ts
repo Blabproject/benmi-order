@@ -34,12 +34,31 @@ export function resolveWorkerBase(locationLike: { hostname: string; search: stri
   return WORKER_URLS.prod;
 }
 
+/** Creates a timeout AbortSignal with AbortController fallback for Android WebView < 103. */
+export function createTimeoutSignal(timeoutMs: number): { signal: AbortSignal | undefined; clear: () => void } {
+  if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+    return { signal: AbortSignal.timeout(timeoutMs), clear: () => {} };
+  }
+  if (typeof AbortController === 'undefined') {
+    return { signal: undefined, clear: () => {} };
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return { signal: controller.signal, clear: () => clearTimeout(timer) };
+}
+
 /** Fetches JSON with timeout and structured HTTP error normalization. */
 export async function fetchJson<T>(url: string, init: RequestInit = {}, timeoutMs = 20000): Promise<T> {
-  const response = await fetch(url, {
-    ...init,
-    signal: init.signal ?? AbortSignal.timeout(timeoutMs)
-  });
+  const timeout = init.signal ? null : createTimeoutSignal(timeoutMs);
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...init,
+      signal: init.signal ?? timeout?.signal
+    });
+  } finally {
+    timeout?.clear();
+  }
 
   const text = await response.text();
   let parsed: unknown = null;

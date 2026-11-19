@@ -1256,6 +1256,80 @@ function initPickupTimePicker() {
     syncPickupTimeDisplay();
 }
 
+function resetPickupTimeToDefault() {
+    const dateEl = document.getElementById('pickup-date');
+    const timeEl = document.getElementById('pickup-time');
+    const avail = findFirstAvailableDate();
+
+    window.isPickupTimeManuallyChanged = false;
+    if (dateEl) {
+        const twNow = (typeof getTaiwanDate === 'function') ? getTaiwanDate() : new Date();
+        const todayStr = (typeof formatTaiwanDateTime === 'function') ? formatTaiwanDateTime(twNow).dateStr : twNow.toISOString().slice(0, 10);
+        dateEl.min = todayStr;
+        dateEl.value = avail.dateStr;
+    }
+    if (timeEl) {
+        timeEl.value = avail.defaultTime;
+    }
+
+    pickupTimePickerState.selectedDate = avail.dateStr;
+    pickupTimePickerState.selectedTime = avail.defaultTime;
+    pickupTimePickerState.selectedType = avail.defaultType;
+    pickupTimePickerState.asapTime = avail.hasAsap ? avail.defaultTime : '';
+
+    syncPickupTimeDisplay();
+    return avail;
+}
+window.resetPickupTimeToDefault = resetPickupTimeToDefault;
+
+function refreshPickupTimeIfStale() {
+    const twNow = (typeof getTaiwanDate === 'function') ? getTaiwanDate() : new Date();
+    const { dateStr: todayStr } = (typeof formatTaiwanDateTime === 'function')
+        ? formatTaiwanDateTime(twNow)
+        : { dateStr: twNow.toISOString().slice(0, 10) };
+    const dateEl = document.getElementById('pickup-date');
+    const timeEl = document.getElementById('pickup-time');
+    const curDate = (dateEl && dateEl.value) ? dateEl.value.trim() : '';
+    const curTime = (timeEl && timeEl.value) ? timeEl.value.trim() : '';
+
+    if (!curDate || !curTime) {
+        return resetPickupTimeToDefault();
+    }
+
+    if (pickupTimePickerState.selectedType === 'asap') {
+        const freshAsap = calcAsapPickupTime(twNow);
+        if (freshAsap) {
+            if (dateEl) {
+                dateEl.min = todayStr;
+                dateEl.value = todayStr;
+            }
+            if (timeEl) timeEl.value = freshAsap.timeStr;
+            pickupTimePickerState.selectedDate = todayStr;
+            pickupTimePickerState.selectedTime = freshAsap.timeStr;
+            pickupTimePickerState.asapTime = freshAsap.timeStr;
+            syncPickupTimeDisplay();
+            return { dateStr: todayStr, defaultTime: freshAsap.timeStr, defaultType: 'asap' };
+        }
+        return resetPickupTimeToDefault();
+    }
+
+    // For a scheduled slot, reset to fresh default if the date/time is already in the past.
+    if (curDate < todayStr) {
+        return resetPickupTimeToDefault();
+    }
+    if (curDate === todayStr) {
+        const m = curTime.match(/^(\d{1,2}):(\d{2})$/);
+        if (!m) return resetPickupTimeToDefault();
+        const selectedMin = Number(m[1]) * 60 + Number(m[2]);
+        const nowMin = twNow.getHours() * 60 + twNow.getMinutes();
+        if (selectedMin < nowMin) {
+            return resetPickupTimeToDefault();
+        }
+    }
+    return { dateStr: curDate, defaultTime: curTime, defaultType: pickupTimePickerState.selectedType };
+}
+window.refreshPickupTimeIfStale = refreshPickupTimeIfStale;
+
 function openPickupTimeModal() {
     const modal = document.getElementById('pickup-time-modal');
     if (!modal) return;

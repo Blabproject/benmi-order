@@ -14,13 +14,24 @@ echo "📦 Preparing web assets in $DIST_DIR..."
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
 
-# 1. Copy POS and Customer HTML files
-cp "$ROOT_DIR/orders.html" "$DIST_DIR/orders.html"
+# 0. Ensure Vite-compiled POS frontend bundles exist (orders.html + assets/)
+if [ ! -f "$ROOT_DIR/dist/orders.html" ] || [ ! -d "$ROOT_DIR/dist/assets" ]; then
+  echo "⚙️  Building compiled POS frontend bundles via Vite..."
+  (cd "$ROOT_DIR" && npm run build:frontend)
+fi
+
+# 1. Copy compiled POS HTML (with bundled React modules) and Customer HTML files
+cp "$ROOT_DIR/dist/orders.html" "$DIST_DIR/orders.html"
 # Set orders.html as default landing page index.html in the Android POS App
-cp "$ROOT_DIR/orders.html" "$DIST_DIR/index.html"
+cp "$ROOT_DIR/dist/orders.html" "$DIST_DIR/index.html"
 
 if [ -f "$ROOT_DIR/index.html" ]; then
   cp "$ROOT_DIR/index.html" "$DIST_DIR/customer-menu.html"
+fi
+
+# 1b. Copy Vite-compiled JS/CSS assets for React POS modules (History, Reports, etc.)
+if [ -d "$ROOT_DIR/dist/assets" ]; then
+  cp -r "$ROOT_DIR/dist/assets" "$DIST_DIR/"
 fi
 
 # 2. Copy CSS stylesheets

@@ -39,13 +39,28 @@ window.StaffOrder = (() => {
     }
   }
 
+  function createTimeoutSignal(ms) {
+    if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+      return { signal: AbortSignal.timeout(ms), clear: () => {} };
+    }
+    if (typeof AbortController === 'undefined') return { signal: undefined, clear: () => {} };
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    return { signal: controller.signal, clear: () => clearTimeout(timer) };
+  }
+
   async function api(path, options) {
-    const response = await fetch(`${WORKER_BASE}${path}${path.includes('?') ? '&' : '?'}tenant_id=${encodeURIComponent(tenant())}`, {
-      ...options, signal: AbortSignal.timeout(20000)
-    });
-    const data = await response.json();
-    if (!response.ok || data.ok === false) throw Object.assign(new Error(data.error || 'REQUEST_FAILED'), { status: response.status });
-    return data;
+    const timeout = createTimeoutSignal(20000);
+    try {
+      const response = await fetch(`${WORKER_BASE}${path}${path.includes('?') ? '&' : '?'}tenant_id=${encodeURIComponent(tenant())}`, {
+        ...options, signal: timeout.signal
+      });
+      const data = await response.json();
+      if (!response.ok || data.ok === false) throw Object.assign(new Error(data.error || 'REQUEST_FAILED'), { status: response.status });
+      return data;
+    } finally {
+      timeout.clear();
+    }
   }
 
   function dineInAllowed() {
@@ -832,6 +847,9 @@ window.StaffOrder = (() => {
     try {
       const retry = JSON.parse(sessionStorage.getItem(storageKey('pending')) || 'null');
       const useScheduled = dining === 'takeaway' && scheduledPickupAllowed();
+      if (useScheduled && typeof window.refreshPickupTimeIfStale === 'function') {
+        window.refreshPickupTimeIfStale();
+      }
       const draftSignature = JSON.stringify({
         dining, table: dining === 'dine_in' ? chosen?.id : undefined,
         items: DetailCheckout.items(), groups: DetailCheckout.selections(),
@@ -870,6 +888,9 @@ window.StaffOrder = (() => {
       window.bundleCartData = {}; comboDrinkData = {}; window.comboDrinkData = comboDrinkData;
       document.getElementById('note').value = '';
       noteOpen = false;
+      if (typeof window.resetPickupTimeToDefault === 'function') {
+        window.resetPickupTimeToDefault();
+      }
       renderDynamicCatalog(); updateTotal();
       await refreshTables().catch(() => {}); select().value = '';
       renderTableBar();
@@ -907,9 +928,15 @@ window.StaffOrder = (() => {
     if (event.data?.type === 'STAFF_TABLES_REFRESH') syncTables();
   });
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') syncTables();
+    if (document.visibilityState === 'visible') {
+      syncTables();
+      if (typeof window.refreshPickupTimeIfStale === 'function') window.refreshPickupTimeIfStale();
+    }
   });
-  window.addEventListener('focus', () => syncTables());
+  window.addEventListener('focus', () => {
+    syncTables();
+    if (typeof window.refreshPickupTimeIfStale === 'function') window.refreshPickupTimeIfStale();
+  });
   setInterval(() => {
     if (document.visibilityState === 'visible') syncTables();
   }, 15000);

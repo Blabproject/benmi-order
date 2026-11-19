@@ -726,7 +726,7 @@ function showStaffOrderMiniToast(count) {
 window.showStaffOrderMiniToast = showStaffOrderMiniToast;
 
 function dismissNewAlert() {
-  newAlertSnoozeUntilMs = Date.now() + 30_000;
+  newAlertSnoozeUntilMs = Date.now() + 30000;
   const appendKeys = (typeof unacknowledgedAppends !== "undefined") ? Array.from(unacknowledgedAppends.keys()) : [];
   snoozedNewOrderKeys = new Set([
     ...pendingNewOrders.map(o => o?.key).filter(Boolean),
@@ -747,7 +747,7 @@ function dismissNewAlert() {
   newAlertSnoozeTimerId = setTimeout(() => {
     newAlertSnoozeUntilMs = 0;
     updateNewAlert();
-  }, 30_000);
+  }, 30000);
 }
 
 let posReturnContext = null;

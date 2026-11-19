@@ -737,7 +737,7 @@ export function translatePos(
   let message = table[key];
   if (params) {
     for (const [paramKey, paramValue] of Object.entries(params)) {
-      message = message.replaceAll(`{${paramKey}}`, String(paramValue));
+      message = message.split(`{${paramKey}}`).join(String(paramValue));
     }
   }
   return message;

@@ -1,4 +1,4 @@
-import { resolveWorkerBase } from '@shared/infra/http';
+import { createTimeoutSignal, resolveWorkerBase } from '@shared/infra/http';
 import type {
   PaymentLocale,
   PaymentProviderTarget,
@@ -246,15 +246,21 @@ export function createPaymentSessionClient(options: CreatePaymentSessionOptions)
   ): Promise<PaymentResultDto> => {
     const separator = path.includes('?') ? '&' : '?';
     const url = `${options.getWorkerBase()}${path}${separator}tenant_id=${encodeURIComponent(tenant())}`;
-    const response = await fetcher(url, {
-      method: body === undefined ? 'GET' : 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Payment-Token': session.token
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(65000)
-    });
+    const timeout = createTimeoutSignal(65000);
+    let response: Response;
+    try {
+      response = await fetcher(url, {
+        method: body === undefined ? 'GET' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Payment-Token': session.token
+        },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: timeout.signal
+      });
+    } finally {
+      timeout.clear();
+    }
     const data = (await response.json()) as PaymentResultDto & { code?: string };
     if (!response.ok) {
       const error = new Error(data.code || 'PAYMENT_FAILED') as PaymentApiError;

@@ -71,6 +71,7 @@ export default defineConfig({
   },
   publicDir: false,
   build: {
+    target: ['es2019', 'chrome74', 'safari13.1'],
     outDir: 'dist',
     emptyOutDir: true,
     manifest: true,
