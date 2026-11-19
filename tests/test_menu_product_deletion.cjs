@@ -22,6 +22,12 @@ async function setup(t, group = {}) {
     crypto: require('node:crypto').webcrypto,
     require(name) {
       if (name.includes('option-groups')) return f.api;
+      if (name.includes('operating-shifts')) return {
+        hasDbTable: async () => false,
+        loadCategoryAndItemShiftLinks: async () => ({ categoryShiftIds: new Map(), itemShiftIds: new Map() }),
+        loadTenantOperatingShifts: async () => [],
+        hasTenantMenuScheduleFeature: async () => false,
+      };
       if (name.includes('bootstrap')) return { invalidateBootstrapCache: async tenant => f.deleted.push(`bootstrap:${tenant}`) };
       if (name.includes('http')) return { json: (body, status = 200) => new Response(JSON.stringify(body), { status }) };
       return {};

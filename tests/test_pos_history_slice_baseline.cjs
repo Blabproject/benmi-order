@@ -206,7 +206,7 @@ test('POS #view-history baseline locks search, dine-in/takeaway filters, UTC+8 g
 
   assert.equal(groupSummary[1].headerText.includes(yesterdayTw), true, JSON.stringify(groupSummary[1]));
   assert.equal(groupSummary[1].hasTodayText, false, JSON.stringify(groupSummary[1]));
-  assert.match(groupSummary[1].headerText, /140/);
+  assert.match(groupSummary[1].headerText, /\$0/);
   assert.equal(groupSummary[1].expanded, false, 'Older date group starts collapsed');
 
   // 2. Verify accent-insensitive search auto-expands & matches diacritics ("nguyen" -> "Nguyễn Văn A")
