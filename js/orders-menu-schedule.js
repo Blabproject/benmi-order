@@ -1,6 +1,6 @@
 // POS menu schedule matrix. Scheduling uses the shared MenuSchedule contract.
 (function () {
-  const state = { loading: false, saving: false, baseline: '', expanded: new Set(), query: '' };
+  const state = { loading: false, saving: false, baseline: '', expanded: new Set(), helpOpen: false };
   const tr = (key, params) => typeof t === 'function' ? t(key, params) : key;
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const arg = value => esc(JSON.stringify(String(value)));
@@ -71,15 +71,8 @@
     if (state.expanded.has(id)) state.expanded.delete(id); else state.expanded.add(id);
     renderMenuScheduleWorkspace();
   }
-  function setSearch(value) {
-    state.query = String(value || '');
-    renderMenuScheduleWorkspace();
-  }
-  function toggleExpandAll() {
-    const expandable = categories().filter(c => (c.items || []).length > 0).map(catKey);
-    const allOpen = expandable.length > 0 && expandable.every(id => state.expanded.has(id));
-    if (allOpen) state.expanded.clear();
-    else expandable.forEach(id => state.expanded.add(id));
+  function toggleScheduleHelp(next) {
+    state.helpOpen = typeof next === 'boolean' ? next : !state.helpOpen;
     renderMenuScheduleWorkspace();
   }
   function buildPatch() {
@@ -135,8 +128,7 @@
   const chevron = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
   const backIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>';
   const clockIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
-  const searchIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>';
-  const clearIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+  const alertIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>';
   function checkbox({ label, checked, mixed = false, action, focus }) {
     return `<label class="ms-cell-toggle"><input type="checkbox" ${checked ? 'checked' : ''} ${mixed ? 'data-mixed="true" aria-checked="mixed"' : ''} aria-label="${esc(label)}" data-ms-focus="${esc(focus)}" onchange="${action}"><span class="ms-check-mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="${mixed ? 'M5 12h14' : 'm5 12 4 4L19 6'}"/></svg></span></label>`;
   }
@@ -147,27 +139,17 @@
     const scroll = { x: table?.scrollLeft || 0, y: table?.scrollTop || 0, outer: outer?.scrollTop || 0 };
     const activeEl = root.contains(document.activeElement) ? document.activeElement : null;
     const focused = activeEl?.getAttribute('data-ms-focus');
-    const selection = focused === 'search' && typeof activeEl?.selectionStart === 'number' ? [activeEl.selectionStart, activeEl.selectionEnd] : null;
     const cats = categories(), allShifts = shifts(), items = cats.flatMap(c => c.items || []);
     const hiddenCount = cats.filter(c => c.hideWhenUnavailable).length;
     const hidden = cats.length > 0 && hiddenCount === cats.length, shown = cats.length > 0 && hiddenCount === 0;
-    const needle = state.query.trim().toLowerCase();
-    const visibleCats = needle ? cats.map(cat => {
-      const catMatch = catName(cat).toLowerCase().includes(needle);
-      const matchingItems = (cat.items || []).filter(it => String(it.name || '').toLowerCase().includes(needle));
-      if (!catMatch && !matchingItems.length) return null;
-      return { cat, visibleItems: catMatch ? (cat.items || []) : matchingItems, forceExpand: !catMatch && matchingItems.length > 0 };
-    }).filter(Boolean) : cats.map(cat => ({ cat, visibleItems: cat.items || [], forceExpand: false }));
-    const expandableIds = cats.filter(c => (c.items || []).length > 0).map(catKey);
-    const allExpanded = expandableIds.length > 0 && expandableIds.every(id => state.expanded.has(id));
-    const rows = visibleCats.map(({ cat, visibleItems, forceExpand }) => {
-      const id = catKey(cat), children = cat.items || [], expanded = forceExpand || state.expanded.has(id);
+    const rows = cats.map(cat => {
+      const id = catKey(cat), children = cat.items || [], expanded = state.expanded.has(id);
       const parentCells = allShifts.map(sh => {
         const sid = String(sh.id), count = children.filter(it => itemOn(cat, it, sid)).length;
         const checked = children.length ? count === children.length : categoryOn(cat, sid), mixed = count > 0 && count < children.length;
         return `<td>${checkbox({ label: tr('menuScheduleCategoryCell', { name: catName(cat), shift: sh.name }), checked, mixed, action: `window.msToggleCategory(${arg(id)}, ${arg(sid)}, this.checked)`, focus: `cat:${id}:${sid}` })}</td>`;
       }).join('');
-      return `<tr class="ms-category-row ${expanded ? 'is-expanded' : ''}"><th scope="row"><button type="button" class="ms-expand-btn" data-ms-focus="expand:${esc(id)}" aria-expanded="${expanded}" ${children.length ? '' : 'disabled'} onclick="window.msExpandCategory(${arg(id)})">${chevron}<span class="ms-row-name">${esc(catName(cat))}</span><span class="ms-item-count">${children.length} ${esc(tr('menuScheduleItemCountUnit'))}</span></button></th>${parentCells}</tr>${expanded ? visibleItems.map(it => `<tr class="ms-item-row"><th scope="row"><span class="ms-item-name">${esc(it.name)}</span></th>${allShifts.map(sh => `<td>${checkbox({ label: tr('menuScheduleItemCell', { name: it.name, shift: sh.name }), checked: itemOn(cat, it, String(sh.id)), action: `window.msToggleItem(${arg(id)}, ${arg(it.id)}, ${arg(sh.id)}, this.checked)`, focus: `item:${id}:${it.id}:${sh.id}` })}</td>`).join('')}</tr>`).join('') : ''}`;
+      return `<tr class="ms-category-row ${expanded ? 'is-expanded' : ''}"><th scope="row"><button type="button" class="ms-expand-btn" data-ms-focus="expand:${esc(id)}" aria-expanded="${expanded}" ${children.length ? '' : 'disabled'} onclick="window.msExpandCategory(${arg(id)})">${chevron}<span class="ms-row-name">${esc(catName(cat))}</span><span class="ms-item-count">${children.length} ${esc(tr('menuScheduleItemCountUnit'))}</span></button></th>${parentCells}</tr>${expanded ? children.map(it => `<tr class="ms-item-row"><th scope="row"><span class="ms-item-name">${esc(it.name)}</span></th>${allShifts.map(sh => `<td>${checkbox({ label: tr('menuScheduleItemCell', { name: it.name, shift: sh.name }), checked: itemOn(cat, it, String(sh.id)), action: `window.msToggleItem(${arg(id)}, ${arg(it.id)}, ${arg(sh.id)}, this.checked)`, focus: `item:${id}:${it.id}:${sh.id}` })}</td>`).join('')}</tr>`).join('') : ''}`;
     }).join('');
     root.setAttribute('aria-busy', String(state.saving));
     root.innerHTML = `<div class="ms-shell"><section class="ms-panel" aria-labelledby="ms-title">
@@ -175,26 +157,28 @@
         <div class="ms-header-top">
           <button type="button" class="ms-back-btn" onclick="leaveMenuScheduleToMenu()">${backIcon}<span>${esc(tr('menuScheduleBackBtn'))}</span></button>
         </div>
-        <h2 class="ms-title" id="ms-title">${esc(tr('menuSchedulePageTitle'))}</h2>
-        <p class="ms-sub">${esc(tr('menuSchedulePageSub'))}</p>
-      </div>
-      <div class="ms-toolbar-row">
-        <div id="menu-shifts-editor"></div>
-        <div class="ms-actions" ${window.hasUnsavedMenuShiftChanges?.() ? 'inert' : ''}>
-          <button type="button" class="ms-hours-btn" onclick="openHoursSettingsFromSchedule()" ${state.saving ? 'disabled' : ''}>${clockIcon}<span>${esc(tr('menuScheduleOpenSettingsBtn'))}</span></button>
-          <div class="ms-actions-right">
-            <span class="ms-status ${state.saving ? 'is-saving' : dirty() ? 'is-dirty' : 'is-saved'}" role="status"><span class="ms-status-dot" aria-hidden="true"></span>${esc(tr(state.saving ? 'saving' : dirty() ? 'menuScheduleUnsavedPill' : 'menuScheduleSavedPill'))}</span>
-            <button type="button" id="btn-save-menu-schedule" class="ms-save-btn" onclick="saveMenuScheduleWorkspace()" ${!dirty() || state.saving || state.loading || !allShifts.length ? 'disabled' : ''}>${esc(tr('menuScheduleSaveBtn'))}</button>
+        <div class="ms-title-row">
+          <div class="ms-title-group">
+            <h2 class="ms-title" id="ms-title">${esc(tr('menuSchedulePageTitle'))}</h2>
+            <div class="ms-help-wrap">
+              <button type="button" class="ms-help-btn" data-ms-focus="help" aria-label="${esc(tr('menuSchedulePageSub'))}" aria-expanded="${state.helpOpen}" aria-controls="ms-title-help-popover" title="${esc(tr('menuSchedulePageSub'))}" onclick="window.msToggleScheduleHelp()">${alertIcon}</button>
+              ${state.helpOpen ? `<div id="ms-title-help-popover" class="ms-help-popover" role="note">${esc(tr('menuSchedulePageSub'))}</div>` : ''}
+            </div>
+          </div>
+          <div id="menu-shifts-editor"></div>
+          <div class="ms-actions" ${window.hasUnsavedMenuShiftChanges?.() ? 'inert' : ''}>
+            <button type="button" class="ms-hours-btn" onclick="openHoursSettingsFromSchedule()" ${state.saving ? 'disabled' : ''}>${clockIcon}<span>${esc(tr('menuScheduleOpenSettingsBtn'))}</span></button>
+            <div class="ms-actions-right">
+              <span class="ms-status ${state.saving ? 'is-saving' : dirty() ? 'is-dirty' : 'is-saved'}" role="status"><span class="ms-status-dot" aria-hidden="true"></span>${esc(tr(state.saving ? 'saving' : dirty() ? 'menuScheduleUnsavedPill' : 'menuScheduleSavedPill'))}</span>
+              <button type="button" id="btn-save-menu-schedule" class="ms-save-btn" onclick="saveMenuScheduleWorkspace()" ${!dirty() || state.saving || state.loading || !allShifts.length ? 'disabled' : ''}>${esc(tr('menuScheduleSaveBtn'))}</button>
+            </div>
           </div>
         </div>
       </div>
-      ${state.loading ? `<p class="ms-empty" role="status">${esc(tr('menuScheduleLoading'))}</p>` : !allShifts.length ? `<p class="ms-empty">${esc(tr('menuScheduleEmptyShifts'))}</p>` : `${cats.length ? `<div class="ms-filter-bar" ${state.saving || window.hasUnsavedMenuShiftChanges?.() ? 'inert' : ''}>
-        <label class="ms-search-wrap">${searchIcon}<input type="search" class="ms-search-input" data-ms-focus="search" value="${esc(state.query)}" placeholder="${esc(tr('menuScheduleSearchPlaceholder'))}" aria-label="${esc(tr('menuScheduleSearchPlaceholder'))}" oninput="window.msSetSearch(this.value)">${state.query ? `<button type="button" class="ms-search-clear" aria-label="${esc(tr('menuScheduleDismissHelp'))}" onclick="window.msSetSearch('')">${clearIcon}</button>` : ''}</label>
-        ${expandableIds.length ? `<button type="button" class="ms-expand-all-btn" data-ms-focus="expand-all" aria-pressed="${allExpanded}" onclick="window.msToggleExpandAll()">${esc(tr(allExpanded ? 'menuScheduleHideItemsBtn' : 'menuScheduleShowItemsBtn'))}</button>` : ''}
-      </div>` : ''}<div class="ms-table-scroll" tabindex="0" role="region" aria-label="${esc(tr('menuScheduleTableLabel'))}" ${state.saving || window.hasUnsavedMenuShiftChanges?.() ? 'inert' : ''}><table class="ms-matrix" style="--ms-columns: ${allShifts.length}"><caption class="ms-sr-only">${esc(tr('menuScheduleTableLabel'))}</caption><thead><tr><th scope="col" class="ms-name-heading">${esc(tr('menuScheduleNameColumn'))}</th>${allShifts.map(sh => {
-        const count = cats.reduce((sum, cat) => sum + (cat.items || []).filter(it => itemOn(cat, it, String(sh.id))).length, 0), sid = String(sh.id);
-        return `<th scope="col" class="ms-shift-heading ${sh.isActive === false ? 'is-inactive' : ''}"><div class="ms-shift-head-inner"><div class="ms-shift-head-meta"><span class="ms-shift-name">${esc(sh.name)}</span>${sh.isActive === false ? `<span class="ms-inactive">${esc(tr('menuScheduleInactive'))}</span>` : ''}<span class="ms-shift-times">${summary(sh).map(esc).join('<br>') || esc(tr('menuScheduleNoWindows'))}</span></div><div class="ms-shift-head-foot"><span class="ms-shift-count">${esc(tr('menuScheduleAvailableCount', { count, total: items.length }))}</span><select aria-label="${esc(tr('menuScheduleCopyAria', { name: sh.name }))}" data-ms-focus="copy:${esc(sid)}" onchange="window.msCopyShift(${arg(sid)}, this.value)" ${allShifts.length < 2 ? 'disabled' : ''}><option value="">${esc(tr('menuScheduleCopyFrom'))}</option>${allShifts.filter(s => String(s.id) !== sid).map(source => `<option value="${esc(source.id)}">${esc(source.name)}</option>`).join('')}</select></div></div></th>`;
-      }).join('')}</tr></thead><tbody>${rows || `<tr><td class="ms-empty" colspan="${allShifts.length + 1}">${esc(tr(needle && cats.length ? 'menuScheduleNoResults' : 'menuScheduleEmptyCats'))}</td></tr>`}</tbody></table></div>`}
+      ${state.loading ? `<p class="ms-empty" role="status">${esc(tr('menuScheduleLoading'))}</p>` : !allShifts.length ? `<p class="ms-empty">${esc(tr('menuScheduleEmptyShifts'))}</p>` : `<div class="ms-table-scroll" tabindex="0" role="region" aria-label="${esc(tr('menuScheduleTableLabel'))}" ${state.saving || window.hasUnsavedMenuShiftChanges?.() ? 'inert' : ''}><table class="ms-matrix" style="--ms-columns: ${allShifts.length}"><caption class="ms-sr-only">${esc(tr('menuScheduleTableLabel'))}</caption><thead><tr><th scope="col" class="ms-name-heading">${esc(tr('menuScheduleNameColumn'))}</th>${allShifts.map(sh => {
+        const count = cats.reduce((sum, cat) => sum + (cat.items || []).filter(it => itemOn(cat, it, String(sh.id))).length, 0);
+        return `<th scope="col" class="ms-shift-heading ${sh.isActive === false ? 'is-inactive' : ''}"><div class="ms-shift-head-inner"><div class="ms-shift-head-meta"><span class="ms-shift-name">${esc(sh.name)}</span>${sh.isActive === false ? `<span class="ms-inactive">${esc(tr('menuScheduleInactive'))}</span>` : ''}<span class="ms-shift-times">${summary(sh).map(esc).join('<br>') || esc(tr('menuScheduleNoWindows'))}</span></div><div class="ms-shift-head-foot"><span class="ms-shift-count">${esc(tr('menuScheduleAvailableCount', { count, total: items.length }))}</span></div></div></th>`;
+      }).join('')}</tr></thead><tbody>${rows || `<tr><td class="ms-empty" colspan="${allShifts.length + 1}">${esc(tr('menuScheduleEmptyCats'))}</td></tr>`}</tbody></table></div>`}
       <div class="ms-outside"><div><h3>${esc(tr('menuScheduleOutsideTitle'))}</h3><p>${esc(tr('menuScheduleOutsideSub'))}</p>${!hidden && !shown && cats.length ? `<p class="ms-policy-mixed">${esc(tr('menuScheduleOutsideMixed'))}</p>` : ''}</div><div class="ms-outside-options" role="group" aria-label="${esc(tr('menuScheduleOutsideTitle'))}"><button type="button" aria-pressed="${hidden}" data-ms-focus="outside:hide" onclick="window.msSetOutside(true)" ${state.saving || !cats.length ? 'disabled' : ''}>${esc(tr('menuScheduleOutsideHide'))}</button><button type="button" aria-pressed="${shown}" data-ms-focus="outside:show" onclick="window.msSetOutside(false)" ${state.saving || !cats.length ? 'disabled' : ''}>${esc(tr('menuScheduleOutsideShow'))}</button></div></div>
     </section></div>`;
     if (typeof renderMenuShiftEditor === 'function') renderMenuShiftEditor();
@@ -204,12 +188,7 @@
     root.querySelector('.ms-shell').scrollTop = scroll.outer;
     if (focused) {
       const nextFocus = [...root.querySelectorAll('[data-ms-focus]')].find(el => el.getAttribute('data-ms-focus') === focused);
-      if (nextFocus) {
-        nextFocus.focus({ preventScroll: true });
-        if (selection && typeof nextFocus.setSelectionRange === 'function') {
-          try { nextFocus.setSelectionRange(selection[0], selection[1]); } catch (_) {}
-        }
-      }
+      if (nextFocus) nextFocus.focus({ preventScroll: true });
     }
   }
   async function initMenuScheduleWorkspace() {
@@ -269,7 +248,13 @@
   window.msToggleItem = toggleItem;
   window.msCopyShift = copyShift;
   window.msSetOutside = setOutside;
+  document.addEventListener('click', event => {
+    if (!state.helpOpen) return;
+    if (!event.target?.closest?.('.ms-help-wrap')) { state.helpOpen = false; renderMenuScheduleWorkspace(); }
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && state.helpOpen) { state.helpOpen = false; renderMenuScheduleWorkspace(); }
+  });
   window.msExpandCategory = expand;
-  window.msSetSearch = setSearch;
-  window.msToggleExpandAll = toggleExpandAll;
+  window.msToggleScheduleHelp = toggleScheduleHelp;
 })();

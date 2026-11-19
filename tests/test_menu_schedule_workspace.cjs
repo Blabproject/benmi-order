@@ -73,7 +73,19 @@ test('copy copies effective per-item choices to one target shift and preserves s
   assert.equal(cell('cat:tofu:lunch').checked, false);
   assert.equal(w.currentMenuData[1].items[0].price, 90);
   assert.equal(w.currentMenuData[2].type, 'modifier');
-  assert.equal(cell('copy:dinner').value, '');
+  assert.equal(cell('copy:dinner'), undefined);
+});
+
+test('compact title row puts subtitle in help popover, omits filter bar, and keeps actions inline', async t => {
+  const { w, d, cell } = await workspace(t);
+  assert.equal(d.querySelector('.ms-sub'), null);
+  assert.equal(d.querySelector('.ms-filter-bar'), null);
+  assert.ok(d.querySelector('.ms-title-row .ms-actions'));
+  assert.equal(d.getElementById('ms-title-help-popover'), null);
+  cell('help').click();
+  assert.equal(d.getElementById('ms-title-help-popover').textContent, w.t('menuSchedulePageSub'));
+  cell('help').click();
+  assert.equal(d.getElementById('ms-title-help-popover'), null);
 });
 
 test('outside policy preserves mixed initial data until explicitly selected; discard restores only schedules', async t => {
