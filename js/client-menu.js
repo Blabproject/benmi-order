@@ -590,10 +590,8 @@ function createDynamicItemCard(catSlug, item, catObj) {
         ? `<img class="item-img" src="${imgSrc}" alt="${_cmEsc(itemDisplayName)}" loading="lazy" onclick="openImageLightbox(this.src)" style="cursor: zoom-in;" onerror="this.style.display='none'">`
         : '';
 
-    const bDataRef = bData;
-    const itemTrans = window.itemTranslations || {};
     const localizedDesc = typeof locText === 'function' ? locText(item, 'description', '') : '';
-    const trans = localizedDesc || (bDataRef?.translations && bDataRef.translations[item.name]) || itemTrans[item.name] || item.description || '';
+    const trans = localizedDesc || (bData?.translations && bData.translations[item.name]) || item.description || '';
     const transHTML = trans ? `<div style="font-size: 13px; color: #9ca3af; margin-top: 2px;">${_cmEsc(trans)}</div>` : '';
 
     const safeItemName = item.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");

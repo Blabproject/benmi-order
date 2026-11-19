@@ -1,11 +1,11 @@
 /** Escapes raw text before inline notice markup rendering so untrusted HTML never reaches DOM. */
 export function escapeNoticeHtml(value: unknown): string {
   return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function renderNoticeInline(line: string): string {

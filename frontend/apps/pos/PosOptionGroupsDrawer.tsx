@@ -461,6 +461,64 @@ export function PosOptionGroupsDrawer({
     </button>
   );
 
+  const renderReorderControls = (
+    index: number,
+    total: number,
+    name: string,
+    kind: 'group' | 'option',
+    onMove: (delta: -1 | 1) => void
+  ) =>
+    total > 1 ? (
+      <div className="ug-order-controls">
+        <button
+          type="button"
+          className="ug-order-btn"
+          data-action={`move-${kind}-up`}
+          aria-label={`${tr('ugMoveUp')}: ${name}`}
+          title={tr('ugMoveUp')}
+          disabled={index === 0}
+          onClick={() => onMove(-1)}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="18 15 12 9 6 15" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          className="ug-order-btn"
+          data-action={`move-${kind}-down`}
+          aria-label={`${tr('ugMoveDown')}: ${name}`}
+          title={tr('ugMoveDown')}
+          disabled={index >= total - 1}
+          onClick={() => onMove(1)}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+      </div>
+    ) : null;
+
   const renderCheck = (opts: {
     key: string;
     id: string;
@@ -741,18 +799,25 @@ export function PosOptionGroupsDrawer({
           {entries.length === 0 ? (
             <p className="ug-muted">{tr('ugNoGroups')}</p>
           ) : (
-            entries.map(({ group, link }) => {
+            entries.map(({ group, link }, idx) => {
               const opts = resolveEffectiveOptions(group, catalog);
               const subsetText = link.optionIds
                 ? `${opts.filter((o) => link.optionIds?.includes(o.id)).length}/${opts.length}`
                 : `${opts.length}`;
               const sub = `${formatRuleSummary(group, catalog, locale)} · ${subsetText} ${tr('ugOptions').toLowerCase()}${isInsufficientLink(group, link, catalog) ? ` · ${tr('ugInsufficient')}` : ''}`;
-              return renderRow(
-                'subset',
-                group.name,
-                sub,
-                () => store.openGroupSubsetPicker(group.id),
-                group.id
+              return (
+                <div key={group.id} className="ug-order-row" data-order-group={group.id}>
+                  {renderRow(
+                    'subset',
+                    group.name,
+                    sub,
+                    () => store.openGroupSubsetPicker(group.id),
+                    group.id
+                  )}
+                  {renderReorderControls(idx, entries.length, group.name, 'group', (delta) =>
+                    store.moveProductGroup(group.id, delta)
+                  )}
+                </div>
               );
             })
           )}
@@ -1043,15 +1108,20 @@ export function PosOptionGroupsDrawer({
               {effectiveOpts.length === 0 ? (
                 <p className="ug-muted">{tr('ugEmpty')}</p>
               ) : (
-                effectiveOpts.map((o) =>
-                  renderRow(
-                    'option',
-                    o.name,
-                    `${o.productId ? `${tr('ugRetail')} $${o.retailPrice ?? 0} · ` : ''}+$${o.price}`,
-                    () => store.openOptionDetails(o.id),
-                    o.id
-                  )
-                )
+                effectiveOpts.map((o, idx) => (
+                  <div key={o.id} className="ug-order-row" data-order-option={o.id}>
+                    {renderRow(
+                      'option',
+                      o.name,
+                      `${o.productId ? `${tr('ugRetail')} $${o.retailPrice ?? 0} · ` : ''}+$${o.price}`,
+                      () => store.openOptionDetails(o.id),
+                      o.id
+                    )}
+                    {renderReorderControls(idx, effectiveOpts.length, o.name, 'option', (delta) =>
+                      store.moveGroupOption(o.id, delta)
+                    )}
+                  </div>
+                ))
               )}
             </div>
           </section>

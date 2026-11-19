@@ -328,6 +328,8 @@ const POS_DICTIONARY = {
     ugAffected: '變更將套用至 {count} 個餐點',
     ugEmpty: '尚無選項',
     ugRemoveGroup: '從餐點移除群組',
+    ugMoveUp: '上移',
+    ugMoveDown: '下移',
     ugSoldOut: '已售完',
     ugPhoto: '餐點圖片',
     ugUploading: '正在上傳圖片…',
@@ -687,6 +689,8 @@ const POS_DICTIONARY = {
     ugAffected: 'Thay đổi áp dụng cho {count} món',
     ugEmpty: 'Chưa có lựa chọn',
     ugRemoveGroup: 'Gỡ nhóm khỏi món',
+    ugMoveUp: 'Chuyển lên',
+    ugMoveDown: 'Chuyển xuống',
     ugSoldOut: 'Hết món',
     ugPhoto: 'Ảnh món',
     ugUploading: 'Đang tải ảnh…',
@@ -733,7 +737,7 @@ export function translatePos(
   let message = table[key];
   if (params) {
     for (const [paramKey, paramValue] of Object.entries(params)) {
-      message = message.replaceAll(`{${paramKey}}`, String(paramValue));
+      message = message.split(`{${paramKey}}`).join(String(paramValue));
     }
   }
   return message;

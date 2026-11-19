@@ -44,6 +44,13 @@ function legacyPagesCoexistencePlugin(): Plugin {
           fs.copyFileSync(src, path.join(outDir, file));
         }
       }
+      // Publish installable Android releases alongside the POS web app.
+      const apkDir = path.join(rootDir, 'apps/android-pos');
+      const apkOutDir = path.join(outDir, 'apps/android-pos');
+      fs.mkdirSync(apkOutDir, { recursive: true });
+      for (const file of fs.readdirSync(apkDir).filter(name => name.endsWith('.apk'))) {
+        fs.copyFileSync(path.join(apkDir, file), path.join(apkOutDir, file));
+      }
       for (const dir of LEGACY_ASSET_DIRS) {
         const srcDir = path.join(rootDir, dir);
         if (fs.existsSync(srcDir)) {
@@ -64,10 +71,13 @@ export default defineConfig({
   },
   publicDir: false,
   build: {
+    target: ['es2019', 'chrome74', 'safari13.1'],
     outDir: 'dist',
     emptyOutDir: true,
     manifest: true,
     sourcemap: false,
+    // Keep 100vh/top-right-bottom-left/classic @media fallbacks for older Android POS WebViews.
+    cssTarget: ['chrome79', 'safari13'],
     rollupOptions: {
       input: {
         'pos-sandbox': path.resolve(rootDir, 'frontend/apps/pos/sandbox.html'),

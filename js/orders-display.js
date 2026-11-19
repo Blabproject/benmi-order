@@ -50,8 +50,32 @@
     apply();
   };
 
+  function detectFlexGapSupport() {
+    if (!document.body || !document.documentElement || !document.documentElement.classList) return;
+    try {
+      const flex = document.createElement("div");
+      flex.style.display = "flex";
+      flex.style.flexDirection = "column";
+      flex.style.rowGap = "1px";
+      flex.style.position = "absolute";
+      flex.style.visibility = "hidden";
+      flex.style.pointerEvents = "none";
+      flex.appendChild(document.createElement("div"));
+      flex.appendChild(document.createElement("div"));
+      document.body.appendChild(flex);
+      const supported = flex.scrollHeight === 1;
+      if (typeof flex.remove === "function") flex.remove();
+      else if (flex.parentNode) flex.parentNode.removeChild(flex);
+      document.documentElement.classList.toggle("no-flex-gap", !supported);
+    } catch (e) { /* Ignore in non-DOM/VM test environments. */ }
+  }
+
   apply();
-  document.addEventListener("DOMContentLoaded", syncControls);
+  if (document.body) detectFlexGapSupport();
+  document.addEventListener("DOMContentLoaded", function () {
+    syncControls();
+    detectFlexGapSupport();
+  });
   window.addEventListener("resize", apply, { passive: true });
   window.addEventListener("storage", event => {
     if (event.key !== storageKey && event.key !== null) return;

@@ -1,0 +1,21 @@
+{
+  "versionName": "1.1.3",
+  "versionCode": 31,
+  "applicationId": "com.benmi.pos",
+  "webUrl": "https://pos.blabfood.app",
+  "apk": "apps/android-pos/benmi-pos-universal-v1.1.3.apk",
+  "sha256": "52f9f613b0152ffabeffa052846339ad659db64acf6f9f7b8b27f8d0e63c9077",
+  "parentProductionCommit": "9a02406b26b63a7bff7e9feb68b66499a0b9a776",
+  "signerCertificateSha256": "6a444da1ca02c5d054a159e9acdb934992acf01e1ce460fa99cdb6365b1b4c42",
+  "sameSignerAsUniversalV1_1_2": true,
+  "bundledOrientationSourceVerified": true,
+  "nativePluginInDexVerified": true,
+  "validation": {
+    "releaseBaseline": "46/46 passed",
+    "evidence": "artifacts/release-baseline/2026-11-17T03-11-18-329Z",
+    "orientationTests": 6,
+    "androidBuild": "passed",
+    "cacheBusters": "passed"
+  },
+  "physicalDeviceTest": "not run; no ADB device connected"
+}

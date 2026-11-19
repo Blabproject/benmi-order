@@ -16,6 +16,7 @@ import {
   resolveEffectiveOptions,
   resolveProductGroups,
   resolveSaveErrorKey,
+  sortProductLinks,
   sortedUniqueIds,
   type MenuI18nMapDto,
   type OptionCatalogDto,
@@ -97,6 +98,16 @@ function makeBlankGroupDraft(scope: 'item' | 'order', name = ''): OptionGroupDra
   };
 }
 
+function normalizeLinksOrder(
+  links: readonly OptionCatalogLinkDto[],
+  catalog: OptionCatalogDto | null
+): OptionCatalogLinkDto[] {
+  return sortProductLinks(links, catalog).map((l, idx) => ({
+    ...cloneValue(l),
+    sortOrder: idx,
+  }));
+}
+
 function makeProductDraft(
   product: OptionCatalogProductDto,
   catalog: OptionCatalogDto,
@@ -114,12 +125,15 @@ function makeProductDraft(
   }
 ): ProductDraft {
   const prodId = override?.id ?? product.id;
-  const links: OptionCatalogLinkDto[] = (catalog.links || [])
-    .filter((l) => l.itemId === prodId && !l.disabled)
-    .map((l) => ({
-      ...cloneValue(l),
-      optionIds: l.optionIds ? [...l.optionIds] : null,
-    }));
+  const links: OptionCatalogLinkDto[] = sortProductLinks(
+    (catalog.links || [])
+      .filter((l) => l.itemId === prodId && !l.disabled)
+      .map((l) => ({
+        ...cloneValue(l),
+        optionIds: l.optionIds ? [...l.optionIds] : null,
+      })),
+    catalog
+  );
 
   const imgKey = override && 'imageKey' in override ? (override.imageKey ?? null) : (product.image_key ?? null);
   return {
@@ -1121,6 +1135,41 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
       };
       if (prevIdx >= 0) d.links[prevIdx] = nextLink;
       else d.links.push(nextLink);
+      d.links = normalizeLinksOrder(d.links, snapshot.catalog);
+      return next;
+    });
+  }
+
+  function moveProductGroup(groupId: string, delta: -1 | 1) {
+    updateDrawer((prev) => {
+      if (prev.kind !== 'product') return prev;
+      const next = cloneValue(prev);
+      const d = next.draft as ProductDraft;
+      const sorted = sortProductLinks(d.links, snapshot.catalog);
+      const active = sorted.filter((l) => !l.disabled);
+      const disabled = sorted.filter((l) => l.disabled);
+      const idx = active.findIndex((l) => l.groupId === groupId);
+      const targetIdx = idx + delta;
+      if (idx < 0 || targetIdx < 0 || targetIdx >= active.length) return prev;
+      const [moved] = active.splice(idx, 1);
+      active.splice(targetIdx, 0, moved!);
+      d.links = [...active, ...disabled].map((l, i) => ({ ...l, sortOrder: i }));
+      next.error = '';
+      return next;
+    });
+  }
+
+  function moveGroupOption(optionId: string, delta: -1 | 1) {
+    updateDrawer((prev) => {
+      if (prev.kind !== 'group') return prev;
+      const next = cloneValue(prev);
+      const g = next.draft as OptionGroupDraft;
+      const idx = g.options.findIndex((o) => o.id === optionId);
+      const targetIdx = idx + delta;
+      if (idx < 0 || targetIdx < 0 || targetIdx >= g.options.length) return prev;
+      const [moved] = g.options.splice(idx, 1);
+      g.options.splice(targetIdx, 0, moved!);
+      next.error = '';
       return next;
     });
   }
@@ -1440,8 +1489,9 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
         for (const l of d.links || []) {
           byId.set(l.groupId, l);
         }
+        const sortedExisting = sortProductLinks(d.links, snapshot.catalog);
         const nextLinks: OptionCatalogLinkDto[] = [];
-        for (const l of d.links || []) {
+        for (const l of sortedExisting) {
           if (selected.has(l.groupId)) {
             nextLinks.push({ ...cloneValue(l), disabled: false });
           } else {
@@ -1451,19 +1501,21 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
             });
           }
         }
-        let nextOrder = nextLinks.reduce((m, x) => Math.max(m, Number(x.sortOrder ?? -1)), -1) + 1;
+        let nextOrder =
+          nextLinks
+            .filter((x) => !x.disabled)
+            .reduce((m, x) => Math.max(m, Number(x.sortOrder ?? -1)), -1) + 1;
         for (const gid of route.ids) {
           if (byId.has(gid)) continue;
-          const group = findGroupById(snapshot.catalog, gid);
           nextLinks.push({
             groupId: gid,
             itemId: d.id,
             optionIds: null,
             disabled: false,
-            sortOrder: group?.sortOrder ?? nextOrder++,
+            sortOrder: nextOrder++,
           });
         }
-        d.links = nextLinks;
+        d.links = normalizeLinksOrder(nextLinks, snapshot.catalog);
         const nextStack = prev.stack.slice(0, -1);
         const top = prev.stack[prev.stack.length - 1];
         return {
@@ -2026,6 +2078,8 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
     validateRules,
     toggleSelectionId,
     removeProductGroup,
+    moveProductGroup,
+    moveGroupOption,
     openProductGroupsPicker,
     openGroupSubsetPicker,
     resetSubsetDefaults,

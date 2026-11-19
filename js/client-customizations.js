@@ -380,13 +380,16 @@ function initPortionDefaults(category, origName, portionIndex) {
 }
 
 // --- CUSTOMIZE POPUP (SCHEMA-DRIVEN MODIFIERS POPUP) ---
-function openItemCustomizeModal(category, origName, targetPortionIndex) {
+function openItemCustomizeModal(category, origName, targetPortionIndex, sessionState) {
     if (typeof checkDesktopAuthGuard === 'function' && !checkDesktopAuthGuard()) return;
     const key = category + '_' + origName;
     const cartObj = window.cart || cart || {};
     const currentQty = cartObj[key] || 0;
     const portionIdx = (typeof targetPortionIndex === 'number') ? targetPortionIndex : currentQty;
     const isAddingNew = portionIdx >= currentQty;
+    const session = sessionState && sessionState.key === key
+        ? sessionState
+        : { key, drafts: {}, added: new Set() };
 
     const modifiers = getItemModifiers(category, origName) || [];
     if (modifiers.length === 0 && isAddingNew) {
@@ -401,8 +404,8 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
     window.customizeData = cData;
     if (!cData[key]) cData[key] = [];
 
-    // Draft portion data (deep clone existing or init defaults)
-    const existing = cData[key][portionIdx];
+    // Draft portion data (deep clone session draft, existing saved portion, or init defaults)
+    const existing = session.drafts[portionIdx] || cData[key][portionIdx];
     let draft = null;
     if (existing) {
         draft = JSON.parse(JSON.stringify(existing));
@@ -468,6 +471,13 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
         });
         draft = { single: defaultSingle, multiple: defaultMulti, subOptions: defaultSubOpts, selectedDetails: defaultDetails, note: '' };
     }
+    const initialDraftSnapshot = JSON.stringify(draft);
+    const syncCurrentDraft = () => {
+        session.drafts[portionIdx] = JSON.parse(JSON.stringify(draft));
+        if (isAddingNew && JSON.stringify(draft) !== initialDraftSnapshot) {
+            session.added.add(portionIdx);
+        }
+    };
 
     // Resolve item info and price
     const resolveFn = typeof resolveCatalogItem === 'function' ? resolveCatalogItem : (window.resolveCatalogItem || (k => ({ origName, displayName: origName, price: 0 })));
@@ -514,8 +524,9 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
         `;
     }
 
-    const copyPrevBtnHTML = (portionIdx > 0 && isAddingNew && cData[key] && cData[key][portionIdx - 1]) ? `
-        <button type="button" class="btn-copy-prev-custom" style="width: 100%; border: 1px dashed #cbd5e1; background: #f8fafc; color: #475569; font-size: 13px; font-weight: 700; border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; cursor: pointer;">
+    const hasPrevPortion = portionIdx > 0 && Boolean(session.drafts[portionIdx - 1] || (cData[key] && cData[key][portionIdx - 1]));
+    const copyPrevBtnHTML = hasPrevPortion ? `
+        <button type="button" class="btn-copy-prev-custom" style="width: 100%; border: 1.5px dashed #94a3b8; background: #f8fafc; color: #334155; font-size: 13px; font-weight: 700; border-radius: 10px; padding: 10px 12px; min-height: 44px; margin-bottom: 10px; cursor: pointer; touch-action: manipulation; -webkit-user-select: none; user-select: none;">
             ${esc(t('copy_prev_same', null, '與上一份相同'))}
         </button>
     ` : '';
@@ -542,16 +553,20 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
     box.querySelectorAll('.portion-tab-btn').forEach(btn => {
         btn.onclick = () => {
             const target = Number(btn.getAttribute('data-portion'));
-            openItemCustomizeModal(category, origName, target);
+            if (target === portionIdx) return;
+            syncCurrentDraft();
+            openItemCustomizeModal(category, origName, target, session);
         };
     });
 
     const copyBtn = box.querySelector('.btn-copy-prev-custom');
     if (copyBtn) {
         copyBtn.onclick = () => {
-            const prev = cData[key] && cData[key][portionIdx - 1];
+            const prev = session.drafts[portionIdx - 1] || (cData[key] && cData[key][portionIdx - 1]);
             if (prev) {
                 draft = JSON.parse(JSON.stringify(prev));
+                session.drafts[portionIdx] = JSON.parse(JSON.stringify(draft));
+                if (isAddingNew) session.added.add(portionIdx);
                 renderModalOptions();
             }
         };
@@ -957,20 +972,38 @@ function openItemCustomizeModal(category, origName, targetPortionIndex) {
     }
 
     confirmBtn.onclick = () => {
-        // Validate required/min/max modifier groups
-        const valRes = validateModifierDraft(modifiers, draft);
-        if (!valRes.valid) {
-            if (typeof customAlert === 'function') customAlert(valRes.message);
-            else alert(valRes.message);
-            return;
+        syncCurrentDraft();
+        const commitIndices = Object.keys(session.drafts)
+            .map(Number)
+            .filter(pIdx => pIdx < currentQty || pIdx === portionIdx || session.added.has(pIdx))
+            .sort((a, b) => a - b);
+
+        // Validate required/min/max modifier groups across all modified/active portions
+        for (const pIdx of commitIndices) {
+            const valRes = validateModifierDraft(modifiers, session.drafts[pIdx]);
+            if (!valRes.valid) {
+                if (pIdx !== portionIdx) {
+                    openItemCustomizeModal(category, origName, pIdx, session);
+                }
+                if (typeof customAlert === 'function') customAlert(valRes.message);
+                else alert(valRes.message);
+                return;
+            }
         }
 
-        // Save portion
-        cData[key][portionIdx] = JSON.parse(JSON.stringify(draft));
-
-        if (isAddingNew) {
-            cartObj[key] = (cartObj[key] || 0) + 1;
+        // Save all edited/active portions
+        let maxCommittedIndex = -1;
+        for (const pIdx of commitIndices) {
+            cData[key][pIdx] = JSON.parse(JSON.stringify(session.drafts[pIdx]));
+            if (pIdx > maxCommittedIndex) maxCommittedIndex = pIdx;
         }
+        const nextQty = Math.max(currentQty, maxCommittedIndex + 1);
+        for (let i = 0; i < nextQty; i++) {
+            if (!cData[key][i]) {
+                initPortionDefaults(category, origName, i);
+            }
+        }
+        cartObj[key] = nextQty;
 
         // Update card UI
         const qtySpan = document.getElementById('qty-' + category + '-' + origName);

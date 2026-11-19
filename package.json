@@ -14,7 +14,7 @@
     "test:ai-settings": "node --test tests/test_ai_settings.cjs tests/test_ai_settings_browser.cjs",
     "test:table-qr": "node --experimental-sqlite --test tests/test_table_qr_ordering.cjs",
     "test:menu-model": "node --test tests/test_menu_model.cjs",
-    "test:new-menu": "node --experimental-sqlite --test tests/test_new_menu_deep_verification.cjs tests/test_new_menu_customer_e2e.cjs tests/test_new_menu_category_inheritance.cjs tests/test_new_menu_pos_lifecycle.cjs tests/test_pos_option_groups_contract.cjs tests/test_real_tenants_parity.cjs tests/test_pos_menu_bug_fixes.cjs tests/test_deleted_option_authority.cjs",
+    "test:new-menu": "node --experimental-sqlite --test tests/test_new_menu_deep_verification.cjs tests/test_new_menu_customer_e2e.cjs tests/test_new_menu_category_inheritance.cjs tests/test_new_menu_pos_lifecycle.cjs tests/test_pos_option_groups_contract.cjs tests/test_real_tenants_parity.cjs tests/test_pos_menu_bug_fixes.cjs tests/test_deleted_option_authority.cjs tests/test_menu_product_deletion.cjs",
     "test:customer-e2e": "node --experimental-sqlite --test tests/test_new_menu_customer_e2e.cjs",
     "test:inheritance": "node --experimental-sqlite --test tests/test_new_menu_category_inheritance.cjs",
     "test:pos-lifecycle": "node --experimental-sqlite --test tests/test_new_menu_pos_lifecycle.cjs",

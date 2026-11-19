@@ -7,7 +7,7 @@ export const menuSuites = [
     'unified_option_groups', 'unified_option_cutover', 'unified_menu_drawer', 'unified_menu_sections',
     'menu_global_group_order', 'customer_option_presentations', 'option_surcharge_cart',
     'real_tenants_parity', 'pos_option_groups_contract', 'new_menu_deep_verification',
-    'new_menu_customer_e2e', 'new_menu_category_inheritance', 'new_menu_pos_lifecycle',
+    'new_menu_customer_e2e', 'new_menu_category_inheritance', 'new_menu_pos_lifecycle', 'menu_product_deletion',
     'order_detail_snapshots', 'order_detail_groups', 'pickup_time_picker',
   ].map(name => `tests/test_${name}.cjs`)]],
   ['menu-compatibility', ['--test', 'scripts/test-menu-safety.cjs', 'scripts/test-modifier-library.cjs',

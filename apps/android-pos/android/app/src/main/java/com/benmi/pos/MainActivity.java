@@ -8,7 +8,9 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         android.webkit.WebView.enableSlowWholeDocumentDraw();
+        POSScreenOrientationPlugin.restore(this);
         registerPlugin(ThermalPrinterPlugin.class);
+        registerPlugin(POSScreenOrientationPlugin.class);
         super.onCreate(savedInstanceState);
 
         // Keep screen on continuously during store operating hours

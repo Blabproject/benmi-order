@@ -132,16 +132,16 @@ test("New Menu: Scope Switching between 'item' and 'order' preserves shadow sync
   f.db.close();
 });
 
-test("New Menu: Product Deletion Guard (PRODUCT_IS_LINKED)", async () => {
+test("New Menu: Jiangjiejie category-sourced products can be deleted from live combo choices", async () => {
   const f = schemaTrueFixture();
   const tenantId = "jiangjiejie";
   const catalog = await f.api.loadOptionCatalog(f.env, tenantId);
 
-  // Find a product that is referenced in an option group
+  // Category sources resolve the current catalog rather than store fixed product references.
   let linkedProductId = null;
   let linkedGroupId = null;
   for (const g of catalog.groups) {
-    const optWithProduct = f.api.groupOptions(catalog, g).find((o) => o.productId);
+    const optWithProduct = f.api.groupOptions(catalog, g).find((o) => o.productId && o.fromSource);
     if (optWithProduct) {
       linkedProductId = optWithProduct.productId;
       linkedGroupId = g.id;
@@ -149,7 +149,7 @@ test("New Menu: Product Deletion Guard (PRODUCT_IS_LINKED)", async () => {
     }
   }
 
-  assert.ok(linkedProductId, "Must find at least one product referenced as an option");
+  assert.ok(linkedProductId, "Must find a product supplied by a live category source");
 
   // Attempt to delete this product
   const targetProduct = catalog.products.find((p) => p.id === linkedProductId);
@@ -159,13 +159,15 @@ test("New Menu: Product Deletion Guard (PRODUCT_IS_LINKED)", async () => {
     delete: true,
   }, tenantId);
 
-  assert.equal(deleteRes.status, 400, "Deleting a linked product must be rejected with 400");
-  const deleteBody = await deleteRes.json();
-  assert.equal(deleteBody.error, "PRODUCT_IS_LINKED", "Error code must be PRODUCT_IS_LINKED");
+  assert.equal(deleteRes.status, 200, await deleteRes.clone().text());
+  const after = await f.api.loadOptionCatalog(f.env, tenantId);
+  const remainingGroup = after.groups.find(g => g.id === linkedGroupId);
+  assert.ok(remainingGroup, "Deleting a source product preserves the combo group");
+  assert.equal(f.api.groupOptions(after, remainingGroup).some(o => o.productId === linkedProductId), false);
 
-  // Verify product still exists in DB
+  // The write and the live option projection both reflect the deletion.
   const prodInDb = f.db.prepare("SELECT count(*) n FROM menu_items WHERE tenant_id=? AND id=?").get(tenantId, linkedProductId);
-  assert.equal(prodInDb.n, 1, "Product must not be deleted from database");
+  assert.equal(prodInDb.n, 0, "Deleted product must be removed from the database");
 
   f.db.close();
 });

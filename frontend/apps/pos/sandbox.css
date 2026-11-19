@@ -1,4 +1,5 @@
 .blab-modern-root {
+  min-block-size: 100vh;
   min-block-size: 100dvh;
   padding: 20px;
 }
@@ -387,6 +388,7 @@
 
 .blab-modern-root .pos-dialog {
   inline-size: min(560px, calc(100vw - 32px));
+  max-block-size: 85vh;
   max-block-size: 85dvh;
   padding: 0;
   border: 1px solid var(--blab-border);

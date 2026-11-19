@@ -372,6 +372,17 @@ export function effectiveGroups(catalog: OptionCatalog, productId: string): Opti
 		})
 		.filter(Boolean) as OptionGroup[];
 }
+/** Category sources follow the live catalog; only stored product references block deletion. */
+export function assertProductsCanBeDeleted(catalog: OptionCatalog, productIds: Set<string>) {
+	for (const group of catalog.groups) {
+		const linked = group.options.some((option) =>
+			(option.productId && productIds.has(option.productId)) ||
+			option.subOptions.some((sub: SubOption | string) => typeof sub !== 'string' && sub.productId && productIds.has(sub.productId)),
+		) || group.sources.some((source) => source.type === 'item_list' && source.itemIds?.some((id: string) => productIds.has(id)));
+		if (linked) throw new Error('PRODUCT_IS_LINKED');
+	}
+}
+
 export function validateOptionGraph(catalog: OptionCatalog) {
 	// Guard against direct self-links: a group cannot be linked to a product that is an option within that group
 	for (const link of catalog.links) {
@@ -558,8 +569,7 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 			const entity = kind === 'product' ? catalog.products.find((p) => p.id === id) : catalog.groups.find((g) => g.id === id);
 			if (!entity || Number(raw.revision) !== Number(kind === 'product' ? entity.menu_revision : entity.revision))
 				return json({ error: 'MENU_CONFLICT' }, 409);
-			if (kind === 'product' && catalog.groups.some((g) => groupOptions(catalog, g).some((o) => o.productId === id || o.subOptions.some((sub: SubOption | string) => typeof sub !== 'string' && sub.productId === id))))
-				throw new Error('PRODUCT_IS_LINKED');
+			if (kind === 'product') assertProductsCanBeDeleted(catalog, new Set([id]));
 			const affectedItemIds = kind === 'group' ? new Set<string>(catalog.links.filter((l) => l.groupId === id).map((l) => l.itemId)) : new Set<string>();
 			if (kind === 'product') {
 				catalog.products = catalog.products.filter((p) => p.id !== id);
@@ -639,13 +649,35 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 				!Array.isArray(raw.links)
 			)
 				throw new Error('INVALID_PRODUCT');
-			const links = raw.links.map((l: any, idx: number) => ({
-				itemId: id,
-				groupId: String(l.groupId),
-				optionIds: Array.isArray(l.optionIds) ? l.optionIds : null,
-				disabled: Boolean(l.disabled),
-				sortOrder: idx,
-			}));
+			const groupSort = (groupId: string) => Number(catalog.groups.find((g) => g.id === groupId)?.sortOrder ?? 0);
+			const links = raw.links
+				.map((l: any, idx: number) => ({
+					raw: l,
+					idx,
+					disabled: Boolean(l.disabled),
+					explicitOrder:
+						l.sortOrder !== undefined && l.sortOrder !== null && Number.isFinite(Number(l.sortOrder))
+							? Number(l.sortOrder)
+							: null,
+					groupOrder: groupSort(String(l.groupId)),
+				}))
+				.sort((a: any, b: any) => {
+					if (a.disabled !== b.disabled) return a.disabled ? 1 : -1;
+					if (a.explicitOrder !== null && b.explicitOrder !== null) {
+						if (a.explicitOrder !== b.explicitOrder) return a.explicitOrder - b.explicitOrder;
+						if (a.groupOrder !== b.groupOrder) return a.groupOrder - b.groupOrder;
+					} else if (a.explicitOrder !== null || b.explicitOrder !== null) {
+						return a.explicitOrder !== null ? -1 : 1;
+					}
+					return a.idx - b.idx;
+				})
+				.map((entry: any, idx: number) => ({
+					itemId: id,
+					groupId: String(entry.raw.groupId),
+					optionIds: Array.isArray(entry.raw.optionIds) ? entry.raw.optionIds : null,
+					disabled: entry.disabled,
+					sortOrder: idx,
+				}));
 			if (new Set(links.map((l: any) => l.groupId)).size !== links.length) throw new Error('DUPLICATE_GROUP');
 			for (const link of links) {
 				const group = catalog.groups.find((g) => g.id === link.groupId && g.scope !== 'order');

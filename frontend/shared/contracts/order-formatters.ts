@@ -4,6 +4,7 @@ import {
   extractOrderTableNumber,
   formatOrderSubmissionTime,
   formatPickupTimeDisplay,
+  isOrderCancelled,
   isOrderDineIn
 } from './history-model';
 
@@ -26,8 +27,6 @@ export interface OrderDiningBadgeModel {
   roundCount: number;
   isModified: boolean;
 }
-
-const UNREFUNDED_ORDER_STATUSES = new Set(['CANCELLED', 'REJECTED', 'FORCE_REJECT', 'EXPIRED']);
 
 const PAYMENT_STATUS_KEYS: Record<string, PosTranslationKey> = {
   REQUESTING: 'paymentREQUESTING',
@@ -227,7 +226,7 @@ export function resolveOrderPaymentBadge(
 ): OrderPaymentBadgeModel | null {
   if (!order?.payment) return null;
   const isUnrefundedWarning =
-    UNREFUNDED_ORDER_STATUSES.has(String(order.status || '')) && order.payment.status === 'PAID';
+    isOrderCancelled(order) && order.payment.status === 'PAID';
   const statusKey = PAYMENT_STATUS_KEYS[order.payment.status];
   const statusLabel = isUnrefundedWarning
     ? translatePos(locale, 'paymentUnrefunded')

@@ -363,16 +363,24 @@ export function resolveEffectiveOptions(
   });
 }
 
+export function sortProductLinks(
+  links: readonly OptionCatalogLinkDto[] | undefined,
+  catalog: OptionCatalogDto | null
+): OptionCatalogLinkDto[] {
+  const groupOrder = (id: string): number => Number(findGroupById(catalog, id)?.sortOrder ?? 0);
+  return [...(links || [])].sort(
+    (a, b) =>
+      Number(Boolean(a.disabled)) - Number(Boolean(b.disabled)) ||
+      Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0) ||
+      groupOrder(a.groupId) - groupOrder(b.groupId)
+  );
+}
+
 export function resolveProductGroups(
   product: { links?: readonly OptionCatalogLinkDto[] },
   catalog: OptionCatalogDto | null
 ): ProductGroupEntry[] {
-  const groupOrder = (id: string): number => Number(findGroupById(catalog, id)?.sortOrder ?? 0);
-  const direct = [...(product.links || [])].sort(
-    (a, b) =>
-      Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0) ||
-      groupOrder(a.groupId) - groupOrder(b.groupId)
-  );
+  const direct = sortProductLinks(product.links, catalog);
   return direct
     .filter(l => !l.disabled)
     .map(l => ({
@@ -543,13 +551,13 @@ export function entitySnapshot(
       imageKey: d.imageKey,
       imageDraft: d.imageDraft || null,
       i18n: cleanI18n(d.i18n),
-      links: (d.links || [])
-        .map(l => ({
+      links: sortProductLinks(d.links, null)
+        .filter(l => !l.disabled)
+        .map((l, idx) => ({
           groupId: l.groupId,
-          disabled: Boolean(l.disabled),
+          order: idx,
           optionIds: l.optionIds === null ? null : sortedUniqueIds(l.optionIds)
         }))
-        .sort((a, b) => a.groupId.localeCompare(b.groupId))
     });
   }
   const g = draft as OptionGroupDraft;
