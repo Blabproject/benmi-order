@@ -10,6 +10,13 @@ export interface HistoryDateGroup {
 }
 
 const TAIWAN_OFFSET_MS = 8 * 3600 * 1000;
+const CANCELLED_HISTORY_STATUSES = new Set(['CANCELLED', 'REJECTED', 'FORCE_REJECT', 'EXPIRED']);
+
+/** Returns true when an order was cancelled/rejected/expired and should not count toward daily totals. */
+export function isOrderCancelled(order: Pick<HistoryOrderDto, 'status'> | null | undefined): boolean {
+  if (!order) return false;
+  return CANCELLED_HISTORY_STATUSES.has(String(order.status || '').trim().toUpperCase());
+}
 
 /** Normalizes Vietnamese text by stripping combining marks and mapping d/đ. */
 export function removeVietnameseDiacritics(input: string): string {
@@ -186,7 +193,10 @@ export function buildHistoryGroups(
       const timeB = b.pickedUpAt || b.createdAt || 0;
       return timeB - timeA;
     });
-    const dayTotal = dayOrders.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
+    const dayTotal = dayOrders.reduce(
+      (sum, item) => sum + (isOrderCancelled(item) ? 0 : (Number(item.total) || 0)),
+      0
+    );
     return {
       date,
       isToday: date === todayStr,

@@ -68,7 +68,22 @@ describe('history-model domain parity', () => {
     expect(groups[0]?.dayTotal).toBe(490);
     expect(groups[0]?.orders.map(o => o.key)).toEqual(['ORD-20261111-D05', 'ORD-20261111-T14']);
     expect(groups[1]?.isToday).toBe(false);
-    expect(groups[1]?.dayTotal).toBe(140);
+    expect(groups[1]?.dayTotal).toBe(0);
+
+    const mixedDay = buildHistoryGroups(
+      [
+        { key: 'OK-1', customer: 'A', time: '2026-11-11 10:00', content: '', status: 'PAID', createdAt: 1, total: 120 },
+        { key: 'OK-2', customer: 'B', time: '2026-11-11 10:10', content: '', status: 'PICKED_UP', createdAt: 2, total: 80 },
+        { key: 'CANC-1', customer: 'C', time: '2026-11-11 10:20', content: '', status: 'REJECTED', createdAt: 3, total: 500 },
+        { key: 'CANC-2', customer: 'D', time: '2026-11-11 10:30', content: '', status: 'FORCE_REJECT', createdAt: 4, total: 300 },
+        { key: 'CANC-3', customer: 'E', time: '2026-11-11 10:40', content: '', status: 'CANCELLED', createdAt: 5, total: 200 },
+        { key: 'CANC-4', customer: 'F', time: '2026-11-11 10:50', content: '', status: 'EXPIRED', createdAt: 6, total: 100 }
+      ],
+      { nowMs: SANDBOX_REFERENCE_NOW_MS }
+    );
+    expect(mixedDay.groups).toHaveLength(1);
+    expect(mixedDay.groups[0]?.orders).toHaveLength(6);
+    expect(mixedDay.groups[0]?.dayTotal).toBe(200);
 
     const dineInOnly = buildHistoryGroups(DEFAULT_SANDBOX_ORDERS, {
       filterType: 'dine_in',

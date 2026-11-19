@@ -67,7 +67,11 @@ describe('PosHistoryPanel integrated POS component', () => {
 
     expect(container.querySelector('#history-total-summary-badge')).toHaveTextContent('3 單');
     expect(container.querySelector('#history-group-2026-11-11 .history-date-header')).toHaveClass('expanded');
+    expect(container.querySelector('#history-group-2026-11-11 .history-group-count-badge')).toHaveTextContent('2 單');
+    expect(container.querySelector('#history-group-2026-11-11 .history-group-total-badge')).toHaveTextContent('$490');
     expect(container.querySelector('#history-group-2026-11-10 .history-date-header')).not.toHaveClass('expanded');
+    expect(container.querySelector('#history-group-2026-11-10 .history-group-count-badge')).toHaveTextContent('1 單');
+    expect(container.querySelector('#history-group-2026-11-10 .history-group-total-badge')).toHaveTextContent('$0');
 
     // View button forwards canonical key to openReview
     fireEvent.click(screen.getByRole('button', { name: /261111-005/ }));
