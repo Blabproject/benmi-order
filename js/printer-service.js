@@ -759,6 +759,17 @@
       return trimmed;
     }
 
+    extractOptionPrintText(option) {
+      if (typeof option === 'string') return option;
+      if (!option || typeof option !== 'object') return '';
+      // Snapshot-projected selected_options carry { label, value, choice: "label: value" }.
+      if (option.value != null && option.label != null) {
+        const portionMatch = String(option.choice || '').match(/^(第(?:\d+|[一二三四五六七八九十]+)份[：:]\s*)/);
+        return `${portionMatch ? portionMatch[1] : ''}${option.value}`;
+      }
+      return option.choice || option.name || '';
+    }
+
     formatPrintOptions(value) {
       if (!value) return '';
       const resolveText = (t) => this.resolveOptionIdToName(t);
@@ -780,7 +791,7 @@
         const otherOptions = [];
         let hasPortions = false;
         value.forEach(option => {
-          let text = typeof option === 'string' ? option : (option.choice || option.name || '');
+          let text = this.extractOptionPrintText(option);
           if (!text) return;
           text = resolveText(text);
           const cleanText = this.stripPrintOptionSurcharges(text).replace(/^[↳\-+•*]\s*/, '').trim();
@@ -808,7 +819,7 @@
         const cleaned = [];
         const seenLegacy = new Set();
         value.forEach(option => {
-          let t = typeof option === 'string' ? option : (option.choice || option.name || '');
+          let t = this.extractOptionPrintText(option);
           t = resolveText(t);
           const clean = this.stripPrintOptionSurcharges(t);
           if (!clean) return;
