@@ -249,8 +249,12 @@ button.sidebar-nav-item.active {
   padding: 0 12px !important;
   margin: 0 !important;
   justify-content: flex-start !important;
-  gap: 12px !important;
+  gap: 0 !important;
   border-radius: 10px !important;
+}
+
+.app-sidebar.expanded .sidebar-nav-item .nav-item-icon {
+  margin-right: 12px !important;
 }
 
 .app-sidebar.expanded .sidebar-nav-item .sidebar-label {
@@ -5961,7 +5965,7 @@ input.menu-item-badge-input:focus {
 .settings-header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0;
   min-width: 0;
 }
 
@@ -5976,6 +5980,7 @@ input.menu-item-badge-input:focus {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  margin-right: 10px;
 }
 
 .settings-header-titles {
@@ -6100,7 +6105,7 @@ input.menu-item-badge-input:focus {
   padding: 10px 10px max(16px, env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
   overflow-y: auto;
   flex: 1;
   min-height: 0;
@@ -6127,8 +6132,9 @@ input.menu-item-badge-input:focus {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 0;
   padding: 8px 12px;
+  margin-bottom: 6px;
   min-height: 48px;
   background: transparent;
   border-radius: 10px;
@@ -6140,6 +6146,10 @@ input.menu-item-badge-input:focus {
   border: 1px solid transparent;
   user-select: none;
   box-sizing: border-box;
+}
+
+.settings-toc-item:last-child {
+  margin-bottom: 0;
 }
 
 .settings-toc-item:hover {
@@ -6193,6 +6203,7 @@ input.menu-item-badge-input:focus {
   justify-content: center;
   transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
+  margin-right: 11px;
 }
 
 .settings-toc-item .toc-item-label {
@@ -6207,6 +6218,7 @@ input.menu-item-badge-input:focus {
 .settings-toc-item .toc-chevron {
   flex-shrink: 0;
   color: #94a3b8;
+  margin-left: 11px;
   opacity: 0;
   transform: translateX(-4px);
   transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
@@ -6307,10 +6319,20 @@ input.menu-item-badge-input:focus {
 .store-pin-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
   min-width: 0;
   border-top: 1px solid #f1f5f9;
   padding: 20px 0;
+}
+
+.store-pin-form > * {
+  margin-bottom: 16px;
+}
+
+.store-pin-form > [hidden],
+.store-pin-form > .store-pin-feedback:empty,
+.store-pin-form > :last-child {
+  margin-bottom: 0;
 }
 
 .store-pin-title {
@@ -6329,17 +6351,25 @@ input.menu-item-badge-input:focus {
 .store-pin-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
   width: 100%;
   max-width: 480px;
   font-size: var(--pos-text-body);
   font-weight: 600;
 }
 
+.store-pin-field > * + * {
+  margin-top: 8px;
+}
+
 .store-pin-input-row {
   display: flex;
-  gap: 8px;
+  gap: 0;
   min-width: 0;
+}
+
+.store-pin-input-row > * + * {
+  margin-left: 8px;
 }
 
 .store-pin-form .form-input {
@@ -6659,12 +6689,16 @@ select.form-input {
   .settings-toc-item {
     padding: 8px 10px;
     font-size: var(--pos-text-meta);
-    gap: 9px;
+    gap: 0;
   }
   .settings-toc-item .toc-icon-box {
     width: 28px;
     height: 28px;
     min-width: 28px;
+    margin-right: 9px;
+  }
+  .settings-toc-item .toc-chevron {
+    margin-left: 9px;
   }
   .settings-toc-item .toc-icon-box svg {
     width: 16px;
@@ -6698,7 +6732,7 @@ select.form-input {
     overflow-x: auto;
     overflow-y: hidden;
     padding: 8px;
-    gap: 8px;
+    gap: 0;
     white-space: nowrap;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
@@ -6710,9 +6744,14 @@ select.form-input {
     min-height: 40px;
     flex-shrink: 0;
     padding: 6px 12px;
+    margin-bottom: 0;
+    margin-right: 8px;
     border-radius: 99px;
     background: #f8fafc;
     border: 1px solid #e2e8f0;
+  }
+  .settings-toc-item:last-child {
+    margin-right: 0;
   }
   .settings-toc-item.active {
     background: #f0fdf4;
@@ -6726,6 +6765,7 @@ select.form-input {
     height: 24px;
     min-width: 24px;
     border-radius: 6px;
+    margin-right: 8px;
   }
   .settings-toc-item .toc-icon-box svg {
     width: 14px;
@@ -11979,7 +12019,7 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
     padding: 0 14px !important;
     margin: 0 !important;
     justify-content: flex-start !important;
-    gap: 14px !important;
+    gap: 0 !important;
     border-radius: 12px !important;
     background: transparent !important;
     color: #475569 !important;
@@ -11988,6 +12028,11 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
     box-sizing: border-box !important;
     border: none !important;
     transition: all 0.15s ease !important;
+  }
+
+  .sidebar-nav-item .nav-item-icon,
+  .app-sidebar.expanded .sidebar-nav-item .nav-item-icon {
+    margin-right: 14px !important;
   }
 
   .sidebar-nav-item:hover,
@@ -12432,7 +12477,7 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
   .settings-toc-list {
     display: flex !important;
     flex-direction: row !important;
-    gap: 6px !important;
+    gap: 0 !important;
     padding: 0 !important;
     overflow-x: auto !important;
     white-space: nowrap !important;
@@ -12443,6 +12488,8 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
     display: inline-flex !important;
     align-items: center !important;
     padding: 8px 14px !important;
+    margin-bottom: 0 !important;
+    margin-right: 6px !important;
     min-height: 42px !important;
     border-radius: 999px !important;
     border: 1px solid #e2e8f0 !important;
@@ -12452,6 +12499,14 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
     color: #475569 !important;
     flex-shrink: 0 !important;
     white-space: nowrap !important;
+  }
+
+  .settings-toc-item:last-child {
+    margin-right: 0 !important;
+  }
+
+  .settings-toc-item .toc-icon-box {
+    margin-right: 8px !important;
   }
 
   .settings-toc-item.active {
@@ -13253,3 +13308,26 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
 .printer-report-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; flex-wrap: wrap; }
 .printer-report-row > span { flex: 1 1 180px; overflow-wrap: anywhere; }
 .printer-report-row > .btn { min-height: 48px; min-width: 48px; white-space: normal; }
+
+/* Flexbox gap fallback for older Android System WebView (< Chromium 84) */
+html.no-flex-gap .sidebar-nav > .sidebar-nav-item + .sidebar-nav-item { margin-top: 8px !important; }
+html.no-flex-gap .main-topbar-left > * + *,
+html.no-flex-gap .main-topbar-right > * + * { margin-left: 10px; }
+html.no-flex-gap .store-status-pill > * + * { margin-left: 8px; }
+html.no-flex-gap .status-option-left > * + * { margin-left: 10px; }
+html.no-flex-gap .dining-filter-bar > * + * { margin-left: 8px; }
+html.no-flex-gap .dining-filter-btn > * + * { margin-left: 6px; }
+html.no-flex-gap .tile-info > * + * { margin-top: 6px; }
+html.no-flex-gap .tile-top > * + *,
+html.no-flex-gap .tile-meta-row > * + *,
+html.no-flex-gap .tile-count-row > * + * { margin-left: 6px; }
+html.no-flex-gap .settings-content-body > .settings-card + .settings-card { margin-top: 16px; }
+html.no-flex-gap .store-pin-actions > * + * { margin-left: 12px; }
+html.no-flex-gap .pos-display-option > * + * { margin-left: 12px; }
+html.no-flex-gap .ai-switch-row > * + * { margin-left: 16px; }
+html.no-flex-gap .sidebar-mobile-brand > * + * { margin-left: 10px; }
+html.no-flex-gap .printer-report-row > * + * { margin-left: 8px; }
+@media (max-width: 680px) {
+  html.no-flex-gap .sidebar-nav > .sidebar-nav-item + .sidebar-nav-item { margin-top: 6px !important; }
+  html.no-flex-gap .main-topbar-left > * + * { margin-left: 8px; }
+}
