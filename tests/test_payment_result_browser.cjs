@@ -17,12 +17,12 @@ const paid={id,status:'PAID',paidAt:123,amount:100,displayKey:'A001',orderStatus
 const checkoutActions=fs.readFileSync(path.join(root,'index.html'),'utf8').match(/<div class="desktop-sidebar-submit-wrap">[\s\S]*?<\/button>\s*<\/div>/)[0];
 const checkoutStart=fs.readFileSync(path.join(root,'index.html'),'utf8').match(/id="sec-checkout">([\s\S]*?)<!-- 2\./)[1];
 const menu=`<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/index.css"><link rel="stylesheet" href="/css/payments.css"></head><body><main><section id="sec-checkout" style="max-width:420px;margin:auto;padding:20px;box-sizing:border-box">${checkoutStart}${checkoutActions}</section><button id="add">Add meal</button><div class="footer"><div class="footer-inner"><div class="total-wrap">$100</div><button class="btn-send" id="btn-submit" onclick="handleFooterAction()">確認下單</button></div></div></main><script>
-window.WORKER_BASE='https://api.test';window.getTenantIdFromUrl=()=> 'a';window.currentLocale=new URL(location.href).searchParams.get('lang')||'vi';document.documentElement.lang=currentLocale;
+window.WORKER_BASE='https://api.test';window.getTenantIdFromUrl=()=> 'a';window.currentClientLocale=window.currentLocale=new URL(location.href).searchParams.get('lang')||'vi';document.documentElement.lang=currentLocale;
 const saved=JSON.parse(localStorage.getItem('cart_save_a')||'null');
 window.cart=saved?.cart||{};window.customizeData=saved?.customizeData||{};window.comboDrinkData=saved?.comboDrinkData||{};window.bundleCartData=saved?.bundleCartData||{};
 window.isSubmitting=false;window.updateTotal=()=>{};window.DetailCheckout={completed:()=>sessionStorage.removeItem('order_detail_pending:a')};
 document.getElementById('add').onclick=()=>{cart.meal=(cart.meal||0)+1;LinePayCheckout.onCartChange();};
-</script><script src="/js/order-code.js"></script><script src="/js/client-checkout.js"></script><script src="/js/payment-session.js"></script><script src="/js/payment-view.js"></script><script src="/js/payment-actions.js"></script><script src="/js/client-payments.js"></script></body></html>`;
+</script><script src="/js/order-code.js"></script><script src="/js/client-i18n.js"></script><script src="/js/client-checkout.js"></script><script src="/js/payment-session.js"></script><script src="/js/payment-view.js"></script><script src="/js/payment-actions.js"></script><script src="/js/client-payments.js"></script></body></html>`;
 async function fixture(browser,options={}){
  ensureDistBuilt();
  const context=await browser.newContext({viewport:{width:390,height:844},...options.device}),calls=[],errors=[];
@@ -223,7 +223,12 @@ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('LINE 
 
 for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('Checkout '+name+': visible payment choices, final action placement and empty-cart recovery',async()=>{
  const browser=await engine.launch({headless:true});try{
-  for(const lang of ['vi','zh-TW'])for(const width of [390,1024,1440]){
+  const checkoutLabels = {
+   vi: { linePay: 'Đến LINE Pay thanh toán', submit: 'Xác nhận đặt món', append: 'Xác nhận gọi thêm' },
+   'zh-TW': { linePay: '前往 LINE Pay 付款', submit: '確認下單', append: '確認加點' },
+   en: { linePay: 'Pay with LINE Pay', submit: 'Place Order', append: 'Add Items' }
+  };
+  for(const [lang,labels] of Object.entries(checkoutLabels))for(const width of [390,1024,1440]){
    const f=await fixture(browser,{missing:true,noSavedDraft:true,device:{viewport:{width,height:900}}});
    await f.page.goto('https://fixture.test/?tenant_id=a&lang='+lang);
    await f.page.locator('#payment-method').waitFor();
@@ -233,20 +238,25 @@ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('Check
    assert.equal(await f.page.locator('select#payment-method').count(),0);
    assert.equal(await f.page.locator('#checkout-payment-method > fieldset').count(),1);
    assert.equal(await f.page.locator('.payment-method-heading svg').count(),1);
+   if(lang==='en'){
+    assert.equal(await f.page.locator('#payment-method legend').innerText(),'Payment Method');
+    assert.deepEqual(await f.page.locator('.payment-method-title').allTextContents(),['LINE Pay','Pay at Pickup']);
+    assert.deepEqual(await f.page.locator('.payment-method-description').allTextContents(),['Pay online','Pay when you pick up your order.']);
+   }
    const paymentBox=await f.page.locator('#payment-method').boundingBox(),cartBox=await f.page.locator('#cart-summary').boundingBox();
    assert(paymentBox.y+paymentBox.height<cartBox.y,'Payment choices appear above the cart summary');
    assert.equal(await f.page.locator('input[name="payment-method"][value="line_pay"]').isChecked(),true);
    for(const box of await f.page.locator('.payment-method-option').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect())))assert(box.height>=48);
    await f.page.locator('#add').click();
    assert.equal(await button.isEnabled(),true);
-   assert.equal(await button.innerText(),lang==='vi'?'Đến LINE Pay thanh toán':'前往 LINE Pay 付款');
+   assert.equal(await button.innerText(),labels.linePay);
    assert.equal(await f.page.locator('#checkout-empty-cart-hint').isVisible(),false);
    const cash=f.page.locator('input[name="payment-method"][value="cash"]');
    await cash.check();
-   assert.equal(await button.innerText(),lang==='vi'?'Xác nhận đặt món':'確認下單');
+   assert.equal(await button.innerText(),labels.submit);
    await cash.focus();await f.page.keyboard.press('ArrowUp');
    assert.equal(await f.page.locator('input[value="line_pay"]').isChecked(),true);
-   assert.equal(await button.innerText(),lang==='vi'?'Đến LINE Pay thanh toán':'前往 LINE Pay 付款');
+   assert.equal(await button.innerText(),labels.linePay);
    assert.equal(await f.page.locator('#payment-method-hint').count(),0);
    await f.page.waitForFunction(()=>document.querySelector('.payment-method-logo')?.naturalWidth===238);
    await f.page.waitForFunction(()=>{
@@ -255,7 +265,7 @@ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('Check
     return getComputedStyle(checked).backgroundColor==='rgb(240, 253, 244)'&&getComputedStyle(unchecked).backgroundColor==='rgb(255, 255, 255)';
    });
    await f.page.evaluate(()=>updateFooterButtonState());
-   assert.equal(await button.innerText(),lang==='vi'?'Đến LINE Pay thanh toán':'前往 LINE Pay 付款','Scrolling must preserve the payment action');
+   assert.equal(await button.innerText(),labels.linePay,'Scrolling must preserve the payment action');
    const groupBox=await f.page.locator('#payment-method').boundingBox(),buttonBox=await button.boundingBox();
    assert(groupBox.y+groupBox.height<=buttonBox.y,'Payment choices precede the final action');
    assert.equal(await f.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
@@ -268,14 +278,20 @@ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('Check
    await f.page.locator('#add').click();
    assert.equal(await button.isEnabled(),true,'Adding a meal must release only the empty-cart lock');
    await cash.check();assert.equal(await f.page.locator('#payment-method-hint').count(),0);
-   assert.equal(await button.innerText(),lang==='vi'?'Xác nhận đặt món':'確認下單');
+   assert.equal(await button.innerText(),labels.submit);
    await f.page.evaluate(()=>{isSubmitting=true;setAllSubmitButtonsState(true,'busy');LinePayCheckout.syncButtons();});
    assert.equal(await button.innerText(),'busy');assert.equal(await button.isDisabled(),true);
    await f.page.evaluate(()=>{isSubmitting=false;setAllSubmitButtonsState(false,'確認下單');});
-   assert.equal(await button.innerText(),lang==='vi'?'Xác nhận đặt món':'確認下單');
+   assert.equal(await button.innerText(),labels.submit);
+   if(lang==='en'){
+    await f.page.evaluate(()=>{window.currentDiningOption='dine_in';LinePayCheckout.refreshMethods();});
+    assert.deepEqual(await f.page.locator('.payment-method-title').allTextContents(),['Pay at the Counter']);
+    assert.equal(await f.page.locator('.payment-method-description').innerText(),'Pay at the counter after your meal.');
+    assert.equal(await button.innerText(),labels.submit);
+   }
    await f.page.evaluate(()=>{cart={};LinePayCheckout.onCartChange();window.isAppendMode=true;updateFooterButtonState();});
    assert.equal(await button.isEnabled(),true,'Append mode must not inherit the normal empty-cart lock');
-   assert.equal(await button.innerText(),lang==='vi'?'Xác nhận gọi thêm':'確認加點');
+   assert.equal(await button.innerText(),labels.append);
    await f.close();
   }
   const disabled=await fixture(browser,{missing:true,payDisabled:true});

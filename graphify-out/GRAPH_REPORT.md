@@ -1,7 +1,7 @@
 # Graph Report - benmi-order-cleanup-wt  (2026-11-20)
 
 ## Corpus Check
-- 828 files · ~1,071,492 words
+- 828 files · ~1,071,551 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 87 file(s) not represented in the graph (top: .apk 27, (none) 16, .css 14)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `bdd1ada0`
+- Built from commit: `d190a9d9`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -1751,10 +1751,10 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `PDP: LINE Order Receipt Portion Layout — Fix` be split into smaller, more focused modules?**
   _Cohesion score 0.09090909090909091 - nodes in this community are weakly interconnected._
 - **Why does `6. Lịch Sử Các Phiên Bản (Changelog)` connect `MainActivity.java` to `history-model.ts`, `B. Bảng Quản Lý Đơn Hàng POS (`orders.html` — Tablet / iPad First)`, `Blab POS - Universal Multi-Tenant Android POS Tablet App`?**
-  _High betweenness centrality (0.076) - this node is a cross-community bridge._
+  _High betweenness centrality (0.069) - this node is a cross-community bridge._
 - **Should `menu-drawer-dom.cjs` be split into smaller, more focused modules?**
   _Cohesion score 0.052244897959183675 - nodes in this community are weakly interconnected._
+- **Why does `3. Bảng Tra Cứu Nhanh Khi Debug (Quick Symptom-to-File Lookup)` connect `Quy Chuẩn Kiểm Thử Tinh Gọn Khi Phát Triển (Tiered Testing Workflow)` to `orders-core.js`, `updateTotal`, `order-formatters.ts`, `updateFooterButtonState`, `orders-live.js`, `sendLiffMessagesWithRetry`?**
+  _High betweenness centrality (0.061) - this node is a cross-community bridge._
 - **Should `tenant.repository.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.07823613086770982 - nodes in this community are weakly interconnected._
-- **Should `orders-settings.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.08602150537634409 - nodes in this community are weakly interconnected._

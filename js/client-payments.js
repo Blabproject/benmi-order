@@ -7,7 +7,9 @@ window.LinePayCheckout = (function () {
   let paymentConfig = null;
   let takeawayMethod = null;
   function selected(){return document.querySelector('input[name="payment-method"]:checked')?.value==='line_pay';}
-  function buttonLabel(){return selected()?text('前往 LINE Pay 付款','Đến LINE Pay thanh toán'):text('確認下單','Xác nhận đặt món');}
+  function buttonLabel() {
+    return ct(selected() ? 'btn_pay_with_linepay' : 'btn_submit_order');
+  }
   function removeBanner(){document.getElementById('payment-result')?.remove();}
   function retireCompleted(){const saved=S.active();if(saved?.completed){S.detach(saved);S.completeDetail();removeBanner();S.cleanUrl();}}
   function onCartChange(){if(Object.values(window.cart||{}).some(qty=>Number(qty)>0))retireCompleted();syncButtons();}
@@ -18,7 +20,7 @@ window.LinePayCheckout = (function () {
       if(blocked()){
         if(button.dataset.emptyCart){button.disabled=false;delete button.dataset.emptyCart;button.removeAttribute('aria-describedby');}
         if(!button.dataset.paymentLabel)button.dataset.paymentLabel=button.textContent;
-        button.textContent=text('處理待確認付款','Xử lý thanh toán đang chờ');
+        button.textContent = ct('btn_linepay_pending');
       }
       else if(button.dataset.paymentLabel){button.textContent=button.dataset.paymentLabel;delete button.dataset.paymentLabel;}
     }
@@ -124,10 +126,10 @@ window.LinePayCheckout = (function () {
     if(!config.linePay?.enabled&&!allowedMethods.includes('cash'))return;
     const isDineIn = window.currentDiningOption === 'dine_in' || window.isAppendMode || !!window.currentTableNumber;
     const allDefinitions = isDineIn ? [
-      ['cash', text('現場櫃台結帳', 'Thanh toán tại quầy'), text('用餐完畢後至櫃台結帳', 'Thanh toán tại quầy sau khi dùng bữa')]
+      ['cash', ct('payment_counter_title'), ct('payment_counter_description')]
     ] : [
-      ['line_pay', 'LINE Pay', text('線上付款', 'Thanh toán trực tuyến')],
-      ['cash', text('取餐時付款', 'Đặt rồi trả sau'), text('領取餐點時再付款', 'Thanh toán tại quầy khi nhận món')]
+      ['line_pay', 'LINE Pay', ct('payment_linepay_description')],
+      ['cash', ct('payment_pickup_title'), ct('payment_pickup_description')]
     ];
     const choicesList = allDefinitions.filter(([val]) => {
       if (isDineIn) return true;
@@ -140,7 +142,7 @@ window.LinePayCheckout = (function () {
     const group = PaymentView.element('fieldset', 'payment-method-section'); group.id = 'payment-method';
     const legend = PaymentView.element('legend', 'payment-method-label');
     const heading = PaymentView.element('span', 'payment-method-heading');
-    heading.append(PaymentView.icon('card'), PaymentView.element('span', '', text('付款方式', 'Phương thức thanh toán'))); legend.append(heading);
+    heading.append(PaymentView.icon('card'), PaymentView.element('span', '', ct('payment_method_title'))); legend.append(heading);
     const choices = PaymentView.element('div', 'payment-method-choices');
     const selectedTakeaway = choicesList.some(([value]) => value === takeawayMethod) ? takeawayMethod : choicesList[0][0];
     const defaultChecked = isDineIn ? 'cash' : selectedTakeaway;
