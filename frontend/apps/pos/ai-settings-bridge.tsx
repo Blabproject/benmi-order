@@ -1,10 +1,10 @@
-import { StrictMode, useEffect, useSyncExternalStore } from 'react';
+import { StrictMode, useSyncExternalStore } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
 import '@shared/ui/tokens.css';
 import './pos-ai-settings.css';
 import { resolveWorkerBase } from '@shared/infra/http';
-import { translatePos, type PosTranslationKey, type PosLocale } from '@shared/i18n/pos-dictionary';
+import type { PosLocale } from '@shared/i18n/pos-dictionary';
 import {
   createAiSettingsBridgeStore,
   type AiSettingsBridgeSnapshot,
@@ -63,22 +63,8 @@ function buildFetchDeps(): AiSettingsFetchDependencies {
   };
 }
 
-function syncAiSettingsTabLabel(locale: PosLocale = readLocale()): void {
-  const tocLabel = document.querySelector<HTMLElement>('#toc-item-ai [data-ai-i18n]');
-  if (tocLabel) {
-    const key = tocLabel.dataset.aiI18n as PosTranslationKey | undefined;
-    if (key) {
-      tocLabel.textContent = translatePos(locale, key);
-    }
-  }
-}
-
 function PosAiSettingsWorkspace({ store }: { store: AiSettingsBridgeStore }) {
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
-
-  useEffect(() => {
-    syncAiSettingsTabLabel(snapshot.locale);
-  }, [snapshot.locale]);
 
   return (
     <PosAiSettingsPanel
@@ -152,7 +138,6 @@ export function mountPosAiSettingsBridge(
       store.setLocale(readLocale());
       store.triggerRender();
     });
-    syncAiSettingsTabLabel();
   };
 
   const prevApply = posWindow.applyLanguageToDOM;
@@ -162,7 +147,6 @@ export function mountPosAiSettingsBridge(
       flushBridgeUpdate(() => {
         store.setLocale(readLocale());
       });
-      syncAiSettingsTabLabel();
       return result;
     } as NonNullable<PosAiSettingsBridgeWindow['applyLanguageToDOM']>;
     wrappedApply.__benmiAiSettingsWrapped = true;

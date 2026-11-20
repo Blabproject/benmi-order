@@ -203,6 +203,58 @@ async function run() {
     assert.deepEqual(prints[0], prints[1], 'Large UI must not change receipts');
     assert.deepEqual(prints[0], prints[2], 'Extra-large UI must not change receipts');
 
+    // The React tab rail activates the real legacy panels without remounting form fields.
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.evaluate(() => { switchTab('settings'); switchSettingTab('status'); });
+    const tabList = page.getByRole('tablist').filter({ has: page.locator('#toc-item-status') });
+    const statusTab = tabList.locator('#toc-item-status');
+    const orderModeTab = tabList.locator('#toc-item-ordermode');
+    assert.equal(await tabList.getAttribute('aria-orientation'), 'vertical');
+    await page.locator('#toc-item-status[aria-selected=true]').waitFor();
+    await statusTab.press('ArrowDown');
+    await page.waitForFunction(() => document.activeElement.id === 'toc-item-ordermode');
+    await orderModeTab.and(page.locator('[aria-selected=true]')).waitFor();
+    assert(await page.getByRole('tabpanel').locator('#btn-save-pickup-setting').isVisible());
+
+    await tabList.locator('#toc-item-store-info').click();
+    const draft = page.locator('#setting-store-address-input');
+    await draft.fill('Địa chỉ chưa lưu');
+    await tabList.locator('#toc-item-display').click();
+    assert(await page.locator('#setting-card-display').isVisible());
+    assert(!(await page.locator('#pos-screen-orientation').isVisible()));
+    await tabList.locator('#toc-item-store-info').click();
+    assert.equal(await draft.inputValue(), 'Địa chỉ chưa lưu');
+
+    await page.evaluate(() => {
+      window.IS_NATIVE_APP = true;
+      window.Capacitor = { Plugins: { POSScreenOrientation: {
+        async getMode() { return { mode: 'landscape' }; },
+        async setMode({ mode }) { return { mode }; }
+      } } };
+      syncPlatformClasses();
+      switchTab('live');
+      switchTab('settings');
+      switchSettingTab('reports');
+    });
+    await page.locator('#toc-item-status[aria-selected=true]').waitFor();
+    assert.equal(await tabList.locator('#toc-item-reports').count(), 0);
+    await tabList.locator('#toc-item-display').click();
+    const portrait = page.locator('input[name="pos-screen-orientation"][value="portrait"]');
+    await portrait.check();
+    await page.waitForFunction(() => getPOSScreenOrientationSetting().status === 'orientationSaved');
+    await settle(page);
+    assert.equal(await page.locator('#pos-screen-orientation-status').innerText(), await page.evaluate(() => t('orientationSaved')));
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await settle(page);
+    assert.equal(await tabList.getAttribute('aria-orientation'), 'horizontal');
+    const displayTab = tabList.locator('#toc-item-display');
+    await displayTab.press('ArrowRight');
+    await page.waitForFunction(() => document.activeElement.id === 'toc-item-dinein');
+    await page.locator('#toc-item-dinein[aria-selected=true]').waitFor();
+    await displayTab.tap();
+    await page.locator('#toc-item-display[aria-selected=true]').waitFor();
+
     // Use real radios, keyboard navigation, persisted reload and resize behavior.
     await page.setViewportSize({ width: 1024, height: 768 });
     await page.evaluate(() => { closeModal(); switchTab('settings'); switchSettingTab('setting-card-display'); });

@@ -1,0 +1,6 @@
+@tailwind utilities;
+
+#pos-settings-navigation-root [role="tab"]:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: -3px;
+}

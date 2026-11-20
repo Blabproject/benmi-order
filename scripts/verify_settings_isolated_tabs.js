@@ -10,6 +10,9 @@ const ordersCss = fs.readFileSync(path.join(__dirname, '../css/orders.css'), 'ut
 const ordersSettingsJs = fs.readFileSync(path.join(__dirname, '../js/orders-settings.js'), 'utf-8');
 const ordersI18nJs = fs.readFileSync(path.join(__dirname, '../js/orders-i18n.js'), 'utf-8');
 
+const settingsBridge = fs.readFileSync(path.join(__dirname, '../frontend/apps/pos/settings-bridge.tsx'), 'utf-8');
+const settingsSections = fs.readFileSync(path.join(__dirname, '../frontend/apps/pos/settings-sections.tsx'), 'utf-8');
+
 let errors = 0;
 
 function assert(condition, message) {
@@ -56,7 +59,7 @@ assert(
 assert(
   ordersSettingsJs.includes('card.classList.remove("active")') &&
   ordersSettingsJs.includes('targetCard.classList.add("active")') &&
-  ordersSettingsJs.includes('setActiveTocItem(matchedSec.tocId)'),
+  ordersSettingsJs.includes('window.syncPOSSettingsView?.()'),
   'JS: switchSettingTab toggles .active class on settings cards and activates TOC item'
 );
 
@@ -66,8 +69,7 @@ assert(
 );
 
 assert(
-  ordersSettingsJs.includes('scrollToSettingSection(sectionId)') &&
-  ordersSettingsJs.includes('switchSettingTab(sectionId)'),
+  ordersSettingsJs.includes('window.scrollToSettingSection = switchSettingTab'),
   'JS: scrollToSettingSection backward compatibility bridges to switchSettingTab'
 );
 
@@ -86,17 +88,14 @@ assert(
 );
 
 assert(
-  ordersHtml.includes('onclick="switchSettingTab(\'setting-card-status\')"') &&
-  ordersHtml.includes('onclick="switchSettingTab(\'setting-card-ordermode\')"') &&
-  ordersHtml.includes('onclick="switchSettingTab(\'setting-card-hours\')"') &&
-  ordersHtml.includes('onclick="switchSettingTab(\'setting-card-store-info\')"') &&
-  ordersHtml.includes('onclick="switchSettingTab(\'setting-card-printer\')"'),
-  'HTML: TOC items wired with onclick="switchSettingTab(...)" including unified store-info'
+  ordersHtml.includes('id="pos-settings-navigation-root"') &&
+  settingsBridge.includes('onValueChange={pos.switchSettingTab}') &&
+  ['status', 'ordermode', 'hours', 'store-info', 'printer'].every(id => settingsSections.includes(`id: '${id}'`)),
+  'React: Settings tabs call switchSettingTab, including the unified store-info panel'
 );
 
 assert(
   ordersHtml.includes('id="setting-card-store-info"') &&
-  ordersHtml.includes('id="toc-item-store-info"') &&
   ordersHtml.includes('id="setting-logo-preview"') &&
   ordersHtml.includes('id="setting-store-announcement-input"') &&
   ordersHtml.includes('id="setting-store-address-input"'),
@@ -104,9 +103,8 @@ assert(
 );
 
 assert(
-  ordersHtml.includes('id="settings-printer-status-bar"') &&
-  ordersHtml.includes('onclick="switchSettingTab(\'setting-card-printer\')"'),
-  'HTML: Header printer status pill directly switches to printer tab on click'
+  ordersHtml.includes('id="settings-printer-status-bar"'),
+  'HTML: Printer status pill is available in the Settings panel'
 );
 
 assert(

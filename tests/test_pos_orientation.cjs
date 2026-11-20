@@ -6,10 +6,9 @@ const { JSDOM } = require('jsdom');
 
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
-const markup = read('orders.html').match(/<section id="pos-screen-orientation"[\s\S]*?<\/section>/)[0];
 
 async function fixture(t, { native = true, plugin, storage = { mode: 'landscape' } } = {}) {
-  const dom = new JSDOM(markup, { url: 'https://pos.test', runScripts: 'outside-only' });
+  const dom = new JSDOM('', { url: 'https://pos.test', runScripts: 'outside-only' });
   t.after(() => dom.window.close());
   const w = dom.window;
   await new Promise(resolve => w.document.addEventListener('DOMContentLoaded', resolve, { once: true }));
@@ -22,20 +21,22 @@ async function fixture(t, { native = true, plugin, storage = { mode: 'landscape'
   w.Capacitor = { Plugins: { POSScreenOrientation: bridge } };
   w.eval(read('js/orders-i18n.js'));
   w.eval(read('js/orders-orientation.js'));
-  await new Promise(resolve => setImmediate(resolve));
+  await w.loadPOSScreenOrientationSetting();
   return {
-    w, writes, storage,
-    section: w.document.getElementById('pos-screen-orientation'),
-    status: w.document.getElementById('pos-screen-orientation-status'),
-    radios: [...w.document.querySelectorAll('input')],
-    selected: () => w.document.querySelector('input:checked')?.value
+    w, writes,
+    state: () => w.getPOSScreenOrientationSetting(),
+    selected: () => w.getPOSScreenOrientationSetting().selected,
+    disabled: () => {
+      const state = w.getPOSScreenOrientationSetting();
+      return state.busy || !state.selected;
+    }
   };
 }
 
 test('device modes round-trip through the native bridge and survive page reloads', async t => {
   const storage = { mode: 'landscape' };
   const f = await fixture(t, { storage });
-  assert.equal(f.section.hidden, false);
+  assert.equal(f.state().available, true);
   assert.equal(f.selected(), 'landscape');
   for (const mode of ['portrait', 'auto', 'landscape']) {
     await f.w.selectPOSScreenOrientation(mode);
@@ -49,13 +50,13 @@ test('device modes round-trip through the native bridge and survive page reloads
 
 test('browser hides the native setting; old APK explains why it is unavailable', async t => {
   const web = await fixture(t, { native: false });
-  assert.equal(web.section.hidden, true);
+  assert.equal(web.state().available, false);
   const old = await fixture(t, { plugin: null });
-  assert.equal(old.section.hidden, false);
-  assert(old.radios.every(radio => radio.disabled));
-  assert.equal(old.status.dataset.posDisplayI18n, 'orientationUpdateRequired');
+  assert.equal(old.state().available, true);
+  assert(old.disabled());
+  assert.equal(old.state().status, 'orientationUpdateRequired');
   await old.w.selectPOSScreenOrientation('portrait');
-  assert.equal(old.selected(), undefined);
+  assert.equal(old.selected(), null);
 });
 
 test('native write failure restores the previous radio selection and permits retry', async t => {
@@ -64,11 +65,10 @@ test('native write failure restores the previous radio selection and permits ret
     async getMode() { return { mode: 'landscape' }; },
     async setMode({ mode }) { if (fail) throw new Error('Native failure'); return { mode }; }
   } });
-  f.radios.find(radio => radio.value === 'portrait').checked = true;
   await f.w.selectPOSScreenOrientation('portrait');
   assert.equal(f.selected(), 'landscape');
-  assert.equal(f.status.dataset.posDisplayI18n, 'orientationSaveFailed');
-  assert(f.radios.every(radio => !radio.disabled));
+  assert.equal(f.state().status, 'orientationSaveFailed');
+  assert(!f.disabled());
   fail = false;
   await f.w.selectPOSScreenOrientation('portrait');
   assert.equal(f.selected(), 'portrait');
@@ -83,7 +83,7 @@ test('pending native writes prevent overlapping mutations and setting reads', as
     setMode({ mode }) { calls.push(mode); return new Promise(resolve => { finish = resolve; }); }
   } });
   const pending = f.w.selectPOSScreenOrientation('portrait');
-  assert(f.radios.every(radio => radio.disabled));
+  assert(f.disabled());
   await f.w.selectPOSScreenOrientation('auto');
   await f.w.loadPOSScreenOrientationSetting();
   assert.deepEqual(calls, ['portrait']);
@@ -91,7 +91,7 @@ test('pending native writes prevent overlapping mutations and setting reads', as
   finish({ mode: 'portrait' });
   await pending;
   assert.equal(f.selected(), 'portrait');
-  assert(f.radios.every(radio => !radio.disabled));
+  assert(!f.disabled());
 });
 
 test('failed or malformed native reads stay disabled and recover when settings reopen', async t => {
@@ -101,12 +101,12 @@ test('failed or malformed native reads stay disabled and recover when settings r
       async getMode() { if (fail && result instanceof Error) throw result; return fail ? result : { mode: 'auto' }; },
       async setMode() { assert.fail('Unavailable settings must not write'); }
     } });
-    assert(f.radios.every(radio => radio.disabled));
-    assert.equal(f.status.dataset.posDisplayI18n, 'orientationLoadFailed');
+    assert(f.disabled());
+    assert.equal(f.state().status, 'orientationLoadFailed');
     fail = false;
     await f.w.loadPOSScreenOrientationSetting();
     assert.equal(f.selected(), 'auto');
-    assert(f.radios.every(radio => !radio.disabled));
+    assert(!f.disabled());
   }
 });
 
@@ -122,8 +122,8 @@ test('invalid selections never reach Android and all UI states have both transla
   }
   f.w.currentLang = 'vi';
   await f.w.selectPOSScreenOrientation('auto');
-  assert.equal(f.status.textContent, f.w.I18N.vi.orientationSaved);
+  assert.equal(f.w.t(f.state().status), f.w.I18N.vi.orientationSaved);
   f.w.currentLang = 'zh-TW';
   await f.w.loadPOSScreenOrientationSetting();
-  assert.equal(f.status.textContent, f.w.I18N['zh-TW'].orientationDeviceHint);
+  assert.equal(f.w.t(f.state().status), f.w.I18N['zh-TW'].orientationDeviceHint);
 });

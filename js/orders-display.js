@@ -16,16 +16,9 @@
     } catch (e) { /* Standalone and cross-origin pages use the local preference. */ }
   }
 
-  function syncControls() {
-    document.querySelectorAll('input[name="pos-text-size"]').forEach(input => {
-      input.checked = input.value === selected;
-    });
-  }
-
   function apply() {
     document.documentElement.setAttribute("data-pos-text-size", selected);
     if (isStaff) document.documentElement.style.setProperty("--pos-font-scale", window.getPOSTextScale());
-    syncControls();
     if (typeof window.syncLiveMobileView === "function") window.syncLiveMobileView();
     const frame = document.getElementById("staff-order-iframe");
     frame?.contentWindow?.postMessage({ type: "POS_TEXT_SIZE", value: selected }, window.location.origin);
@@ -48,6 +41,7 @@
     selected = value;
     try { localStorage.setItem(storageKey, selected); } catch (e) {}
     apply();
+    window.syncPOSSettingsView?.();
   };
 
   function detectFlexGapSupport() {
@@ -73,7 +67,6 @@
   apply();
   if (document.body) detectFlexGapSupport();
   document.addEventListener("DOMContentLoaded", function () {
-    syncControls();
     detectFlexGapSupport();
   });
   window.addEventListener("resize", apply, { passive: true });
@@ -81,6 +74,7 @@
     if (event.key !== storageKey && event.key !== null) return;
     selected = sizes.includes(event.newValue) ? event.newValue : "auto";
     apply();
+    window.syncPOSSettingsView?.();
   });
   if (isStaff && window.parent !== window) window.addEventListener("message", event => {
     if (event.source !== window.parent || event.origin !== window.location.origin || event.data?.type !== "POS_TEXT_SIZE") return;

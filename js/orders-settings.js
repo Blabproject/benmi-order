@@ -423,7 +423,6 @@ function openSettings() {
   renderStorePairingSection();
   if (typeof window.loadPOSScreenOrientationSetting === 'function') window.loadPOSScreenOrientationSetting();
   loadPOSPrinterSettings();
-  initSettingsScrollSpy();
   let lastTab = "setting-card-status";
   try { lastTab = sessionStorage.getItem("last_settings_tab") || lastTab; } catch (e) {}
   switchSettingTab(lastTab);
@@ -709,30 +708,6 @@ function openPaymentSettingsFromWorkspace() {
 }
 window.openPaymentSettingsFromWorkspace = openPaymentSettingsFromWorkspace;
 
-function updateTocFeatureItem(tocId, labelId, i18nKey, unlockedSvg, isFeatureEnabled) {
-  const tocItem = document.getElementById(tocId);
-  if (!tocItem) return;
-  const lockSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`;
-  const targetSvg = isFeatureEnabled ? unlockedSvg : lockSvg;
-  
-  const iconBox = tocItem.querySelector(".toc-icon-box");
-  const label = document.getElementById(labelId);
-  const chevron = tocItem.querySelector(".toc-chevron");
-
-  if (!iconBox || !label || !chevron) {
-    tocItem.innerHTML = `
-      <div class="toc-icon-box">${targetSvg}</div>
-      <span class="toc-item-label" id="${labelId}">${typeof t === 'function' ? t(i18nKey) : ''}</span>
-      <svg class="toc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="9 18 15 12 9 6"></polyline>
-      </svg>
-    `;
-  } else {
-    iconBox.innerHTML = targetSvg;
-    if (typeof t === 'function') label.innerText = t(i18nKey);
-  }
-}
-
 function renderDineInSetting() {
   const isFeatureEnabled = Array.isArray(window.currentTenantFeatures)
     ? window.currentTenantFeatures.includes('dine_in')
@@ -742,8 +717,7 @@ function renderDineInSetting() {
   const lockedBody = document.getElementById("setting-dinein-locked-body");
   const saveBtn = document.getElementById("btn-save-dinein-setting");
 
-  const DINEIN_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"></path><path d="M15 2v10"></path><path d="M15 14v8"></path><path d="M6 2v20"></path><path d="M6 2a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3"></path></svg>`;
-  updateTocFeatureItem("toc-item-dinein", "i18n-toc-dinein", "tocDineIn", DINEIN_SVG, isFeatureEnabled);
+  window.syncPOSSettingsView?.();
 
   if (!isFeatureEnabled) {
     if (unlockedBody) unlockedBody.style.display = "none";
@@ -1389,8 +1363,7 @@ function renderReportsSetting() {
     ? window.currentTenantFeatures.includes('reports')
     : (Array.isArray(currentTenantFeatures) ? currentTenantFeatures.includes('reports') : false);
 
-  const REPORTS_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>`;
-  updateTocFeatureItem("toc-item-reports", "i18n-toc-reports", "tocReports", REPORTS_SVG, isFeatureEnabled);
+  window.syncPOSSettingsView?.();
 
   const unlockedBody = document.getElementById("setting-reports-unlocked-body");
   const lockedBody = document.getElementById("setting-reports-locked-body");
@@ -1889,104 +1862,36 @@ async function testPOSPrinterStation(station) {
   }
 }
 
-// --- Settings Table of Contents (TOC) & ScrollSpy ---
-const SETTINGS_SECTIONS = [
-  { id: "setting-card-status", tocId: "toc-item-status" },
-  { id: "setting-card-ordermode", tocId: "toc-item-ordermode" },
-  { id: "setting-card-payment", tocId: "toc-item-payment" },
-  { id: "setting-card-hours", tocId: "toc-item-hours" },
-  { id: "setting-card-store-info", tocId: "toc-item-store-info" },
-  { id: "setting-card-ai", tocId: "toc-item-ai" },
-  { id: "setting-card-language", tocId: "toc-item-language" },
-  { id: "setting-card-display", tocId: "toc-item-display" },
-  { id: "setting-card-dinein", tocId: "toc-item-dinein" },
-  { id: "setting-card-tables", tocId: "toc-item-tables" },
-  { id: "setting-card-printer", tocId: "toc-item-printer" },
-  { id: "setting-card-reports", tocId: "toc-item-reports" },
-  { id: "setting-card-store-pairing", tocId: "toc-item-store-pairing" }
-];
-
-let isManualSettingScroll = false;
-let settingScrollTimeout = null;
-
-function setActiveTocItem(activeTocId) {
-  document.querySelectorAll(".settings-toc-item").forEach(item => {
-    if (item.id === activeTocId) {
-      item.classList.add("active");
-    } else {
-      item.classList.remove("active");
-    }
-  });
+// --- Settings navigation and legacy deep links ---
+function isPOSSettingAvailable(cardId) {
+  const root = document.documentElement;
+  if (cardId === "setting-card-reports") return !root?.matches?.(".is-native-app");
+  if (cardId === "setting-card-printer") return !root?.matches?.(".hide-web-printer, .is-web-platform.is-prod-env");
+  return true;
 }
+window.isPOSSettingAvailable = isPOSSettingAvailable;
 
 function switchSettingTab(cardId) {
-  if (!cardId) cardId = "setting-card-status";
-
-  // Map legacy/merged tab IDs to the unified store info card
-  if (
-    cardId === "setting-card-address" ||
-    cardId === "setting-card-announcement" ||
-    cardId === "setting-card-logo" ||
-    cardId === "toc-item-address" ||
-    cardId === "toc-item-announcement" ||
-    cardId === "toc-item-logo" ||
-    cardId === "address" ||
-    cardId === "announcement" ||
-    cardId === "logo" ||
-    cardId === "store-info"
-  ) {
-    cardId = "setting-card-store-info";
-  }
-
-  // Normalize if passed an ID without prefix or TOC ID
-  let targetId = cardId;
-  let matchedSec = SETTINGS_SECTIONS.find(s => s.id === cardId || s.tocId === cardId || s.id === `setting-card-${cardId}`);
-  if (matchedSec) {
-    targetId = matchedSec.id;
-  }
-
+  const section = (cardId || "status").replace(/^(setting-card-|toc-item-)/, "");
+  const resolvedSection = ["address", "announcement", "logo"].includes(section) ? "store-info" : section;
+  let targetId = `setting-card-${resolvedSection}`;
   let targetCard = document.getElementById(targetId);
-  if (!targetCard) {
+  if (!targetCard || !isPOSSettingAvailable(targetId)) {
     targetId = "setting-card-status";
-    targetCard = document.getElementById("setting-card-status");
-    matchedSec = SETTINGS_SECTIONS.find(s => s.id === "setting-card-status");
+    targetCard = document.getElementById(targetId);
   }
   if (!targetCard) return;
 
-  // If target card is hidden by platform rules (e.g. printer on web-prod or reports on native app)
-  const targetToc = matchedSec ? document.getElementById(matchedSec.tocId) : null;
-  const isPlatformHidden = targetToc && window.getComputedStyle(targetToc).display === "none";
-  if (isPlatformHidden) {
-    // Pick the first section whose TOC item is visible
-    for (const sec of SETTINGS_SECTIONS) {
-      const toc = document.getElementById(sec.tocId);
-      if (toc && window.getComputedStyle(toc).display !== "none") {
-        const el = document.getElementById(sec.id);
-        if (el) {
-          targetCard = el;
-          targetId = sec.id;
-          matchedSec = sec;
-          break;
-        }
-      }
-    }
-  }
-
   if (targetId !== "setting-card-store-pairing") resetStorePinChangeForm();
 
-  // 1. Hide all cards and show target card
   document.querySelectorAll(".settings-card").forEach(card => {
     card.classList.remove("active");
   });
   targetCard.classList.add("active");
   if (targetId === "setting-card-ai" && typeof loadAISettings === "function") loadAISettings();
 
-  // 2. Set active TOC item
-  if (matchedSec) {
-    setActiveTocItem(matchedSec.tocId);
-  }
+  window.syncPOSSettingsView?.();
 
-  // 3. Toggle printer status bar (Only show when on the printer settings tab)
   const printerStatusBar = document.getElementById("settings-printer-status-bar");
   if (printerStatusBar) {
     printerStatusBar.style.display = (targetId === "setting-card-printer") ? "inline-flex" : "none";
@@ -1995,72 +1900,18 @@ function switchSettingTab(cardId) {
     updateSettingsPrinterStatusDisplay();
   }
 
-  // 4. Scroll container to top
   const container = document.getElementById("settings-scroll-container");
   if (container) {
     container.scrollTop = 0;
   }
 
-  // 5. Save state for session reload
   try {
     sessionStorage.setItem("last_settings_tab", targetId);
   } catch (e) {}
 }
 window.switchSettingTab = switchSettingTab;
 
-function scrollToSettingSection(sectionId) {
-  switchSettingTab(sectionId);
-
-  const container = document.getElementById("settings-scroll-container");
-  const target = document.getElementById(sectionId);
-  if (!container || !target) return;
-
-  const found = SETTINGS_SECTIONS.find(s => s.id === sectionId);
-  if (found) {
-    setActiveTocItem(found.tocId);
-  }
-
-  isManualSettingScroll = true;
-  if (settingScrollTimeout) clearTimeout(settingScrollTimeout);
-
-  const containerRect = container.getBoundingClientRect();
-  const targetRect = target.getBoundingClientRect();
-  const relativeTop = targetRect.top - containerRect.top + container.scrollTop;
-  container.scrollTo({ top: Math.max(0, relativeTop - 12), behavior: "smooth" });
-
-  settingScrollTimeout = setTimeout(() => {
-    isManualSettingScroll = false;
-  }, 800);
-}
-window.scrollToSettingSection = scrollToSettingSection;
-
-function initSettingsScrollSpy() {
-  const container = document.getElementById("settings-scroll-container");
-  if (!container || container.dataset.scrollSpyInit) return;
-  container.dataset.scrollSpyInit = "true";
-
-  container.addEventListener("scroll", () => {
-    if (isManualSettingScroll) return;
-    const containerTop = container.getBoundingClientRect().top;
-
-    let currentActive = null;
-    for (const sec of SETTINGS_SECTIONS) {
-      const el = document.getElementById(sec.id);
-      if (el && el.offsetParent !== null) {
-        if (!currentActive) currentActive = sec;
-        const rect = el.getBoundingClientRect();
-        // If element top is within upper portion of container
-        if (rect.top - containerTop <= 120) {
-          currentActive = sec;
-        }
-      }
-    }
-
-    if (currentActive) {
-      setActiveTocItem(currentActive.tocId);
-    }
-  }, { passive: true });
-}
+window.scrollToSettingSection = switchSettingTab;
 
 function updateSettingsPrinterStatusDisplay() {
   const isVi = (typeof currentLang !== "undefined" && currentLang === "vi") || 

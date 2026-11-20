@@ -1,81 +1,65 @@
 // Android owns this device preference, including restoration before the POS loads.
 (function () {
   const modes = ['auto', 'portrait', 'landscape'];
-  let selected = 'landscape';
-  let ready = false;
+  let available = false;
+  let selected = null;
   let busy = false;
+  let status = 'orientationDeviceHint';
 
   function getPlugin() {
     return window.Capacitor?.Plugins?.POSScreenOrientation;
   }
 
-  function syncControls() {
-    document.querySelectorAll('input[name="pos-screen-orientation"]').forEach(input => {
-      input.checked = ready && input.value === selected;
-      input.disabled = busy || !ready;
-    });
+  function refreshView() {
+    window.syncPOSSettingsView?.();
   }
 
-  function setStatus(key) {
-    const status = document.getElementById('pos-screen-orientation-status');
-    if (!status) return;
-    status.dataset.posDisplayI18n = key;
-    status.textContent = t(key);
-  }
+  window.getPOSScreenOrientationSetting = () => ({ available, selected, busy, status });
 
   window.loadPOSScreenOrientationSetting = async function () {
-    const section = document.getElementById('pos-screen-orientation');
-    if (!section || busy) return;
-    const native = typeof window.isNativeAppPlatform === 'function' && window.isNativeAppPlatform();
-    section.hidden = !native;
-    if (!native) return;
+    if (busy) return;
+    available = typeof window.isNativeAppPlatform === 'function' && window.isNativeAppPlatform();
+    if (!available) {
+      refreshView();
+      return;
+    }
     const plugin = getPlugin();
     if (!plugin || typeof plugin.getMode !== 'function' || typeof plugin.setMode !== 'function') {
-      ready = false;
-      syncControls();
-      setStatus('orientationUpdateRequired');
+      selected = null;
+      status = 'orientationUpdateRequired';
+      refreshView();
       return;
     }
     busy = true;
-    syncControls();
+    refreshView();
     try {
       const result = await plugin.getMode();
       if (!modes.includes(result?.mode)) throw new Error('Invalid orientation response');
       selected = result.mode;
-      ready = true;
-      setStatus('orientationDeviceHint');
+      status = 'orientationDeviceHint';
     } catch (error) {
-      ready = false;
-      setStatus('orientationLoadFailed');
+      selected = null;
+      status = 'orientationLoadFailed';
     } finally {
       busy = false;
-      syncControls();
+      refreshView();
     }
   };
 
   window.selectPOSScreenOrientation = async function (mode) {
-    if (busy || !ready || !modes.includes(mode)) {
-      syncControls();
-      return;
-    }
+    if (!available || busy || !selected || !modes.includes(mode)) return;
     busy = true;
-    syncControls();
+    refreshView();
     try {
       const result = await getPlugin().setMode({ mode });
       if (!modes.includes(result?.mode)) throw new Error('Invalid orientation response');
       selected = result.mode;
-      setStatus('orientationSaved');
+      status = 'orientationSaved';
     } catch (error) {
-      setStatus('orientationSaveFailed');
+      status = 'orientationSaveFailed';
     } finally {
       busy = false;
-      syncControls();
+      refreshView();
     }
   };
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', window.loadPOSScreenOrientationSetting);
-  } else {
-    window.loadPOSScreenOrientationSetting();
-  }
 })();

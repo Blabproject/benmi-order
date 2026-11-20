@@ -20,11 +20,12 @@ function assert(condition, message) {
   }
 }
 
-// 1. Verify Structure in HTML
-assert(ordersHtml.includes('id="toc-item-store-info"'), 'TOC contains #toc-item-store-info');
-assert(!ordersHtml.includes('id="toc-item-address"'), 'Legacy #toc-item-address removed from TOC');
-assert(!ordersHtml.includes('id="toc-item-announcement"'), 'Legacy #toc-item-announcement removed from TOC');
-assert(!ordersHtml.includes('id="toc-item-logo"'), 'Legacy #toc-item-logo removed from TOC');
+// 1. Verify the unified Store Info panel and its React navigation route.
+const settingsSections = fs.readFileSync(path.join(__dirname, '../frontend/apps/pos/settings-sections.tsx'), 'utf-8');
+assert(settingsSections.includes("id: 'store-info'"), 'TOC contains the unified store-info route');
+for (const id of ['address', 'announcement', 'logo']) {
+  assert(!settingsSections.includes(`id: '${id}'`), `Legacy ${id} has no separate TOC item`);
+}
 
 assert(ordersHtml.includes('id="setting-card-store-info"'), 'Settings container contains unified #setting-card-store-info');
 assert(ordersHtml.includes('id="setting-logo-preview"'), 'Store info contains #setting-logo-preview');

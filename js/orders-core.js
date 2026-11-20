@@ -131,6 +131,7 @@ function syncPlatformClasses() {
       }
     });
   }
+  window.syncPOSSettingsView?.();
 }
 syncPlatformClasses();
 if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
@@ -270,6 +271,7 @@ function applyTenantBranding(tenant) {
     window.currentTenantFeatures = [];
   }
   window.__posFeaturesResolved = true;
+  window.syncPOSSettingsView?.();
   if (typeof window.syncMenuScheduleEntryButtonVisibility === "function") {
     window.syncMenuScheduleEntryButtonVisibility();
   }

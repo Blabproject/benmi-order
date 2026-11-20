@@ -2923,10 +2923,6 @@ function setLanguage(lang) {
 function applyLanguageToDOM() {
   const dict = I18N[currentLang];
   if (!dict) return;
-  document.querySelectorAll("[data-pos-display-i18n]").forEach(node => {
-    node.textContent = dict[node.dataset.posDisplayI18n];
-  });
-
   // Topbar
   const labelMap = { "zh-TW": "繁體中文", "vi": "Tiếng Việt" };
   const currentLabel = document.getElementById("current-lang-label");
@@ -3327,38 +3323,7 @@ function applyLanguageToDOM() {
     renderAutoOpenBeforeMinutesUI(currentAutoOpenBeforeMinutes);
   }
 
-  const tocTitle = document.getElementById("i18n-toc-settings-title");
-  if (tocTitle) tocTitle.innerText = dict.tocSettingsTitle;
-  const tocSub = document.getElementById("i18n-toc-settings-sub");
-  if (tocSub) tocSub.innerText = dict.tocSettingsSub || (currentLang === "vi" ? "Cấu hình hệ thống" : "系統與門市參數");
-  const tocStatus = document.getElementById("i18n-toc-status");
-  if (tocStatus) tocStatus.innerText = dict.tocStoreStatus;
-  const tocOrderMode = document.getElementById("i18n-toc-ordermode");
-  if (tocOrderMode) tocOrderMode.innerText = dict.tocOrderMode;
-  const tocPayment = document.getElementById("i18n-toc-payment");
-  if (tocPayment) tocPayment.innerText = dict.tocPayment;
-  const tocHours = document.getElementById("i18n-toc-hours");
-  if (tocHours) tocHours.innerText = dict.tocHours;
-  const tocStoreInfo = document.getElementById("i18n-toc-store-info");
-  if (tocStoreInfo) tocStoreInfo.innerText = dict.tocStoreInfo;
-  const tocAddress = document.getElementById("i18n-toc-address");
-  if (tocAddress) tocAddress.innerText = dict.tocAddress;
-  const tocAnn = document.getElementById("i18n-toc-announcement");
-  if (tocAnn) tocAnn.innerText = dict.tocAnnouncement;
-  const tocLogo = document.getElementById("i18n-toc-logo");
-  if (tocLogo) tocLogo.innerText = dict.tocLogo;
-  const tocLang = document.getElementById("i18n-toc-language");
-  if (tocLang) tocLang.innerText = dict.tocLanguage;
-  const tocDine = document.getElementById("i18n-toc-dinein");
-  if (tocDine) tocDine.innerText = dict.tocDineIn;
-  const tocPrn = document.getElementById("i18n-toc-printer");
-  if (tocPrn) tocPrn.innerText = dict.tocPrinter;
-  const tocRep = document.getElementById("i18n-toc-reports");
-  if (tocRep) tocRep.innerText = dict.tocReports;
-  const tocStoreP = document.getElementById("i18n-toc-store-pairing");
-  if (tocStoreP) tocStoreP.innerText = dict.tocStorePairing;
-  const tocTables = document.getElementById("i18n-toc-tables");
-  if (tocTables) tocTables.innerText = dict.tabTables;
+  window.syncPOSSettingsView?.();
   const btnStaffOrder = document.getElementById("i18n-btn-staff-order");
   if (btnStaffOrder) btnStaffOrder.innerText = dict.btnStaffOrder;
   const setTablesT = document.getElementById("i18n-setting-tables-title");

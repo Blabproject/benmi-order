@@ -6486,7 +6486,7 @@ select.form-input:focus {
 }
 
 /* Warm F&B Rounded Checkboxes, Radios, Option Cards & Operating Hours Controls */
-.settings-content-panel label:not(.ui-switch) input[type="checkbox"],
+.settings-content-panel label:not(.ui-switch) input[type="checkbox"]:not([role="switch"]),
 .settings-content-panel .hours-day-checkbox {
   --fnb-check-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'></polyline></svg>");
   appearance: none;
@@ -6504,7 +6504,7 @@ select.form-input:focus {
   transition: background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
-.settings-content-panel label:not(.ui-switch) input[type="checkbox"]::before,
+.settings-content-panel label:not(.ui-switch) input[type="checkbox"]:not([role="switch"])::before,
 .settings-content-panel .hours-day-checkbox::before {
   content: "";
   inline-size: 13px;
@@ -6516,44 +6516,44 @@ select.form-input:focus {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .settings-content-panel label:not(.ui-switch) input[type="checkbox"]::before,
+  .settings-content-panel label:not(.ui-switch) input[type="checkbox"]:not([role="switch"])::before,
   .settings-content-panel .hours-day-checkbox::before {
     transition: scale 140ms ease;
   }
 }
 
-.settings-content-panel label:not(.ui-switch) input[type="checkbox"]:hover:not(:disabled),
+.settings-content-panel label:not(.ui-switch) input[type="checkbox"]:not([role="switch"]):hover:not(:disabled),
 .settings-content-panel .hours-day-checkbox:hover:not(:disabled) {
   border-color: #22c55e;
   background-color: #f0fdf4;
 }
 
-.settings-content-panel label:not(.ui-switch) input[type="checkbox"]:checked,
+.settings-content-panel label:not(.ui-switch) input[type="checkbox"]:not([role="switch"]):checked,
 .settings-content-panel .hours-day-checkbox:checked {
   background-color: #16a34a;
   border-color: #16a34a;
   box-shadow: 0 2px 6px rgba(22, 163, 74, 0.22);
 }
 
-.settings-content-panel label:not(.ui-switch) input[type="checkbox"]:checked::before,
+.settings-content-panel label:not(.ui-switch) input[type="checkbox"]:not([role="switch"]):checked::before,
 .settings-content-panel .hours-day-checkbox:checked::before {
   scale: 1;
 }
 
-.settings-content-panel label:not(.ui-switch) input[type="checkbox"]:focus-visible,
+.settings-content-panel label:not(.ui-switch) input[type="checkbox"]:not([role="switch"]):focus-visible,
 .settings-content-panel .hours-day-checkbox:focus-visible {
   outline: 2px solid #16a34a;
   outline-offset: 2px;
 }
 
-.settings-content-panel label:not(.ui-switch) input[type="checkbox"]:disabled,
+.settings-content-panel label:not(.ui-switch) input[type="checkbox"]:not([role="switch"]):disabled,
 .settings-content-panel .hours-day-checkbox:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
 
 @media (forced-colors: active) {
-  .settings-content-panel label:not(.ui-switch) input[type="checkbox"]::before,
+  .settings-content-panel label:not(.ui-switch) input[type="checkbox"]:not([role="switch"])::before,
   .settings-content-panel .hours-day-checkbox::before {
     background-color: CanvasText;
   }
@@ -12031,7 +12031,6 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
 
 /* Display settings: native radio groups offer keyboard and touch interaction. */
 .pos-display-description { font-size: var(--pos-text-meta); color: #475569; margin: 6px 0 0; }
-.pos-display-body { padding: 20px; display: grid; gap: 20px; }
 .pos-display-options { border: 0; margin: 0; padding: 0; display: grid; gap: 10px; min-width: 0; }
 .pos-display-label { font-size: var(--pos-text-meta); color: #475569; font-weight: 700; margin-bottom: 8px; }
 .pos-display-option {
@@ -12066,7 +12065,6 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
     overflow: hidden !important;
     gap: 0 !important;
   }
-  .pos-display-body { padding: 14px; }
 
   /* Mobile Navigation Drawer & Hamburger Trigger (Rounded Square Button) */
   .mobile-nav-toggle-btn {

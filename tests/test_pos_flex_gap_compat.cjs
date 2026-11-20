@@ -3,23 +3,28 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
+const { execFileSync } = require('node:child_process');
 
 const root = path.resolve(__dirname, '..');
-const read = file => fs.readFileSync(path.join(root, file), 'utf8');
+const readDist = pathname => fs.readFileSync(path.join(root, 'dist', pathname), 'utf8');
 
 async function openSettingsInPOS(page) {
+  if (!fs.existsSync(path.join(root, 'dist/.vite/manifest.json'))) {
+    execFileSync(process.execPath, [path.join(root, 'node_modules/vite/bin/vite.js'), 'build'], { cwd: root, stdio: 'inherit' });
+  }
   await page.route('**/*', route => {
     const pathname = new URL(route.request().url()).pathname;
     if (pathname === '/orders.html') {
       return route.fulfill({
         contentType: 'text/html',
-        body: read('orders.html').replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '')
+        body: readDist('orders.html').replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '')
       });
     }
-    if (/^\/(js|css)\/[\w.-]+$/.test(pathname)) {
+    if (/^\/(js|css|assets)\/[\w.-]+$/.test(pathname)) {
       return route.fulfill({
         contentType: pathname.endsWith('.css') ? 'text/css' : 'text/javascript',
-        body: read(pathname.slice(1))
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: readDist(pathname.slice(1))
       });
     }
     return route.fulfill({ contentType: 'application/json', body: '{}' });

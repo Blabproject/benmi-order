@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
+import tailwindcss from 'tailwindcss';
 import { defineConfig, type Plugin } from 'vite';
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
@@ -67,6 +68,18 @@ export default defineConfig({
     alias: {
       '@shared': path.resolve(rootDir, 'frontend/shared'),
       '@pos': path.resolve(rootDir, 'frontend/apps/pos')
+    }
+  },
+  css: {
+    postcss: {
+      plugins: [tailwindcss({
+        content: [
+          './frontend/apps/pos/{settings-bridge,PosDisplaySettings}.tsx',
+          './frontend/shared/ui/tabs.tsx'
+        ],
+        prefix: 'ps-',
+        corePlugins: { preflight: false }
+      })]
     }
   },
   publicDir: false,
