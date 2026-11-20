@@ -13,6 +13,12 @@ const ordersI18nJs = fs.readFileSync(path.join(__dirname, '../js/orders-i18n.js'
 const settingsBridge = fs.readFileSync(path.join(__dirname, '../frontend/apps/pos/settings-bridge.tsx'), 'utf-8');
 const settingsSections = fs.readFileSync(path.join(__dirname, '../frontend/apps/pos/settings-sections.tsx'), 'utf-8');
 
+const readPanel = name => fs.readFileSync(path.join(__dirname, '../frontend/apps/pos/settings', name + '.tsx'), 'utf-8');
+const status = readPanel('StoreStatusSettings');
+const panel = readPanel('SettingsPanel');
+const storeInfo = readPanel('StoreInfoSettings');
+const printer = readPanel('PrinterSettings');
+
 let errors = 0;
 
 function assert(condition, message) {
@@ -82,9 +88,9 @@ assert(
 
 // 3. HTML Verification
 assert(
-  ordersHtml.includes('class="settings-card active" id="setting-card-status"') ||
-  ordersHtml.includes('id="setting-card-status" class="settings-card active"'),
-  'HTML: Initial setting-card-status has .active class'
+  status.includes('<SettingsPanel section="status">') &&
+  panel.includes("section === 'status' ? ' active'"),
+  'React: Initial setting-card-status has .active class'
 );
 
 assert(
@@ -95,16 +101,16 @@ assert(
 );
 
 assert(
-  ordersHtml.includes('id="setting-card-store-info"') &&
-  ordersHtml.includes('id="setting-logo-preview"') &&
-  ordersHtml.includes('id="setting-store-announcement-input"') &&
-  ordersHtml.includes('id="setting-store-address-input"'),
-  'HTML: Unified Store Info card contains logo preview, announcement input, and address input'
+  storeInfo.includes('<SettingsPanel section="store-info">') &&
+  storeInfo.includes('id="setting-logo-preview"') &&
+  storeInfo.includes('id="setting-store-announcement-input"') &&
+  storeInfo.includes('id="setting-store-address-input"'),
+  'React: Unified Store Info card contains logo preview, announcement input, and address input'
 );
 
 assert(
-  ordersHtml.includes('id="settings-printer-status-bar"'),
-  'HTML: Printer status pill is available in the Settings panel'
+  printer.includes('id="settings-printer-status-bar"'),
+  'React: Printer status pill is available in the Settings panel'
 );
 
 assert(
@@ -114,11 +120,11 @@ assert(
 );
 
 assert(
-  ordersHtml.includes('class="printer-station-card"') &&
-  ordersHtml.includes('class="ui-switch"') &&
-  ordersHtml.includes('id="printer-cashier-protocol" class="form-input form-select"') &&
-  ordersHtml.includes('id="printer-kitchen-protocol" class="form-input form-select"'),
-  'HTML: Printer stations modernized with .printer-station-card, .ui-switch, and .form-select'
+  printer.includes('<PrinterStation station="cashier" />') &&
+  printer.includes('<PrinterStation station="kitchen" />') &&
+  printer.includes('className="ui-switch"') &&
+  printer.includes('<NativeSelect'),
+  'React: Both printer stations share a component with native shadcn form controls'
 );
 
 // 4. I18N Verification

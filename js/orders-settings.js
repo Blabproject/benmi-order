@@ -141,7 +141,9 @@ function renderStoreStatusUI(status) {
 
   // Update boxes in Settings panel
   document.querySelectorAll(".status-select-box").forEach(box => {
-    box.classList.toggle("active", box.id === `status-box-${currentStoreStatus}`);
+    const pressed = box.id === `status-box-${currentStoreStatus}`;
+    box.classList.toggle("active", pressed);
+    box.setAttribute?.("aria-pressed", String(pressed));
   });
 }
 
@@ -787,43 +789,9 @@ function escapeShiftHtml(str) {
   return String(str ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[ch]));
 }
 
-function renderLegacyDailyOperatingHours(container) {
-  const dayNamesList = DAY_NAMES[currentLang] || DAY_NAMES["zh-TW"];
-  const closeIconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
-  for (let i = 1; i <= 7; i++) {
-    const dayIdx = i === 7 ? 0 : i;
-    const shifts = (storeOperatingHours && storeOperatingHours[dayIdx]) || [];
-    const isOpen = shifts.length > 0;
-    const row = document.createElement("div");
-    row.className = `hours-day-card ${isOpen ? "is-open" : "is-closed"}`;
-    let shiftsHtml = "";
-    shifts.forEach((shift, sIdx) => {
-      shiftsHtml += `
-        <div class="hours-shift-row">
-          <input type="time" class="hours-time-input" aria-label="${escapeShiftHtml(dayNamesList[dayIdx])} ${escapeShiftHtml(t('startTime'))}" id="sh-start-${dayIdx}-${sIdx}" value="${shift.start}">
-          <span class="hours-shift-sep">-</span>
-          <input type="time" class="hours-time-input" aria-label="${escapeShiftHtml(dayNamesList[dayIdx])} ${escapeShiftHtml(t('endTime'))}" id="sh-end-${dayIdx}-${sIdx}" value="${shift.end}">
-          <button type="button" class="hours-remove-shift-btn" aria-label="${escapeShiftHtml(t('shiftDeleteBtn'))}" onclick="removeShift(${dayIdx}, ${sIdx})">${closeIconSvg}</button>
-        </div>`;
-    });
-    row.innerHTML = `
-      <div class="hours-day-header">
-        <label class="hours-day-toggle">
-          <input type="checkbox" class="hours-day-checkbox" ${isOpen ? 'checked' : ''} onchange="toggleDayStatus(${dayIdx}, this.checked)">
-          <span class="hours-day-name">${dayNamesList[dayIdx]}</span>
-        </label>
-        ${isOpen ? `<button type="button" class="hours-add-shift-btn" onclick="addShift(${dayIdx})">${t('btnAddShift')}</button>` : `<span class="hours-closed-badge">${t('closedDay')}</span>`}
-      </div>
-      ${isOpen ? `<div id="shifts-box-${dayIdx}">${shiftsHtml}</div>` : ''}`;
-    container.appendChild(row);
-  }
-}
-
 function renderOperatingHours() {
-  const container = document.getElementById("hours-settings-list") || document.getElementById("settings-hours-container");
-  if (!container) return;
-  container.innerHTML = "";
-  renderLegacyDailyOperatingHours(container);
+  const days = DAY_NAMES[currentLang] || DAY_NAMES["zh-TW"];
+  window.renderPOSOperatingHours?.(days, storeOperatingHours || {});
 }
 
 function syncOperatingHoursFromDOM() {
@@ -1495,7 +1463,7 @@ function attachPrinterAutoSave() {
   card.addEventListener("change", (e) => {
     if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") {
       clearTimeout(printerAutoSaveDebounceTimer);
-      savePOSPrinterSettings(true);
+      queueMicrotask(() => savePOSPrinterSettings(true));
     }
   });
 }
@@ -2338,19 +2306,13 @@ async function loadRestaurantTables() {
   const tenantId = (typeof getTenantIdFromUrl === "function" && getTenantIdFromUrl()) || "";
   if (!tenantId) return;
 
-  const tbody = document.getElementById("tables-list-tbody");
-  if (tbody) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 24px; color: #94a3b8;">${t("staffLoading")}</td></tr>`;
-  }
+  window.renderPOSRestaurantTables?.({ state: 'loading' });
 
   const workerUrl = typeof WORKER_BASE !== "undefined" ? WORKER_BASE : "https://benmi-worker-official.thuanmnc.workers.dev";
   const res = await fetch(`${workerUrl}/api/staff/tables?tenant_id=${encodeURIComponent(tenantId)}&include_inactive=1&_t=${Date.now()}`);
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 24px; color: #ef4444;">${escapeHtml(t("tableSaveFail"))}</td></tr>`;
-    }
+    window.renderPOSRestaurantTables?.({ state: 'error' });
     return;
   }
 
@@ -2360,111 +2322,11 @@ async function loadRestaurantTables() {
 }
 
 function renderRestaurantTablesList() {
-  const tbody = document.getElementById("tables-list-tbody");
-  if (!tbody) return;
-
-  if (currentRestaurantTables.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="4" style="padding: 0;">
-          <div class="restaurant-tables-empty-state">
-            <div class="restaurant-tables-empty-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="7" height="7"></rect>
-                <rect x="14" y="3" width="7" height="7"></rect>
-                <rect x="14" y="14" width="7" height="7"></rect>
-                <rect x="3" y="14" width="7" height="7"></rect>
-              </svg>
-            </div>
-            <div style="font-weight: 800; font-size: 15px; color: #1e293b; margin-bottom: 4px;">${t("tableEmptyList") || t("staffNoTables")}</div>
-            <div style="font-size: 13px; color: #94a3b8;">${t("tableEmptyListSub") || ""}</div>
-          </div>
-        </td>
-      </tr>
-    `;
-    return;
-  }
-
-  tbody.innerHTML = currentRestaurantTables.map((table, index) => {
-    const isActive = table.is_active === 1 || table.is_active === true;
-    const hasActiveOrder = !!table.active_order_key;
-    let statusPill = "";
-    if (isActive) {
-      if (hasActiveOrder) {
-        const orderCode = escapeHtml(OrderCode.format(table.active_display_key || table.active_order_id || ''));
-        statusPill = `<span class="restaurant-table-status-pill status-occupied" title="${t("tableOccupied")} ${orderCode}">
-          <span class="restaurant-table-status-dot"></span>
-          <span>${t("tableOccupied")}</span>
-        </span><span class="restaurant-table-order-code">${orderCode}</span>`;
-      } else {
-        statusPill = `<span class="restaurant-table-status-pill status-empty">
-          <span class="restaurant-table-status-dot"></span>
-          <span>${t("tableEmpty")}</span>
-        </span>`;
-      }
-    } else {
-      statusPill = `<span class="restaurant-table-status-pill status-disabled">
-        <span class="restaurant-table-status-dot"></span>
-        <span>${t("tableStatusDisabled")}</span>
-      </span>`;
-    }
-
-    const canWrite = !!window.staffOrderingCapabilities?.tables_write;
-    const disabledReason = !canWrite ? t("tableNoWritePermission") : hasActiveOrder ? t("tableDisableOccupied") : '';
-    const reasonId = `table-action-reason-${index}`;
-    const disableAction = disabledReason ? `disabled aria-describedby="${reasonId}"` : '';
-
-    return `
-      <tr class="restaurant-table-row" data-table-id="${escapeHtml(table.id)}">
-        <td class="table-cell-name" data-label="${escapeHtml(t('tableName'))}">
-          <div class="restaurant-table-name-wrap">
-            <span class="restaurant-table-name-text">${escapeHtml(table.label)}</span>
-          </div>
-        </td>
-        <td class="table-cell-sort" data-label="${escapeHtml(t('tableSort'))}">
-          <span class="restaurant-table-sort-badge">${table.sort_order || 0}</span>
-        </td>
-        <td class="table-cell-status" data-label="${escapeHtml(t('tableStatus'))}">
-          ${statusPill}
-        </td>
-        <td class="table-cell-actions" data-label="${escapeHtml(t('tableAction'))}">
-          <div class="restaurant-table-actions-group">
-            <button type="button" class="table-action-btn table-action-btn-qr" onclick="openTableQrModal('${table.id}')" title="${t("tableQrBtn")}">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="7" height="7"></rect>
-                <rect x="14" y="3" width="7" height="7"></rect>
-                <rect x="14" y="14" width="7" height="7"></rect>
-                <rect x="3" y="14" width="7" height="7"></rect>
-              </svg>
-              <span>${t("tableQrBtn") || "QR Code"}</span>
-            </button>
-            <button type="button" class="table-action-btn table-action-btn-edit" ${!canWrite ? `disabled aria-describedby="${reasonId}"` : ''} onclick="openEditTableModal('${table.id}')" title="${escapeHtml(!canWrite ? disabledReason : t('tableEdit'))}">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-              </svg>
-              <span>${t("tableEdit")}</span>
-            </button>
-            <button type="button" class="table-action-btn ${isActive ? 'table-action-btn-disable' : 'table-action-btn-enable'}" ${disableAction} onclick="toggleTableActive('${table.id}', ${isActive ? 0 : 1})" title="${escapeHtml(disabledReason || (isActive ? t('tableDisable') : t('tableEnable')))}">
-              ${isActive ? `
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
-                </svg>
-                <span>${t("tableDisable")}</span>
-              ` : `
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                <span>${t("tableEnable")}</span>
-              `}
-            </button>
-          </div>
-          ${disabledReason ? `<p class="restaurant-table-action-reason" id="${reasonId}">${escapeHtml(disabledReason)}</p>` : ''}
-        </td>
-      </tr>
-    `;
-  }).join("");
+  window.renderPOSRestaurantTables?.({
+    state: 'ready',
+    tables: currentRestaurantTables,
+    canWrite: Boolean(window.staffOrderingCapabilities?.tables_write)
+  });
 }
 
 function openAddTableModal() {

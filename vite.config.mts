@@ -74,8 +74,9 @@ export default defineConfig({
     postcss: {
       plugins: [tailwindcss({
         content: [
-          './frontend/apps/pos/{settings-bridge,PosDisplaySettings}.tsx',
-          './frontend/shared/ui/{card,tabs}.tsx'
+          './frontend/apps/pos/{settings-bridge,PosDisplaySettings,PosAiSettingsPanel}.tsx',
+          './frontend/apps/pos/settings/**/*.tsx',
+          './frontend/shared/ui/*.tsx'
         ],
         prefix: 'ps-',
         corePlugins: { preflight: false }

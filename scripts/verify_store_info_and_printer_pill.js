@@ -10,6 +10,9 @@ const ordersHtml = fs.readFileSync(path.join(__dirname, '../orders.html'), 'utf-
 const ordersI18nJs = fs.readFileSync(path.join(__dirname, '../js/orders-i18n.js'), 'utf-8');
 const ordersSettingsJs = fs.readFileSync(path.join(__dirname, '../js/orders-settings.js'), 'utf-8');
 
+const storeInfo = fs.readFileSync(path.join(__dirname, '../frontend/apps/pos/settings/StoreInfoSettings.tsx'), 'utf-8');
+const printer = fs.readFileSync(path.join(__dirname, '../frontend/apps/pos/settings/PrinterSettings.tsx'), 'utf-8');
+
 let errors = 0;
 function assert(condition, message) {
   if (!condition) {
@@ -27,23 +30,23 @@ for (const id of ['address', 'announcement', 'logo']) {
   assert(!settingsSections.includes(`id: '${id}'`), `Legacy ${id} has no separate TOC item`);
 }
 
-assert(ordersHtml.includes('id="setting-card-store-info"'), 'Settings container contains unified #setting-card-store-info');
-assert(ordersHtml.includes('id="setting-logo-preview"'), 'Store info contains #setting-logo-preview');
-assert(ordersHtml.includes('id="setting-store-announcement-input"'), 'Store info contains #setting-store-announcement-input');
-assert(ordersHtml.includes('id="setting-store-address-input"'), 'Store info contains #setting-store-address-input');
-assert(ordersHtml.includes('id="btn-save-all-store-info"'), 'Store info contains unified #btn-save-all-store-info');
+assert(storeInfo.includes('<SettingsPanel section="store-info">'), 'Settings container contains unified #setting-card-store-info');
+assert(storeInfo.includes('id="setting-logo-preview"'), 'Store info contains #setting-logo-preview');
+assert(storeInfo.includes('id="setting-store-announcement-input"'), 'Store info contains #setting-store-announcement-input');
+assert(storeInfo.includes('id="setting-store-address-input"'), 'Store info contains #setting-store-address-input');
+assert(storeInfo.includes('id="btn-save-all-store-info"'), 'Store info contains unified #btn-save-all-store-info');
 
 // Verify printer status bar is located inside setting-card-printer next to btn-open-printer-guide
 assert(
-  ordersHtml.includes('id="setting-card-printer"') &&
-  ordersHtml.includes('id="settings-printer-status-bar"') &&
-  ordersHtml.indexOf('id="settings-printer-status-bar"') < ordersHtml.indexOf('id="btn-open-printer-guide"'),
+  printer.includes('<SettingsPanel section="printer">') &&
+  printer.includes('id="settings-printer-status-bar"') &&
+  printer.indexOf('id="settings-printer-status-bar"') < printer.indexOf('id="btn-open-printer-guide"'),
   'Printer status pill is located inside #setting-card-printer next to #btn-open-printer-guide'
 );
 
 // Verify the printer title is rendered inside the printer card.
 assert(
-  ordersHtml.includes('id="i18n-setting-printer-title">出單與印表機</h2>') &&
+  printer.includes('id="i18n-setting-printer-title">出單與印表機</h2>') &&
   !ordersHtml.includes('id="i18n-settings-title"'),
   'The printer card provides the content heading'
 );

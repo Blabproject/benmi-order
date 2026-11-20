@@ -170,6 +170,60 @@ async function run() {
       }
     }
 
+    // Every setting panel mounts in the shadcn shell, independent of platform visibility.
+    assert.equal(await page.locator('#settings-scroll-container > [data-slot="card"][role="tabpanel"]').count(), 13);
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.evaluate(async () => {
+      closeModal();
+      switchTab('settings');
+      await loadOperatingHours();
+      storeOperatingHours = { 1: [{ start: '08:00', end: '21:00' }] };
+      storeScheduleRevision = 25;
+      switchSettingTab('hours');
+      renderOperatingHours();
+    });
+    await page.locator('#sh-start-1-0').fill('09:15');
+    await page.evaluate(() => setLanguage('zh-TW'));
+    assert.equal(await page.locator('#sh-start-1-0').inputValue(), '09:15');
+    await page.locator('#shifts-box-1').locator('..').getByRole('button', { name: await page.evaluate(() => t('btnAddShift')) }).click();
+    assert.equal(await page.locator('#sh-start-1-1').inputValue(), '12:00');
+    await page.locator('#shifts-box-1 button').last().click();
+    assert.equal(await page.locator('#sh-start-1-0').inputValue(), '09:15');
+    await page.evaluate(() => {
+      const originalFetch = window.fetch;
+      window.fetch = async (url, options = {}) => {
+        if (String(url).includes('/api/config') && options.method === 'POST') {
+          window.hoursSaveRequest = JSON.parse(options.body);
+          return new Response(JSON.stringify({ scheduleRevision: 26, operatingHours: window.hoursSaveRequest.operatingHours }));
+        }
+        return originalFetch(url, options);
+      };
+      window.alert = () => {};
+    });
+    await page.locator('#btn-save-hours').click();
+    await page.waitForFunction(() => Boolean(window.hoursSaveRequest));
+    const hoursPayload = await page.evaluate(() => window.hoursSaveRequest);
+    assert.equal(hoursPayload.scheduleRevision, 25);
+    assert.deepEqual(hoursPayload.operatingHours[1], [{ start: '09:15', end: '21:00' }]);
+
+    await page.evaluate(() => {
+      window.IS_NATIVE_APP = true;
+      syncPlatformClasses();
+      switchSettingTab('printer');
+      loadPOSPrinterSettings();
+      PrinterService.getPairedBluetoothDevices = async () => ({ devices: [{ address: '00:11:22:33:44:55', name: 'Fixture printer' }] });
+    });
+    await page.locator('#printer-cashier-interface').selectOption('bluetooth');
+    await page.locator('#printer-cashier-bt-device').selectOption('00:11:22:33:44:55');
+    await page.waitForFunction(() => PrinterService.getSettings().cashier.mac_address === '00:11:22:33:44:55');
+    assert.equal(await page.locator('#printer-cashier-interface').getAttribute('data-slot'), 'native-select');
+    assert.equal(await page.evaluate(() => PrinterService.getSettings().cashier.interface_type), 'bluetooth');
+    await page.evaluate(() => {
+      switchSettingTab('hours');
+      window.IS_NATIVE_APP = false;
+      syncPlatformClasses();
+    });
+
     // Shared CSS must also leave dialogs, history and operating hours usable.
     for (const viewport of [{ width: 768, height: 1024 }, { width: 1024, height: 600 }, { width: 390, height: 844 }]) {
       await page.setViewportSize(viewport);
@@ -209,7 +263,7 @@ async function run() {
     const tabList = page.getByRole('tablist').filter({ has: page.locator('#toc-item-status') });
     const statusTab = tabList.locator('#toc-item-status');
     const orderModeTab = tabList.locator('#toc-item-ordermode');
-    assert.equal(await tabList.getAttribute('aria-orientation'), 'vertical');
+    await tabList.and(page.locator('[aria-orientation=vertical]')).waitFor();
     await page.locator('#toc-item-status[aria-selected=true]').waitFor();
     await statusTab.press('ArrowDown');
     await page.waitForFunction(() => document.activeElement.id === 'toc-item-ordermode');
@@ -247,7 +301,7 @@ async function run() {
 
     await page.setViewportSize({ width: 390, height: 844 });
     await settle(page);
-    assert.equal(await tabList.getAttribute('aria-orientation'), 'horizontal');
+    await tabList.and(page.locator('[aria-orientation=horizontal]')).waitFor();
     const displayTab = tabList.locator('#toc-item-display');
     await page.evaluate(() => {
       switchTab('live');

@@ -1,3 +1,6 @@
+import { Button } from '@shared/ui/button';
+import { Card } from '@shared/ui/card';
+import { Switch } from '@shared/ui/switch';
 import type { AiSettingKey, AiSettingsDto } from '@shared/contracts/api';
 import { translatePos, type PosLocale, type PosTranslationKey } from '@shared/i18n/pos-dictionary';
 import type { AiSettingsStatusKey } from './ai-settings-store';
@@ -54,7 +57,7 @@ export function PosAiSettingsPanel({
       </div>
 
       <div className="ai-settings-body">
-        <div className="ai-master-panel">
+        <Card flush className="ai-master-panel">
           <label
             className={masterDisabled ? 'ai-switch-row ai-switch-disabled' : 'ai-switch-row'}
             htmlFor="ai-setting-enabled"
@@ -67,23 +70,21 @@ export function PosAiSettingsPanel({
                 {t('aiMasterHint')}
               </span>
             </span>
-            <input
-              type="checkbox"
-              role="switch"
+            <Switch
+              className="ai-switch-track"
               id="ai-setting-enabled"
               data-ai-setting="enabled"
               aria-labelledby="ai-label-enabled"
               aria-describedby="ai-hint-enabled"
               checked={masterChecked}
               disabled={masterDisabled}
-              onChange={e => onToggleSetting('enabled', e.currentTarget.checked)}
+              onCheckedChange={checked => onToggleSetting('enabled', checked)}
             />
-            <span className="ai-switch-track" aria-hidden="true" />
           </label>
           <p id="ai-settings-summary">
             {values ? t(values.enabled ? 'aiEnabledSummary' : 'aiDisabledSummary') : ''}
           </p>
-        </div>
+        </Card>
 
         <div className="ai-settings-feedback">
           <span
@@ -95,16 +96,17 @@ export function PosAiSettingsPanel({
           >
             {t(status)}
           </span>
-          <button
+          <Button
             type="button"
             className="btn btn-ghost"
+            variant="outline"
             id="ai-settings-retry"
             data-ai-i18n="aiRetry"
             hidden={status !== 'aiLoadError'}
             onClick={onRetry}
           >
             {t('aiRetry')}
-          </button>
+          </Button>
         </div>
 
         <details className="ai-guide">
@@ -169,18 +171,16 @@ export function PosAiSettingsPanel({
                     {t(hintKey)}
                   </span>
                 </span>
-                <input
-                  type="checkbox"
-                  role="switch"
+                <Switch
+                  className="ai-switch-track"
                   id={inputId}
                   data-ai-setting={key}
                   aria-labelledby={labelId}
                   aria-describedby={hintId}
                   checked={checked}
                   disabled={behaviorsDisabled}
-                  onChange={e => onToggleSetting(key, e.currentTarget.checked)}
+                  onCheckedChange={next => onToggleSetting(key, next)}
                 />
-                <span className="ai-switch-track" aria-hidden="true" />
               </label>
             );
           })}

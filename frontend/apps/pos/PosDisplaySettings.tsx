@@ -1,4 +1,5 @@
 import { Card } from '@shared/ui/card';
+import { ChoiceInput } from '@shared/ui/choice-input';
 import { ReceiptIcon } from '@shared/ui/PosIcons';
 
 export type PosOrientationSetting = {
@@ -47,7 +48,7 @@ export function PosDisplaySettings({
                   <strong>{t(label)}</strong>
                   {value === 'auto' && <small>{t('displayAutoHint')}</small>}
                 </span>
-                <input
+                <ChoiceInput
                   type="radio"
                   name="pos-text-size"
                   value={value}
@@ -80,7 +81,7 @@ export function PosDisplaySettings({
               {orientations.map(({ value, label }) => (
                 <label key={value} className="pos-display-option" data-selected={orientation.selected === value}>
                   <strong>{t(label)}</strong>
-                  <input
+                  <ChoiceInput
                     type="radio"
                     name="pos-screen-orientation"
                     value={value}

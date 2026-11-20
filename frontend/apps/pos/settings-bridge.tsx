@@ -1,9 +1,12 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react';
-import { createPortal, flushSync } from 'react-dom';
+import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { Tabs, TabsList, TabsTrigger } from '@shared/ui/tabs';
 import { ChevronRightIcon } from '@shared/ui/PosIcons';
 import { PosDisplaySettings, type PosOrientationSetting } from './PosDisplaySettings';
+import { PosSettingsPanels } from './settings/PosSettingsPanels';
+import { HoursRows, type WeeklyHours } from './settings/HoursRows';
+import { TableRows, type TablesView } from './settings/TableRows';
 import { settingsSections } from './settings-sections';
 import './pos-settings.css';
 
@@ -13,6 +16,8 @@ interface PosSettingsWindow extends Window {
   switchSettingTab: (cardId: string) => void;
   isPOSSettingAvailable: (cardId: string) => boolean;
   syncPOSSettingsView?: () => void;
+  renderPOSOperatingHours?: (days: string[], hours: WeeklyHours) => void;
+  renderPOSRestaurantTables?: (view: TablesView) => void;
   getPOSTextSize: () => string;
   selectPOSTextSize: (value: string) => void;
   getPOSScreenOrientationSetting: () => PosOrientationSetting;
@@ -83,35 +88,52 @@ function PosSettingsNavigation({ activeId }: { activeId: string }) {
 }
 
 const navigation = document.getElementById('pos-settings-navigation-root');
-const display = document.getElementById('setting-card-display');
+const content = document.getElementById('settings-scroll-container');
 
-if (navigation && display) {
-  const root = createRoot(navigation);
-  for (const { id } of settingsSections) {
-    const card = document.getElementById(`setting-card-${id}`);
-    card?.setAttribute('role', 'tabpanel');
-    card?.setAttribute('aria-labelledby', `toc-item-${id}`);
-    card?.setAttribute('tabindex', '0');
+if (navigation && content) {
+  const navigationRoot = createRoot(navigation);
+  const panelsRoot = createRoot(content);
+  const syncNavigation = () => {
+    const activeId = content.querySelector('.settings-card.active')?.id || 'setting-card-status';
+    navigationRoot.render(<PosSettingsNavigation activeId={activeId} />);
+  };
+  flushSync(() => {
+    panelsRoot.render(<PosSettingsPanels />);
+    syncNavigation();
+  });
+
+  const hours = document.getElementById('hours-settings-list');
+  if (hours) {
+    const hoursRoot = createRoot(hours);
+    let revision = 0;
+    pos.renderPOSOperatingHours = (days, operatingHours) => {
+      // Replace the native values after add/remove and after canonical saves.
+      flushSync(() => hoursRoot.render(<HoursRows key={++revision} days={days} hours={operatingHours} />));
+    };
   }
 
-  const syncSettings = () => {
-    const activeId = document.querySelector('#settings-scroll-container > .settings-card.active')?.id || 'setting-card-status';
-    root.render(
-      <>
-        <PosSettingsNavigation activeId={activeId} />
-        {createPortal(
-          <PosDisplaySettings
-            translate={pos.t}
-            textSize={pos.getPOSTextSize()}
-            orientation={pos.getPOSScreenOrientationSetting()}
-            onTextSizeChange={pos.selectPOSTextSize}
-            onOrientationChange={pos.selectPOSScreenOrientation}
-          />,
-          display
-        )}
-      </>
-    );
-  };
-  pos.syncPOSSettingsView = syncSettings;
-  flushSync(syncSettings);
+  const tables = document.getElementById('tables-list-tbody');
+  if (tables) {
+    const tablesRoot = createRoot(tables);
+    pos.renderPOSRestaurantTables = view => flushSync(() => tablesRoot.render(<TableRows view={view} />));
+    pos.renderPOSRestaurantTables({ state: 'loading' });
+  }
+
+  const display = document.getElementById('setting-card-display');
+  if (display) {
+    const displayRoot = createRoot(display);
+    pos.syncPOSSettingsView = () => {
+      syncNavigation();
+      displayRoot.render(
+        <PosDisplaySettings
+          translate={pos.t}
+          textSize={pos.getPOSTextSize()}
+          orientation={pos.getPOSScreenOrientationSetting()}
+          onTextSizeChange={pos.selectPOSTextSize}
+          onOrientationChange={pos.selectPOSScreenOrientation}
+        />
+      );
+    };
+    flushSync(() => pos.syncPOSSettingsView?.());
+  }
 }

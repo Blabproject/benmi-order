@@ -2899,7 +2899,10 @@ function setLanguage(lang) {
   if (typeof renderAll === "function") renderAll();
   if (typeof activeTab !== "undefined") {
     if (activeTab === "settings") {
-      if (typeof renderOperatingHours === "function") renderOperatingHours();
+      if (typeof renderOperatingHours === "function") {
+        if (typeof syncOperatingHoursFromDOM === "function") syncOperatingHoursFromDOM();
+        renderOperatingHours();
+      }
       if (typeof renderScheduledPickupSetting === "function") renderScheduledPickupSetting();
       if (typeof renderDineInSetting === "function") renderDineInSetting();
     } else if (activeTab === "menu") {

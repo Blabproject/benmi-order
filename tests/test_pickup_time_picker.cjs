@@ -152,8 +152,13 @@ assert.equal(browserCtx.getStoreOperatingShifts(new Date(2026, 10, 8, 12, 0)).le
 
 console.log('Testing Pickup Time Picker functions...');
 
+// Derive both dates from the store clock so UTC runners also test a future date.
+const fixedTaiwanNow = new Date(2026, 10, 9, 12, 0);
+ctx.getTaiwanDate = () => new Date(fixedTaiwanNow);
+const tomorrow = new Date(fixedTaiwanNow);
+tomorrow.setDate(tomorrow.getDate() + 1);
+
 // 1. Test generatePickupSlots for a future date (all slots should be present)
-const tomorrow = new Date(Date.now() + 86400000);
 const yyyy = tomorrow.getFullYear();
 const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
 const dd = String(tomorrow.getDate()).padStart(2, '0');

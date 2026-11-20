@@ -1,0 +1,56 @@
+import type { ChangeEvent, FormEvent, MouseEvent } from 'react';
+
+interface SettingsActions {
+  t(key: string): string;
+  OrderCode: { format(value: string | number): string };
+  addShift(day: number): void;
+  removeShift(day: number, index: number): void;
+  toggleDayStatus(day: number, open: boolean): void;
+  openEditTableModal(id: string): void;
+  openTableQrModal(id: string): void;
+  toggleTableActive(id: string, active: 0 | 1): void;
+  applyStoreNoticeFormat(kind: string): void;
+  cancelStorePinChangeReturn(): void;
+  clearStorePinChangeForm(): void;
+  deleteStoreLogoSetting(): void;
+  handleSettingLogoSelect(event: ChangeEvent<HTMLInputElement>): void;
+  onDineInModeChange(allowed: boolean): void;
+  onPickupModeChange(scheduled: boolean): void;
+  onPrinterInterfaceChange(station: string): void;
+  onPrinterModeChange(mode: string): void;
+  onPrinterProtocolChange(station: string): void;
+  onTsplSizeChange(station: string): void;
+  openAddTableModal(): void;
+  openBatchTableModal(): void;
+  openBlabContactModal(mode: string): void;
+  openCustomAutoReopenPrompt(event: MouseEvent<HTMLElement>): void;
+  openCustomPrepTimePrompt(): void;
+  openPrinterGuideModal(): void;
+  openReportsFromSettings(): void;
+  printAllTablesQrA4(): void;
+  promptUnlinkStoreDevice(): void;
+  refreshPairedBluetoothDevices(station: string): void;
+  renderStoreNoticePreview(): void;
+  saveAllStoreInfoSettings(): void;
+  saveCustomerSupportedLocalesSetting(): void;
+  saveDineInSetting(): void;
+  saveOperatingHours(): void;
+  savePaymentMethodsSetting(): void;
+  saveScheduledPickupSetting(): void;
+  saveStoreAddressSetting(): void;
+  saveStoreAnnouncementSetting(): void;
+  saveStoreLogoSetting(): void;
+  saveStoreNoticeSetting(): void;
+  selectLanguage(locale: string): void;
+  setAutoOpenBeforeMinutes(minutes: number, event: MouseEvent<HTMLElement>): void;
+  setStorePrepTime(minutes: number): void;
+  setStoreStatus(status: string): void;
+  submitStorePinChange(event: FormEvent<HTMLFormElement>): void;
+  switchSettingTab(cardId: string): void;
+  testPOSPrinterStation(station: string): void;
+  toggleCustomerLocaleCheckbox(locale: string): void;
+  togglePaymentCardStyle(method: string): void;
+  toggleStorePinVisibility(fieldId: string): void;
+}
+
+export const settingsActions = window as unknown as SettingsActions;

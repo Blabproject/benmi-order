@@ -121,3 +121,101 @@
   padding-top: 12px;
   color: #145746;
 }
+
+#view-settings .settings-card[data-slot="card"] {
+  border-color: #dce7e2;
+}
+
+#view-settings .settings-card > div[data-slot="card-header"] {
+  background: #fff;
+  padding: 16px 20px;
+  border-bottom: 1px solid #dce7e2 !important;
+}
+
+#view-settings .restaurant-tables-card-header[data-slot="card-header"] {
+  border-bottom-color: #dce7e2;
+}
+
+#view-settings .settings-card-title {
+  color: #142921;
+  font-size: var(--pos-text-title);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+#view-settings :is([data-slot="button"], [data-slot="switch"]):focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+#view-settings [data-slot="button"][data-variant="default"] {
+  background: #145746;
+  border-color: #145746;
+  color: #fff;
+  box-shadow: none;
+}
+
+#view-settings [data-slot="button"][data-variant="default"]:hover:not(:disabled) {
+  background: #104838;
+  border-color: #104838;
+}
+
+#view-settings [data-slot="button"][data-variant="outline"] {
+  color: #145746;
+  background: #fff;
+  border: 1px solid #b9cec4;
+  box-shadow: none;
+}
+
+#view-settings [data-slot="button"][data-variant="outline"]:hover:not(:disabled) {
+  background: #edf6f1;
+}
+
+#view-settings :is([data-slot="input"], [data-slot="native-select"], [data-slot="textarea"]) {
+  border-color: #b9cec4;
+}
+
+#view-settings [data-slot="button"].status-select-box {
+  width: 100%;
+  font-family: inherit;
+  text-align: left;
+}
+
+#view-settings label.ui-switch {
+  min-width: 48px;
+  min-height: 48px;
+}
+
+.settings-panel-actions-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+@media (max-width: 680px) {
+  .settings-panel-actions-header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+}
+
+#setting-card-printer .printer-station-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  gap: 6px;
+}
+
+#setting-card-printer .printer-station-header .settings-printer-status-pill {
+  max-width: 100%;
+  box-sizing: border-box;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+#setting-card-printer .printer-station-header .settings-printer-status-pill span:last-child {
+  min-width: 0;
+}
