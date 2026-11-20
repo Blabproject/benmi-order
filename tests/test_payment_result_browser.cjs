@@ -224,9 +224,9 @@ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('LINE 
 for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('Checkout '+name+': visible payment choices, final action placement and empty-cart recovery',async()=>{
  const browser=await engine.launch({headless:true});try{
   const checkoutLabels = {
-   vi: { linePay: 'Đến LINE Pay thanh toán', submit: 'Xác nhận đặt món', append: 'Xác nhận gọi thêm' },
-   'zh-TW': { linePay: '前往 LINE Pay 付款', submit: '確認下單', append: '確認加點' },
-   en: { linePay: 'Pay with LINE Pay', submit: 'Place Order', append: 'Add Items' }
+   vi: { cash: 'Thanh toán tại quầy', linePay: 'Đến LINE Pay thanh toán', submit: 'Xác nhận đặt món', append: 'Xác nhận gọi thêm' },
+   'zh-TW': { cash: '現場櫃台結帳', linePay: '前往 LINE Pay 付款', submit: '確認下單', append: '確認加點' },
+   en: { cash: 'Pay at the Counter', linePay: 'Pay with LINE Pay', submit: 'Place Order', append: 'Add Items' }
   };
   for(const [lang,labels] of Object.entries(checkoutLabels))for(const width of [390,1024,1440]){
    const f=await fixture(browser,{missing:true,noSavedDraft:true,device:{viewport:{width,height:900}}});
@@ -238,9 +238,9 @@ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('Check
    assert.equal(await f.page.locator('select#payment-method').count(),0);
    assert.equal(await f.page.locator('#checkout-payment-method > fieldset').count(),1);
    assert.equal(await f.page.locator('.payment-method-heading svg').count(),1);
+   assert.deepEqual(await f.page.locator('.payment-method-title').allTextContents(),['LINE Pay',labels.cash]);
    if(lang==='en'){
     assert.equal(await f.page.locator('#payment-method legend').innerText(),'Payment Method');
-    assert.deepEqual(await f.page.locator('.payment-method-title').allTextContents(),['LINE Pay','Pay at Pickup']);
     assert.deepEqual(await f.page.locator('.payment-method-description').allTextContents(),['Pay online','Pay when you pick up your order.']);
    }
    const paymentBox=await f.page.locator('#payment-method').boundingBox(),cartBox=await f.page.locator('#cart-summary').boundingBox();
@@ -283,12 +283,10 @@ for(const [name,engine] of [['chromium',chromium],['webkit',webkit]])test('Check
    assert.equal(await button.innerText(),'busy');assert.equal(await button.isDisabled(),true);
    await f.page.evaluate(()=>{isSubmitting=false;setAllSubmitButtonsState(false,'確認下單');});
    assert.equal(await button.innerText(),labels.submit);
-   if(lang==='en'){
-    await f.page.evaluate(()=>{window.currentDiningOption='dine_in';LinePayCheckout.refreshMethods();});
-    assert.deepEqual(await f.page.locator('.payment-method-title').allTextContents(),['Pay at the Counter']);
-    assert.equal(await f.page.locator('.payment-method-description').innerText(),'Pay at the counter after your meal.');
-    assert.equal(await button.innerText(),labels.submit);
-   }
+   await f.page.evaluate(()=>{window.currentDiningOption='dine_in';LinePayCheckout.refreshMethods();});
+   assert.deepEqual(await f.page.locator('.payment-method-title').allTextContents(),[labels.cash]);
+   if(lang==='en')assert.equal(await f.page.locator('.payment-method-description').innerText(),'Pay at the counter after your meal.');
+   assert.equal(await button.innerText(),labels.submit);
    await f.page.evaluate(()=>{cart={};LinePayCheckout.onCartChange();window.isAppendMode=true;updateFooterButtonState();});
    assert.equal(await button.isEnabled(),true,'Append mode must not inherit the normal empty-cart lock');
    assert.equal(await button.innerText(),labels.append);

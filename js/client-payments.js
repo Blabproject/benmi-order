@@ -129,7 +129,7 @@ window.LinePayCheckout = (function () {
       ['cash', ct('payment_counter_title'), ct('payment_counter_description')]
     ] : [
       ['line_pay', 'LINE Pay', ct('payment_linepay_description')],
-      ['cash', ct('payment_pickup_title'), ct('payment_pickup_description')]
+      ['cash', ct('payment_counter_title'), ct('payment_pickup_description')]
     ];
     const choicesList = allDefinitions.filter(([val]) => {
       if (isDineIn) return true;
