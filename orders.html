@@ -623,7 +623,7 @@
                 </svg>
               </div>
               <div class="settings-header-titles">
-                <div class="panel-title" id="i18n-settings-title">門市接單狀態</div>
+                <div class="panel-title" id="i18n-settings-title" role="heading" aria-level="2">門市接單狀態</div>
               </div>
             </div>
             <div class="restaurant-tables-header" id="settings-table-tools" hidden role="group" aria-labelledby="i18n-settings-title">
@@ -661,8 +661,7 @@
             <!-- Store Status Setting -->
             <div class="settings-card active" id="setting-card-status">
               <div style="padding: 16px 20px; background: #f3f4f6; border-bottom: 1px solid var(--border);">
-                <div style="font-weight: 1100; font-size: var(--pos-text-body);" id="i18n-setting-store-status-title">門市接單狀態</div>
-                <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600; margin-top: 2px;" id="i18n-setting-store-status-sub">隨時切換一般營業、繁忙延後或暫停接單模式</div>
+                <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600;" id="i18n-setting-store-status-sub">隨時切換一般營業、繁忙延後或暫停接單模式</div>
               </div>
               <div class="store-status-options-grid" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
                 <div class="status-select-box active" id="status-box-open" onclick="setStoreStatus('open')">
@@ -721,10 +720,7 @@
             <div class="settings-card" id="setting-card-ordermode">
               <div
                 style="padding: 16px 20px; background: #f3f4f6; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                  <div style="font-weight: 1100; font-size: var(--pos-text-body);" id="i18n-ordermode-title">點餐模式 / 取餐時間設定</div>
-                  <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600; margin-top: 2px;" id="i18n-ordermode-sub">自訂允許顧客預約取餐時間或依序即刻製作</div>
-                </div>
+                <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600;" id="i18n-ordermode-sub">自訂允許顧客預約取餐時間或依序即刻製作</div>
                 <button class="btn btn-primary" style="padding: 10px 20px; font-size: var(--pos-text-body); border-radius: 8px;"
                   onclick="saveScheduledPickupSetting()" id="btn-save-pickup-setting">儲存設定</button>
               </div>
@@ -771,10 +767,7 @@
             <div class="settings-card" id="setting-card-payment">
               <div
                 style="padding: 16px 20px; background: #f3f4f6; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                  <div style="font-weight: 1100; font-size: var(--pos-text-body);" id="i18n-payment-settings-title">付款方式設定</div>
-                  <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600; margin-top: 2px;" id="i18n-payment-settings-sub">自訂顧客在線上點餐時可使用的付款選項</div>
-                </div>
+                <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600;" id="i18n-payment-settings-sub">自訂顧客在線上點餐時可使用的付款選項</div>
                 <button class="btn btn-primary" style="padding: 10px 20px; font-size: var(--pos-text-body); border-radius: 8px;"
                   onclick="savePaymentMethodsSetting()" id="btn-save-payment-setting">儲存設定</button>
               </div>
@@ -813,8 +806,7 @@
               <div
                 style="padding: 16px 20px; background: #f3f4f6; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
                 <div class="help-title-row">
-                  <div style="font-weight: 1100; font-size: var(--pos-text-body);" id="i18n-hours-title">營業時間設定</div>
-                  <details class="menu-help"><summary aria-labelledby="i18n-hours-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 3v1"/></svg></summary><div class="menu-help-text" id="i18n-hours-sub">設定每日營業時段與公休日</div></details>
+                  <details class="menu-help"><summary aria-labelledby="i18n-settings-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 3v1"/></svg></summary><div class="menu-help-text" id="i18n-hours-sub">設定每日營業時段與公休日</div></details>
                 </div>
                 <button class="btn btn-primary" style="padding: 10px 20px; font-size: var(--pos-text-body); border-radius: 8px;"
                   onclick="saveOperatingHours()" id="btn-save-hours">儲存設定</button>
@@ -829,10 +821,7 @@
             <!-- Store Profile & Information Setting (Combined Logo, Announcement, Address) -->
             <div class="settings-card" id="setting-card-store-info">
               <div style="padding: 16px 20px; background: #f3f4f6; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                  <div style="font-weight: 1100; font-size: var(--pos-text-body);" id="i18n-setting-store-info-title">門市基本資訊</div>
-                  <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600; margin-top: 2px;" id="i18n-setting-store-info-sub">管理門市標誌 (Logo)、跑馬燈公告與門市聯絡地址</div>
-                </div>
+                <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600;" id="i18n-setting-store-info-sub">管理門市標誌 (Logo)、跑馬燈公告與門市聯絡地址</div>
                 <button type="button" class="btn btn-primary" style="padding: 10px 20px; font-size: var(--pos-text-body); border-radius: 8px; font-weight: 900;" onclick="saveAllStoreInfoSettings()" id="btn-save-all-store-info">
                   儲存全部資訊
                 </button>
@@ -944,8 +933,7 @@
 
             <div class="settings-card" id="setting-card-language">
               <div style="padding: 16px 20px; background: #f3f4f6; border-bottom: 1px solid var(--border);">
-                <div style="font-weight: 1100; font-size: var(--pos-text-body);" id="i18n-setting-lang-title">介面語言</div>
-                <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600; margin-top: 2px;" id="i18n-setting-lang-sub">設定 POS 系統的操作與顯示語言</div>
+                <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600;" id="i18n-setting-lang-sub">設定 POS 系統的操作與顯示語言</div>
               </div>
               <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
                 <label class="setting-mode-card" id="lang-card-zh" style="display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 12px; border: 2px solid var(--border); cursor: pointer; transition: all 0.15s ease;">
@@ -1081,10 +1069,7 @@
             <div class="settings-card" id="setting-card-dinein">
               <div
                 style="padding: 16px 20px; background: #f3f4f6; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                  <div style="font-weight: 1100; font-size: var(--pos-text-body);" id="i18n-setting-dinein-title">內用接單設定</div>
-                  <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600; margin-top: 2px;" id="i18n-setting-dinein-sub">自訂是否允許顧客選擇「內用」或僅接受「外帶」</div>
-                </div>
+                <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600;" id="i18n-setting-dinein-sub">自訂是否允許顧客選擇「內用」或僅接受「外帶」</div>
                 <button class="btn btn-primary" style="padding: 10px 20px; font-size: var(--pos-text-body); border-radius: 8px;"
                   onclick="saveDineInSetting()" id="btn-save-dinein-setting">儲存設定</button>
               </div>
@@ -1182,10 +1167,7 @@
             <div class="settings-card" id="setting-card-printer">
               <div class="printer-reports" data-printer-reports="issues" role="status" aria-live="polite" hidden></div>
               <div style="padding: 14px 18px; background: #ffffff; border-bottom: 1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; gap: 12px; flex-wrap: wrap;">
-                <div>
-                  <div style="font-weight: 1000; font-size: var(--pos-text-body); color: #0f172a;" id="i18n-setting-printer-title">出單與印表機</div>
-                  <div style="font-size: var(--pos-text-meta); color: #64748b; font-weight: 600; margin-top: 2px;" id="i18n-setting-printer-sub">設定 Wi-Fi / LAN 區域網路熱感應出單機 (Port 9100) 與自動列印模式</div>
-                </div>
+                <div style="font-size: var(--pos-text-meta); color: #64748b; font-weight: 600;" id="i18n-setting-printer-sub">設定 Wi-Fi / LAN 區域網路熱感應出單機 (Port 9100) 與自動列印模式</div>
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                   <div class="settings-printer-status-pill disconnected" id="settings-printer-status-bar" style="display: none;" onclick="switchSettingTab('setting-card-printer')" title="印表機連線狀態 / Trạng thái kết nối máy in">
                     <span class="printer-status-dot offline" id="printer-status-dot"></span>
@@ -1506,10 +1488,7 @@
             <!-- Reports Analytics Setting (At the bottom) -->
             <div class="settings-card" id="setting-card-reports">
               <div style="padding: 16px 20px; background: #f3f4f6; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                  <div style="font-weight: 1100; font-size: var(--pos-text-body);" id="i18n-setting-reports-title">銷量與營收報表</div>
-                  <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600; margin-top: 2px;" id="i18n-setting-reports-sub">查看門市餐點銷售統計、營收排行與加料偏好</div>
-                </div>
+                <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600;" id="i18n-setting-reports-sub">查看門市餐點銷售統計、營收排行與加料偏好</div>
               </div>
 
               <div id="setting-reports-body" style="padding: 20px;">
@@ -1547,10 +1526,7 @@
             <!-- Store & Device Pairing Setting (Universal Multi-Tenant POS) -->
             <div class="settings-card" id="setting-card-store-pairing">
               <div style="padding: 16px 20px; background: #f3f4f6; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                  <div style="font-weight: 1100; font-size: var(--pos-text-body);" id="i18n-setting-pairing-title">門市終端與設備綁定</div>
-                  <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600; margin-top: 2px;" id="i18n-setting-pairing-sub">管理此平板電腦與雲端門市之連線設定</div>
-                </div>
+                <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600;" id="i18n-setting-pairing-sub">管理此平板電腦與雲端門市之連線設定</div>
               </div>
 
               <div style="padding: 20px;">
@@ -3281,7 +3257,7 @@
 
   <!-- Benmi POS Modular Architecture Scripts -->
   <script src="js/menu-schedule.js?v=20261119_shift_management_v1"></script>
-  <script src="js/orders-i18n.js?v=20261119_shift_matrix_unlock_v1"></script>
+  <script src="js/orders-i18n.js?v=20261120_settings_titles_v2"></script>
   <script src="js/orders-core.js?v=20261117_schedule_matrix_v1"></script>
   <script src="js/orders-audio.js?v=20261114_deadcode_cleanup_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>

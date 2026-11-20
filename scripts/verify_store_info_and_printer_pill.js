@@ -40,11 +40,11 @@ assert(
   'Printer status pill is located inside #setting-card-printer next to #btn-open-printer-guide'
 );
 
-// Verify title is simplified to "出單與印表機" / "Máy in & xuất vé" without (ESC/POS)
+// Verify the printer title comes from the tab label.
 assert(
-  !ordersHtml.includes('出單與印表機設定 (ESC/POS)') &&
-  ordersHtml.includes('id="i18n-setting-printer-title">出單與印表機</div>'),
-  'HTML setting printer title simplified to "出單與印表機"'
+  !ordersHtml.includes('id="i18n-setting-printer-title"') &&
+  ordersHtml.includes('id="i18n-toc-printer">出單與印表機</span>'),
+  'Printer tab label provides the title without a duplicate inside the card'
 );
 
 function createMockCard(id, active) {
@@ -95,6 +95,7 @@ const mockSessionStorage = {
 
 const sandbox = {
   window: {},
+  addEventListener: () => {},
   document: {
     addEventListener: () => {},
     removeEventListener: () => {},
@@ -188,8 +189,8 @@ assert(
   assert(i18nObj["vi"].tocStoreInfo === "Thông tin cửa hàng", 'I18N vi tocStoreInfo present');
   assert(i18nObj["zh-TW"].btnSaveAllStoreInfo === "儲存全部資訊", 'I18N zh-TW btnSaveAllStoreInfo present');
   assert(i18nObj["vi"].btnSaveAllStoreInfo === "Lưu tất cả thông tin", 'I18N vi btnSaveAllStoreInfo present');
-  assert(i18nObj["zh-TW"].settingPrinterTitle === "出單與印表機", 'I18N zh-TW settingPrinterTitle is "出單與印表機"');
-  assert(i18nObj["vi"].settingPrinterTitle === "Máy in & xuất vé", 'I18N vi settingPrinterTitle is "Máy in & xuất vé"');
+  assert(i18nObj["zh-TW"].tocPrinter === "出單與印表機", 'I18N zh-TW tocPrinter is "出單與印表機"');
+  assert(i18nObj["vi"].tocPrinter === "Máy in & Xuất vé", 'I18N vi tocPrinter is "Máy in & Xuất vé"');
 
   if (errors > 0) {
     console.error(`\n❌ Total errors: ${errors}`);

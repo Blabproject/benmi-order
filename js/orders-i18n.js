@@ -394,12 +394,10 @@ const I18N = {
     tocPayment: "付款方式設定",
     tocHours: "營業時間設定",
     tocStoreInfo: "門市基本資訊",
-    settingStoreInfoTitle: "門市基本資訊",
     settingStoreInfoSub: "管理門市標誌 (Logo)、跑馬燈公告與門市聯絡地址",
     btnSaveAllStoreInfo: "儲存全部資訊",
     tocAddress: "門市地址設定",
     tocLogo: "門市 Logo",
-    settingStoreStatusTitle: "門市接單狀態",
     settingStoreStatusSub: "隨時切換一般營業、繁忙延後或暫停接單模式",
     boxOpenTitle: "正常營業",
     boxOpenDesc: "立即接單，優先於今日營業時間與公休日",
@@ -445,14 +443,12 @@ const I18N = {
     autoReopenSaved: "已更新自動恢復時間為營業前 {t}",
     autoReopenPrompt: "請輸入營業前多久自動開放接單（分鐘，0-360）:",
     autoReopenInvalid: "請輸入 0 至 360 之間的有效分鐘數",
-    orderModeTitle: "點餐模式 / 取餐時間設定",
     orderModeSub: "自訂允許顧客預約取餐時間或依序即刻製作",
     btnSaveSetting: "儲存設定",
     modeScheduledTitle: "允許預約取餐",
     modeScheduledSub: "顧客可在點餐頁面自選取餐日期與時間，適合預先排程準備餐點的店家。",
     modeAsapTitle: "僅限現場排隊 / 即刻出餐模式",
     modeAsapSub: "隱藏預約時間選項。顧客送出訂單後，店家將依序即刻製作出餐。",
-    paymentSettingsTitle: "付款方式設定",
     paymentSettingsSub: "自訂顧客在線上點餐時可使用的付款選項",
     btnSavePaymentSetting: "儲存設定",
     paymentOptLinePayTitle: "LINE Pay (線上付款)",
@@ -466,7 +462,6 @@ const I18N = {
     paymentMinOneRequired: "請至少選擇一種付款方式！",
     paymentSettingsSaved: "已成功儲存付款方式設定！",
     paymentSettingsBtn: "付款方式設定",
-    hoursTitle: "營業時間設定",
     hoursSub: "設定每日營業時段與公休日",
     btnSaveHours: "儲存時間",
     settingAddressTitle: "門市地址",
@@ -514,7 +509,6 @@ const I18N = {
     btnPrint: "列印",
     btnReprint: "補印",
     tocPrinter: "出單與印表機",
-    settingPrinterTitle: "出單與印表機",
     settingPrinterSub: "設定 Wi-Fi / LAN 區域網路熱感應出單機 (Port 9100) 與自動列印模式",
     printerAutoPrintTitle: "確認接單後自動列印",
     printerAutoPrintDesc: "店員確認接單成功後，自動列印至已啟用的印表機",
@@ -1012,7 +1006,6 @@ const I18N = {
     printTakeaway: "【外帶】",
     // Dine In Setting
     tocDineIn: "內用接單模式",
-    settingDineInTitle: "內用接單設定",
     settingDineInSub: "自訂是否允許顧客選擇「內用」或僅接受「外帶」",
     settingDineInTrueTitle: "開啟內用與外帶 (預設)",
     settingDineInTrueSub: "顧客可在點餐頁面自由切換「外帶」或「內用」模式。",
@@ -1027,7 +1020,6 @@ const I18N = {
     // Language & Reports Settings
     tocLanguage: "介面語言",
     tocReports: "銷量與營收報表",
-    settingLangTitle: "系統介面語言",
     settingLangSub: "設定 POS 系統的操作與顯示語言",
     settingCustLangTitle: "顧客菜單與 AI 翻譯語言",
     settingCustLangSub: "選擇顧客端菜單顯示語言切換，以及 AI 自動翻譯的目標語言",
@@ -1045,7 +1037,6 @@ const I18N = {
     localeLabel_en: "英文",
     localeLabel_vi: "越南文",
     itemI18nSectionBase: "多語系顯示",
-    settingReportsTitle: "銷量與營收報表",
     settingReportsSub: "查看門市餐點銷售統計、營收排行與加料偏好",
     reportsUnlockedName: "即時餐點銷量與營收分析",
     reportsUnlockedDesc: "依時間區間（今日、近7天、近30天）統計門市各品項銷售數量、營收總額及顧客加料分析。",
@@ -1062,7 +1053,6 @@ const I18N = {
     alertNewAppended: "🔔 桌號 {table} (單號 {key}) 有新加點餐點！",
     // Store Pairing & Activation (Universal Multi-Tenant POS)
     tocStorePairing: "門市終端綁定",
-    settingPairingTitle: "門市終端與設備綁定",
     settingPairingSub: "管理此平板電腦與雲端門市之連線設定",
     pairingTenantLabel: "當前綁定門市代碼",
     pairingStatusLabel: "終端連線狀態",
@@ -1827,12 +1817,10 @@ const I18N = {
     tocPayment: "Thiết lập thanh toán",
     tocHours: "Giờ hoạt động",
     tocStoreInfo: "Thông tin cửa hàng",
-    settingStoreInfoTitle: "Thông tin cơ bản cửa hàng",
     settingStoreInfoSub: "Quản lý Logo thương hiệu, thông báo chạy chữ và địa chỉ liên hệ",
     btnSaveAllStoreInfo: "Lưu tất cả thông tin",
     tocAddress: "Địa chỉ cửa hàng",
     tocLogo: "Logo cửa hàng",
-    settingStoreStatusTitle: "Trạng thái nhận đơn",
     settingStoreStatusSub: "Chuyển đổi linh hoạt giữa Mở quán, Đang bận (+1h) hoặc Tạm dừng nhận đơn",
     boxOpenTitle: "Mở quán",
     boxOpenDesc: "Nhận đơn ngay, ưu tiên hơn giờ hoạt động và ngày nghỉ hôm nay",
@@ -1878,14 +1866,12 @@ const I18N = {
     autoReopenSaved: "Đã cập nhật tự động mở lại nhận đơn trước giờ mở cửa {t}",
     autoReopenPrompt: "Vui lòng nhập thời gian mở nhận đơn trước giờ hoạt động (phút, 0-360):",
     autoReopenInvalid: "Vui lòng nhập số phút hợp lệ từ 0 đến 360",
-    orderModeTitle: "Chế độ nhận đơn & Hẹn giờ",
     orderModeSub: "Tùy chỉnh cho phép khách hẹn giờ lấy hoặc nhận đơn làm ngay theo thứ tự",
     btnSaveSetting: "Lưu thiết lập",
     modeScheduledTitle: "Bật hẹn giờ lấy món",
     modeScheduledSub: "Khách hàng có thể tự chọn ngày và giờ muốn đến lấy món trên trang đặt hàng. Thích hợp với các quán chuẩn bị theo giờ hẹn của khách.",
     modeAsapTitle: "Tắt hẹn giờ - Nhận đơn làm ngay theo thứ tự",
     modeAsapSub: "Ẩn mục chọn ngày giờ. Khách đặt xong đơn sẽ được tiếp nhận và xử lý làm ngay theo thứ tự vào đơn.",
-    paymentSettingsTitle: "Thiết lập phương thức thanh toán",
     paymentSettingsSub: "Tùy chỉnh các phương thức thanh toán khách có thể sử dụng khi đặt món",
     btnSavePaymentSetting: "Lưu thiết lập",
     paymentOptLinePayTitle: "LINE Pay (Thanh toán trực tuyến)",
@@ -1899,7 +1885,6 @@ const I18N = {
     paymentMinOneRequired: "Vui lòng chọn ít nhất một phương thức thanh toán!",
     paymentSettingsSaved: "Đã lưu thiết lập phương thức thanh toán thành công!",
     paymentSettingsBtn: "Thiết lập thanh toán",
-    hoursTitle: "Giờ hoạt động",
     hoursSub: "Cài đặt khung giờ mở cửa và ngày nghỉ định kỳ",
     btnSaveHours: "Lưu thời gian",
     settingAddressTitle: "Địa chỉ cửa hàng",
@@ -2303,7 +2288,6 @@ const I18N = {
     printTakeaway: "【MANG ĐI】",
     // Dine In Setting
     tocDineIn: "Thiết lập ăn tại quán",
-    settingDineInTitle: "Thiết lập ăn tại quán",
     settingDineInSub: "Bật/tắt tùy chọn ăn tại quán hoặc chỉ bán mang đi",
     settingDineInTrueTitle: "Mở cả Ăn tại quán & Mang đi (Mặc định)",
     settingDineInTrueSub: "Khách có thể tự do chuyển đổi giữa Ăn tại quán và Mang đi.",
@@ -2318,7 +2302,6 @@ const I18N = {
     // Language & Reports Settings
     tocLanguage: "Ngôn ngữ POS",
     tocReports: "Báo cáo doanh thu",
-    settingLangTitle: "Ngôn ngữ hiển thị POS",
     settingLangSub: "Cài đặt ngôn ngữ hiển thị và thao tác của hệ thống POS",
     settingCustLangTitle: "Ngôn ngữ thực đơn khách & AI dịch",
     settingCustLangSub: "Chọn ngôn ngữ hiển thị cho thực đơn khách và ngôn ngữ đích khi dùng AI dịch",
@@ -2336,7 +2319,6 @@ const I18N = {
     localeLabel_en: "Tiếng Anh",
     localeLabel_vi: "Tiếng Việt",
     itemI18nSectionBase: "Hiển thị đa ngôn ngữ",
-    settingReportsTitle: "Báo cáo doanh thu & sản lượng món",
     settingReportsSub: "Xem thống kê bán hàng, doanh thu các món và tùy biến chọn kèm",
     reportsUnlockedName: "Phân tích doanh thu & sản lượng món thời gian thực",
     reportsUnlockedDesc: "Thống kê số lượng bán, tổng doanh thu theo mốc thời gian (Hôm nay, 7 ngày, 30 ngày) và phân tích topping/tùy biến.",
@@ -2348,7 +2330,6 @@ const I18N = {
     btnPrint: "In phiếu",
     btnReprint: "In lại",
     tocPrinter: "Máy in & Xuất vé",
-    settingPrinterTitle: "Máy in & xuất vé",
     settingPrinterSub: "Cấu hình máy in mạng LAN / Wi-Fi (Cổng 9100) và chế độ tự động in",
     printerAutoPrintTitle: "Tự động in sau khi xác nhận",
     printerAutoPrintDesc: "Tự động in ra các máy đã bật sau khi nhân viên xác nhận nhận đơn thành công",
@@ -2495,7 +2476,6 @@ const I18N = {
     alertNewAppended: "🔔 Bàn {table} (Đơn {key}) vừa gọi thêm món mới!",
     // Store Pairing & Activation (Universal Multi-Tenant POS)
     tocStorePairing: "Điểm bán & Thiết bị",
-    settingPairingTitle: "Điểm Bán & Thiết Bị POS",
     settingPairingSub: "Quản lý kết nối giữa máy tính bảng này và điểm bán trên hệ thống đám mây",
     pairingTenantLabel: "Mã điểm bán hiện tại",
     pairingStatusLabel: "Trạng thái kết nối",
@@ -3260,8 +3240,6 @@ function applyLanguageToDOM() {
   if (typeof updateSettingsPrinterStatusDisplay === "function") {
     updateSettingsPrinterStatusDisplay();
   }
-  const setStT = document.getElementById("i18n-setting-store-status-title");
-  if (setStT) setStT.innerText = dict.settingStoreStatusTitle;
   const setStS = document.getElementById("i18n-setting-store-status-sub");
   if (setStS) setStS.innerText = dict.settingStoreStatusSub;
   const boxOpenT = document.getElementById("i18n-box-open-title");
@@ -3448,8 +3426,6 @@ function applyLanguageToDOM() {
   }
 
   // Language Setting Card
-  const setLangT = document.getElementById("i18n-setting-lang-title");
-  if (setLangT) setLangT.innerText = dict.settingLangTitle;
   const setLangS = document.getElementById("i18n-setting-lang-sub");
   if (setLangS) setLangS.innerText = dict.settingLangSub;
   [
@@ -3491,8 +3467,6 @@ function applyLanguageToDOM() {
   }
 
   // Reports Setting Card
-  const setRepT = document.getElementById("i18n-setting-reports-title");
-  if (setRepT) setRepT.innerText = dict.settingReportsTitle;
   const setRepS = document.getElementById("i18n-setting-reports-sub");
   if (setRepS) setRepS.innerText = dict.settingReportsSub;
   const repUnName = document.getElementById("i18n-reports-unlocked-name");
@@ -3508,8 +3482,6 @@ function applyLanguageToDOM() {
   const btnUpRep = document.getElementById("i18n-btn-contact-upgrade-rep");
   if (btnUpRep) btnUpRep.innerText = dict.btnContactUpgrade;
 
-  const ordMT = document.getElementById("i18n-ordermode-title");
-  if (ordMT) ordMT.innerText = dict.orderModeTitle;
   const ordMS = document.getElementById("i18n-ordermode-sub");
   if (ordMS) ordMS.innerText = dict.orderModeSub;
   const btnSavePick = document.getElementById("btn-save-pickup-setting");
@@ -3523,8 +3495,6 @@ function applyLanguageToDOM() {
   const modeAsapS = document.getElementById("i18n-mode-asap-sub");
   if (modeAsapS) modeAsapS.innerText = dict.modeAsapSub;
 
-  const paySetT = document.getElementById("i18n-payment-settings-title");
-  if (paySetT) paySetT.innerText = dict.paymentSettingsTitle;
   const paySetS = document.getElementById("i18n-payment-settings-sub");
   if (paySetS) paySetS.innerText = dict.paymentSettingsSub;
   const btnSavePay = document.getElementById("btn-save-payment-setting");
@@ -3543,15 +3513,11 @@ function applyLanguageToDOM() {
     renderPaymentMethodsSetting();
   }
 
-  const hrsT = document.getElementById("i18n-hours-title");
-  if (hrsT) hrsT.innerText = dict.hoursTitle;
   const hrsS = document.getElementById("i18n-hours-sub");
   if (hrsS) hrsS.innerText = dict.hoursSub;
   const btnSaveHrs = document.getElementById("btn-save-hours");
   if (btnSaveHrs) btnSaveHrs.innerText = dict.btnSaveHours;
 
-  const setStoreInfoT = document.getElementById("i18n-setting-store-info-title");
-  if (setStoreInfoT) setStoreInfoT.innerText = dict.settingStoreInfoTitle;
   const setStoreInfoS = document.getElementById("i18n-setting-store-info-sub");
   if (setStoreInfoS) setStoreInfoS.innerText = dict.settingStoreInfoSub;
   const btnSaveAllStoreInfo = document.getElementById("btn-save-all-store-info");
@@ -3866,8 +3832,6 @@ function applyLanguageToDOM() {
   if (btnFilterDineIn) btnFilterDineIn.innerText = dict.filterDineIn;
 
   // Dine-in Settings
-  const setDineInT = document.getElementById("i18n-setting-dinein-title");
-  if (setDineInT) setDineInT.innerText = dict.settingDineInTitle;
   const setDineInS = document.getElementById("i18n-setting-dinein-sub");
   if (setDineInS) setDineInS.innerText = dict.settingDineInSub;
   const btnSaveDineIn = document.getElementById("btn-save-dinein-setting");
@@ -3894,8 +3858,6 @@ function applyLanguageToDOM() {
   }
 
   // Thermal Printer Settings DOM mappings
-  const setPrnT = document.getElementById("i18n-setting-printer-title");
-  if (setPrnT) setPrnT.innerText = dict.settingPrinterTitle;
   const setPrnS = document.getElementById("i18n-setting-printer-sub");
   if (setPrnS) setPrnS.innerText = dict.settingPrinterSub;
   const prnAutoT = document.getElementById("i18n-printer-autoprint-title");
@@ -4114,8 +4076,6 @@ function applyLanguageToDOM() {
   labelsTestPrint.forEach(el => el.innerText = dict.btnTestPrint);
 
   // Store Pairing DOM mappings
-  const setPairT = document.getElementById("i18n-setting-pairing-title");
-  if (setPairT) setPairT.innerText = dict.settingPairingTitle;
   const setPairS = document.getElementById("i18n-setting-pairing-sub");
   if (setPairS) setPairS.innerText = dict.settingPairingSub;
   const pairTLbl = document.getElementById("i18n-pairing-tenant-label");

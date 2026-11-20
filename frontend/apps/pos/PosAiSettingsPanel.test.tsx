@@ -28,7 +28,8 @@ describe('PosAiSettingsPanel', () => {
       />
     );
 
-    expect(screen.getByRole('heading', { name: 'Cài đặt AI' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Cài đặt AI' })).not.toBeInTheDocument();
+    expect(screen.getByText('Quản lý trả lời tự động trên LINE, bao gồm quy tắc từ khóa và nhận diện bằng AI.')).toBeInTheDocument();
     const master = screen.getByRole('switch', { name: 'Tự động trả lời tin nhắn' });
     const address = screen.getByRole('switch', { name: 'Địa chỉ cửa hàng' });
     const hours = screen.getByRole('switch', { name: 'Giờ mở cửa' });
