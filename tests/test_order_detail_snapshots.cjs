@@ -38,6 +38,47 @@ async function write(f, payload, kind='create', tenant='a') {
 }
 async function ok(f, payload, kind) { const r = await write(f, payload, kind); assert.equal(r.status, 200, JSON.stringify(r)); return r; }
 
+test('menu refresh preserves the selected spice level from cart through the stored order', async t => {
+  const f = fixture();
+  t.after(() => f.db.close());
+  f.db.exec(`INSERT INTO modifier_groups (id, tenant_id, name, scope) VALUES ('a_spice', 'a', '辣度選擇', 'order');
+    INSERT INTO modifier_options (id, tenant_id, group_id, name, is_default) VALUES
+      ('a_no_spice', 'a', 'a_spice', '不辣', 1), ('a_mild', 'a', 'a_spice', '微辣', 0);`);
+
+  const { JSDOM } = require('jsdom');
+  const { window } = new JSDOM('<div id="catalog-sections"></div><div id="cart-summary"></div>', {
+    url: 'https://order.test/', runScripts: 'dangerously',
+  });
+  t.after(() => window.close());
+  const options = [{ id: 'a_no_spice', name: '不辣', isDefault: true }, { id: 'a_mild', name: '微辣', isDefault: false }];
+  const bootstrap = { menuComplete: true, orderDetailVersion: 1, tenant: { id: 'a', allowScheduledPickup: false },
+    catalog: [{ slug: 'food', name: 'Food', items: [{ id: 'a_main', name: 'Meal', price: 100 }] }],
+    customizations: [{ id: 'a_spice', key: 'a_spice', type: 'radio', title: '辣度選擇', options }],
+  };
+  Object.assign(window, { __INITIAL_TENANT_ID: 'a', bootstrapData: bootstrap, cart: { food_Meal: 1 },
+    fetch: async () => ({ ok: true, json: async () => structuredClone(bootstrap) }) });
+  window.localStorage.setItem('tenant_bootstrap_a', JSON.stringify(bootstrap));
+  for (const file of ['client-core', 'client-menu', 'client-cart', 'order-detail-checkout', 'client-checkout']) {
+    window.eval(fs.readFileSync(`js/${file}.js`, 'utf8'));
+  }
+  window.checkDesktopAuthGuard = () => true;
+  window.applyTenantTheme = () => {};
+  window.renderDynamicCatalog();
+  window.document.querySelector('[data-option-id="a_mild"]').click();
+  const cartSummary = window.document.getElementById('cart-summary');
+  assert.match(cartSummary.textContent, /微辣/);
+
+  await window.fetchMenu();
+  assert.match(cartSummary.textContent, /微辣/);
+  assert.doesNotMatch(cartSummary.textContent, /不辣/);
+  assert.equal(window.getStructuredGlobalCustomizations()[0].optionId, 'a_mild');
+  const payload = await window.DetailCheckout.prepare({ tenant_id: 'a', total: 100 });
+  assert.equal(payload.orderSelections[0].items[0].optionId, 'a_mild');
+  const created = await ok(f, payload);
+  const stored = await readDetail(f.env, 'a', created.key);
+  assert.equal(DetailView.globalChoices(stored.snapshot)[0].value, '微辣');
+});
+
 test('create, load and display preserve typed notes exactly once', async () => {
   const f = fixture(), req = input(); const created = await ok(f, req);
   assert.equal(created.detailRevision, 1);

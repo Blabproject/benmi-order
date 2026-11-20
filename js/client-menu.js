@@ -195,7 +195,7 @@ function getItemScheduleState(cat, item) {
     return sched.resolveItemAvailability(cat, item, ctx.shifts, ctx.legacyHours, ctx.target, ctx.options);
 }
 
-function renderDynamicCatalog() {
+function renderDynamicCatalog({ resetOrderOptions = false } = {}) {
     const bData = window.bootstrapData || bootstrapData;
     if (!bData || !bData.catalog) return;
 
@@ -258,11 +258,13 @@ function renderDynamicCatalog() {
     // 2. Section Containers
     const container = document.getElementById('catalog-sections');
     if (!container) return;
+    const currentCustomizations = resetOrderOptions ? null : document.getElementById('sec-order-option');
     container.innerHTML = '';
 
     catalogSections.forEach(section => {
-        const sec = document.createElement('div');
+        const sec = (section.type === 'customizations' && currentCustomizations) || document.createElement('div');
         sec.className = 'section-container';
+        container.appendChild(sec);
         if (section.type === 'customizations') {
             sec.id = section.sectionId;
             renderCustomizationsPanel(sec, section.groups, section.title);
@@ -301,7 +303,6 @@ function renderDynamicCatalog() {
 
             sec.appendChild(gridDiv);
         }
-        container.appendChild(sec);
     });
 
     if (typeof updateActiveNavOnScroll === 'function') {
@@ -314,6 +315,14 @@ function renderDynamicCatalog() {
 
 function renderCustomizationsPanel(container, list, sectionTitle) {
     if (!container || !list || list.length === 0) return;
+
+    // Menu refreshes rebuild the controls. Carry over selections by group and option ID.
+    const checkedOptionsByGroup = new Map();
+    for (const input of container.querySelectorAll('.custom-panel input[data-option-id]:checked')) {
+        if (!checkedOptionsByGroup.has(input.name)) checkedOptionsByGroup.set(input.name, new Map());
+        const subOptions = input.closest('.flavor-option-container')?.querySelectorAll('.sub-opt-chk:checked') || [];
+        checkedOptionsByGroup.get(input.name).set(input.dataset.optionId, new Set(Array.from(subOptions, sub => sub.dataset.subId)));
+    }
 
     const resolvedSectionTitle = sectionTitle || _cmT('global_flavor_section_title', null, '口味選擇', 'Tùy chọn khẩu vị');
     let html = `<div class="section-title">${_cmEsc(resolvedSectionTitle)}</div>
@@ -447,6 +456,14 @@ function renderCustomizationsPanel(container, list, sectionTitle) {
 
     html += `</div>`; // Close .custom-panel-wrapper
     container.innerHTML = html;
+    for (const input of container.querySelectorAll('.custom-panel input[data-option-id]:not(:disabled)')) {
+        const subIds = checkedOptionsByGroup.get(input.name)?.get(input.dataset.optionId);
+        if (!subIds) continue;
+
+        input.checked = true;
+        const subOptions = input.closest('.flavor-option-container')?.querySelectorAll('.sub-opt-chk') || [];
+        for (const sub of subOptions) sub.checked = subIds.has(sub.dataset.subId);
+    }
     toggleFlavorSubOptions();
     if (typeof updateCustomizationThresholdUI === 'function') {
         updateCustomizationThresholdUI();

@@ -1,17 +1,17 @@
 # Graph Report - benmi-order-cleanup-wt  (2026-11-20)
 
 ## Corpus Check
-- 828 files · ~1,071,602 words
+- 828 files · ~1,071,924 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 87 file(s) not represented in the graph (top: .apk 27, (none) 16, .css 14)
 
 ## Summary
-- 7011 nodes · 12247 edges · 462 communities (325 shown, 137 thin omitted)
+- 7011 nodes · 12248 edges · 462 communities (325 shown, 137 thin omitted)
 - Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 638 edges (avg confidence: 0.92)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `125eb5db`
+- Built from commit: `aebf2d14`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -1745,7 +1745,7 @@ Nodes (3): Sheet: Doi_Chieu_Chuc_Nang, Sheet: Ke_Hoach_Phat_Trien, Sheet: Phan_L
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `vitest` connect `store-notice-format.ts` to `order-formatters.ts`, `ai-settings-bridge.tsx`, `order-detail-view.ts`, `reports-bridge.tsx`, `history-model.ts`, `getActiveMenuTargetLocales`, `test_cluster2_combo_bundle_rules.cjs`, `line-order-presentation.ts`, `api.ts`, `store-notice-format.ts`, `App.tsx`, `menu-model.ts`, `menu-bridge.tsx`, `payment-workspace-bridge.tsx`, `ref_node_path`, `package.json`, `pricing-wasm.ts`, `order-legacy-adapter.ts`, `PaymentResultApp.tsx`?**
-  _High betweenness centrality (0.108) - this node is a cross-community bridge._
+  _High betweenness centrality (0.106) - this node is a cross-community bridge._
 - **What connects `Number`, `Str`, `RawString` to the rest of the system?**
   _20 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `PDP: LINE Order Receipt Portion Layout — Fix` be split into smaller, more focused modules?**

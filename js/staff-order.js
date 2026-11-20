@@ -891,7 +891,7 @@ window.StaffOrder = (() => {
       if (typeof window.resetPickupTimeToDefault === 'function') {
         window.resetPickupTimeToDefault();
       }
-      renderDynamicCatalog(); updateTotal();
+      renderDynamicCatalog({ resetOrderOptions: true }); updateTotal();
       await refreshTables().catch(() => {}); select().value = '';
       renderTableBar();
       message(text(`已送出 ${OrderCode.format(result.displayKey || result.orderId)}。`, `Đã gửi đơn ${OrderCode.format(result.displayKey || result.orderId)}.`), { toast: true, type: 'success' });
