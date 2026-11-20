@@ -176,19 +176,24 @@ const flavorItemOp = drawnOperations.find(op => op.text.includes("特製蒜味")
 assert(flavorItemOp, "Receipt should print the flavor item");
 console.log("✅ Test 4 Passed: Global menu flavor customizations are printed on the bill.");
 
-// --- TEST 5: Settings Panel UI Title Synchronization ---
-console.log("Test 5: Settings sub-setting title synchronization");
+// --- TEST 5: Settings Card Switching ---
+console.log("Test 5: Settings card switching");
 
 // Load orders-settings.js
 const settingsCode = fs.readFileSync(require.resolve('../js/orders-settings.js'), 'utf8');
-const settingsDom = {
-  "i18n-settings-title": { innerText: "系統設定" },
-  "setting-card-status": { id: "setting-card-status", classList: { add() {}, remove() {} } },
-  "setting-card-printer": { id: "setting-card-printer", classList: { add() {}, remove() {} } },
-  "toc-item-status": { id: "toc-item-status", classList: { add() {}, remove() {} }, querySelector: () => ({ innerText: "門市接單狀態" }) },
-  "toc-item-printer": { id: "toc-item-printer", classList: { add() {}, remove() {} }, querySelector: () => ({ innerText: "出單與印表機" }) },
-  "settings-scroll-container": { scrollTop: 0 }
-};
+const settingsCards = ['setting-card-status', 'setting-card-printer'].map(id => {
+  const classes = new Set();
+  return {
+    id,
+    classList: {
+      add: value => classes.add(value),
+      remove: value => classes.delete(value),
+      contains: value => classes.has(value)
+    }
+  };
+});
+const settingsDom = Object.fromEntries(settingsCards.map(card => [card.id, card]));
+settingsDom["settings-scroll-container"] = { scrollTop: 40 };
 
 const settingsContext = {
   window: {
@@ -197,7 +202,7 @@ const settingsContext = {
   },
   document: {
     getElementById(id) { return settingsDom[id] || null; },
-    querySelectorAll() { return []; },
+    querySelectorAll(selector) { return selector === ".settings-card" ? settingsCards : []; },
     addEventListener() {}
   },
   console,
@@ -207,14 +212,13 @@ const settingsContext = {
 vm.runInNewContext(settingsCode, settingsContext);
 assert(typeof settingsContext.window.switchSettingTab === 'function', "switchSettingTab should be defined");
 
-// Switch to printer card
-settingsContext.window.switchSettingTab('setting-card-printer');
-assert.strictEqual(settingsDom["i18n-settings-title"].innerText, "出單與印表機", "Settings panel title should update to '出單與印表機'");
+for (const id of ['setting-card-printer', 'setting-card-status']) {
+  settingsDom["settings-scroll-container"].scrollTop = 40;
+  settingsContext.window.switchSettingTab(id);
+  assert.deepEqual(settingsCards.filter(card => card.classList.contains('active')).map(card => card.id), [id]);
+  assert.equal(settingsDom["settings-scroll-container"].scrollTop, 0);
+}
 
-// Switch to status card
-settingsContext.window.switchSettingTab('setting-card-status');
-assert.strictEqual(settingsDom["i18n-settings-title"].innerText, "門市接單狀態", "Settings panel title should update to '門市接單狀態'");
-
-console.log("✅ Test 5 Passed: Settings panel title dynamically updates to active sub-tab title.");
+console.log("✅ Test 5 Passed: Switching settings cards updates the active card and resets scrolling.");
 
 console.log("\n🎉 ALL 5 BILL PRINTING & UI OPTIMIZATION TESTS PASSED SUCCESSFULLY!");

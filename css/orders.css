@@ -5951,68 +5951,17 @@ input.menu-item-badge-input:focus {
   box-sizing: border-box;
 }
 
-.settings-content-panel .panel-header {
-  padding: 0 20px;
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 52px;
-  box-sizing: border-box;
-}
-
-.settings-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  min-width: 0;
-}
-
-.settings-header-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  color: #0f172a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-right: 10px;
-}
-
-.settings-header-titles {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
 .settings-toc-panel .panel-title,
-.settings-content-panel .panel-title {
+.settings-card-title {
   font-size: var(--pos-text-body);
   font-weight: 900;
   color: #0f172a;
   line-height: 1.2;
 }
 
-.settings-header-titles .panel-subtitle {
-  font-size: var(--pos-text-meta);
-  color: #64748b;
-  font-weight: 600;
-  line-height: 1.2;
-  margin-top: 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.settings-header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
+.settings-card-title {
+  margin: 0;
+  letter-spacing: -0.01em;
 }
 
 /* Printer Status Pill in Settings Header (Replaces Cloud Sync Badge) */
@@ -11769,7 +11718,6 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
 .sidebar-count-badge { height: auto; min-height: 20px; line-height: 1.3; }
 
 /* Display settings: native radio groups offer keyboard and touch interaction. */
-.settings-card .pos-display-heading { font-size: var(--pos-text-title) !important; margin: 0; }
 .pos-display-description { font-size: var(--pos-text-meta); color: #475569; margin: 6px 0 0; }
 .pos-display-body { padding: 20px; display: grid; gap: 20px; }
 .pos-display-options { border: 0; margin: 0; padding: 0; display: grid; gap: 10px; min-width: 0; }
@@ -12532,10 +12480,6 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
     box-sizing: border-box !important;
   }
 
-  .settings-content-panel .panel-header {
-    flex-shrink: 0;
-  }
-
   .settings-content-body {
     padding: 0 !important;
     gap: 12px !important;
@@ -12942,15 +12886,18 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
   background: #fff;
 }
 
-.settings-content-panel .panel-header:has(#settings-table-tools:not([hidden])) {
-  height: auto;
-  min-height: 64px;
-  padding: 8px 20px;
+.restaurant-tables-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px 16px;
+  box-sizing: border-box;
+  min-height: 64px;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--border);
 }
 .restaurant-tables-header { display: flex; justify-content: flex-end; min-width: 0; max-width: 100%; margin-left: auto; }
-.restaurant-tables-header[hidden] { display: none; }
 .restaurant-tables-header-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; min-width: 0; }
 .restaurant-tables-header-btn, .table-action-btn {
   appearance: none;
@@ -13031,7 +12978,7 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
 }
 
 @media (max-width: 767px) {
-  .settings-content-panel .panel-header:has(#settings-table-tools:not([hidden])) { padding: 8px 10px; }
+  .restaurant-tables-card-header { padding: 8px 10px; }
   #settings-table-tools, #settings-table-tools .restaurant-tables-header-actions { width: 100%; }
   #settings-table-tools .restaurant-tables-header-btn { flex: 1 1 auto; }
 }

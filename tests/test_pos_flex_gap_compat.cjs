@@ -57,8 +57,6 @@ async function measureSettingsSpacing(page) {
     );
     const prevToc = visibleTocs[visibleTocs.length - 2].getBoundingClientRect();
     const activeRect = visibleTocs[visibleTocs.length - 1].getBoundingClientRect();
-    const headerIcon = document.querySelector('.settings-header-icon').getBoundingClientRect();
-    const headerTitle = document.querySelector('.settings-header-titles').getBoundingClientRect();
     const pinHeading = document.querySelector('#store-pin-form > div').getBoundingClientRect();
     const pinField = document.querySelector('#store-pin-form .store-pin-field').getBoundingClientRect();
     const statusDot = document.querySelector('#setting-card-store-pairing [style*="border-radius: 50%"]').getBoundingClientRect();
@@ -67,14 +65,13 @@ async function measureSettingsSpacing(page) {
       hasNoFlexGapClass: document.documentElement.classList.contains('no-flex-gap'),
       tocIconToLabelGap: Math.round((label.left - iconBox.right) * 10) / 10,
       tocVerticalGap: Math.round((activeRect.top - prevToc.bottom) * 10) / 10,
-      headerIconToTitleGap: Math.round((headerTitle.left - headerIcon.right) * 10) / 10,
       pinFormVerticalGap: Math.round((pinField.top - pinHeading.bottom) * 10) / 10,
       statusDotToTextGap: Math.round((statusText.left - statusDot.right) * 10) / 10
     };
   });
 }
 
-test('Settings TOC and headers keep exact spacing in modern WebView and WebView < 84 fallback', async () => {
+test('Settings TOC and pairing card keep exact spacing in modern WebView and WebView < 84 fallback', async () => {
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, hasTouch: true });
@@ -84,7 +81,6 @@ test('Settings TOC and headers keep exact spacing in modern WebView and WebView 
     assert.equal(desktopModern.hasNoFlexGapClass, false);
     assert.equal(desktopModern.tocIconToLabelGap, 11);
     assert.equal(desktopModern.tocVerticalGap, 6);
-    assert.equal(desktopModern.headerIconToTitleGap, 10);
     assert.equal(desktopModern.pinFormVerticalGap, 16);
     assert.equal(desktopModern.statusDotToTextGap, 8);
 
@@ -93,14 +89,13 @@ test('Settings TOC and headers keep exact spacing in modern WebView and WebView 
     const narrowModern = await measureSettingsSpacing(page);
     assert.equal(narrowModern.tocIconToLabelGap, 9);
     assert.equal(narrowModern.tocVerticalGap, 6);
-    assert.equal(narrowModern.headerIconToTitleGap, 10);
     assert.equal(narrowModern.pinFormVerticalGap, 16);
     assert.equal(narrowModern.statusDotToTextGap, 8);
 
     // Simulate WebView < 84 ignoring Flexbox gap while keeping CSS margins
     await page.addStyleTag({
       content: `
-        .settings-toc-item, .settings-toc-list, .settings-header-left,
+        .settings-toc-item, .settings-toc-list,
         .store-pin-form, .store-pin-field, .store-pin-input-row { gap: 0px !important; }
       `
     });
@@ -110,7 +105,6 @@ test('Settings TOC and headers keep exact spacing in modern WebView and WebView 
     const narrowLegacy = await measureSettingsSpacing(page);
     assert.equal(narrowLegacy.tocIconToLabelGap, 9);
     assert.equal(narrowLegacy.tocVerticalGap, 6);
-    assert.equal(narrowLegacy.headerIconToTitleGap, 10);
     assert.equal(narrowLegacy.pinFormVerticalGap, 16);
     assert.equal(narrowLegacy.statusDotToTextGap, 8);
   } finally {

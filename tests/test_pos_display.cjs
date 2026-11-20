@@ -142,7 +142,7 @@ async function run() {
             const actual = await page.locator(selector).evaluate(node => parseFloat(getComputedStyle(node).fontSize));
             assert(Math.abs(actual - baseSize * scale) < 0.01, `${selector}/${mode}: ${actual}`);
           }
-          assert.equal(await page.locator('#i18n-settings-title').innerText(), lang === 'vi' ? 'Hiển thị' : '顯示');
+          assert.equal(await page.locator('#setting-card-display h2').innerText(), lang === 'vi' ? 'Hiển thị' : '顯示');
           await assertNoOverflow(page, ['.pos-display-option', '.pos-display-preview', '.settings-toc-item']);
           await assertTouchTargets(page);
           if (mode === 'extra-large' && lang === 'vi') await screenshot(page, `display-${viewport.width}`);

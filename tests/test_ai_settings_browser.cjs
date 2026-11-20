@@ -75,7 +75,8 @@ for (const [name, engine] of Object.entries({ chromium, webkit })) {
       for (const lang of ['vi', 'zh-TW']) {
         await page.evaluate(lang => setLanguage(lang), lang);
         await page.evaluate(() => Promise.all(document.getAnimations().filter(animation => animation.effect?.getComputedTiming().iterations !== Infinity).map(animation => animation.finished.catch(() => {}))));
-        assert.equal(await page.locator('#i18n-settings-title').innerText(), lang === 'vi' ? 'Cài đặt AI' : 'AI 設定');
+        assert.equal(await page.locator('#setting-card-ai h2').innerText(), lang === 'vi' ? 'Cài đặt AI' : 'AI 設定');
+        assert.equal(await page.locator('#toc-item-ai .toc-item-label').innerText(), lang === 'vi' ? 'Cài đặt AI' : 'AI 設定');
         const layout = await page.locator('#setting-card-ai').evaluate(el => ({
           overflow: el.scrollWidth > el.clientWidth + 1,
           translated: [...el.querySelectorAll('[data-ai-i18n]')].every(el => el.textContent === t(el.dataset.aiI18n)),

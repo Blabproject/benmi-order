@@ -42,10 +42,9 @@ for(const [name,engine]of Object.entries({chromium,webkit}))test(`${name}: table
  await page.evaluate(async()=>{initSidebarState();window.currentTenantFeatures=['reports'];setLanguage('vi');switchTab('settings');switchSettingTab('setting-card-tables');await loadRestaurantTablesSetting();});
  await page.waitForFunction(()=>document.querySelectorAll('.restaurant-table-row').length===4);
  const row=id=>page.locator(`.restaurant-table-row[data-table-id="${id}"]`);
- assert.equal(await page.locator('#i18n-setting-tables-title,#i18n-setting-tables-sub').count(),0);
- assert.equal(await page.locator('#i18n-settings-title').innerText(),'Quản lý bàn');
- assert.equal(await page.locator('.settings-content-panel > .panel-header #settings-table-tools').count(),1);
- assert.equal(await page.locator('#setting-card-tables .restaurant-tables-header').count(),0);
+ assert.equal(await page.locator('#setting-card-tables h2').innerText(),'Quản lý bàn');
+ assert.equal(await page.locator('.settings-content-panel > .panel-header').count(),0);
+ assert.equal(await page.locator('#setting-card-tables #settings-table-tools').count(),1);
  await page.evaluate(()=>switchSettingTab('setting-card-status'));
  assert.equal(await page.locator('#settings-table-tools').isVisible(),false);
  await page.evaluate(()=>switchSettingTab('setting-card-tables'));
@@ -77,12 +76,13 @@ for(const [name,engine]of Object.entries({chromium,webkit}))test(`${name}: table
    order:[...el.querySelectorAll('.restaurant-table-order-code')].map(n=>({width:n.getBoundingClientRect().width,overflow:n.scrollWidth>n.clientWidth+1}))
   }));
   assert.equal(layout.overflow,false,`${name}/${viewport.width}/${locale}: panel overflow`);
-  const header=await page.locator('.settings-content-panel > .panel-header').evaluate(el=>({
+  const header=await page.locator('#setting-card-tables > header').evaluate(el=>({
    overflow:el.scrollWidth>el.clientWidth+1,
-   title:el.querySelector('#i18n-settings-title').getBoundingClientRect().toJSON(),
+   title:el.querySelector('#i18n-setting-tables-title').getBoundingClientRect().toJSON(),
    tools:el.querySelector('#settings-table-tools').getBoundingClientRect().toJSON(),
    controls:[...el.querySelectorAll('#settings-table-tools button')].filter(b=>b.getBoundingClientRect().width).map(b=>({width:b.getBoundingClientRect().width,height:b.getBoundingClientRect().height}))
   }));
+  assert.equal(await page.locator('#i18n-setting-tables-title').innerText(),locale==='vi'?'Quản lý bàn':'桌號管理');
   assert.equal(header.overflow,false,`${name}/${viewport.width}/${locale}: header overflow`);
   assert(header.controls.every(b=>b.width>=47.9&&b.height>=47.9));
   if(viewport.width===1440)assert(header.tools.left>=header.title.right&&header.tools.top<=header.title.bottom,'Toolbar shares the title row');

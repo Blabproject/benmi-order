@@ -49,6 +49,7 @@ export function PosAiSettingsPanel({
   return (
     <>
       <div className="ai-settings-heading">
+        <h2 data-ai-i18n="aiTitle">{t('aiTitle')}</h2>
         <p data-ai-i18n="aiIntro">{t('aiIntro')}</p>
       </div>
 

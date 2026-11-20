@@ -1962,31 +1962,6 @@ function setActiveTocItem(activeTocId) {
   });
 }
 
-function updateSettingsPanelHeaderTitle(matchedSec) {
-  const titleEl = document.getElementById("i18n-settings-title");
-  if (!titleEl) return;
-  if (!matchedSec) {
-    const activeCard = document.querySelector(".settings-card.active");
-    if (activeCard) {
-      matchedSec = SETTINGS_SECTIONS.find(s => s.id === activeCard.id);
-    }
-  }
-  if (matchedSec) {
-    const tocItem = document.getElementById(matchedSec.tocId);
-    const labelEl = tocItem ? tocItem.querySelector(".toc-item-label") : null;
-    if (labelEl && labelEl.innerText.trim()) {
-      titleEl.innerText = labelEl.innerText.trim();
-      return;
-    }
-  }
-  const defaultToc = document.getElementById("toc-item-status");
-  const defaultLabel = defaultToc ? defaultToc.querySelector(".toc-item-label") : null;
-  if (defaultLabel && defaultLabel.innerText.trim()) {
-    titleEl.innerText = defaultLabel.innerText.trim();
-  }
-}
-window.updateSettingsPanelHeaderTitle = updateSettingsPanelHeaderTitle;
-
 function switchSettingTab(cardId) {
   if (!cardId) cardId = "setting-card-status";
 
@@ -2049,9 +2024,6 @@ function switchSettingTab(cardId) {
   targetCard.classList.add("active");
   if (targetId === "setting-card-ai" && typeof loadAISettings === "function") loadAISettings();
 
-  const tableTools = document.getElementById("settings-table-tools");
-  if (tableTools) tableTools.hidden = targetId !== "setting-card-tables";
-
   // 2. Set active TOC item
   if (matchedSec) {
     setActiveTocItem(matchedSec.tocId);
@@ -2066,16 +2038,13 @@ function switchSettingTab(cardId) {
     updateSettingsPrinterStatusDisplay();
   }
 
-  // 4. Update panel header title to match active sub-setting tab
-  updateSettingsPanelHeaderTitle(matchedSec);
-
-  // 5. Scroll container to top
+  // 4. Scroll container to top
   const container = document.getElementById("settings-scroll-container");
   if (container) {
     container.scrollTop = 0;
   }
 
-  // 6. Save state for session reload
+  // 5. Save state for session reload
   try {
     sessionStorage.setItem("last_settings_tab", targetId);
   } catch (e) {}

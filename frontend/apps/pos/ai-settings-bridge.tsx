@@ -18,7 +18,6 @@ interface PosAiSettingsBridgeWindow extends Window {
   currentLang?: string;
   currentTenantId?: string;
   getTenantIdFromUrl?: () => string;
-  updateSettingsPanelHeaderTitle?: () => void;
   applyLanguageToDOM?: ((...args: unknown[]) => unknown) & {
     __benmiAiSettingsWrapped?: boolean;
   };
@@ -64,7 +63,7 @@ function buildFetchDeps(): AiSettingsFetchDependencies {
   };
 }
 
-function syncHeaderTitleIfActive(locale: PosLocale = readLocale()): void {
+function syncAiSettingsTabLabel(locale: PosLocale = readLocale()): void {
   const tocLabel = document.querySelector<HTMLElement>('#toc-item-ai [data-ai-i18n]');
   if (tocLabel) {
     const key = tocLabel.dataset.aiI18n as PosTranslationKey | undefined;
@@ -72,19 +71,14 @@ function syncHeaderTitleIfActive(locale: PosLocale = readLocale()): void {
       tocLabel.textContent = translatePos(locale, key);
     }
   }
-  const card = document.getElementById('setting-card-ai');
-  const posWindow = getPosWindow();
-  if (card?.classList.contains('active') && typeof posWindow.updateSettingsPanelHeaderTitle === 'function') {
-    posWindow.updateSettingsPanelHeaderTitle();
-  }
 }
 
 function PosAiSettingsWorkspace({ store }: { store: AiSettingsBridgeStore }) {
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
 
   useEffect(() => {
-    syncHeaderTitleIfActive(snapshot.locale);
-  }, [snapshot.locale, snapshot.status, snapshot.values]);
+    syncAiSettingsTabLabel(snapshot.locale);
+  }, [snapshot.locale]);
 
   return (
     <PosAiSettingsPanel
@@ -158,7 +152,7 @@ export function mountPosAiSettingsBridge(
       store.setLocale(readLocale());
       store.triggerRender();
     });
-    syncHeaderTitleIfActive();
+    syncAiSettingsTabLabel();
   };
 
   const prevApply = posWindow.applyLanguageToDOM;
@@ -168,7 +162,7 @@ export function mountPosAiSettingsBridge(
       flushBridgeUpdate(() => {
         store.setLocale(readLocale());
       });
-      syncHeaderTitleIfActive();
+      syncAiSettingsTabLabel();
       return result;
     } as NonNullable<PosAiSettingsBridgeWindow['applyLanguageToDOM']>;
     wrappedApply.__benmiAiSettingsWrapped = true;

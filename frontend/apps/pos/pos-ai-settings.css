@@ -7,6 +7,7 @@
   color: var(--ai-ink);
 }
 .ai-settings-heading { padding: 24px; border-bottom: 1px solid var(--border); }
+.ai-settings-heading h2 { margin: 0 0 8px; font-size: var(--pos-text-title); }
 .ai-settings-heading p, .ai-section-hint { margin: 0; color: #53635c; font-size: var(--pos-text-meta); line-height: 1.6; }
 .ai-settings-body { padding: 24px; display: grid; gap: 24px; min-width: 0; }
 .ai-master-panel { border: 1px solid var(--ai-line); border-radius: 12px; background: var(--ai-soft); }
