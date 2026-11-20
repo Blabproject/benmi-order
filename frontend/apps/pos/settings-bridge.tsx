@@ -8,6 +8,7 @@ import { PosSettingsPanels } from './settings/PosSettingsPanels';
 import { HoursRows, type WeeklyHours } from './settings/HoursRows';
 import { TableRows, type TablesView } from './settings/TableRows';
 import { settingsSections } from './settings-sections';
+import '@shared/ui/tailwind.css';
 import './pos-settings.css';
 
 interface PosSettingsWindow extends Window {

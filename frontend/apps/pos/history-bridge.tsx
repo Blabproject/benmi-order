@@ -2,6 +2,7 @@ import { StrictMode, useSyncExternalStore } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import '@shared/ui/tokens.css';
+import '@shared/ui/tailwind.css';
 import './pos-history.css';
 import type { HistoryOrderDto } from '@shared/contracts/api';
 import { resolveWorkerBase } from '@shared/infra/http';

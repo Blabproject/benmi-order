@@ -66,6 +66,10 @@ describe('PosHistoryPanel integrated POS component', () => {
     const { rerender, container } = render(renderWithSnapshot());
 
     expect(container.querySelector('#history-total-summary-badge')).toHaveTextContent('3 單');
+    expect(container.querySelector('[data-slot="card"]')).not.toBeNull();
+    expect(container.querySelector('#history-search-input')).toHaveAttribute('data-slot', 'input');
+    expect(container.querySelector('#btn-toggle-all-history')).toHaveAttribute('data-slot', 'button');
+    expect(container.querySelector('#history-total-summary-badge')).toHaveAttribute('data-slot', 'badge');
     expect(container.querySelector('#history-group-2026-11-11 .history-date-header')).toHaveClass('expanded');
     expect(container.querySelector('#history-group-2026-11-11 .history-group-count-badge')).toHaveTextContent('2 單');
     expect(container.querySelector('#history-group-2026-11-11 .history-group-total-badge')).toHaveTextContent('$490');

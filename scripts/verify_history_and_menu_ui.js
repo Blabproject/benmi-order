@@ -117,17 +117,29 @@ requiredI18nKeys.forEach(key => {
 });
 console.log('  ✓ I18N dictionaries have full key coverage in zh-TW and vi, with 0 emojis in history & menu keys');
 
-// 4. CSS Touch Target & Style Rules
-console.log('4. Verifying touch target and styling classes in css/orders.css...');
+// 4. CSS Touch Target, Tailwind/shadcn & Style Rules
+console.log('4. Verifying Tailwind/shadcn history styling and menu classes...');
 const ordersCss = fs.readFileSync(path.join(rootDir, 'css/orders.css'), 'utf8');
 
+const requiredHistoryShadcnMarkers = [
+    'data-slot="card"',
+    'ps-',
+    '@shared/ui/badge',
+    '@shared/ui/button',
+    '@shared/ui/card',
+    '@shared/ui/input',
+    'history-toolbar',
+    'history-search-box',
+    'history-filter-btn'
+];
+const badgeTsx = fs.readFileSync(path.join(rootDir, 'frontend/shared/ui/badge.tsx'), 'utf8');
+const cardTsx = fs.readFileSync(path.join(rootDir, 'frontend/shared/ui/card.tsx'), 'utf8');
+const historyCombined = `${posHistoryPanelTsx}\n${badgeTsx}\n${cardTsx}`;
+requiredHistoryShadcnMarkers.forEach(marker => {
+    assert(historyCombined.includes(marker), `Missing Tailwind/shadcn marker for history UI: ${marker}`);
+});
+
 const requiredClasses = [
-    '.history-header',
-    '.history-toolbar',
-    '.history-search-box',
-    '.history-filter-group',
-    '.history-filter-btn',
-    '.history-empty-state',
     '.menu-sidebar-panel',
     '.menu-manage-cats-btn',
     '.menu-editor-panel',
@@ -147,7 +159,7 @@ requiredClasses.forEach(cls => {
 const priceInputMatch = ordersCss.match(/\.menu-item-price-input\s*\{[^}]*width:\s*(\d+)px/);
 assert(priceInputMatch && parseInt(priceInputMatch[1], 10) <= 56, `menu-item-price-input must be narrow (<= 56px), found: ${priceInputMatch ? priceInputMatch[1] : 'none'}`);
 
-console.log('  ✓ All required CSS component classes exist and price input is made compact & narrow (<= 56px)');
+console.log('  ✓ History uses Tailwind + shadcn/ui and menu editor classes are verified');
 
 // 5. TypeScript / React Bridge Logic & Method Verification
 console.log('5. Verifying function signatures & logic...');

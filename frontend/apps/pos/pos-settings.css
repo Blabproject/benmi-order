@@ -1,5 +1,3 @@
-@tailwind utilities;
-
 #pos-settings-navigation-root [role="tab"]:focus {
   outline: 2px solid var(--settings-green-text);
   outline-offset: -4px;

@@ -1,6 +1,8 @@
 import type { ComponentProps } from 'react';
 
-type ButtonProps = ComponentProps<'button'> & { variant?: 'default' | 'outline' };
+type ButtonProps = ComponentProps<'button'> & {
+  variant?: 'default' | 'outline' | 'ghost' | 'secondary';
+};
 
 export function Button({ type = 'button', className = '', variant, ...props }: ButtonProps) {
   return (
