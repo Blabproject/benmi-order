@@ -6118,25 +6118,23 @@ input.menu-item-badge-input:focus {
   transform: translateX(0);
 }
 
-.settings-toc-item.active {
-  background: #f0fdf4;
-  color: #15803d;
+.settings-toc-item[data-state="active"] {
+  background: #145746;
+  color: #fff;
   font-weight: 800;
-  border-color: #86efac;
-  box-shadow: 0 1px 4px rgba(5, 150, 105, 0.08);
+  border-color: #145746;
 }
 
-.settings-toc-item.active .toc-icon-box {
-  background: #00b900;
-  border-color: #00b900;
-  color: #ffffff;
-  box-shadow: 0 2px 6px rgba(0, 185, 0, 0.3);
+.settings-toc-item[data-state="active"] .toc-icon-box {
+  background: #2b6c5a;
+  border-color: #55907e;
+  color: #fff;
 }
 
-.settings-toc-item.active .toc-chevron {
+.settings-toc-item[data-state="active"] .toc-chevron {
   opacity: 1;
   transform: translateX(0);
-  color: #059669;
+  color: #d0eee1;
 }
 
 .settings-toc-item .toc-icon-box {
@@ -7013,10 +7011,6 @@ select.form-input:focus {
   }
   .settings-toc-item:last-child {
     margin-right: 0;
-  }
-  .settings-toc-item.active {
-    background: #ecfdf5;
-    border-color: #22c55e;
   }
   .settings-toc-item .toc-chevron {
     display: none;
@@ -12029,24 +12023,6 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
 .settings-toc-item .toc-item-label { white-space: normal; overflow-wrap: anywhere; }
 .sidebar-count-badge { height: auto; min-height: 20px; line-height: 1.3; }
 
-/* Display settings: native radio groups offer keyboard and touch interaction. */
-.pos-display-description { font-size: var(--pos-text-meta); color: #475569; margin: 6px 0 0; }
-.pos-display-options { border: 0; margin: 0; padding: 0; display: grid; gap: 10px; min-width: 0; }
-.pos-display-label { font-size: var(--pos-text-meta); color: #475569; font-weight: 700; margin-bottom: 8px; }
-.pos-display-option {
-  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
-  min-height: 56px; border: 1px solid var(--border); border-radius: 10px;
-  cursor: pointer; overflow-wrap: anywhere;
-}
-.pos-display-option:has(input:checked) { border-color: var(--primary); background: #f0fdf4; }
-.pos-display-option:focus-within { outline: 2px solid #2563eb; outline-offset: 2px; }
-.pos-display-option input { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--primary); }
-.pos-display-option strong { font-size: var(--pos-text-body); }
-.pos-display-option small { display: block; margin-top: 4px; font-size: var(--pos-text-meta); color: #475569; }
-.pos-display-preview { padding: 16px; border: 1px solid var(--border); border-radius: 12px; display: grid; gap: 8px; overflow-wrap: anywhere; }
-.pos-display-preview-title { font-weight: 800; }
-.pos-display-preview-meta { font-size: var(--pos-text-meta); color: #475569; }
-.pos-display-preview-total { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; border-top: 1px solid var(--border); padding-top: 12px; }
 @media (max-width: 960px) {
   .settings-split { grid-template-columns: 200px minmax(0, 1fr); }
 }
@@ -12768,21 +12744,10 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
     border-radius: 999px !important;
   }
 
-  .settings-toc-item.active {
-    background: #ecfdf5 !important;
-    color: #15803d !important;
-    border-color: #22c55e !important;
-    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.14) !important;
-  }
-
-  .settings-toc-item.active .toc-item-label {
-    color: #15803d !important;
-  }
-
-  .settings-toc-item.active .toc-icon-box {
-    background: #16a34a !important;
-    border-color: #16a34a !important;
-    color: #ffffff !important;
+  .settings-toc-item[data-state="active"] {
+    background: #145746 !important;
+    color: #fff !important;
+    border-color: #145746 !important;
   }
 
   .settings-content-panel {
@@ -13583,7 +13548,6 @@ html.no-flex-gap .tile-meta-row > * + *,
 html.no-flex-gap .tile-count-row > * + * { margin-left: 6px; }
 html.no-flex-gap .settings-content-body > .settings-card + .settings-card { margin-top: 16px; }
 html.no-flex-gap .store-pin-actions > * + * { margin-left: 12px; }
-html.no-flex-gap .pos-display-option > * + * { margin-left: 12px; }
 html.no-flex-gap .ai-switch-row > * + * { margin-left: 16px; }
 html.no-flex-gap .sidebar-mobile-brand > * + * { margin-left: 10px; }
 html.no-flex-gap .printer-report-row > * + * { margin-left: 8px; }

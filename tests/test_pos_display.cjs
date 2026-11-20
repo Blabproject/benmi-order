@@ -249,6 +249,16 @@ async function run() {
     await settle(page);
     assert.equal(await tabList.getAttribute('aria-orientation'), 'horizontal');
     const displayTab = tabList.locator('#toc-item-display');
+    await page.evaluate(() => {
+      switchTab('live');
+      document.getElementById('settings-toc-list').scrollLeft = 0;
+      switchTab('settings');
+    });
+    await page.waitForFunction(() => {
+      const list = document.getElementById('settings-toc-list').getBoundingClientRect();
+      const active = document.getElementById('toc-item-display').getBoundingClientRect();
+      return active.left >= list.left - 1 && active.right <= list.right + 1;
+    });
     await displayTab.press('ArrowRight');
     await page.waitForFunction(() => document.activeElement.id === 'toc-item-dinein');
     await page.locator('#toc-item-dinein[aria-selected=true]').waitFor();

@@ -36,6 +36,7 @@ function PosSettingsNavigation({ activeId }: { activeId: string }) {
   const horizontal = useSyncExternalStore(subscribeToLayout, isMobile);
   const title = pos.t('tocSettingsTitle');
   const listRef = useRef<HTMLDivElement>(null);
+  // A remembered tab also needs to scroll into view when Settings is reopened.
   useEffect(() => {
     const list = listRef.current;
     const active = list?.querySelector('[aria-selected="true"]');
@@ -49,7 +50,7 @@ function PosSettingsNavigation({ activeId }: { activeId: string }) {
       if (tabBounds.top < listBounds.top) list.scrollTop += tabBounds.top - listBounds.top;
       if (tabBounds.bottom > listBounds.bottom) list.scrollTop += tabBounds.bottom - listBounds.bottom;
     }
-  }, [activeId, horizontal]);
+  });
 
   return (
     <Tabs className="ps-flex ps-flex-1 ps-min-h-0 ps-min-w-0 ps-flex-col max-[680px]:ps-block max-[680px]:ps-w-full" orientation={horizontal ? 'horizontal' : 'vertical'} value={activeId} onValueChange={pos.switchSettingTab}>
@@ -63,7 +64,7 @@ function PosSettingsNavigation({ activeId }: { activeId: string }) {
               key={section.id}
               id={`toc-item-${section.id}`}
               aria-controls={cardId}
-              className={`settings-toc-item${activeId === cardId ? ' active' : ''}`}
+              className="settings-toc-item"
               value={cardId}
             >
               <span className="toc-icon-box">

@@ -4,3 +4,120 @@
   outline: 2px solid #2563eb;
   outline-offset: -3px;
 }
+
+#setting-card-display {
+  background: #f5f8f7;
+}
+
+.pos-display-header {
+  background: #fff;
+  border-bottom: 1px solid #dbe7e1;
+}
+
+.pos-display-header h2 {
+  margin: 0;
+  color: #142921;
+  font-size: calc(var(--pos-text-title) * 1.2);
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.pos-display-description {
+  font-size: var(--pos-text-meta);
+  color: #475569;
+  margin: 6px 0 0;
+}
+
+.pos-display-layout {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+}
+
+.pos-display-layout > section {
+  grid-column: 1 / -1;
+}
+
+.pos-display-options {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pos-display-label {
+  font-size: var(--pos-text-body);
+  color: #142921;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.pos-display-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  min-height: 56px;
+  border: 1px solid #dce5e1;
+  border-radius: 9px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.pos-display-option[data-selected="true"] {
+  border-color: #4e8a76;
+  background: #ebf6f0;
+  color: #124737;
+}
+
+.pos-display-option:focus-within {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.pos-display-option input {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-left: 12px;
+  accent-color: #145746;
+}
+
+.pos-display-option strong { font-size: var(--pos-text-body); }
+
+.pos-display-option small {
+  display: block;
+  margin-top: 3px;
+  font-size: var(--pos-text-meta);
+  color: #475569;
+}
+
+.pos-display-preview-heading {
+  display: flex;
+  align-items: center;
+  color: #145746;
+}
+.pos-display-preview-heading svg { flex: none; margin-right: 8px; }
+
+.pos-display-preview {
+  padding: 16px;
+  border: 1px solid #cbded4;
+  border-top: 4px solid #145746;
+  border-radius: 9px;
+  background: #f0f7f3;
+  display: grid;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+.pos-display-preview-title { font-weight: 800; }
+.pos-display-preview-meta { font-size: var(--pos-text-meta); color: #475569; }
+.pos-display-preview-total {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  border-top: 1px dashed #a8c1b5;
+  margin-top: 4px;
+  padding-top: 12px;
+  color: #145746;
+}
