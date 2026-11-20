@@ -64,7 +64,8 @@ export function PickupSettings() {
             <div style={{ fontWeight: "800", fontSize: "var(--pos-text-body)", color: "#111827" }} id="i18n-setting-preptime-title">門市預估備餐時間</div>
             <span
               id="setting-preptime-badge"
-              style={{ fontSize: "13px", fontWeight: "800", color: "#047857", background: "#ecfdf5", border: "1px solid #a7f3d0", padding: "4px 12px", borderRadius: "99px" }}
+              className="settings-positive-badge"
+              style={{ fontSize: "13px", fontWeight: "800", padding: "4px 12px", borderRadius: "99px" }}
             >5 分鐘</span>
           </div>
           <div style={{ fontSize: "var(--pos-text-meta)", color: "#6b7280", marginBottom: "14px", lineHeight: "1.5" }} id="i18n-setting-preptime-sub">當顧客選擇「盡快取餐」時，系統將依此時間預估完成時間。店家可視現場忙碌狀況隨時調整</div>

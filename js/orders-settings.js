@@ -561,8 +561,6 @@ function renderScheduledPickupSetting() {
 function applyOptionCardStyle(card, isSelected) {
   if (!card) return;
   card.classList.toggle("is-selected", Boolean(isSelected));
-  card.style.borderColor = isSelected ? "#22c55e" : "#e2e8f0";
-  card.style.background = isSelected ? "#f0fdf4" : "#ffffff";
 }
 
 function updateModeCardStyles(isScheduled) {
@@ -641,7 +639,6 @@ function renderPaymentMethodsSetting(methods, linePayConfigured) {
     linepayCard.setAttribute('aria-disabled', String(!isLinePayConfigured));
     linepayCard.style.opacity = isLinePayConfigured ? '1' : '0.55';
     linepayCard.style.cursor = isLinePayConfigured ? 'pointer' : 'not-allowed';
-    if (!isLinePayConfigured) linepayCard.style.background = '#f3f4f6';
   }
   const cashCard = document.getElementById('payment-card-cash');
   if (cashCard) cashCard.style.cursor = isLinePayConfigured ? 'pointer' : 'default';
@@ -650,15 +647,8 @@ function renderPaymentMethodsSetting(methods, linePayConfigured) {
 
   const badge = document.getElementById('setting-payment-linepay-badge');
   if (badge) {
-    if (isLinePayConfigured) {
-      badge.textContent = t('paymentBadgeActive') || '已啟用';
-      badge.style.background = '#ecfdf5';
-      badge.style.color = '#047857';
-    } else {
-      badge.textContent = t('paymentBadgeInactive') || '未啟用';
-      badge.style.background = '#f3f4f6';
-      badge.style.color = '#6b7280';
-    }
+    badge.textContent = t(isLinePayConfigured ? 'paymentBadgeActive' : 'paymentBadgeInactive');
+    badge.dataset.enabled = String(isLinePayConfigured);
   }
 }
 window.renderPaymentMethodsSetting = renderPaymentMethodsSetting;
@@ -1240,7 +1230,7 @@ async function saveAllStoreInfoSettings() {
 }
 window.saveAllStoreInfoSettings = saveAllStoreInfoSettings;
 
-function renderLanguageSetting() {
+function renderPOSLanguageChoice() {
   const radioZh = document.getElementById("setting-lang-zh");
   const radioVi = document.getElementById("setting-lang-vi");
   const cardZh = document.getElementById("lang-card-zh");
@@ -1249,6 +1239,10 @@ function renderLanguageSetting() {
   if (radioVi) radioVi.checked = (currentLang === "vi");
   applyOptionCardStyle(cardZh, currentLang === "zh-TW");
   applyOptionCardStyle(cardVi, currentLang !== "zh-TW");
+}
+
+function renderLanguageSetting() {
+  renderPOSLanguageChoice();
   renderCustomerSupportedLocalesSetting();
 }
 

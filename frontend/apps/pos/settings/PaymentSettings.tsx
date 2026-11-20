@@ -37,7 +37,8 @@ export function PaymentSettings() {
               <span style={{ fontWeight: "900", fontSize: "var(--pos-text-body)", color: "#111827" }} id="i18n-payment-opt-linepay-title">LINE Pay (線上付款)</span>
               <span
                 id="setting-payment-linepay-badge"
-                style={{ fontSize: "11px", fontWeight: "800", padding: "2px 8px", borderRadius: "99px", background: "#ecfdf5", color: "#047857" }}
+                className="settings-positive-badge"
+                style={{ fontSize: "11px", fontWeight: "800", padding: "2px 8px", borderRadius: "99px" }}
               >已啟用</span>
             </div>
             <div style={{ fontSize: "var(--pos-text-meta)", color: "#4b5563", marginTop: "4px", lineHeight: "1.4" }} id="i18n-payment-opt-linepay-sub">顧客可在點餐頁直接以 LINE Pay 完成線上結帳，款項即時入帳。</div>

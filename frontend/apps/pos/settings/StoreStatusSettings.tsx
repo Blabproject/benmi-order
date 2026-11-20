@@ -49,9 +49,9 @@ export function StoreStatusSettings() {
             <div style={{ fontSize: "var(--pos-text-meta)", color: "var(--muted)", fontWeight: "600", marginTop: "3px" }} id="i18n-auto-reopen-desc">設定在下個營業日開始前多久自動恢復接單（預設 1 小時）</div>
           </div>
           <span
-            className="setting-badge"
+            className="setting-badge settings-positive-badge"
             id="setting-auto-reopen-badge"
-            style={{ padding: "6px 12px", borderRadius: "8px", fontWeight: "900", fontSize: "var(--pos-text-meta)", background: "#ecfdf5", color: "var(--primary)", border: "1px solid #a7f3d0", whiteSpace: "nowrap" }}
+            style={{ padding: "6px 12px", borderRadius: "8px", fontWeight: "900", fontSize: "var(--pos-text-meta)", whiteSpace: "nowrap" }}
           >1 小時</span>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }} id="auto-reopen-presets">

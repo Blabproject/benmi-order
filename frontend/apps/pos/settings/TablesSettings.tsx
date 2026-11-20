@@ -103,7 +103,7 @@ export function TablesSettings() {
           <Button
             type="button"
             className="btn btn-primary"
-            style={{ padding: "8px 16px", fontSize: "14px", fontWeight: "800", borderRadius: "8px", display: "inline-flex", alignItems: "center", gap: "6px", boxShadow: "0 2px 8px rgba(16, 185, 129, 0.25)", cursor: "pointer", whiteSpace: "nowrap", minHeight: "48px" }}
+            style={{ padding: "8px 16px", fontSize: "14px", fontWeight: "800", borderRadius: "8px", display: "inline-flex", alignItems: "center", gap: "6px", cursor: "pointer", whiteSpace: "nowrap", minHeight: "48px" }}
             onClick={() => actions.openBlabContactModal('upgrade')}
             variant="default"
           >

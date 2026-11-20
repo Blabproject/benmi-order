@@ -46,7 +46,7 @@ export function LanguageSettings() {
           </div>
           <div id="setting-customer-locales-unlocked-body" style={{ display: "none", flexDirection: "column", gap: "12px" }}>
             <label
-              className="setting-mode-card"
+              className="setting-mode-card is-selected"
               id="cust-lang-card-primary"
               style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "14px", padding: "14px 16px", minHeight: "48px", borderRadius: "14px", border: "1.5px solid var(--border)", background: "#f8fafc", cursor: "default" }}
             >
@@ -128,7 +128,7 @@ export function LanguageSettings() {
             <Button
               type="button"
               className="btn btn-primary"
-              style={{ minHeight: "48px", padding: "8px 16px", fontSize: "var(--pos-text-meta)", fontWeight: "800", borderRadius: "8px", display: "inline-flex", alignItems: "center", gap: "6px", boxShadow: "0 2px 8px rgba(16, 185, 129, 0.25)", cursor: "pointer", whiteSpace: "nowrap" }}
+              style={{ minHeight: "48px", padding: "8px 16px", fontSize: "var(--pos-text-meta)", fontWeight: "800", borderRadius: "8px", display: "inline-flex", alignItems: "center", gap: "6px", cursor: "pointer", whiteSpace: "nowrap" }}
               onClick={() => actions.openBlabContactModal('upgrade')}
               variant="default"
             >

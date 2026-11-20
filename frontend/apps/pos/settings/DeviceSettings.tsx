@@ -20,8 +20,8 @@ export function DeviceSettings() {
           </div>
           <div style={{ background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1.5px solid #e2e8f0" }}>
             <div style={{ fontSize: "var(--pos-text-meta)", color: "#64748b", marginBottom: "4px" }} id="i18n-pairing-status-label">終端連線狀態</div>
-            <div style={{ fontSize: "var(--pos-text-body)", fontWeight: "800", color: "#10b981", display: "flex", alignItems: "center" }}>
-              <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#10b981", display: "inline-block", marginRight: "8px", flexShrink: "0" }} />
+            <div style={{ fontSize: "var(--pos-text-body)", fontWeight: "800", color: "var(--settings-green-text)", display: "flex", alignItems: "center" }}>
+              <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: "var(--settings-green)", display: "inline-block", marginRight: "8px", flexShrink: "0" }} />
               <span id="i18n-pairing-status-connected">已連線運作中</span>
             </div>
           </div>

@@ -238,9 +238,10 @@ export function PrinterSettings() {
           <Button
             type="button"
             className="btn"
+            variant="outline"
             onClick={() => actions.openPrinterGuideModal()}
             id="btn-open-printer-guide"
-            style={{ padding: "9px 15px", fontSize: "var(--pos-text-meta)", fontWeight: "800", borderRadius: "8px", display: "inline-flex", alignItems: "center", gap: "7px", background: "#ecfdf5", color: "#047857", border: "1.5px solid #a7f3d0", boxShadow: "0 1px 2px rgba(16, 185, 129, 0.1)", cursor: "pointer", transition: "all 0.15s ease" }}
+            style={{ padding: "9px 15px", fontSize: "var(--pos-text-meta)", fontWeight: "800", borderRadius: "8px", display: "inline-flex", alignItems: "center", gap: "7px", cursor: "pointer", transition: "all 0.15s ease" }}
           >
             <svg
               width="17"

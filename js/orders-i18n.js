@@ -3415,25 +3415,7 @@ function applyLanguageToDOM() {
     const el = document.getElementById(elId);
     if (el && dict[key]) el.innerText = dict[key];
   });
-  const radioZh = document.getElementById("setting-lang-zh");
-  const radioVi = document.getElementById("setting-lang-vi");
-  const cardZh = document.getElementById("lang-card-zh");
-  const cardVi = document.getElementById("lang-card-vi");
-  if (radioZh) radioZh.checked = (currentLang === "zh-TW");
-  if (radioVi) radioVi.checked = (currentLang === "vi");
-  if (cardZh && cardVi) {
-    if (currentLang === "zh-TW") {
-      cardZh.style.borderColor = "var(--primary)";
-      cardZh.style.background = "rgba(0, 185, 0, 0.05)";
-      cardVi.style.borderColor = "var(--border)";
-      cardVi.style.background = "#fff";
-    } else {
-      cardVi.style.borderColor = "var(--primary)";
-      cardVi.style.background = "rgba(0, 185, 0, 0.05)";
-      cardZh.style.borderColor = "var(--border)";
-      cardZh.style.background = "#fff";
-    }
-  }
+  if (typeof renderPOSLanguageChoice === "function") renderPOSLanguageChoice();
 
   // Reports Setting Card
   const setRepT = document.getElementById("i18n-setting-reports-title");

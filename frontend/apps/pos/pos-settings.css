@@ -16,7 +16,7 @@
 
 .pos-display-header {
   background: #fff;
-  border-bottom: 1px solid #dbe7e1;
+  border-bottom: 1px solid var(--border);
 }
 
 .pos-display-header h2 {
@@ -64,7 +64,7 @@
   align-items: center;
   padding: 10px 12px;
   min-height: 56px;
-  border: 1px solid #dce5e1;
+  border: 1px solid var(--border);
   border-radius: 9px;
   cursor: pointer;
   overflow-wrap: anywhere;
@@ -77,7 +77,7 @@
 }
 
 .pos-display-option:focus-within {
-  outline: 2px solid #2563eb;
+  outline: 2px solid var(--settings-green-text);
   outline-offset: 2px;
 }
 
@@ -107,7 +107,7 @@
 
 .pos-display-preview {
   padding: 16px;
-  border: 1px solid #bbf7d0;
+  border: 1px solid var(--settings-green-line);
   border-top: 3px solid var(--settings-green);
   border-radius: 9px;
   background: #fff;
@@ -128,17 +128,17 @@
 }
 
 #view-settings .settings-card[data-slot="card"] {
-  border-color: #dce7e2;
+  border-color: var(--border);
 }
 
 #view-settings .settings-card > div[data-slot="card-header"] {
   background: #fff;
   padding: 16px 20px;
-  border-bottom: 1px solid #dce7e2 !important;
+  border-bottom: 1px solid var(--border) !important;
 }
 
 #view-settings .restaurant-tables-card-header[data-slot="card-header"] {
-  border-bottom-color: #dce7e2;
+  border-bottom-color: var(--border);
 }
 
 #view-settings .settings-card-title {
@@ -149,29 +149,32 @@
 }
 
 #view-settings :is([data-slot="button"], [data-slot="switch"]):focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid var(--settings-green-text);
   outline-offset: 2px;
 }
 
-#view-settings [data-slot="button"][data-variant="default"] {
+#view-settings [data-slot="button"][data-variant="default"],
+.settings-modal .btn-primary {
   background: #fff;
   border: 1.5px solid var(--settings-green);
   color: var(--settings-green-text);
   box-shadow: none;
 }
 
-#view-settings [data-slot="button"][data-variant="default"]:hover:not(:disabled) {
+#view-settings [data-slot="button"][data-variant="default"]:hover:not(:disabled),
+.settings-modal .btn-primary:hover:not(:disabled) {
   background: var(--settings-green-surface);
 }
 
-#view-settings [data-slot="button"][data-variant="default"]:active:not(:disabled) {
+#view-settings [data-slot="button"][data-variant="default"]:active:not(:disabled),
+.settings-modal .btn-primary:active:not(:disabled) {
   background: var(--settings-green-hover);
 }
 
 #view-settings [data-slot="button"][data-variant="outline"] {
   color: var(--settings-green-text);
   background: #fff;
-  border: 1px solid #b9cec4;
+  border: 1px solid #cbd5e1;
   box-shadow: none;
 }
 
@@ -180,7 +183,7 @@
 }
 
 #view-settings :is([data-slot="input"], [data-slot="native-select"], [data-slot="textarea"]) {
-  border-color: #b9cec4;
+  border-color: #cbd5e1;
 }
 
 #view-settings [data-slot="button"].status-select-box {
@@ -226,4 +229,16 @@
 
 #setting-card-printer .printer-station-header .settings-printer-status-pill span:last-child {
   min-width: 0;
+}
+
+.settings-positive-badge {
+  background: var(--settings-green-surface);
+  border: 1px solid var(--settings-green-line);
+  color: var(--settings-green-text);
+}
+
+.settings-positive-badge[data-enabled="false"] {
+  background: #f3f4f6;
+  border-color: #e2e8f0;
+  color: #6b7280;
 }
