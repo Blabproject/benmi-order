@@ -977,6 +977,7 @@ function applyPickupConfig() {
         renderDynamicCatalog();
         if (typeof updateTotal === 'function') updateTotal();
     }
+    window.LinePayCheckout?.refreshMethods?.();
     checkStoreStatus();
 }
 

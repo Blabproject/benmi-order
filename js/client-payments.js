@@ -4,6 +4,8 @@ window.LinePayCheckout = (function () {
   const S=PaymentSession;
   const text=(zh,vi)=>(typeof currentLocale!=='undefined'?currentLocale:document.documentElement.lang)==='vi'?vi:zh;
   let busy=false,lastSession=null,latest=null,pollTimer=null;
+  let paymentConfig = null;
+  let takeawayMethod = null;
   function selected(){return document.querySelector('input[name="payment-method"]:checked')?.value==='line_pay';}
   function buttonLabel(){return selected()?text('前往 LINE Pay 付款','Đến LINE Pay thanh toán'):text('確認下單','Xác nhận đặt món');}
   function removeBanner(){document.getElementById('payment-result')?.remove();}
@@ -117,50 +119,66 @@ window.LinePayCheckout = (function () {
     else if(current&&!current.completed)showResume();
     else {removeBanner();syncButtons();}
   }
+  function renderPaymentMethods(config) {
+    const allowedMethods=Array.isArray(config.paymentMethods)&&config.paymentMethods.length>0?config.paymentMethods:['line_pay'];
+    if(!config.linePay?.enabled&&!allowedMethods.includes('cash'))return;
+    const isDineIn = window.currentDiningOption === 'dine_in' || window.isAppendMode || !!window.currentTableNumber;
+    const allDefinitions = isDineIn ? [
+      ['cash', text('現場櫃台結帳', 'Thanh toán tại quầy'), text('用餐完畢後至櫃台結帳', 'Thanh toán tại quầy sau khi dùng bữa')]
+    ] : [
+      ['line_pay', 'LINE Pay', text('線上付款', 'Thanh toán trực tuyến')],
+      ['cash', text('取餐時付款', 'Đặt rồi trả sau'), text('領取餐點時再付款', 'Thanh toán tại quầy khi nhận món')]
+    ];
+    const choicesList = allDefinitions.filter(([val]) => {
+      if (isDineIn) return true;
+      if (val === 'line_pay') return config.linePay?.enabled && allowedMethods.includes('line_pay');
+      if (val === 'cash') return allowedMethods.includes('cash');
+      return false;
+    });
+    if (choicesList.length === 0) return;
+
+    const group = PaymentView.element('fieldset', 'payment-method-section'); group.id = 'payment-method';
+    const legend = PaymentView.element('legend', 'payment-method-label');
+    const heading = PaymentView.element('span', 'payment-method-heading');
+    heading.append(PaymentView.icon('card'), PaymentView.element('span', '', text('付款方式', 'Phương thức thanh toán'))); legend.append(heading);
+    const choices = PaymentView.element('div', 'payment-method-choices');
+    const selectedTakeaway = choicesList.some(([value]) => value === takeawayMethod) ? takeawayMethod : choicesList[0][0];
+    const defaultChecked = isDineIn ? 'cash' : selectedTakeaway;
+    for (const [value, title, description] of choicesList) {
+      const option = PaymentView.element('label', 'payment-method-option');
+      const radio = document.createElement('input'); radio.type = 'radio'; radio.name = 'payment-method'; radio.value = value; radio.checked = value === defaultChecked;
+      const copy = PaymentView.element('span', 'payment-method-copy');
+      copy.append(PaymentView.element('span', 'payment-method-title', title), PaymentView.element('span', 'payment-method-description', description));
+      option.append(radio, copy);
+      if (value === 'line_pay') {
+        const logo = document.createElement('img'); logo.className = 'payment-method-logo'; logo.src = '/line-pay-logo.png'; logo.alt = ''; logo.width = 238; logo.height = 69;
+        option.append(logo);
+      }
+      choices.append(option);
+    }
+    group.append(legend, choices);
+    group.addEventListener('change', event => {
+      if (!isDineIn) takeawayMethod = event.target.value;
+      syncButtons();
+    });
+    const previous = document.getElementById('payment-method');
+    if (previous) previous.replaceWith(group);
+    else (document.getElementById('checkout-payment-method') || document.getElementById('sec-checkout')).append(group);
+  }
+  function refreshMethods() {
+    if (!paymentConfig || !document.getElementById('sec-checkout')) return;
+    renderPaymentMethods(paymentConfig);
+    syncButtons();
+  }
   async function init(){
     if(!document.getElementById('sec-checkout'))return;
     const params=new URL(location.href).searchParams;
     if(params.has('payment_id')){location.replace(S.resultUrl(params.get('payment_id'),params));return;}
     retireCompleted();lastSession=S.active();if(lastSession){showResume();inspect();}
     try{
-      const config=await(await fetch(WORKER_BASE+'/api/payments/config?tenant_id='+encodeURIComponent(getTenantIdFromUrl()))).json();
-      const allowedMethods=Array.isArray(config.paymentMethods)&&config.paymentMethods.length>0?config.paymentMethods:['line_pay'];
-      if(!config.linePay?.enabled&&!allowedMethods.includes('cash'))return;
-      const isDineIn = window.currentDiningOption === 'dine_in' || window.isAppendMode || !!window.currentTableNumber;
-      const allDefinitions = isDineIn ? [
-        ['cash', text('現場結帳', 'Thanh toán tại quầy'), text('用餐完畢後至櫃台結帳', 'Thanh toán tại quầy sau khi dùng bữa')]
-      ] : [
-        ['line_pay', 'LINE Pay', text('線上付款', 'Thanh toán trực tuyến')],
-        ['cash', text('取餐時付款', 'Đặt rồi trả sau'), text('領取餐點時再付款', 'Thanh toán tại quầy khi nhận món')]
-      ];
-      const choicesList = allDefinitions.filter(([val]) => {
-        if (isDineIn) return true;
-        if (val === 'line_pay') return config.linePay?.enabled && allowedMethods.includes('line_pay');
-        if (val === 'cash') return allowedMethods.includes('cash');
-        return false;
-      });
-      if (choicesList.length === 0) return;
-
-      const group = PaymentView.element('fieldset', 'payment-method-section'); group.id = 'payment-method';
-      const legend = PaymentView.element('legend', 'payment-method-label');
-      const heading = PaymentView.element('span', 'payment-method-heading');
-      heading.append(PaymentView.icon('card'), PaymentView.element('span', '', text('付款方式', 'Phương thức thanh toán'))); legend.append(heading);
-      const choices = PaymentView.element('div', 'payment-method-choices');
-      const defaultChecked = isDineIn ? 'cash' : (choicesList.some(([v]) => v === 'line_pay') ? 'line_pay' : choicesList[0][0]);
-      for (const [value, title, description] of choicesList) {
-        const option = PaymentView.element('label', 'payment-method-option');
-        const radio = document.createElement('input'); radio.type = 'radio'; radio.name = 'payment-method'; radio.value = value; radio.checked = value === defaultChecked;
-        const copy = PaymentView.element('span', 'payment-method-copy');
-        copy.append(PaymentView.element('span', 'payment-method-title', title), PaymentView.element('span', 'payment-method-description', description));
-        option.append(radio, copy);
-        if (value === 'line_pay') {
-          const logo = document.createElement('img'); logo.className = 'payment-method-logo'; logo.src = '/line-pay-logo.png'; logo.alt = ''; logo.width = 238; logo.height = 69;
-          option.append(logo);
-        }
-        choices.append(option);
-      }
-      group.append(legend,choices);group.addEventListener('change',syncButtons);
-      (document.getElementById('checkout-payment-method')||document.getElementById('sec-checkout')).append(group);
+      const response = await fetch(WORKER_BASE+'/api/payments/config?tenant_id='+encodeURIComponent(getTenantIdFromUrl()));
+      paymentConfig = await response.json();
+      renderPaymentMethods(paymentConfig);
     }catch{}finally{syncButtons();}
   }
   window.addEventListener('pageshow',event=>{onPageShow();if(event.persisted)inspect();});
@@ -168,5 +186,5 @@ window.LinePayCheckout = (function () {
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else setTimeout(init,0);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)inspect();});
   window.addEventListener('pagehide',()=>clearTimeout(pollTimer));
-  return {selected,buttonLabel,blocked,start,resume,manage,syncButtons,onCartChange};
+  return {selected,buttonLabel,blocked,start,resume,manage,syncButtons,onCartChange,refreshMethods};
 })();
