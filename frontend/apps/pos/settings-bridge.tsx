@@ -60,7 +60,19 @@ function PosSettingsNavigation({ activeId }: { activeId: string }) {
   return (
     <Tabs className="ps-flex ps-flex-1 ps-min-h-0 ps-min-w-0 ps-flex-col max-[680px]:ps-block max-[680px]:ps-w-full" orientation={horizontal ? 'horizontal' : 'vertical'} value={activeId} onValueChange={pos.switchSettingTab}>
       <div className="panel-header"><div className="panel-title">{title}</div></div>
-      <TabsList ref={listRef} className="settings-toc-list" id="settings-toc-list" aria-label={title}>
+      <TabsList
+        ref={listRef}
+        className="settings-toc-list"
+        id="settings-toc-list"
+        aria-label={title}
+        onPointerDownCapture={event => event.currentTarget.setAttribute('data-pointer-focus', '')}
+        onKeyDownCapture={event => event.currentTarget.removeAttribute('data-pointer-focus')}
+        onBlurCapture={event => {
+          if (!event.currentTarget.contains(event.relatedTarget)) {
+            event.currentTarget.removeAttribute('data-pointer-focus');
+          }
+        }}
+      >
         {settingsSections.filter(({ id }) => pos.isPOSSettingAvailable(`setting-card-${id}`)).map((section) => {
           const cardId = `setting-card-${section.id}`;
           const locked = section.feature && !pos.currentTenantFeatures?.includes(section.feature);

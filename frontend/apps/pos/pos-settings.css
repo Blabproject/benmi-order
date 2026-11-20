@@ -1,12 +1,17 @@
 @tailwind utilities;
 
 #pos-settings-navigation-root [role="tab"]:focus {
-  outline: 2px solid #2563eb;
-  outline-offset: -3px;
+  outline: 2px solid var(--settings-green-text);
+  outline-offset: -4px;
+}
+
+/* Radix can move focus on a tap, which some WebViews report as focus-visible. */
+#pos-settings-navigation-root [data-pointer-focus] [role="tab"]:focus {
+  outline: none;
 }
 
 #setting-card-display {
-  background: #f5f8f7;
+  background: #f8fafc;
 }
 
 .pos-display-header {
@@ -16,7 +21,7 @@
 
 .pos-display-header h2 {
   margin: 0;
-  color: #142921;
+  color: #0f172a;
   font-size: calc(var(--pos-text-title) * 1.2);
   font-weight: 800;
   line-height: 1.2;
@@ -48,7 +53,7 @@
 
 .pos-display-label {
   font-size: var(--pos-text-body);
-  color: #142921;
+  color: #0f172a;
   font-weight: 800;
   margin-bottom: 12px;
 }
@@ -66,9 +71,9 @@
 }
 
 .pos-display-option[data-selected="true"] {
-  border-color: #4e8a76;
-  background: #ebf6f0;
-  color: #124737;
+  border-color: var(--settings-green);
+  background: var(--settings-green-surface);
+  color: var(--settings-green-text);
 }
 
 .pos-display-option:focus-within {
@@ -81,7 +86,7 @@
   height: 20px;
   flex-shrink: 0;
   margin-left: 12px;
-  accent-color: #145746;
+  accent-color: var(--settings-green);
 }
 
 .pos-display-option strong { font-size: var(--pos-text-body); }
@@ -96,16 +101,16 @@
 .pos-display-preview-heading {
   display: flex;
   align-items: center;
-  color: #145746;
+  color: var(--settings-green-text);
 }
 .pos-display-preview-heading svg { flex: none; margin-right: 8px; }
 
 .pos-display-preview {
   padding: 16px;
-  border: 1px solid #cbded4;
-  border-top: 4px solid #145746;
+  border: 1px solid #bbf7d0;
+  border-top: 3px solid var(--settings-green);
   border-radius: 9px;
-  background: #f0f7f3;
+  background: #fff;
   display: grid;
   gap: 8px;
   overflow-wrap: anywhere;
@@ -116,10 +121,10 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  border-top: 1px dashed #a8c1b5;
+  border-top: 1px dashed #cbd5e1;
   margin-top: 4px;
   padding-top: 12px;
-  color: #145746;
+  color: var(--settings-green-text);
 }
 
 #view-settings .settings-card[data-slot="card"] {
@@ -137,7 +142,7 @@
 }
 
 #view-settings .settings-card-title {
-  color: #142921;
+  color: #0f172a;
   font-size: var(--pos-text-title);
   line-height: 1.25;
   overflow-wrap: anywhere;
@@ -149,26 +154,29 @@
 }
 
 #view-settings [data-slot="button"][data-variant="default"] {
-  background: #145746;
-  border-color: #145746;
-  color: #fff;
+  background: #fff;
+  border: 1.5px solid var(--settings-green);
+  color: var(--settings-green-text);
   box-shadow: none;
 }
 
 #view-settings [data-slot="button"][data-variant="default"]:hover:not(:disabled) {
-  background: #104838;
-  border-color: #104838;
+  background: var(--settings-green-surface);
+}
+
+#view-settings [data-slot="button"][data-variant="default"]:active:not(:disabled) {
+  background: var(--settings-green-hover);
 }
 
 #view-settings [data-slot="button"][data-variant="outline"] {
-  color: #145746;
+  color: var(--settings-green-text);
   background: #fff;
   border: 1px solid #b9cec4;
   box-shadow: none;
 }
 
 #view-settings [data-slot="button"][data-variant="outline"]:hover:not(:disabled) {
-  background: #edf6f1;
+  background: var(--settings-green-surface);
 }
 
 #view-settings :is([data-slot="input"], [data-slot="native-select"], [data-slot="textarea"]) {

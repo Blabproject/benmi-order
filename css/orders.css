@@ -731,6 +731,10 @@ body.is-staff-order-active .page-main-title {
 }
 
 #view-settings {
+  --settings-green: #16a34a;
+  --settings-green-text: #166534;
+  --settings-green-surface: #ecfdf5;
+  --settings-green-hover: #dcfce7;
   padding: 0;
   flex: 1;
   min-height: 0;
@@ -6119,22 +6123,22 @@ input.menu-item-badge-input:focus {
 }
 
 .settings-toc-item[data-state="active"] {
-  background: #145746;
-  color: #fff;
+  background: var(--settings-green-surface);
+  color: var(--settings-green-text);
   font-weight: 800;
-  border-color: #145746;
+  border-color: var(--settings-green);
 }
 
 .settings-toc-item[data-state="active"] .toc-icon-box {
-  background: #2b6c5a;
-  border-color: #55907e;
+  background: var(--settings-green);
+  border-color: var(--settings-green);
   color: #fff;
 }
 
 .settings-toc-item[data-state="active"] .toc-chevron {
   opacity: 1;
   transform: translateX(0);
-  color: #d0eee1;
+  color: var(--settings-green-text);
 }
 
 .settings-toc-item .toc-icon-box {
@@ -12745,9 +12749,9 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
   }
 
   .settings-toc-item[data-state="active"] {
-    background: #145746 !important;
-    color: #fff !important;
-    border-color: #145746 !important;
+    background: var(--settings-green-surface) !important;
+    color: var(--settings-green-text) !important;
+    border-color: var(--settings-green) !important;
   }
 
   .settings-content-panel {

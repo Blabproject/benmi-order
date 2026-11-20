@@ -1,7 +1,7 @@
 # Graph Report - benmi-order-pos-settings  (2026-11-21)
 
 ## Corpus Check
-- 855 files · ~1,072,639 words
+- 855 files · ~1,072,654 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 88 file(s) not represented in the graph (top: .apk 27, (none) 16, .css 15)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e3951340`
+- Built from commit: `edea9cee`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -1726,13 +1726,13 @@ Nodes (3): Sheet: Doi_Chieu_Chuc_Nang, Sheet: Ke_Hoach_Phat_Trien, Sheet: Phan_L
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `vitest` connect `vitest` to `order-formatters.ts`, `ref_shared_contracts`, `order-detail-view.ts`, `reports-bridge.tsx`, `history-model.ts`, `createOptionGroupsStore`, `option-groups-model.ts`, `line-order-presentation.ts`, `api.ts`, `ref_node_path`, `store-notice-format.ts`, `react`, `menu-model.ts`, `menu-bridge.tsx`, `payment-workspace-bridge.tsx`, `package.json`, `pricing-wasm.ts`, `order-legacy-adapter.ts`, `PaymentResultApp.tsx`?**
-  _High betweenness centrality (0.104) - this node is a cross-community bridge._
+  _High betweenness centrality (0.105) - this node is a cross-community bridge._
 - **What connects `Number`, `Str`, `RawString` to the rest of the system?**
   _20 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `PDP: LINE Order Receipt Portion Layout — Fix` be split into smaller, more focused modules?**
   _Cohesion score 0.09090909090909091 - nodes in this community are weakly interconnected._
 - **Why does `6. Lịch Sử Các Phiên Bản (Changelog)` connect `6. Lịch Sử Các Phiên Bản (Changelog)` to `history-model.ts`, `orders-core.js`, `Blab POS - Universal Multi-Tenant Android POS Tablet App`?**
-  _High betweenness centrality (0.074) - this node is a cross-community bridge._
+  _High betweenness centrality (0.081) - this node is a cross-community bridge._
 - **Should `config.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.04143475572047001 - nodes in this community are weakly interconnected._
 - **Why does `react` connect `react` to `history-bridge.tsx`, `package.json`, `ref_shared_ui`, `ref_shared_contracts`, `vitest`, `reports-bridge.tsx`, `settings-bridge.tsx`, `PaymentResultApp.tsx`, `payment-workspace-bridge.tsx`, `PosIcons.tsx`?**
