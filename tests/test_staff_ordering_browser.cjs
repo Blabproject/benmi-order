@@ -13,8 +13,8 @@ const {getOptionCatalog}=require('../benmi-worker-official/src/modules/option-gr
 const {chromium,webkit}=require('playwright');
 for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: shared LIFF staff creates, retries, appends and takes away`,async t=>{
  const f=await fixture(t);
- await f.apply("UPDATE tenant_config SET features='[\"dine_in\"]',allow_dine_in=1,allow_scheduled_pickup=0 WHERE tenant_id='a';");
- await f.apply(`UPDATE menu_items SET badge_text='推薦',max_per_order=12,sort_order=0 WHERE id='meal-a';
+ await f.apply(`UPDATE tenant_config SET features='["dine_in"]',allow_dine_in=1,allow_scheduled_pickup=0 WHERE tenant_id='a';`);
+ await f.apply(`UPDATE menu_items SET badge_text='推薦',max_per_order=12,sort_order=0,image_key='meal.jpg' WHERE id='meal-a';
  INSERT INTO menu_items(id,tenant_id,category_id,name,price,badge_text,sort_order,out_of_stock_until)
  VALUES('sold-a','a','food-a','雞腿肉',70,'熱銷',1,'2099-01-01T00:00:00Z'),
  ('opt-a','a','food-a','Cơm',60,NULL,2,NULL);`);
@@ -101,6 +101,22 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
   assert(badges.every(b=>b.fragments===1&&b.left>=b.cardLeft&&b.right<=b.cardRight),JSON.stringify(badges));
   const sold=page.locator('.card-footer > div').filter({hasText:'今日已售完'});
   assert.equal(await sold.evaluate(el=>getComputedStyle(el).whiteSpace),'nowrap');
+  assert.equal(await page.locator('#item-food-Meal .card-info').evaluate(el=>getComputedStyle(el).minHeight),'0px');
+  const rowCards=await page.locator('#catalog-sections .section-container:not(.staff-tab-hidden) .grid .card').evaluateAll(cards=>cards.filter(c=>c.getClientRects().length).map(c=>{
+   const r=c.getBoundingClientRect();
+   return {id:c.id,top:Math.round(r.top),width:r.width,height:r.height};
+  }));
+  assert(rowCards.length>=3);
+  const rowsByTop=new Map();
+  for(const card of rowCards){
+   const key=[...rowsByTop.keys()].find(k=>Math.abs(k-card.top)<=2)??card.top;
+   if(!rowsByTop.has(key))rowsByTop.set(key,[]);
+   rowsByTop.get(key).push(card);
+  }
+  for(const row of rowsByTop.values()){
+   const first=row[0];
+   assert(row.every(c=>Math.abs(c.height-first.height)<=1&&Math.abs(c.width-first.width)<=1),JSON.stringify(row));
+  }
   fs.mkdirSync('artifacts/staff-order-review-20261108',{recursive:true});
   await page.screenshot({path:`artifacts/staff-order-review-20261108/${name}-${viewport.width}-badges.png`});
  }
