@@ -6380,12 +6380,12 @@ input.menu-item-badge-input:focus {
   height: 46px;
   padding: 0 14px;
   font-size: var(--pos-text-meta);
-  font-weight: 500;
+  font-weight: 600;
   color: #1e293b;
   background-color: #ffffff;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid #dbe2ea;
   border-radius: 10px;
-  transition: border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.15s ease;
   box-sizing: border-box;
   font-family: inherit;
 }
@@ -6398,14 +6398,14 @@ input.menu-item-badge-input:focus {
 .form-input:focus,
 .form-select:focus {
   outline: none;
-  border-color: var(--primary, #00b900);
+  border-color: #16a34a;
   background-color: #ffffff;
-  box-shadow: 0 0 0 3.5px rgba(0, 185, 0, 0.12);
+  box-shadow: 0 0 0 3.5px rgba(22, 163, 74, 0.14);
 }
 
 .form-input:hover:not(:focus),
 .form-select:hover:not(:focus) {
-  border-color: #cbd5e1;
+  border-color: #86efac;
 }
 
 /* Custom Select Dropdown with Clean SVG Chevron */
@@ -6413,12 +6413,17 @@ input.menu-item-badge-input:focus {
 select.form-input {
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
   background-size: 16px 16px;
   padding-right: 40px;
   cursor: pointer;
+}
+
+.form-select:focus,
+select.form-input:focus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
 }
 
 /* Tactile iOS / shadcn Style Toggle Switch (Tablet-First) */
@@ -6478,6 +6483,313 @@ select.form-input {
   font-size: var(--pos-text-meta);
   font-weight: 700;
   color: #1e293b;
+}
+
+/* Warm F&B Rounded Checkboxes, Radios, Option Cards & Operating Hours Controls */
+.settings-content-panel label:not(.ui-switch) input[type="checkbox"],
+.settings-content-panel .hours-day-checkbox {
+  --fnb-check-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'></polyline></svg>");
+  appearance: none;
+  -webkit-appearance: none;
+  inline-size: 22px;
+  block-size: 22px;
+  flex-shrink: 0;
+  margin: 0;
+  display: inline-grid;
+  place-content: center;
+  border-radius: 7px;
+  border: 1.5px solid #cbd5e1;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.settings-content-panel label:not(.ui-switch) input[type="checkbox"]::before,
+.settings-content-panel .hours-day-checkbox::before {
+  content: "";
+  inline-size: 13px;
+  block-size: 13px;
+  background-color: #ffffff;
+  -webkit-mask: var(--fnb-check-icon) no-repeat center / contain;
+  mask: var(--fnb-check-icon) no-repeat center / contain;
+  scale: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .settings-content-panel label:not(.ui-switch) input[type="checkbox"]::before,
+  .settings-content-panel .hours-day-checkbox::before {
+    transition: scale 140ms ease;
+  }
+}
+
+.settings-content-panel label:not(.ui-switch) input[type="checkbox"]:hover:not(:disabled),
+.settings-content-panel .hours-day-checkbox:hover:not(:disabled) {
+  border-color: #22c55e;
+  background-color: #f0fdf4;
+}
+
+.settings-content-panel label:not(.ui-switch) input[type="checkbox"]:checked,
+.settings-content-panel .hours-day-checkbox:checked {
+  background-color: #16a34a;
+  border-color: #16a34a;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.22);
+}
+
+.settings-content-panel label:not(.ui-switch) input[type="checkbox"]:checked::before,
+.settings-content-panel .hours-day-checkbox:checked::before {
+  scale: 1;
+}
+
+.settings-content-panel label:not(.ui-switch) input[type="checkbox"]:focus-visible,
+.settings-content-panel .hours-day-checkbox:focus-visible {
+  outline: 2px solid #16a34a;
+  outline-offset: 2px;
+}
+
+.settings-content-panel label:not(.ui-switch) input[type="checkbox"]:disabled,
+.settings-content-panel .hours-day-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (forced-colors: active) {
+  .settings-content-panel label:not(.ui-switch) input[type="checkbox"]::before,
+  .settings-content-panel .hours-day-checkbox::before {
+    background-color: CanvasText;
+  }
+}
+
+.settings-content-panel label input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  inline-size: 22px;
+  block-size: 22px;
+  flex-shrink: 0;
+  margin: 0;
+  display: inline-grid;
+  place-content: center;
+  border-radius: 999px;
+  border: 1.5px solid #cbd5e1;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.settings-content-panel label input[type="radio"]::before {
+  content: "";
+  inline-size: 10px;
+  block-size: 10px;
+  border-radius: 999px;
+  background-color: #16a34a;
+  scale: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .settings-content-panel label input[type="radio"]::before {
+    transition: scale 140ms ease;
+  }
+}
+
+.settings-content-panel label input[type="radio"]:hover:not(:disabled) {
+  border-color: #22c55e;
+  background-color: #f0fdf4;
+}
+
+.settings-content-panel label input[type="radio"]:checked {
+  border-color: #16a34a;
+  background-color: #ecfdf5;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+}
+
+.settings-content-panel label input[type="radio"]:checked::before {
+  scale: 1;
+}
+
+.settings-content-panel label input[type="radio"]:focus-visible {
+  outline: 2px solid #16a34a;
+  outline-offset: 2px;
+}
+
+.settings-content-panel label input[type="radio"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.setting-mode-card,
+.setting-payment-card {
+  border-radius: 14px !important;
+  border-width: 1.5px !important;
+  background-color: #ffffff;
+  transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.setting-mode-card.is-selected,
+.setting-payment-card.is-selected,
+.setting-mode-card:has(input:checked),
+.setting-payment-card:has(input:checked) {
+  border-color: #22c55e !important;
+  background-color: #f0fdf4 !important;
+  box-shadow: 0 2px 10px rgba(22, 163, 74, 0.08);
+}
+
+.hours-day-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 16px;
+  transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.hours-day-card.is-open {
+  border-color: #d1fae5;
+  box-shadow: 0 1px 4px rgba(22, 163, 74, 0.05);
+}
+
+.hours-day-card.is-closed {
+  background: #f8fafc;
+}
+
+.hours-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.hours-day-toggle {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: var(--pos-text-body);
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.hours-day-name {
+  color: #1e293b;
+}
+
+.hours-day-card.is-closed .hours-day-name {
+  color: #94a3b8;
+}
+
+.hours-add-shift-btn {
+  min-height: 48px;
+  font-size: var(--pos-text-meta);
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+  padding: 6px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.hours-add-shift-btn:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.hours-closed-badge {
+  font-size: var(--pos-text-meta);
+  color: #b91c1c;
+  font-weight: 700;
+  background: #fef2f2;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+}
+
+.hours-shift-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 10px;
+  padding: 5px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.hours-time-input {
+  flex: 1;
+  min-height: 48px;
+  min-width: 0;
+  padding: 8px 6px 8px 10px;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  background-color: #ffffff;
+  color: #0f172a;
+  border: 1.5px solid #dbe2ea;
+  border-radius: 9px;
+  font-size: var(--pos-text-meta);
+  font-weight: 700;
+  accent-color: #16a34a;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hours-time-input::-webkit-calendar-picker-indicator {
+  margin-left: 2px;
+  padding: 2px;
+  opacity: 0.65;
+  cursor: pointer;
+}
+
+.hours-time-input:hover {
+  border-color: #86efac;
+}
+
+.hours-time-input:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.14);
+}
+
+.hours-shift-sep {
+  font-weight: 800;
+  color: #64748b;
+  padding: 0 1px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .hours-day-card {
+    padding: 12px;
+  }
+
+  .hours-shift-row {
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .hours-time-input {
+    padding: 6px 4px 6px 8px;
+    font-size: 13.5px;
+  }
+}
+
+.hours-remove-shift-btn {
+  background: #ffffff;
+  border: 1px solid #fecdd3;
+  color: #e11d48;
+  cursor: pointer;
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.hours-remove-shift-btn:hover {
+  background: #fff1f2;
+  border-color: #fda4af;
 }
 
 /* Modern Printer Station Cards */
@@ -6703,8 +7015,8 @@ select.form-input {
     margin-right: 0;
   }
   .settings-toc-item.active {
-    background: #f0fdf4;
-    border-color: #86efac;
+    background: #ecfdf5;
+    border-color: #22c55e;
   }
   .settings-toc-item .toc-chevron {
     display: none;
@@ -12435,12 +12747,12 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
   .settings-toc-item {
     display: inline-flex !important;
     align-items: center !important;
-    padding: 8px 14px !important;
+    padding: 6px 14px 6px 8px !important;
     margin-bottom: 0 !important;
     margin-right: 6px !important;
-    min-height: 42px !important;
+    min-height: 48px !important;
     border-radius: 999px !important;
-    border: 1px solid #e2e8f0 !important;
+    border: 1.5px solid #e2e8f0 !important;
     background: #ffffff !important;
     font-size: 13px !important;
     font-weight: 700 !important;
@@ -12455,20 +12767,23 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
 
   .settings-toc-item .toc-icon-box {
     margin-right: 8px !important;
+    border-radius: 999px !important;
   }
 
   .settings-toc-item.active {
-    background: #0f172a !important;
-    color: #ffffff !important;
-    border-color: #0f172a !important;
+    background: #ecfdf5 !important;
+    color: #15803d !important;
+    border-color: #22c55e !important;
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.14) !important;
   }
 
   .settings-toc-item.active .toc-item-label {
-    color: #ffffff !important;
+    color: #15803d !important;
   }
 
   .settings-toc-item.active .toc-icon-box {
-    background: rgba(255, 255, 255, 0.2) !important;
+    background: #16a34a !important;
+    border-color: #16a34a !important;
     color: #ffffff !important;
   }
 

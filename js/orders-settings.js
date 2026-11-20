@@ -557,22 +557,18 @@ function renderScheduledPickupSetting() {
   renderStorePrepTimeUI(currentPrepTimeMinutes);
 }
 
+function applyOptionCardStyle(card, isSelected) {
+  if (!card) return;
+  card.classList.toggle("is-selected", Boolean(isSelected));
+  card.style.borderColor = isSelected ? "#22c55e" : "#e2e8f0";
+  card.style.background = isSelected ? "#f0fdf4" : "#ffffff";
+}
+
 function updateModeCardStyles(isScheduled) {
   const cardScheduled = document.getElementById("mode-card-scheduled");
   const cardAsap = document.getElementById("mode-card-asap");
-  if (cardScheduled && cardAsap) {
-    if (isScheduled) {
-      cardScheduled.style.borderColor = "var(--primary)";
-      cardScheduled.style.background = "rgba(0, 185, 0, 0.05)";
-      cardAsap.style.borderColor = "var(--border)";
-      cardAsap.style.background = "#fff";
-    } else {
-      cardAsap.style.borderColor = "var(--primary)";
-      cardAsap.style.background = "rgba(0, 185, 0, 0.05)";
-      cardScheduled.style.borderColor = "var(--border)";
-      cardScheduled.style.background = "#fff";
-    }
-  }
+  applyOptionCardStyle(cardScheduled, isScheduled);
+  applyOptionCardStyle(cardAsap, !isScheduled);
 }
 
 function onPickupModeChange(isScheduled) {
@@ -610,13 +606,7 @@ function togglePaymentCardStyle(opt) {
   const card = document.getElementById(isLinePay ? 'payment-card-linepay' : 'payment-card-cash');
   const input = document.getElementById(isLinePay ? 'setting-payment-opt-linepay' : 'setting-payment-opt-cash');
   if (card && input) {
-    if (input.checked) {
-      card.style.borderColor = 'var(--primary)';
-      card.style.background = 'rgba(0, 185, 0, 0.04)';
-    } else {
-      card.style.borderColor = 'var(--border)';
-      card.style.background = '#fff';
-    }
+    applyOptionCardStyle(card, input.checked);
   }
 }
 window.togglePaymentCardStyle = togglePaymentCardStyle;
@@ -778,19 +768,8 @@ function renderDineInSetting() {
 function updateDineInCardStyles(isAllowed) {
   const cardTrue = document.getElementById("mode-card-dinein-true");
   const cardFalse = document.getElementById("mode-card-dinein-false");
-  if (cardTrue && cardFalse) {
-    if (isAllowed) {
-      cardTrue.style.borderColor = "var(--primary)";
-      cardTrue.style.background = "rgba(0, 185, 0, 0.05)";
-      cardFalse.style.borderColor = "var(--border)";
-      cardFalse.style.background = "#fff";
-    } else {
-      cardFalse.style.borderColor = "var(--primary)";
-      cardFalse.style.background = "rgba(0, 185, 0, 0.05)";
-      cardTrue.style.borderColor = "var(--border)";
-      cardTrue.style.background = "#fff";
-    }
-  }
+  applyOptionCardStyle(cardTrue, isAllowed);
+  applyOptionCardStyle(cardFalse, !isAllowed);
 }
 
 function onDineInModeChange(isAllowed) {
@@ -836,29 +815,30 @@ function escapeShiftHtml(str) {
 
 function renderLegacyDailyOperatingHours(container) {
   const dayNamesList = DAY_NAMES[currentLang] || DAY_NAMES["zh-TW"];
+  const closeIconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
   for (let i = 1; i <= 7; i++) {
     const dayIdx = i === 7 ? 0 : i;
     const shifts = (storeOperatingHours && storeOperatingHours[dayIdx]) || [];
     const isOpen = shifts.length > 0;
     const row = document.createElement("div");
-    row.style.cssText = "background: #fff; border: 1.5px solid var(--border, #e2e8f0); border-radius: 12px; padding: 14px 16px; transition: all 0.15s ease;";
+    row.className = `hours-day-card ${isOpen ? "is-open" : "is-closed"}`;
     let shiftsHtml = "";
     shifts.forEach((shift, sIdx) => {
       shiftsHtml += `
-        <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
-          <input type="time" aria-label="${escapeShiftHtml(dayNamesList[dayIdx])} ${escapeShiftHtml(t('startTime'))}" id="sh-start-${dayIdx}-${sIdx}" value="${shift.start}" style="flex:1; min-height:48px; min-width:0; padding:8px 12px; font-family:inherit; border:1.5px solid var(--border, #cbd5e1); border-radius:8px; font-size:var(--pos-text-body); font-weight:600; outline:none;">
-          <span style="font-weight:900; color:#64748b;">-</span>
-          <input type="time" aria-label="${escapeShiftHtml(dayNamesList[dayIdx])} ${escapeShiftHtml(t('endTime'))}" id="sh-end-${dayIdx}-${sIdx}" value="${shift.end}" style="flex:1; min-height:48px; min-width:0; padding:8px 12px; font-family:inherit; border:1.5px solid var(--border, #cbd5e1); border-radius:8px; font-size:var(--pos-text-body); font-weight:600; outline:none;">
-          <button type="button" aria-label="${escapeShiftHtml(t('shiftDeleteBtn'))}" onclick="removeShift(${dayIdx}, ${sIdx})" style="background:#fee2e2; border:1px solid #fca5a5; color:#dc2626; cursor:pointer; font-size:var(--pos-text-body); min-width:48px; min-height:48px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">✕</button>
+        <div class="hours-shift-row">
+          <input type="time" class="hours-time-input" aria-label="${escapeShiftHtml(dayNamesList[dayIdx])} ${escapeShiftHtml(t('startTime'))}" id="sh-start-${dayIdx}-${sIdx}" value="${shift.start}">
+          <span class="hours-shift-sep">-</span>
+          <input type="time" class="hours-time-input" aria-label="${escapeShiftHtml(dayNamesList[dayIdx])} ${escapeShiftHtml(t('endTime'))}" id="sh-end-${dayIdx}-${sIdx}" value="${shift.end}">
+          <button type="button" class="hours-remove-shift-btn" aria-label="${escapeShiftHtml(t('shiftDeleteBtn'))}" onclick="removeShift(${dayIdx}, ${sIdx})">${closeIconSvg}</button>
         </div>`;
     });
     row.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <label style="display:flex; min-height:48px; align-items:center; gap:10px; cursor:pointer; font-size:var(--pos-text-body); font-weight:800; color:#1e293b;">
-          <input type="checkbox" ${isOpen ? 'checked' : ''} onchange="toggleDayStatus(${dayIdx}, this.checked)" style="width:20px; height:20px; accent-color:var(--primary, #00b900);">
-          <span style="color:${isOpen ? '#0f172a' : '#94a3b8'};">${dayNamesList[dayIdx]}</span>
+      <div class="hours-day-header">
+        <label class="hours-day-toggle">
+          <input type="checkbox" class="hours-day-checkbox" ${isOpen ? 'checked' : ''} onchange="toggleDayStatus(${dayIdx}, this.checked)">
+          <span class="hours-day-name">${dayNamesList[dayIdx]}</span>
         </label>
-        ${isOpen ? `<button type="button" onclick="addShift(${dayIdx})" style="min-height:48px; font-size:var(--pos-text-meta); background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:800;">${t('btnAddShift')}</button>` : `<span style="font-size:var(--pos-text-meta); color:#ef4444; font-weight:800; background:#fef2f2; padding:4px 8px; border-radius:6px; border:1px solid #fee2e2;">${t('closedDay')}</span>`}
+        ${isOpen ? `<button type="button" class="hours-add-shift-btn" onclick="addShift(${dayIdx})">${t('btnAddShift')}</button>` : `<span class="hours-closed-badge">${t('closedDay')}</span>`}
       </div>
       ${isOpen ? `<div id="shifts-box-${dayIdx}">${shiftsHtml}</div>` : ''}`;
     container.appendChild(row);
@@ -1325,19 +1305,8 @@ function renderLanguageSetting() {
   const cardVi = document.getElementById("lang-card-vi");
   if (radioZh) radioZh.checked = (currentLang === "zh-TW");
   if (radioVi) radioVi.checked = (currentLang === "vi");
-  if (cardZh && cardVi) {
-    if (currentLang === "zh-TW") {
-      cardZh.style.borderColor = "var(--primary)";
-      cardZh.style.background = "rgba(0, 185, 0, 0.05)";
-      cardVi.style.borderColor = "var(--border)";
-      cardVi.style.background = "#fff";
-    } else {
-      cardVi.style.borderColor = "var(--primary)";
-      cardVi.style.background = "rgba(0, 185, 0, 0.05)";
-      cardZh.style.borderColor = "var(--border)";
-      cardZh.style.background = "#fff";
-    }
-  }
+  applyOptionCardStyle(cardZh, currentLang === "zh-TW");
+  applyOptionCardStyle(cardVi, currentLang !== "zh-TW");
   renderCustomerSupportedLocalesSetting();
 }
 
@@ -1345,13 +1314,7 @@ function toggleCustomerLocaleCheckbox(locale) {
   const chk = document.getElementById(`setting-cust-locale-${locale}`);
   const card = document.getElementById(`cust-lang-card-${locale}`);
   if (!chk || !card) return;
-  if (chk.checked) {
-    card.style.borderColor = "var(--primary)";
-    card.style.background = "rgba(0, 185, 0, 0.05)";
-  } else {
-    card.style.borderColor = "var(--border)";
-    card.style.background = "#fff";
-  }
+  applyOptionCardStyle(card, chk.checked);
 }
 
 function renderCustomerSupportedLocalesSetting() {
@@ -1506,14 +1469,8 @@ function onPrinterModeChange(mode) {
 function updatePrintModeCardStyles(isAuto) {
   const cardAuto = document.getElementById("mode-card-print-auto");
   const cardManual = document.getElementById("mode-card-print-manual");
-  if (cardAuto) {
-    cardAuto.style.borderColor = isAuto ? "var(--primary, #00b900)" : "var(--border, #cbd5e1)";
-    cardAuto.style.background = isAuto ? "rgba(0, 185, 0, 0.05)" : "#fff";
-  }
-  if (cardManual) {
-    cardManual.style.borderColor = !isAuto ? "var(--primary, #00b900)" : "var(--border, #cbd5e1)";
-    cardManual.style.background = !isAuto ? "rgba(0, 185, 0, 0.05)" : "#fff";
-  }
+  applyOptionCardStyle(cardAuto, isAuto);
+  applyOptionCardStyle(cardManual, !isAuto);
 }
 
 function updatePrintActionAvailability() {

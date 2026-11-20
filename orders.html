@@ -9,7 +9,7 @@
 
   <script src="/js/order-code.js?v=20261109_order_code_v1"></script>
   <script src="js/orders-display.js?v=20261119_flex_gap_compat_v1"></script>
-  <link rel="stylesheet" href="css/orders.css?v=20261120_settings_card_titles_v1" />
+  <link rel="stylesheet" href="css/orders.css?v=20261121_settings_fnb_controls_v1" />
   <link rel="stylesheet" href="css/orders-stock.css?v=20261107_stock_drawer_v1" />
   <link rel="stylesheet" href="css/orders-menu.css?v=20261119_shift_matrix_unlock_v1" />
     <script>
@@ -688,16 +688,16 @@
               </div>
 
               <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
-                <label class="setting-mode-card" id="mode-card-scheduled" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 12px; border: 2px solid var(--border); cursor: pointer; transition: all 0.15s ease;">
-                  <input type="radio" name="pickup-mode-radio" id="setting-allow-scheduled-true" value="true" onchange="onPickupModeChange(true)" style="width: 20px; height: 20px; margin-top: 3px; accent-color: var(--primary);">
+                <label class="setting-mode-card" id="mode-card-scheduled" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 14px; border: 1.5px solid var(--border); cursor: pointer;">
+                  <input type="radio" name="pickup-mode-radio" id="setting-allow-scheduled-true" value="true" onchange="onPickupModeChange(true)" style="margin-top: 2px;">
                   <div>
                     <div style="font-weight: 1100; font-size: var(--pos-text-body); color: #111827;" id="i18n-mode-scheduled-title">允許顧客預約取餐時間 (預設)</div>
                     <div style="font-size: var(--pos-text-meta); color: #4b5563; margin-top: 4px; line-height: 1.4;" id="i18n-mode-scheduled-sub">顧客可自由選擇今天或未來營業時段預約取餐。</div>
                   </div>
                 </label>
 
-                <label class="setting-mode-card" id="mode-card-asap" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 12px; border: 2px solid var(--border); cursor: pointer; transition: all 0.15s ease;">
-                  <input type="radio" name="pickup-mode-radio" id="setting-allow-scheduled-false" value="false" onchange="onPickupModeChange(false)" style="width: 20px; height: 20px; margin-top: 3px; accent-color: var(--primary);">
+                <label class="setting-mode-card" id="mode-card-asap" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 14px; border: 1.5px solid var(--border); cursor: pointer;">
+                  <input type="radio" name="pickup-mode-radio" id="setting-allow-scheduled-false" value="false" onchange="onPickupModeChange(false)" style="margin-top: 2px;">
                   <div>
                     <div style="font-weight: 1100; font-size: var(--pos-text-body); color: #111827;" id="i18n-mode-asap-title">僅限現場排隊 / 即刻出餐模式</div>
                     <div style="font-size: var(--pos-text-meta); color: #4b5563; margin-top: 4px; line-height: 1.4;" id="i18n-mode-asap-sub">關閉預約時段選單。顧客送出訂單後，店家將依序即刻製作出餐。</div>
@@ -739,8 +739,8 @@
 
               <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
                 <!-- LINE Pay Option -->
-                <label class="setting-payment-card" id="payment-card-linepay" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 12px; border: 2px solid var(--border); cursor: pointer; transition: all 0.15s ease;">
-                  <input type="checkbox" id="setting-payment-opt-linepay" value="line_pay" onchange="togglePaymentCardStyle('line_pay')" style="width: 20px; height: 20px; margin-top: 3px; accent-color: var(--primary);">
+                <label class="setting-payment-card" id="payment-card-linepay" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 14px; border: 1.5px solid var(--border); cursor: pointer;">
+                  <input type="checkbox" id="setting-payment-opt-linepay" value="line_pay" onchange="togglePaymentCardStyle('line_pay')" style="margin-top: 2px;">
                   <div style="flex: 1;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                       <span style="font-weight: 1100; font-size: var(--pos-text-body); color: #111827;" id="i18n-payment-opt-linepay-title">LINE Pay (線上付款)</span>
@@ -751,8 +751,8 @@
                 </label>
 
                 <!-- Cash / Pay Later Option -->
-                <label class="setting-payment-card" id="payment-card-cash" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 12px; border: 2px solid var(--border); cursor: pointer; transition: all 0.15s ease;">
-                  <input type="checkbox" id="setting-payment-opt-cash" value="cash" onchange="togglePaymentCardStyle('cash')" style="width: 20px; height: 20px; margin-top: 3px; accent-color: var(--primary);">
+                <label class="setting-payment-card" id="payment-card-cash" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 14px; border: 1.5px solid var(--border); cursor: pointer;">
+                  <input type="checkbox" id="setting-payment-opt-cash" value="cash" onchange="togglePaymentCardStyle('cash')" style="margin-top: 2px;">
                   <div style="flex: 1;">
                     <div style="font-weight: 1100; font-size: var(--pos-text-body); color: #111827;" id="i18n-payment-opt-cash-title">取餐時付款 / 現場結帳（訂單先送出）</div>
                     <div style="font-size: var(--pos-text-meta); color: #4b5563; margin-top: 4px; line-height: 1.4;" id="i18n-payment-opt-cash-sub">允許顧客先下單，待抵達門市取餐時再以現金或其他臨櫃方式結帳。</div>
@@ -906,16 +906,16 @@
                 <div style="font-size: var(--pos-text-meta); color: var(--muted); font-weight: 600; margin-top: 2px;" id="i18n-setting-lang-sub">設定 POS 系統的操作與顯示語言</div>
               </div>
               <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
-                <label class="setting-mode-card" id="lang-card-zh" style="display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 12px; border: 2px solid var(--border); cursor: pointer; transition: all 0.15s ease;">
-                  <input type="radio" name="pos-language-radio" id="setting-lang-zh" value="zh-TW" onchange="selectLanguage('zh-TW')" style="width: 20px; height: 20px; accent-color: var(--primary);">
+                <label class="setting-mode-card" id="lang-card-zh" style="display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 14px; border: 1.5px solid var(--border); cursor: pointer;">
+                  <input type="radio" name="pos-language-radio" id="setting-lang-zh" value="zh-TW" onchange="selectLanguage('zh-TW')">
                   <div>
                     <div style="font-weight: 1100; font-size: var(--pos-text-body); color: #111827;">繁體中文 (Traditional Chinese)</div>
                     <div style="font-size: var(--pos-text-meta); color: #64748b; margin-top: 2px;" id="i18n-lang-zh-desc">適合台灣門市與繁體中文操作人員</div>
                   </div>
                 </label>
 
-                <label class="setting-mode-card" id="lang-card-vi" style="display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 12px; border: 2px solid var(--border); cursor: pointer; transition: all 0.15s ease;">
-                  <input type="radio" name="pos-language-radio" id="setting-lang-vi" value="vi" onchange="selectLanguage('vi')" style="width: 20px; height: 20px; accent-color: var(--primary);">
+                <label class="setting-mode-card" id="lang-card-vi" style="display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 14px; border: 1.5px solid var(--border); cursor: pointer;">
+                  <input type="radio" name="pos-language-radio" id="setting-lang-vi" value="vi" onchange="selectLanguage('vi')">
                   <div>
                     <div style="font-weight: 1100; font-size: var(--pos-text-body); color: #111827;">Tiếng Việt (Vietnamese)</div>
                     <div style="font-size: var(--pos-text-meta); color: #64748b; margin-top: 2px;" id="i18n-lang-vi-desc">Giao diện tiếng Việt chuẩn hóa cho nhân viên quầy và thu ngân</div>
@@ -929,9 +929,9 @@
                   </div>
 
                   <div id="setting-customer-locales-unlocked-body" style="display: none; flex-direction: column; gap: 12px;">
-                    <label class="setting-mode-card" id="cust-lang-card-primary" style="display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; min-height: 48px; border-radius: 12px; border: 2px solid var(--border); background: #f8fafc; cursor: default;">
+                    <label class="setting-mode-card" id="cust-lang-card-primary" style="display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; min-height: 48px; border-radius: 14px; border: 1.5px solid var(--border); background: #f8fafc; cursor: default;">
                       <div style="display: flex; align-items: center; gap: 14px;">
-                        <input type="checkbox" id="setting-cust-locale-primary" checked disabled style="width: 20px; height: 20px; accent-color: var(--primary);">
+                        <input type="checkbox" id="setting-cust-locale-primary" checked disabled>
                         <div>
                           <div style="font-weight: 900; font-size: var(--pos-text-body); color: #111827;" id="i18n-cust-lang-primary-title">繁體中文（門市預設主語言）</div>
                           <div style="font-size: var(--pos-text-meta); color: #64748b; margin-top: 2px;" id="i18n-cust-lang-primary-desc">菜單編輯主語言，顧客端永遠包含此語言</div>
@@ -940,16 +940,16 @@
                       <span id="i18n-cust-lang-primary-badge" style="font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 999px; background: #e2e8f0; color: #334155; white-space: nowrap;">主語言</span>
                     </label>
 
-                    <label class="setting-mode-card" id="cust-lang-card-en" style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; min-height: 48px; border-radius: 12px; border: 2px solid var(--border); cursor: pointer; transition: all 0.15s ease;">
-                      <input type="checkbox" id="setting-cust-locale-en" value="en" onchange="toggleCustomerLocaleCheckbox('en')" style="width: 20px; height: 20px; accent-color: var(--primary);">
+                    <label class="setting-mode-card" id="cust-lang-card-en" style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; min-height: 48px; border-radius: 14px; border: 1.5px solid var(--border); cursor: pointer;">
+                      <input type="checkbox" id="setting-cust-locale-en" value="en" onchange="toggleCustomerLocaleCheckbox('en')">
                       <div>
                         <div style="font-weight: 900; font-size: var(--pos-text-body); color: #111827;" id="i18n-cust-lang-en-title">English（英文菜單）</div>
                         <div style="font-size: var(--pos-text-meta); color: #64748b; margin-top: 2px;" id="i18n-cust-lang-en-desc">開啟後，顧客可切換英文菜單，POS 與 AI 將支援英文翻譯</div>
                       </div>
                     </label>
 
-                    <label class="setting-mode-card" id="cust-lang-card-vi" style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; min-height: 48px; border-radius: 12px; border: 2px solid var(--border); cursor: pointer; transition: all 0.15s ease;">
-                      <input type="checkbox" id="setting-cust-locale-vi" value="vi" onchange="toggleCustomerLocaleCheckbox('vi')" style="width: 20px; height: 20px; accent-color: var(--primary);">
+                    <label class="setting-mode-card" id="cust-lang-card-vi" style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; min-height: 48px; border-radius: 14px; border: 1.5px solid var(--border); cursor: pointer;">
+                      <input type="checkbox" id="setting-cust-locale-vi" value="vi" onchange="toggleCustomerLocaleCheckbox('vi')">
                       <div>
                         <div style="font-weight: 900; font-size: var(--pos-text-body); color: #111827;" id="i18n-cust-lang-vi-title">Tiếng Việt（越南文菜單）</div>
                         <div style="font-size: var(--pos-text-meta); color: #64748b; margin-top: 2px;" id="i18n-cust-lang-vi-desc">開啟後，顧客可切換越南文菜單，POS 與 AI 將支援越南文翻譯</div>
@@ -1049,16 +1049,16 @@
 
               <div id="setting-dinein-body" style="padding: 20px;">
                 <div id="setting-dinein-unlocked-body" style="display: flex; flex-direction: column; gap: 14px;">
-                  <label class="setting-mode-card" id="mode-card-dinein-true" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 12px; border: 2px solid var(--border); cursor: pointer; transition: all 0.15s ease;">
-                    <input type="radio" name="dinein-mode-radio" id="setting-allow-dinein-true" value="true" onchange="onDineInModeChange(true)" style="width: 20px; height: 20px; margin-top: 3px; accent-color: var(--primary);">
+                  <label class="setting-mode-card" id="mode-card-dinein-true" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 14px; border: 1.5px solid var(--border); cursor: pointer;">
+                    <input type="radio" name="dinein-mode-radio" id="setting-allow-dinein-true" value="true" onchange="onDineInModeChange(true)" style="margin-top: 2px;">
                     <div>
                       <div style="font-weight: 1100; font-size: var(--pos-text-body); color: #111827;" id="i18n-mode-dinein-true-title">開啟內用與外帶 (預設)</div>
                       <div style="font-size: var(--pos-text-meta); color: #4b5563; margin-top: 4px; line-height: 1.4;" id="i18n-mode-dinein-true-sub">顧客可在點餐頁面自由切換「外帶」或「內用」模式。</div>
                     </div>
                   </label>
 
-                  <label class="setting-mode-card" id="mode-card-dinein-false" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 12px; border: 2px solid var(--border); cursor: pointer; transition: all 0.15s ease;">
-                    <input type="radio" name="dinein-mode-radio" id="setting-allow-dinein-false" value="false" onchange="onDineInModeChange(false)" style="width: 20px; height: 20px; margin-top: 3px; accent-color: var(--primary);">
+                  <label class="setting-mode-card" id="mode-card-dinein-false" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 14px; border: 1.5px solid var(--border); cursor: pointer;">
+                    <input type="radio" name="dinein-mode-radio" id="setting-allow-dinein-false" value="false" onchange="onDineInModeChange(false)" style="margin-top: 2px;">
                     <div>
                       <div style="font-weight: 1100; font-size: var(--pos-text-body); color: #111827;" id="i18n-mode-dinein-false-title">僅限外帶 (關閉內用)</div>
                       <div style="font-size: var(--pos-text-meta); color: #4b5563; margin-top: 4px; line-height: 1.4;" id="i18n-mode-dinein-false-sub">隱藏內用選項，所有訂單一律為外帶自取。</div>
@@ -1204,15 +1204,15 @@
                     <div style="font-size: var(--pos-text-meta); color: var(--muted); margin-top: 2px;" id="i18n-printer-mode-sub">選擇新訂單進來時的列印行為</div>
                   </div>
                   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 4px;">
-                    <label class="setting-mode-card" id="mode-card-print-auto" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 12px; border: 2px solid var(--border); background: #fff; cursor: pointer; transition: all 0.15s ease;">
-                      <input type="radio" name="printer-mode-radio" id="printer-mode-auto" value="auto" onchange="onPrinterModeChange('auto')" style="width: 20px; height: 20px; margin-top: 3px; accent-color: var(--primary);">
+                    <label class="setting-mode-card" id="mode-card-print-auto" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 14px; border: 1.5px solid var(--border); background: #fff; cursor: pointer;">
+                      <input type="radio" name="printer-mode-radio" id="printer-mode-auto" value="auto" onchange="onPrinterModeChange('auto')" style="margin-top: 2px;">
                       <div>
                         <div style="font-weight: 1000; font-size: var(--pos-text-body); color: #111827;" id="i18n-print-mode-auto-title">確認後自動列印</div>
                         <div style="font-size: var(--pos-text-meta); color: #4b5563; margin-top: 4px; line-height: 1.45;" id="i18n-print-mode-auto-desc">收到新訂單時先發出提示音，店員確認接單成功後，才自動列印明細與餐點貼紙。</div>
                       </div>
                     </label>
-                    <label class="setting-mode-card" id="mode-card-print-manual" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 12px; border: 2px solid var(--border); background: #fff; cursor: pointer; transition: all 0.15s ease;">
-                      <input type="radio" name="printer-mode-radio" id="printer-mode-manual" value="manual" onchange="onPrinterModeChange('manual')" style="width: 20px; height: 20px; margin-top: 3px; accent-color: var(--primary);">
+                    <label class="setting-mode-card" id="mode-card-print-manual" style="display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: 14px; border: 1.5px solid var(--border); background: #fff; cursor: pointer;">
+                      <input type="radio" name="printer-mode-radio" id="printer-mode-manual" value="manual" onchange="onPrinterModeChange('manual')" style="margin-top: 2px;">
                       <div>
                         <div style="font-weight: 1000; font-size: var(--pos-text-body); color: #111827;" id="i18n-print-mode-manual-title">手動列印模式 (Manual-print)</div>
                         <div style="font-size: var(--pos-text-meta); color: #4b5563; margin-top: 4px; line-height: 1.45;" id="i18n-print-mode-manual-desc">店員須在螢幕點選 [整單全印] 機器才會出單。適合需要先核對確認訂單的門市。</div>
@@ -3280,7 +3280,7 @@
   <script src="js/orders-modals.js?v=20261112_print_recovery_v1"></script>
   <script src="js/qrcode.min.js?v=20261107_table_qr_v1"></script>
   <script src="js/store-notice-format.js?v=20261111_store_notice_v1"></script>
-  <script src="js/orders-settings.js?v=20261120_settings_card_titles_v1"></script>
+  <script src="js/orders-settings.js?v=20261121_settings_fnb_controls_v1"></script>
   <script src="js/orders-orientation.js?v=20261117_screen_orientation_v1"></script>
   <script src="js/orders-menu-model.js?v=20261117_menu_schedule_v4"></script>
   <script src="js/orders-menu.js?v=20261117_schedule_matrix_v1"></script>
