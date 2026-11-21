@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
 import { Button } from '@shared/ui/button';
+import { Dialog, DialogClose, DialogContent, DialogOverlay, DialogPortal, DialogTitle } from '@shared/ui/dialog';
 import { staffText as text, money, roundMoney } from './contracts';
 
 export function CashierIcon() {
@@ -35,71 +36,76 @@ export function Cashier({ total, onClose, onConfirm }: { total: number; onClose:
     });
   }
 
-  useLayoutEffect(() => { closeButton.current?.focus(); }, []);
-  useEffect(() => {
-    function handleKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onClose();
-      } else if (/^\d$/.test(event.key)) {
-        event.preventDefault();
-        enterKey(event.key);
-      } else if (event.key === 'Backspace' || event.key === 'Delete') {
-        event.preventDefault();
-        enterKey('backspace');
-      } else if (event.key === 'Enter') {
-        if (event.target instanceof Element && event.target.closest('#staff-cashier-close-btn, [data-cashier-chip]')) return;
-        event.preventDefault();
-        if (valid) onConfirm(tendered);
-      }
+  function handleKey(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing) return;
+    if (/^\d$/.test(event.key)) {
+      event.preventDefault();
+      enterKey(event.key);
+    } else if (event.key === 'Backspace' || event.key === 'Delete') {
+      event.preventDefault();
+      enterKey('backspace');
+    } else if (event.key === 'Enter') {
+      if (event.target instanceof Element && event.target.closest('#staff-cashier-close-btn, [data-cashier-chip]')) return;
+      event.preventDefault();
+      if (valid) onConfirm(tendered);
     }
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, [onClose, onConfirm, tendered, valid]);
+  }
 
   const confirmLabel = empty ? text('請輸入實收金額', 'Nhập số tiền khách đưa')
     : insufficient ? text(`尚欠 $${money(-difference)}`, `Còn thiếu $${money(-difference)}`)
     : difference === 0 ? text('確認 · 剛好免找', 'Xác nhận · vừa đủ')
     : text(`確認 · 找零 $${money(difference)}`, `Xác nhận · thối $${money(difference)}`);
 
-  return <div id="staff-cashier-modal" className="staff-cashier-overlay" role="dialog" aria-modal="true" aria-labelledby="staff-cashier-due-label"
-    onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-    <div className="staff-cashier-dialog">
-      <div className="staff-cashier-header">
-        <div className="staff-cashier-due-wrap">
-          <span id="staff-cashier-due-label" className="staff-cashier-due-label">{text('應收金額', 'Cần thu')}</span>
-          <span id="staff-cashier-due-amount" className="staff-cashier-due-amount">${money(total)}</span>
-        </div>
-        <Button ref={closeButton} id="staff-cashier-close-btn" className="staff-cashier-close-btn" onClick={onClose}>{text('關閉', 'Đóng')}</Button>
-      </div>
-      <div className="staff-cashier-body">
-        <div className="staff-cashier-left">
-          <div className="staff-cashier-tender-block">
-            <div id="staff-cashier-tender-label" className="staff-cashier-field-label">{text('實收金額', 'Khách đưa')}</div>
-            <div id="staff-cashier-tender-display" className={`staff-cashier-tender-display${input.value ? '' : ' is-empty'}`}>${money(tendered)}</div>
+  return <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
+    <DialogPortal>
+      <DialogOverlay id="staff-cashier-modal" className="staff-cashier-overlay">
+        <DialogContent className="staff-cashier-dialog" aria-modal="true" aria-describedby={undefined} onKeyDown={handleKey}
+          onOpenAutoFocus={event => {
+            event.preventDefault();
+            closeButton.current?.focus();
+          }}
+          onCloseAutoFocus={event => event.preventDefault()}>
+          <div className="staff-cashier-header">
+            <DialogTitle asChild>
+              <div className="staff-cashier-due-wrap">
+                <span id="staff-cashier-due-label" className="staff-cashier-due-label">{text('應收金額', 'Cần thu')}</span>
+                <span id="staff-cashier-due-amount" className="staff-cashier-due-amount">${money(total)}</span>
+              </div>
+            </DialogTitle>
+            <DialogClose asChild>
+              <Button ref={closeButton} id="staff-cashier-close-btn" className="staff-cashier-close-btn">{text('關閉', 'Đóng')}</Button>
+            </DialogClose>
           </div>
-          <div id="staff-cashier-chips" className="staff-cashier-chips">
-            {quickAmounts(total).map((amount, index) => {
-              const selected = input.value !== '' && Math.abs(tendered - amount) < 0.001;
-              return <Button key={amount} className={`staff-cashier-chip${selected ? ' on' : ''}`} data-cashier-chip={amount} aria-pressed={selected}
-                onClick={() => setInput({ value: money(amount), replaceOnDigit: true })}>{index === 0 ? text('剛好 ', 'Vừa đủ ') : ''}${money(amount)}</Button>;
-            })}
+          <div className="staff-cashier-body">
+            <div className="staff-cashier-left">
+              <div className="staff-cashier-tender-block">
+                <div id="staff-cashier-tender-label" className="staff-cashier-field-label">{text('實收金額', 'Khách đưa')}</div>
+                <div id="staff-cashier-tender-display" className={`staff-cashier-tender-display${input.value ? '' : ' is-empty'}`}>${money(tendered)}</div>
+              </div>
+              <div id="staff-cashier-chips" className="staff-cashier-chips">
+                {quickAmounts(total).map((amount, index) => {
+                  const selected = input.value !== '' && Math.abs(tendered - amount) < 0.001;
+                  return <Button key={amount} className={`staff-cashier-chip${selected ? ' on' : ''}`} data-cashier-chip={amount} aria-pressed={selected}
+                    onClick={() => setInput({ value: money(amount), replaceOnDigit: true })}>{index === 0 ? text('剛好 ', 'Vừa đủ ') : ''}${money(amount)}</Button>;
+                })}
+              </div>
+              <div id="staff-cashier-change-box" className={`staff-cashier-change-box${empty ? ' is-empty' : insufficient ? ' is-insufficient' : ''}`}>
+                <div id="staff-cashier-change-label" className="staff-cashier-field-label">{insufficient ? text('尚欠金額', 'Còn thiếu') : text('找零', 'Thối lại')}</div>
+                <div id="staff-cashier-change-value" className="staff-cashier-change-value">${empty ? '0' : money(Math.abs(difference))}</div>
+              </div>
+            </div>
+            <div className="staff-cashier-keypad">
+              {keys.map(key => <Button key={key} className={`staff-cashier-key${key === 'backspace' ? ' staff-cashier-key-backspace' : ''}`} data-cashier-key={key}
+                aria-label={key === 'backspace' ? text('退格', 'Xóa số') : undefined} onClick={() => enterKey(key)}>
+                {key === 'backspace' ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM12 9l6 6m0-6-6 6" /></svg> : key}
+              </Button>)}
+            </div>
           </div>
-          <div id="staff-cashier-change-box" className={`staff-cashier-change-box${empty ? ' is-empty' : insufficient ? ' is-insufficient' : ''}`}>
-            <div id="staff-cashier-change-label" className="staff-cashier-field-label">{insufficient ? text('尚欠金額', 'Còn thiếu') : text('找零', 'Thối lại')}</div>
-            <div id="staff-cashier-change-value" className="staff-cashier-change-value">${empty ? '0' : money(Math.abs(difference))}</div>
+          <div className="staff-cashier-footer">
+            <Button id="staff-cashier-confirm-btn" className="staff-cashier-confirm-btn" disabled={!valid} onClick={() => onConfirm(tendered)}>{confirmLabel}</Button>
           </div>
-        </div>
-        <div className="staff-cashier-keypad">
-          {keys.map(key => <Button key={key} className={`staff-cashier-key${key === 'backspace' ? ' staff-cashier-key-backspace' : ''}`} data-cashier-key={key}
-            aria-label={key === 'backspace' ? text('退格', 'Xóa số') : undefined} onClick={() => enterKey(key)}>
-            {key === 'backspace' ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM12 9l6 6m0-6-6 6" /></svg> : key}
-          </Button>)}
-        </div>
-      </div>
-      <div className="staff-cashier-footer">
-        <Button id="staff-cashier-confirm-btn" className="staff-cashier-confirm-btn" disabled={!valid} onClick={() => onConfirm(tendered)}>{confirmLabel}</Button>
-      </div>
-    </div>
-  </div>;
+        </DialogContent>
+      </DialogOverlay>
+    </DialogPortal>
+  </Dialog>;
 }

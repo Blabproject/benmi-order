@@ -86,12 +86,15 @@ html.staff-order-mode #staff-table-bar {
 }
 
 html.staff-order-mode .staff-table-chips {
+  flex: 1;
+  min-width: 0;
+}
+
+html.staff-order-mode .staff-table-options {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  flex: 1;
-  min-width: 0;
 }
 
 /* Centered table number inside chip */
@@ -122,11 +125,16 @@ html.staff-order-mode .staff-chip:hover {
   background: #f1f5f9;
 }
 
-html.staff-order-mode .staff-chip.on {
-  background: #0f172a;
-  border-color: #0f172a;
-  color: #ffffff;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.14);
+html.staff-order-mode .staff-chip[data-state="checked"] {
+  background: #ecfdf5;
+  border-color: var(--primary, #059669);
+  color: #065f46;
+  box-shadow: inset 0 0 0 1px var(--primary, #059669);
+}
+
+html.staff-order-mode .staff-chip:focus-visible {
+  outline: 2px solid var(--primary, #059669);
+  outline-offset: -4px;
 }
 
 html.staff-order-mode .staff-dot-occupied {
@@ -1031,6 +1039,9 @@ html.staff-order-mode #staff-access-error {
 
   html.staff-order-mode .staff-table-chips {
     flex: 1 0 100%;
+  }
+
+  html.staff-order-mode .staff-table-options {
     flex-wrap: nowrap;
     overflow-x: auto;
     padding-bottom: 2px;
@@ -1130,14 +1141,12 @@ html.staff-order-mode .staff-cashier-close-btn {
   min-width: 48px;
   min-height: 48px;
   padding: 6px 10px;
-  border: none;
+  border: 1px solid #e2e8f0;
   border-radius: 10px;
-  background: transparent;
-  color: #64748b;
+  background: #ffffff;
+  color: #475569;
   font-size: calc(14px * var(--pos-font-scale, 1));
   font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
   cursor: pointer;
 }
 

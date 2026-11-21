@@ -9,9 +9,9 @@ const { getConfig } = require('../benmi-worker-official/src/modules/config.ts');
 const { createTenantRepository } = require('../benmi-worker-official/src/repositories/tenant.repository.ts');
 const { getTenantBootstrap } = require('../benmi-worker-official/src/modules/bootstrap.ts');
 const { getOptionCatalog } = require('../benmi-worker-official/src/modules/option-groups.ts');
-const { chromium } = require('playwright');
+const { chromium, webkit } = require('playwright');
 
-test('chromium: staff order cashier change calculator UI, placement, icons, and persistence', async t => {
+for (const [name, engine] of Object.entries({ chromium, webkit })) test(`${name}: staff order cashier layout, keyboard, and persistence`, async t => {
   const f = await fixture(t);
   await f.apply(`UPDATE tenant_config SET features='["dine_in"]',allow_dine_in=1,allow_scheduled_pickup=0 WHERE tenant_id='a';`);
   await f.apply(`UPDATE menu_items SET price=215 WHERE id='meal-a';`);
@@ -37,7 +37,7 @@ test('chromium: staff order cashier change calculator UI, placement, icons, and 
   await new Promise(r => server.listen(0, '127.0.0.1', r));
   t.after(() => new Promise(r => server.close(r)));
 
-  const browser = await chromium.launch();
+  const browser = await engine.launch();
   t.after(() => browser.close());
   const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
   const errors = [];
@@ -90,13 +90,25 @@ test('chromium: staff order cashier change calculator UI, placement, icons, and 
 
   // Add 1 meal ($215)
   await page.locator('#item-food-Meal').click();
-  await page.locator('[data-staff-table="table-a"]').click();
+  const tableChoices = page.getByRole('radiogroup', { name: 'Mang đi hoặc chọn bàn' });
+  const takeaway = tableChoices.locator('[data-staff-chip="takeaway"]');
+  const table = tableChoices.locator('[data-staff-table="table-a"]');
+  await takeaway.click();
+  assert.equal(await takeaway.getAttribute('aria-checked'), 'true');
+  await takeaway.focus();
+  await page.keyboard.down('ArrowRight');
+  await page.waitForFunction(() => document.querySelector('[data-staff-table="table-a"]').getAttribute('aria-checked') === 'true');
+  await page.keyboard.up('ArrowRight');
+  assert.equal(await takeaway.getAttribute('aria-checked'), 'false');
+  assert.equal(await table.evaluate(el => el === document.activeElement), true);
   assert.equal(await page.locator('#staff-cashier-btn').isDisabled(), false);
 
   for (const viewport of [{ width: 1024, height: 768 }, { width: 704, height: 1024 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
     const cashierBox = await page.locator('#staff-cashier-btn').boundingBox();
     const submitBox = await page.locator('#btn-desktop-submit').boundingBox();
+    const tableBox = await table.boundingBox();
+    assert(tableBox && tableBox.width >= 48 && tableBox.height >= 48);
     assert(cashierBox && submitBox);
     assert(cashierBox.height >= 48, `Cashier button touch target < 48px: ${JSON.stringify(cashierBox)}`);
     assert(submitBox.height >= 48, `Submit button touch target < 48px: ${JSON.stringify(submitBox)}`);
@@ -106,7 +118,8 @@ test('chromium: staff order cashier change calculator UI, placement, icons, and 
 
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.locator('#staff-cashier-btn').click();
-  assert.equal(await page.locator('#staff-cashier-modal').isVisible(), true);
+  assert.equal(await page.getByRole('dialog', { name: /Cần thu.*215/ }).isVisible(), true);
+  await page.waitForFunction(() => document.activeElement.id === 'staff-cashier-close-btn');
   assert.equal(await page.locator('#staff-cashier-due-amount').innerText(), '$215');
 
   const chips = await page.locator('#staff-cashier-chips .staff-cashier-chip').allInnerTexts();
@@ -122,11 +135,15 @@ test('chromium: staff order cashier change calculator UI, placement, icons, and 
   assert.equal(await page.locator('#staff-cashier-change-value').innerText(), '$115');
   assert.equal(await page.locator('#staff-cashier-confirm-btn').isDisabled(), true);
 
-  // Backspace + Escape close + keyboard digits + Enter confirm
-  await page.locator('[data-cashier-key="backspace"]').click();
+  // Keyboard editing and Escape return focus to the cashier button.
+  await page.keyboard.press('Backspace');
   assert.equal(await page.locator('#staff-cashier-tender-display').innerText(), '$10');
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('#staff-cashier-modal').isVisible(), false);
+  await page.waitForFunction(() => document.activeElement.id === 'staff-cashier-btn');
+  await page.locator('#staff-cashier-btn').click();
+  await page.locator('#staff-cashier-modal').click({ position: { x: 8, y: 8 } });
+  await page.locator('#staff-cashier-modal').waitFor({ state: 'hidden' });
   await page.locator('#staff-cashier-btn').click();
   await page.locator('[data-cashier-chip="500"]').click();
   assert.equal(await page.locator('#staff-cashier-tender-display').innerText(), '$500');
@@ -134,6 +151,12 @@ test('chromium: staff order cashier change calculator UI, placement, icons, and 
   assert.equal(await page.locator('#staff-cashier-change-value').innerText(), '$285');
   assert.equal(await page.locator('#staff-cashier-confirm-btn').isDisabled(), false);
   assert.match(await page.locator('#staff-cashier-confirm-btn').innerText(), /Xác nhận · thối \$285/);
+
+  await page.locator('#staff-cashier-confirm-btn').focus();
+  await page.keyboard.press('Tab');
+  assert.equal(await page.locator('#staff-cashier-close-btn').evaluate(el => el === document.activeElement), true);
+  await page.keyboard.press('Shift+Tab');
+  assert.equal(await page.locator('#staff-cashier-confirm-btn').evaluate(el => el === document.activeElement), true);
 
   // A cart refresh can change the total while the cashier panel stays open.
   await page.evaluate(() => {
@@ -179,12 +202,15 @@ test('chromium: staff order cashier change calculator UI, placement, icons, and 
   assert.equal(await page.locator('#staff-cashier-due-label').innerText(), '應收金額');
   assert.equal(await page.locator('#staff-cashier-tender-label').innerText(), '實收金額');
   assert.equal(await page.locator('#staff-cashier-close-btn').innerText(), '關閉');
-  await page.locator('[data-cashier-chip="500"]').click();
+  await page.locator('[data-cashier-key="5"]').focus();
+  await page.keyboard.press('5');
+  await page.keyboard.press('0');
+  await page.keyboard.press('0');
   assert.match(await page.locator('#staff-cashier-confirm-btn').innerText(), /確認 · 找零 \$285/);
 
   await Promise.all([
     page.waitForResponse(r => r.url().includes('/api/staff/orders') && r.request().method() === 'POST'),
-    page.locator('#staff-cashier-confirm-btn').click()
+    page.keyboard.press('Enter')
   ]);
   await page.waitForFunction(() => window.StaffOrder?.ready());
   assert.equal(await page.locator('#staff-cashier-modal').isVisible(), false);

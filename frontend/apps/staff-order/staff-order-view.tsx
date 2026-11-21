@@ -3,6 +3,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import type { MouseEvent, ReactNode } from 'react';
 import { Button } from '@shared/ui/button';
 import { ModifyIcon } from '@shared/ui/PosIcons';
+import { RadioGroup, RadioGroupItem } from '@shared/ui/radio-group';
 import { Cashier, CashierIcon } from './Cashier';
 import { staffText as text, type StaffCartView, type StaffCatalogItem, type StaffCatalogSection, type StaffTableView } from './contracts';
 import './staff-ui.css';
@@ -13,18 +14,18 @@ declare function editCartPortion(category: string, item: string, index: number):
 declare function openImageLightbox(src: string): void;
 
 function TableChips({ model, onSelect }: { model: StaffTableView; onSelect: (id: string) => void }) {
-  return <>
-    <Button className={`staff-chip${model.takeaway ? ' on' : ''}`} aria-pressed={model.takeaway} data-staff-chip="takeaway" onClick={() => onSelect('')}>
+  const selected = model.takeaway ? 'takeaway' : model.selected ? `table:${model.selected}` : '';
+  return <RadioGroup className="staff-table-options" value={selected}
+    onValueChange={value => onSelect(value === 'takeaway' ? '' : value.slice('table:'.length))}
+    aria-label={text('外帶或桌號', 'Mang đi hoặc chọn bàn')}>
+    <RadioGroupItem className="staff-chip" value="takeaway" data-staff-chip="takeaway">
       {text('外帶', 'Mang đi')}
-    </Button>
-    {model.allowDine && model.tables.map(table => {
-      const selected = !model.takeaway && model.selected === table.id;
-      return <Button className={`staff-chip${selected ? ' on' : ''}`} aria-pressed={selected} data-staff-table={table.id}
-        key={table.id} onClick={() => onSelect(table.id)}>
-        {table.label}{table.active_order_key && <span className="staff-dot-occupied" title={text('使用中', 'Đang phục vụ')} />}
-      </Button>;
-    })}
-  </>;
+    </RadioGroupItem>
+    {model.allowDine && model.tables.map(table => <RadioGroupItem className="staff-chip" value={`table:${table.id}`}
+      data-staff-table={table.id} key={table.id}>
+      {table.label}{table.active_order_key && <span className="staff-dot-occupied" title={text('使用中', 'Đang phục vụ')} />}
+    </RadioGroupItem>)}
+  </RadioGroup>;
 }
 
 function CatalogCard({ category, item, onOptions }: { category: string; item: StaffCatalogItem; onOptions: () => void }) {

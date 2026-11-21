@@ -90,7 +90,7 @@ for(const [name,engine] of Object.entries({chromium,webkit})) test(`${name}: sha
  };
  const submit=()=>page.evaluate(()=>submitOrder());
  await add();await page.locator('[data-staff-table="table-a"]').click();
- assert.equal(await page.locator('[data-staff-table="table-a"]').getAttribute('aria-pressed'),'true');
+ assert.equal(await page.locator('[data-staff-table="table-a"]').getAttribute('aria-checked'),'true');
  for(const viewport of [{width:1024,height:768},{width:704,height:1024},{width:390,height:844}]){
   await page.setViewportSize(viewport);
   const badges=await page.locator('.staff-tile-badges .badge').evaluateAll(elements=>elements.filter(el=>el.getClientRects().length).map(el=>{
