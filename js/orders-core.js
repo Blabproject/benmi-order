@@ -995,9 +995,9 @@ function isDineInSupported() {
 window.isDineInSupported = isDineInSupported;
 
 function switchTab(tab) {
-  if (activeTab === "menu-schedule" && tab !== "menu-schedule" && typeof hasUnsavedMenuScheduleChanges === "function" && hasUnsavedMenuScheduleChanges()) {
+  if (activeTab === "menu-schedule" && tab !== "menu-schedule" && (window.isMenuScheduleSaving?.() || (typeof hasUnsavedMenuScheduleChanges === "function" && hasUnsavedMenuScheduleChanges()))) {
     const leaveMsg = (typeof t === "function" && t("menuScheduleUnsavedLeave")) || "Leave without saving schedule changes?";
-    if (!confirm(leaveMsg)) {
+    if (window.isMenuScheduleSaving?.() || !confirm(leaveMsg)) {
       try {
         if (typeof window !== "undefined" && window.location && (window.location.hash || "") !== "#menu-schedule") {
           const revertUrl = new URL(window.location.href);
@@ -1007,7 +1007,6 @@ function switchTab(tab) {
       } catch (e) {}
       return;
     }
-    if (typeof window.discardMenuScheduleChanges === "function") window.discardMenuScheduleChanges();
   }
   if (tab === "menu-schedule" && window.__posFeaturesResolved && typeof isMenuScheduleFeatureEnabled === "function" && !isMenuScheduleFeatureEnabled()) {
     tab = "menu";
@@ -1031,6 +1030,7 @@ function switchTab(tab) {
   if (activeTab === "settings" && tab !== "settings" && typeof resetStorePinChangeForm === "function") {
     resetStorePinChangeForm();
   }
+  if (activeTab === "menu-schedule" && tab !== "menu-schedule") window.discardMenuScheduleChanges?.();
   activeTab = tab;
 
   // Persist active tab to sessionStorage and URL hash (without creating redundant history entries)
@@ -1081,6 +1081,7 @@ function switchTab(tab) {
   if (viewSettings) viewSettings.style.display = tab === "settings" ? "block" : "none";
   if (viewMenu) viewMenu.style.display = tab === "menu" ? "block" : "none";
   if (viewMenuSchedule) viewMenuSchedule.style.display = tab === "menu-schedule" ? "flex" : "none";
+  document.body.classList.toggle("is-menu-schedule-active", tab === "menu-schedule");
   if (viewStaffOrder) viewStaffOrder.style.display = tab === "staff-order" ? "block" : "none";
   const viewPayments = document.getElementById("view-payments");
   if (viewPayments) viewPayments.style.display = tab === "payments" ? "block" : "none";

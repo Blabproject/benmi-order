@@ -30,6 +30,7 @@ let isMenuSaving = false;
 let isStockSaving = false;
 let isMenuLoadedCompletely = false;
 let isMenuLoading = false;
+let menuLoadPromise = null;
 let isCustomGroupCreatorOpen = false;
 let newCustomGroupType = 'radio';
 let newCustomGroupRequired = false;
@@ -224,6 +225,21 @@ window.acknowledgeMenuScheduleSave = function (patch) {
   updateMenuSaveState();
 };
 
+// A deleted shift cascades to its assignments in D1. Reflect that in the
+// saved menu snapshot so it stays comparable to the live editor draft.
+window.pruneSavedMenuShiftAssignments = function (validIds) {
+  if (!savedMenuSnapshot) return;
+  const saved = JSON.parse(savedMenuSnapshot);
+  for (const cat of saved) {
+    if ((cat.type || 'catalog') !== 'catalog') continue;
+    for (const entity of [cat, ...(cat.items || [])]) {
+      if (Array.isArray(entity.shiftIds)) entity.shiftIds = entity.shiftIds.filter(id => validIds.has(String(id)));
+    }
+  }
+  savedMenuSnapshot = canonicalMenuSnapshot(saved);
+  checkMenuDirty();
+};
+
 function confirmLeaveMenu() {
   if (isMenuSaving || isStockSaving) return false;
   checkMenuDirty();
@@ -331,8 +347,12 @@ function setMenuLoading(loading) {
   }
 }
 
-async function loadMenuData() {
-  if (isMenuLoading) return;
+function loadMenuData() {
+  if (!menuLoadPromise) menuLoadPromise = fetchMenuData().finally(() => { menuLoadPromise = null; });
+  return menuLoadPromise;
+}
+
+async function fetchMenuData() {
   setMenuLoading(true);
   isMenuLoadedCompletely = false;
   updateMenuSaveState();

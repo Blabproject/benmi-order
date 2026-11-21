@@ -75,7 +75,7 @@ export default defineConfig({
       plugins: [tailwindcss({
         content: [
           './frontend/apps/pos/{PosHistoryPanel,history-bridge,settings-bridge,PosDisplaySettings,PosAiSettingsPanel}.tsx',
-          './frontend/apps/pos/settings/**/*.tsx',
+          './frontend/apps/pos/{settings,schedule}/**/*.tsx',
           './frontend/shared/ui/*.tsx'
         ],
         prefix: 'ps-',

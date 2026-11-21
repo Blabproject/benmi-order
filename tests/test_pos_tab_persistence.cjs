@@ -307,6 +307,11 @@ test('leaving the schedule matrix discards schedule changes only after confirmat
   assert.equal(s.activeTab, 'menu-schedule');
   assert.equal(discards, 0);
   s.confirm = () => true;
+  w.isMenuScheduleSaving = () => true;
+  s.switchTab('settings');
+  assert.equal(s.activeTab, 'menu-schedule');
+  assert.equal(discards, 0);
+  w.isMenuScheduleSaving = () => false;
   s.switchTab('settings');
   assert.equal(s.activeTab, 'settings');
   assert.equal(discards, 1);

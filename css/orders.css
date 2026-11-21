@@ -731,7 +731,8 @@ body.is-staff-order-active .page-main-title {
 }
 
 #view-settings,
-.settings-modal {
+.settings-modal,
+#view-menu-schedule {
   --settings-green: #16a34a;
   --settings-green-text: #15803d;
   --settings-green-surface: #ecfdf5;

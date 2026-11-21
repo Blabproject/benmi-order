@@ -1,9 +1,33 @@
-const { test } = require('node:test');
+const { before, test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const { JSDOM } = require('jsdom');
+const { resolve } = require('node:path');
 
-async function workspace(t) {
+let scheduleBundle;
+before(async () => {
+  const { build } = await import('vite');
+  const { default: react } = await import('@vitejs/plugin-react');
+  const result = await build({
+    configFile: false,
+    logLevel: 'silent',
+    plugins: [react()],
+    define: { 'process.env.NODE_ENV': JSON.stringify('production') },
+    resolve: { alias: { '@shared': resolve('frontend/shared') } },
+    build: {
+      write: false,
+      lib: { entry: 'frontend/apps/pos/schedule/bridge.tsx', name: 'PosSchedule', formats: ['iife'], fileName: 'schedule' }
+    }
+  });
+  scheduleBundle = result[0].output.find(entry => entry.type === 'chunk').code;
+});
+
+async function click(element) {
+  element.click();
+  await new Promise(resolve => setImmediate(resolve));
+}
+
+async function workspace(t, { noShifts = false, failShiftBootstrap = false } = {}) {
   const dom = new JSDOM('<div id="menu-schedule-workspace-root"></div>', { url: 'https://pos.test/orders?tenant_id=store', runScripts: 'dangerously' });
   t.after(() => dom.window.close());
   const w = dom.window;
@@ -15,12 +39,18 @@ async function workspace(t) {
     { id: 'tofu', title: 'Tofu', type: 'catalog', availabilityMode: 'selected_shifts', shiftIds: ['dinner'], hideWhenUnavailable: true, items: [{ id: 'three', name: 'Soup', price: 90 }] },
     { id: 'options', type: 'modifier', title: 'Options', items: [] }
   ];
-  w.storeOperatingShifts = ['lunch', 'dinner'].map(id => ({ id, name: id, shiftType: 'operating', windows: [1,2,3,4,5].map(dayOfWeek => ({ dayOfWeek, startTime: '11:00', endTime: '13:00' })) }));
   w.activeTab = 'menu-schedule'; w.isMenuLoadedCompletely = true;
   w.WORKER_BASE = 'https://worker.test'; w.getTenantIdFromUrl = () => 'store';
   w.confirm = () => true; w.alert = () => {};
   w.eval(readFileSync('js/orders-i18n.js', 'utf8'));
-  w.eval(readFileSync('js/orders-menu-schedule.js', 'utf8'));
+  w.eval(readFileSync('js/orders-settings.js', 'utf8') + '\nwindow.DAY_NAMES = DAY_NAMES;');
+  w.fetch = async () => {
+    if (failShiftBootstrap) throw new Error('Could not load shifts');
+    return { ok: true, json: async () => ({ tenant: { operatingShifts: [] } }) };
+  };
+  if (failShiftBootstrap) w.console.error = () => {};
+  w.storeOperatingShifts = (noShifts ? [] : ['lunch', 'dinner']).map(id => ({ id, name: id, shiftType: 'operating', windows: [1,2,3,4,5].map(dayOfWeek => ({ dayOfWeek, startTime: '11:00', endTime: '13:00' })) }));
+  w.eval(scheduleBundle);
   await w.initMenuScheduleWorkspace();
   const cell = key => [...w.document.querySelectorAll('[data-ms-focus]')].find(el => el.getAttribute('data-ms-focus') === key);
   return { w, d: w.document, cell, data: () => JSON.stringify(w.currentMenuData) };
@@ -31,7 +61,7 @@ test('matrix computes effective counts and native mixed checkboxes; expanding do
   assert.equal(cell('cat:rice:dinner').indeterminate, true);
   assert.equal(cell('cat:rice:dinner').getAttribute('aria-checked'), 'mixed');
   assert.deepEqual([...d.querySelectorAll('.ms-shift-count')].map(el => el.textContent), ['2/3 道餐點', '2/3 道餐點']);
-  cell('expand:rice').click();
+  await click(cell('expand:rice'));
   assert.equal(d.querySelectorAll('.ms-item-row').length, 2);
   assert.equal(cell('item:rice:one:dinner').checked, false);
   assert.equal(data(), before);
@@ -53,7 +83,7 @@ test('category bulk edits affect only the clicked shift and mixed activation sel
 
 test('item overrides recalculate parent mixed state and deselecting the last shift stays unavailable', async t => {
   const { w, cell } = await workspace(t);
-  cell('expand:rice').click();
+  await click(cell('expand:rice'));
   cell('item:rice:one:lunch').click();
   const item = w.currentMenuData[0].items[0];
   assert.equal(item.availabilityMode, 'selected_shifts');
@@ -82,9 +112,9 @@ test('compact title row puts subtitle in help popover, omits filter bar, and kee
   assert.equal(d.querySelector('.ms-filter-bar'), null);
   assert.ok(d.querySelector('.ms-title-row .ms-actions'));
   assert.equal(d.getElementById('ms-title-help-popover'), null);
-  cell('help').click();
+  await click(cell('help'));
   assert.equal(d.getElementById('ms-title-help-popover').textContent, w.t('menuSchedulePageSub'));
-  cell('help').click();
+  await click(cell('help'));
   assert.equal(d.getElementById('ms-title-help-popover'), null);
 });
 
@@ -99,6 +129,42 @@ test('outside policy preserves mixed initial data until explicitly selected; dis
   assert.equal(w.currentMenuData[0].hideWhenUnavailable, false);
   assert.equal(w.currentMenuData[0].items[0].price, 99);
   assert.equal(w.hasUnsavedMenuScheduleChanges(), false);
+});
+
+test('an empty schedule keeps shift management available without creating an unsavable assignment draft', async t => {
+  const { w, d } = await workspace(t, { noShifts: true });
+  assert.equal(d.querySelector('.ms-manage-shifts-btn').disabled, false);
+  assert.equal(d.querySelector('.ms-outside button').disabled, true);
+  w.msSetOutside(true);
+  assert.equal(w.hasUnsavedMenuScheduleChanges(), false);
+});
+
+test('a fresh shift snapshot restores assignment editing after a bootstrap error and drops deleted links', async t => {
+  const { w, d } = await workspace(t, { noShifts: true, failShiftBootstrap: true });
+  let patch;
+  w.fetch = async (_url, options) => {
+    if (options.method === 'PATCH') {
+      patch = JSON.parse(options.body);
+      return { ok: true };
+    }
+    return { ok: true, json: async () => ({
+      scheduleRevision: 4,
+      operatingHours: {},
+      operatingShifts: [{ id: 'lunch', name: 'Lunch', shiftType: 'operating', windows: [] }]
+    }) };
+  };
+  await w.openMenuShiftEditor();
+  w.discardMenuScheduleChanges();
+  assert.equal(w.hasUnsavedMenuAssignments(), false);
+  assert.equal(d.querySelector('.ms-shift-name').textContent, 'Lunch');
+  w.msSetOutside(false);
+  assert.equal(w.hasUnsavedMenuAssignments(), true);
+  await w.saveMenuScheduleWorkspace();
+  assert.equal(patch.categories.length, 1);
+  assert.equal(patch.categories[0].id, 'tofu');
+  assert.deepEqual(patch.categories[0].previous.shiftIds, []);
+  assert.deepEqual(patch.categories[0].shiftIds, []);
+  assert.equal(w.hasUnsavedMenuAssignments(), false);
 });
 
 test('save sends only changed schedules, retains unrelated menu edits and protects in-flight controls', async t => {
@@ -208,16 +274,18 @@ test('hours stay in Settings; CRUD, validation and draft retention live in the m
   w.eval(readFileSync('js/orders-i18n.js','utf8'));
   w.eval(readFileSync('js/menu-schedule.js','utf8'));
   w.eval(readFileSync('js/orders-settings.js','utf8')+`
-storeOperatingHours={'1':[{start:'09:00',end:'23:00'}]};storeScheduleRevision=3;window.readHoursDraft=()=>JSON.stringify(storeOperatingHours);renderOperatingHours();` + readFileSync('js/orders-menu-shifts.js','utf8'));
+storeOperatingHours={'1':[{start:'09:00',end:'23:00'}]};storeScheduleRevision=3;window.readHoursDraft=()=>JSON.stringify(storeOperatingHours);renderOperatingHours();window.DAY_NAMES=DAY_NAMES;`);
+  w.eval(scheduleBundle);
   assert.equal(w.document.querySelector('#btn-save-menu-shifts'),null);
   const hoursBefore=w.readHoursDraft();
-  w.renderMenuScheduleWorkspace=()=>{w.renderMenuShiftEditor();};
   const server={scheduleRevision:3,operatingHours:{'1':[{start:'09:00',end:'23:00'}]},operatingShifts:[{id:'dinner',name:'Dinner',shiftType:'operating',windows:[{id:'w',dayOfWeek:1,startTime:'17:00',endTime:'19:00'}]}]};
   const writes=[];let conflict=false;
   w.fetch=async (_url,options={})=>{
     if(options.method){const body=JSON.parse(options.body);writes.push(body);if(conflict)return{ok:false,json:async()=>({error:'MENU_SCHEDULE_CONFLICT'})};return{ok:true,json:async()=>({...server,...body,scheduleRevision:4})};}
     return{ok:true,json:async()=>server};
   };
+  w.storeOperatingShifts = server.operatingShifts;
+  await w.initMenuScheduleWorkspace();
   await w.openMenuShiftEditor();
   w.updateShiftBandTime(0,'17:00|19:00','endTime','23:30');
   await w.saveMenuShifts();assert.equal(writes.length,0);
