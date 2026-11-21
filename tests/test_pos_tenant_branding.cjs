@@ -8,7 +8,6 @@ const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'orders.html'), 'utf8');
 const inlineScripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)].map(match => match[1]);
 const earlyTenant = inlineScripts.find(code => code.includes('window.__INITIAL_TENANT_ID ='));
-const earlyBrand = inlineScripts.find(code => code.includes('const tenantId = window.__INITIAL_TENANT_ID'));
 const core = fs.readFileSync(path.join(root, 'js/orders-core.js'), 'utf8');
 
 function fixture(url, cached = {}) {
@@ -35,7 +34,6 @@ function fixture(url, cached = {}) {
   };
   vm.createContext(sandbox);
   vm.runInContext(earlyTenant, sandbox);
-  vm.runInContext(earlyBrand, sandbox);
   return {
     sandbox, nodes,
     loadCore() { vm.runInContext(core, sandbox); },

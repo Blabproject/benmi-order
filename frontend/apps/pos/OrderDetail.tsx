@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
 import type { HistoryOrderDto } from '@shared/contracts/api';
 import { Button } from '@shared/ui/button';
+import { OrderDetailItems, prepareOrderItems } from './OrderDetailItems';
 import { ClockIcon, CloseIcon, ModifyIcon, ReceiptIcon } from '@shared/ui/PosIcons';
 
 interface PrintItem { name?: string; price?: string | number; unitPrice?: string | number; quantity?: number }
@@ -19,7 +20,6 @@ declare const PrinterService: {
 declare function t(key: string, params?: Record<string, string | number>): string;
 declare function isOrderDineIn(order: HistoryOrderDto): boolean;
 declare function getOrderTableNumber(order: HistoryOrderDto): string;
-declare function formatContentHtml(order: HistoryOrderDto): string;
 declare function formatOrderTotal(order: HistoryOrderDto): string;
 declare function formatDineInTimeDisplay(order: HistoryOrderDto): string;
 declare function formatPickupTimeDisplay(time: string, createdAt: number, content: string): string;
@@ -86,7 +86,7 @@ function readDetail(order: HistoryOrderDto) {
   const legacyTotal = order.content?.match(/💰\s*總金額[：:]\s*\$?(\d+)/) ?? order.content?.match(/Tổng\s*(?:tiền)?[：:]\s*(\d+)/i);
   const total = Number(order.total) > 0 ? Number(order.total) : Number(legacyTotal?.[1]) || 0;
   const subtotal = orderSubtotal(order);
-  return { itemsHtml: formatContentHtml(order), itemCount, subtotal, discount: total > 0 ? Math.max(0, subtotal - total) : 0 };
+  return { items: prepareOrderItems(order), itemCount, subtotal, discount: total > 0 ? Math.max(0, subtotal - total) : 0 };
 }
 
 function CheckIcon() {
@@ -176,8 +176,7 @@ function OrderDetail({ order, etaOrder, detail }: { order: HistoryOrderDto; etaO
     <div className="order-detail-grid">
       <div className="order-detail-main-col">
         <div className="order-detail-meta-bar"><span className="order-detail-items-count" id="review-items-count">{t('tileItemCount', { count: detail.itemCount })}</span></div>
-        {/* The shared formatter escapes order data and preserves both snapshot and legacy portion/print controls. */}
-        <div className="detail-content" id="review-content" dangerouslySetInnerHTML={{ __html: detail.itemsHtml }} />
+        <OrderDetailItems orderKey={order.key} data={detail.items} />
         <div className="order-detail-totals-block">
           {detail.discount > 0 && <>
             <div className="order-detail-total-row subtotal-row" id="review-subtotal-row">

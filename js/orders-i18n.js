@@ -574,6 +574,11 @@ const I18N = {
     reviewPrintFullSummary: "1 張明細 + {n} 張標籤",
     reviewCompleteDineIn: "已完成",
     reviewTable: "桌號 {table}",
+    reviewEmptyMenu: "尚無菜單品項",
+    reviewItemInOrder: "本單",
+    posNavigation: "導覽選單",
+    staffOrderAlertCount: "有 {count} 筆新訂單待審核",
+    staffOrderAlertReview: "查看",
     btnPrintBillOnly: "僅印收銀明細",
     btnPrintCustomOption: "補印自訂標籤",
     btnPrintSingleItem: "印此品項貼紙",
@@ -2407,6 +2412,11 @@ const I18N = {
     reviewPrintFullSummary: "1 bill + {n} tem",
     reviewCompleteDineIn: "Đã xong",
     reviewTable: "Bàn {table}",
+    reviewEmptyMenu: "Thực đơn chưa có món",
+    reviewItemInOrder: "Có trong đơn",
+    posNavigation: "Menu điều hướng",
+    staffOrderAlertCount: "Có {count} đơn mới đang chờ duyệt",
+    staffOrderAlertReview: "Xem ngay",
     btnPrintBillOnly: "In bill thu ngân",
     btnPrintCustomOption: "In bù tem tùy chọn",
     btnPrintSingleItem: "In tem món",
@@ -3118,77 +3128,6 @@ function applyLanguageToDOM() {
   // Alert modal
   const alertSub = document.getElementById("new-alert-sub");
   if (alertSub) alertSub.innerText = dict.alertSub;
-  const btnAlertRev = document.getElementById("btn-alert-review");
-  if (btnAlertRev) {
-    const spanRev = btnAlertRev.querySelector(".btn-text") || btnAlertRev.querySelector("span");
-    if (spanRev) spanRev.innerText = dict.alertBtnReview;
-    else btnAlertRev.innerText = dict.alertBtnReview;
-  }
-  const btnAlertDis = document.getElementById("btn-alert-dismiss");
-  if (btnAlertDis) {
-    const spanDis = btnAlertDis.querySelector(".btn-text") || btnAlertDis.querySelector("span");
-    if (spanDis) spanDis.innerText = dict.alertBtnDismiss;
-    else btnAlertDis.innerText = dict.alertBtnDismiss;
-  }
-
-  // Change Modal
-  const chgTitle = document.getElementById("i18n-change-title");
-  if (chgTitle) chgTitle.innerText = dict.changeTitle;
-  const chgTabTT = document.getElementById("i18n-change-tab-time-title");
-  if (chgTabTT) chgTabTT.innerText = dict.changeTabTime;
-  const chgTabTS = document.getElementById("i18n-change-tab-time-sub");
-  if (chgTabTS) chgTabTS.innerText = dict.changeTabTimeSub;
-  const chgTabST = document.getElementById("i18n-change-tab-soldout-title");
-  if (chgTabST) chgTabST.innerText = dict.changeTabSoldout;
-  const chgTabSS = document.getElementById("i18n-change-tab-soldout-sub");
-  if (chgTabSS) chgTabSS.innerText = dict.changeTabSoldoutSub;
-  const origTL = document.getElementById("i18n-orig-time-label");
-  if (origTL) origTL.innerText = dict.origTimeLabel;
-  const calcSub = document.getElementById("i18n-calc-sub");
-  if (calcSub) calcSub.innerText = dict.calcFromNowSub;
-  const chgQuick = document.getElementById("i18n-change-quick-select");
-  if (chgQuick) chgQuick.innerText = dict.changeQuickSelect;
-  const soldT = document.getElementById("i18n-soldout-title");
-  if (soldT) soldT.innerText = dict.soldoutTitle;
-  const btnSoldClr = document.getElementById("btn-soldout-clear");
-  if (btnSoldClr) btnSoldClr.innerText = dict.soldoutClear;
-  const btnChgSnd = document.getElementById("btn-change-send");
-  if (btnChgSnd) {
-    const curVal = document.getElementById("change-note") ? document.getElementById("change-note").value : "";
-    const reason = document.getElementById("change-reason") ? document.getElementById("change-reason").value : "";
-    if (reason === "時間需調整" && curVal) {
-      btnChgSnd.innerText = `${dict.btnSendSuggest} (${curVal})`;
-    } else {
-      btnChgSnd.innerText = dict.btnSendSuggest;
-    }
-  }
-  const btnChgCan = document.getElementById("btn-change-cancel");
-  if (btnChgCan) btnChgCan.innerText = dict.btnCancel;
-
-  // Reject Modal
-  const rejTitle = document.getElementById("i18n-reject-title");
-  if (rejTitle) rejTitle.innerText = dict.rejectTitle;
-  const rejR1T = document.getElementById("i18n-reject-r1-title");
-  if (rejR1T) rejR1T.innerText = dict.rejectR1Title;
-  const rejR1S = document.getElementById("i18n-reject-r1-sub");
-  if (rejR1S) rejR1S.innerText = dict.rejectR1Sub;
-  const rejR2T = document.getElementById("i18n-reject-r2-title");
-  if (rejR2T) rejR2T.innerText = dict.rejectR2Title;
-  const rejR2S = document.getElementById("i18n-reject-r2-sub");
-  if (rejR2S) rejR2S.innerText = dict.rejectR2Sub;
-  const rejR3T = document.getElementById("i18n-reject-r3-title");
-  if (rejR3T) rejR3T.innerText = dict.rejectR3Title;
-  const rejR3S = document.getElementById("i18n-reject-r3-sub");
-  if (rejR3S) rejR3S.innerText = dict.rejectR3Sub;
-  const rejR4T = document.getElementById("i18n-reject-r4-title");
-  if (rejR4T) rejR4T.innerText = dict.rejectR4Title;
-  const rejR4S = document.getElementById("i18n-reject-r4-sub");
-  if (rejR4S) rejR4S.innerText = dict.rejectR4Sub;
-  const btnRejCnf = document.getElementById("btn-reject-confirm");
-  if (btnRejCnf) btnRejCnf.innerText = dict.btnConfirmReject;
-  const btnRejCan = document.getElementById("btn-reject-cancel");
-  if (btnRejCan) btnRejCan.innerText = dict.btnBack;
-
   // Settings
   if (typeof updateSettingsPrinterStatusDisplay === "function") {
     updateSettingsPrinterStatusDisplay();
@@ -3791,18 +3730,6 @@ function applyLanguageToDOM() {
   const prnManualDesc = document.getElementById("i18n-print-mode-manual-desc");
   if (prnManualDesc) prnManualDesc.innerText = dict.printModeManualDesc;
 
-  // Quick Sticker Modal
-  const qStickerTitle = document.getElementById("i18n-quick-sticker-title");
-  if (qStickerTitle) qStickerTitle.innerText = dict.quickStickerModalTitle;
-  const qStickerSub = document.getElementById("i18n-quick-sticker-sub");
-  if (qStickerSub) qStickerSub.innerText = dict.quickStickerModalSub;
-  const qStickerCustomLbl = document.getElementById("i18n-quick-sticker-custom-label");
-  if (qStickerCustomLbl) qStickerCustomLbl.innerText = dict.quickStickerCustomLabel;
-  const qStickerInput = document.getElementById("quick-sticker-custom-input");
-  if (qStickerInput) qStickerInput.placeholder = dict.quickStickerCustomPlaceholder;
-  const qStickerBtn = document.getElementById("i18n-btn-print-quick-custom");
-  if (qStickerBtn) qStickerBtn.innerText = dict.quickStickerCustomPrintBtn;
-
   // Printer Usage Guide DOM mappings
   const gTitle = document.getElementById("i18n-printer-guide-title");
   if (gTitle) gTitle.innerText = dict.printerGuideTitle;
@@ -3857,10 +3784,7 @@ function applyLanguageToDOM() {
   if (btnCloseG) btnCloseG.innerText = dict.btnCloseGuide;
 
   if (typeof refreshOrderDetail === "function") refreshOrderDetail();
-  const qModal = document.getElementById("quickStickerModal");
-  if (qModal && qModal.style.display === "flex" && typeof renderQuickStickerOptions === "function") {
-    renderQuickStickerOptions();
-  }
+  window.PosOrderDetailDialogs?.refresh();
 
   const prnCashT = document.getElementById("i18n-printer-cashier-title");
   if (prnCashT) prnCashT.innerText = dict.printerCashierTitle;

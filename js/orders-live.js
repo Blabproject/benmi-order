@@ -439,15 +439,8 @@ function updateNewAlert() {
   const newCount = pendingNewOrders.length;
   const appendCount = (typeof unacknowledgedAppends !== "undefined") ? unacknowledgedAppends.size : 0;
   const totalCount = newCount + appendCount;
-  const alertEl = document.getElementById("new-alert");
-  const titleEl = document.getElementById("new-alert-title");
-  const subEl = document.getElementById("new-alert-sub");
-  if (!alertEl || !titleEl) return;
-
   if (totalCount <= 0) {
-    alertEl.style.display = "none";
-    const toast = document.getElementById("staff-order-alert-toast");
-    if (toast) toast.style.display = "none";
+    window.PosOrderAlert?.hide();
     newAlertSnoozeUntilMs = 0;
     snoozedNewOrderKeys = new Set();
     if (typeof newAlertSnoozeTimerId !== 'undefined' && newAlertSnoozeTimerId) {
@@ -463,67 +456,34 @@ function updateNewAlert() {
     const hasBrandNew = pendingNewOrders.some(o => o?.key && !snoozedNewOrderKeys.has(o.key));
     const hasBrandNewAppend = (typeof unacknowledgedAppends !== "undefined") && Array.from(unacknowledgedAppends.keys()).some(k => !snoozedNewOrderKeys.has(k));
     if (!hasBrandNew && !hasBrandNewAppend) {
-      alertEl.style.display = "none";
-      const toast = document.getElementById("staff-order-alert-toast");
-      if (toast) toast.style.display = "none";
+      window.PosOrderAlert?.hide();
       if (typeof stopContinuousAlarm === "function") stopContinuousAlarm();
       return;
     }
   }
 
-  // Format title & subtitle based on mix of new vs append orders
-  if (newCount > 0 && appendCount > 0) {
-    titleEl.innerText = t("alertTitleCombined", { newCount, appendCount });
-    if (subEl) subEl.innerText = t("alertSub");
-  } else if (appendCount > 0) {
-    titleEl.innerText = t("alertTitleAppend", { count: appendCount });
-    const tableList = Array.from(unacknowledgedAppends.values())
-      .map(a => a.tableNumber ? `${a.tableNumber}號桌` : a.key)
-      .join(", ");
-    if (subEl) subEl.innerText = t("alertSubAppend", { tables: tableList || "—" });
-  } else {
-    titleEl.innerText = t("alertTitle", { count: newCount });
-    if (subEl) subEl.innerText = t("alertSub");
-  }
-
   if (typeof activeTab !== "undefined" && activeTab === "staff-order") {
-    alertEl.style.display = "none";
-    if (typeof showStaffOrderMiniToast === "function") {
-      showStaffOrderMiniToast(totalCount);
-    }
+    window.PosOrderAlert?.showStaff(totalCount);
     return;
   }
 
-  alertEl.style.display = "flex";
+  let title;
+  let description = t("alertSub");
+  if (newCount > 0 && appendCount > 0) {
+    title = t("alertTitleCombined", { newCount, appendCount });
+  } else if (appendCount > 0) {
+    title = t("alertTitleAppend", { count: appendCount });
+    const tableList = Array.from(unacknowledgedAppends.values())
+      .map(a => a.tableNumber ? t("reviewTable", { table: a.tableNumber }) : a.key)
+      .join(", ");
+    description = t("alertSubAppend", { tables: tableList || "—" });
+  } else {
+    title = t("alertTitle", { count: newCount });
+  }
+
+  window.PosOrderAlert?.show(title, description);
   if (typeof startContinuousAlarm === "function") startContinuousAlarm();
 }
-
-function showStaffOrderMiniToast(count) {
-  let toast = document.getElementById("staff-order-alert-toast");
-  if (!toast) {
-    toast = document.createElement("div");
-    toast.id = "staff-order-alert-toast";
-    toast.style.cssText = "position:fixed; top:12px; right:16px; z-index:9999; background:#0f172a; color:#fff; padding:10px 16px; border-radius:10px; display:flex; align-items:center; gap:12px; box-shadow:0 4px 16px rgba(0,0,0,0.2); font-size:14px; font-weight:700;";
-    document.body.appendChild(toast);
-  }
-  const lang = window.currentLang || (typeof currentLang !== "undefined" ? currentLang : "zh-TW");
-  const msg = lang === "vi" ? `Có ${count} đơn mới đang chờ duyệt` : `有 ${count} 筆新訂單待審核`;
-  const btnText = lang === "vi" ? "Xem ngay" : "查看";
-  toast.innerHTML = `
-    <span style="display:inline-flex; align-items:center; gap:8px;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
-        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-      </svg>
-      <span>${msg}</span>
-    </span>
-    <button type="button" style="background:var(--primary, #10b981); color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:800; cursor:pointer;" onclick="switchTab('live'); if (typeof reviewNextNewOrder==='function') reviewNextNewOrder();">
-      ${btnText}
-    </button>
-  `;
-  toast.style.display = "flex";
-}
-window.showStaffOrderMiniToast = showStaffOrderMiniToast;
 
 function dismissNewAlert() {
   newAlertSnoozeUntilMs = Date.now() + 30000;
@@ -535,10 +495,7 @@ function dismissNewAlert() {
   if (typeof unacknowledgedAppends !== "undefined") {
     unacknowledgedAppends.clear();
   }
-  const alertEl = document.getElementById("new-alert");
-  if (alertEl) alertEl.style.display = "none";
-  const toast = document.getElementById("staff-order-alert-toast");
-  if (toast) toast.style.display = "none";
+  window.PosOrderAlert?.hide();
   if (typeof stopContinuousAlarm === "function") stopContinuousAlarm();
 
   if (typeof newAlertSnoozeTimerId !== 'undefined' && newAlertSnoozeTimerId) {
@@ -1206,25 +1163,10 @@ function renderItemRowHtml(it, idx, orderKey) {
 }
 window.renderItemRowHtml = renderItemRowHtml;
 
-function formatContentHtml(order) {
-  if (typeof OrderDetailView !== 'undefined' && OrderDetailView.isSnapshot(order?.detailSnapshot)) {
-    const snapshot = order.detailSnapshot;
-    const items = OrderDetailView.printItems(snapshot, false);
-    let stickerIndex = 0;
-    items.forEach(i => { i.stickerIndex = stickerIndex; stickerIndex += i.quantity; });
-    return snapshot.rounds.slice().reverse().map(round => {
-      const heading = snapshot.rounds.length > 1 ? `<div class="round-section-header">${escapeHtml(t('detailRound', { n: round.roundNumber }))}</div>` : '';
-      if (round.legacyContent !== undefined) return `<section class="round-section-block">${heading}<div>${escapeHtml(t('detailLegacy'))}</div><div class="review-content-raw" style="white-space:pre-wrap">${escapeHtml(round.legacyContent)}</div></section>`;
-      const choices = OrderDetailView.choices(round.groups);
-      const chips = choices.map(c => `<span class="flavor-chip"><span class="flavor-label">${escapeHtml(c.label)}:</span><strong class="flavor-val">${escapeHtml(c.value)}</strong></span>`).join('');
-      const note = renderReviewNoteHtml(round.note, 'detailRoundNote');
-      const options = chips || note ? `<div class="flavor-custom-card"><div class="flavor-chips-grid">${chips}</div>${note}</div>` : '';
-      return `<section class="round-section-block">${heading}${options}${items.filter(i => i.round_number === round.roundNumber).map(i => renderItemRowHtml(i, items.indexOf(i), order.key)).join('')}</section>`;
-    }).join('');
-  }
+function getLegacyOrderReviewData(order) {
   const raw = String(order?.content || "");
   if (order?.reason === "Đơn qua tin nhắn") {
-    return `<div class="review-content-raw">${escapeHtml(raw)}</div>`;
+    return { raw, messageOnly: true, orderKey: order?.key || "", items: [], customerChanges: [], flavorData: null, noteText: "" };
   }
 
   const orderKey = order?.key || "";
@@ -1243,25 +1185,7 @@ function formatContentHtml(order) {
     });
   }
 
-  // 1. Extract and render Customer Change Requests
-  const customerChanges = extractCustomerChanges(raw);
-  let changeHtml = "";
-  if (customerChanges && customerChanges.length > 0) {
-    const changeTitle = (typeof t === "function" && t("customerChangeTitle")) || "顧客換單 / 特殊需求";
-    changeHtml = `
-      <div class="customer-change-card">
-        <div class="customer-change-header">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:-2px; margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-          <span>${escapeHtml(changeTitle)}</span>
-        </div>
-        <div class="customer-change-body">
-          ${customerChanges.map(c => `<div class="customer-change-line">${escapeHtml(c)}</div>`).join("")}
-        </div>
-      </div>
-    `;
-  }
-
-  // 2. Extract and render Global Flavor Settings & Customer Note (merged in top section)
+  const customerChanges = extractCustomerChanges(raw) || [];
   let flavorData = extractFlavorSettings(raw);
   if ((!flavorData || (flavorData.flavors.length === 0 && flavorData.extraIngredients.length === 0)) && Array.isArray(order?.customizations) && order.customizations.length > 0) {
     const valid = order.customizations.filter(c => c && (c.value || c.name));
@@ -1291,6 +1215,45 @@ function formatContentHtml(order) {
     }
   }
 
+  return { raw, messageOnly: false, orderKey, items: allParsedItems || [], customerChanges, flavorData, noteText };
+}
+
+function formatContentHtml(order) {
+  if (typeof OrderDetailView !== 'undefined' && OrderDetailView.isSnapshot(order?.detailSnapshot)) {
+    const snapshot = order.detailSnapshot;
+    const items = OrderDetailView.printItems(snapshot, false);
+    let stickerIndex = 0;
+    items.forEach(i => { i.stickerIndex = stickerIndex; stickerIndex += i.quantity; });
+    return snapshot.rounds.slice().reverse().map(round => {
+      const heading = snapshot.rounds.length > 1 ? `<div class="round-section-header">${escapeHtml(t('detailRound', { n: round.roundNumber }))}</div>` : '';
+      if (round.legacyContent !== undefined) return `<section class="round-section-block">${heading}<div>${escapeHtml(t('detailLegacy'))}</div><div class="review-content-raw" style="white-space:pre-wrap">${escapeHtml(round.legacyContent)}</div></section>`;
+      const choices = OrderDetailView.choices(round.groups);
+      const chips = choices.map(c => `<span class="flavor-chip"><span class="flavor-label">${escapeHtml(c.label)}:</span><strong class="flavor-val">${escapeHtml(c.value)}</strong></span>`).join('');
+      const note = renderReviewNoteHtml(round.note, 'detailRoundNote');
+      const options = chips || note ? `<div class="flavor-custom-card"><div class="flavor-chips-grid">${chips}</div>${note}</div>` : '';
+      return `<section class="round-section-block">${heading}${options}${items.filter(i => i.round_number === round.roundNumber).map(i => renderItemRowHtml(i, items.indexOf(i), order.key)).join('')}</section>`;
+    }).join('');
+  }
+  const { raw, messageOnly, orderKey, items: allParsedItems, customerChanges, flavorData, noteText } = getLegacyOrderReviewData(order);
+  if (messageOnly) return `<div class="review-content-raw">${escapeHtml(raw)}</div>`;
+
+  let changeHtml = "";
+  if (customerChanges && customerChanges.length > 0) {
+    const changeTitle = (typeof t === "function" && t("customerChangeTitle")) || "顧客換單 / 特殊需求";
+    changeHtml = `
+      <div class="customer-change-card">
+        <div class="customer-change-header">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:-2px; margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <span>${escapeHtml(changeTitle)}</span>
+        </div>
+        <div class="customer-change-body">
+          ${customerChanges.map(c => `<div class="customer-change-line">${escapeHtml(c)}</div>`).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  // 2. Extract and render Global Flavor Settings & Customer Note (merged in top section)
   let flavorHtml = "";
   if (flavorData || noteText) {
     const flameIcon = (typeof POS_SVG !== "undefined" && POS_SVG.flame) || "";

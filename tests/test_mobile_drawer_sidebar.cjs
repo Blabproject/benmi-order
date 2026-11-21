@@ -4,31 +4,20 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-test('Mobile Drawer: orders.html markup contains required elements', () => {
+test('Mobile Drawer: orders.html mounts the React shell', () => {
   const html = fs.readFileSync(path.resolve(__dirname, '../orders.html'), 'utf-8');
+  const shell = fs.readFileSync(path.resolve(__dirname, '../frontend/apps/pos/PosShell.tsx'), 'utf-8');
 
-  // Drawer brand and close button in sidebar header
-  assert.ok(html.includes('class="sidebar-mobile-brand"'), 'orders.html must have sidebar-mobile-brand');
-  assert.ok(html.includes('id="sidebar-mobile-title"'), 'orders.html must have sidebar-mobile-title');
-  assert.ok(html.includes('id="sidebar-mobile-logo"'), 'orders.html must have sidebar-mobile-logo');
-  assert.ok(html.includes('id="sidebar-mobile-sub"'), 'orders.html must have sidebar-mobile-sub');
-
-  // Mobile Drawer footer
-  assert.ok(html.includes('class="sidebar-mobile-footer"'), 'orders.html must have sidebar-mobile-footer');
-
-  // Backdrop overlay
-  assert.ok(html.includes('id="sidebar-backdrop"'), 'orders.html must have sidebar-backdrop');
-  assert.ok(html.includes('class="sidebar-backdrop"'), 'orders.html must have class sidebar-backdrop');
-
-  // Hamburger toggle button in topbar left
-  assert.ok(html.includes('id="mobile-nav-toggle-btn"'), 'orders.html must have mobile-nav-toggle-btn');
-  assert.ok(html.includes('class="mobile-nav-toggle-btn"'), 'orders.html must have class mobile-nav-toggle-btn');
-
-  // Cache buster check
-  assert.ok(html.includes('orders.css?v=20261007_mobile_hamburger_left_v4'), 'orders.css must have mobile drawer version cache buster');
-  assert.ok(html.includes('orders-core.js?v=20261007_mobile_drawer_sidebar_v1'), 'orders-core.js must have mobile drawer version cache buster');
-  assert.ok(html.includes('orders-i18n.js?v=20261007_mobile_drawer_sidebar_v1'), 'orders-i18n.js must have mobile drawer version cache buster');
-  assert.ok(html.includes('orders-settings.js?v=20261007_mobile_drawer_sidebar_v1'), 'orders-settings.js must have mobile drawer version cache buster');
+  for (const id of ['app-sidebar', 'sidebar-backdrop', 'pos-topbar-left']) {
+    assert.ok(html.includes(`id="${id}"`), `orders.html must provide the ${id} host`);
+  }
+  assert.ok(html.includes('type="module" src="/frontend/apps/pos/PosShell.tsx"'));
+  for (const id of ['sidebar-mobile-title', 'sidebar-mobile-logo', 'sidebar-mobile-sub', 'mobile-nav-toggle-btn']) {
+    assert.ok(shell.includes(`id="${id}"`), `the shell must render ${id}`);
+  }
+  assert.match(html, /orders\.css\?v=\d{8}_/);
+  assert.match(html, /orders-core\.js\?v=\d{8}_/);
+  assert.match(html, /orders-i18n\.js\?v=\d{8}_/);
 });
 
 test('Mobile Drawer: orders.css has desktop hidden rules and mobile off-canvas drawer styles', () => {

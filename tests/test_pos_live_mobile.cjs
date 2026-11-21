@@ -157,6 +157,14 @@ async function swipeQueue(page, direction, options) {
     await resize(page, { width: 390, height: 844 });
     await snapshot(page, 'live-mobile-vi');
 
+    await page.locator('#mobile-nav-toggle-btn').tap();
+    assert(await page.locator('#app-sidebar.expanded').count());
+    await page.locator('#sidebar-backdrop').tap({ position: { x: 380, y: 160 } });
+    assert.equal(await page.locator('#app-sidebar.expanded').count(), 0);
+    await page.locator('#store-status-btn').tap();
+    assert.equal(await page.locator('#store-status-dropdown.open .status-option:visible').count(), 4);
+    await page.locator('#store-status-btn').tap();
+
     await swipeQueue(page, 'left');
     assert(await page.locator('#live-panel-ready').isVisible(), 'Swipe left selects ready queue');
     assert(!(await page.locator('#reviewModal').isVisible()), 'Swiping a card must not open its details');
@@ -294,6 +302,8 @@ async function swipeQueue(page, direction, options) {
     assert(await page.locator('#reviewModal').isVisible(), 'Reviewing a new order still works');
     await page.locator('#btn-review-change').tap();
     assert(await page.locator('#changeModal').isVisible());
+    await page.locator('.preset-card[data-mins="30"]').tap();
+    assert.equal(await page.locator('#change-note').inputValue(), await page.locator('#preset-target-30').textContent());
     await page.evaluate(() => closeModal());
     await page.locator('#list-left .btn-action-review').tap();
     await page.locator('#btn-review-reject').tap();
@@ -308,6 +318,36 @@ async function swipeQueue(page, direction, options) {
     await page.evaluate(() => window.releaseFixtureStatus());
     await page.locator('#reviewModal').waitFor({ state: 'hidden' });
     assert.equal(await page.evaluate(() => window.fixturePosts.at(-1).status), 'ACCEPTED');
+
+    await page.evaluate(async () => {
+      window.fetchTenantMenuItems = async () => [{ name: 'Trà đá', category: 'Nước' }];
+      window.fixtureOrders.find(order => order.status === 'ACCEPTED').status = 'NEW';
+      await fetchOrders();
+    });
+    await page.locator('#btn-alert-review').tap();
+    await page.locator('#btn-review-change').tap();
+    await page.locator('#tab-reason-soldout').tap();
+    await page.locator('.checkbox-card').filter({ hasText: 'Trà đá' }).tap();
+    await page.locator('#btn-change-send').tap();
+    await page.locator('#changeModal').waitFor({ state: 'hidden' });
+    assert.deepEqual(await page.evaluate(() => {
+      const { status, reason, note } = window.fixturePosts.at(-1);
+      return { status, reason, note };
+    }), { status: 'CHANGED', reason: '口味售完', note: 'Trà đá' });
+
+    await page.evaluate(async () => {
+      window.fixtureOrders.find(order => order.status === 'ACCEPTED').status = 'NEW';
+      await fetchOrders();
+    });
+    await page.locator('#btn-alert-review').tap();
+    await page.locator('#btn-review-reject').tap();
+    await page.locator('.reject-card[data-val="訂單過多"]').tap();
+    await page.locator('#btn-reject-confirm').tap();
+    await page.locator('#rejectModal').waitFor({ state: 'hidden' });
+    assert.deepEqual(await page.evaluate(() => {
+      const { status, reason } = window.fixturePosts.at(-1);
+      return { status, reason };
+    }), { status: 'REJECTED', reason: '訂單過多' });
 
     await page.evaluate(() => { window.currentTenantFeatures = []; renderAll(); });
     assert(!(await page.locator('#dining-filter-bar').isVisible()), 'Takeaway-only tenants retain feature gating');

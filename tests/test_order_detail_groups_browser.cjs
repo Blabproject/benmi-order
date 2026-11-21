@@ -48,6 +48,7 @@ async function fixture(page, lang) {
     PrinterService.printSingleItemSticker = (...args) => printCalls.push(['single', ...args]);
     PrinterService.printFullOrder = (...args) => printCalls.push(['full', ...args]);
     PrinterService.printCashierOnly = (...args) => printCalls.push(['bill', ...args]);
+    window.originalQuickStickerModal = window.openQuickStickerModal;
     window.openQuickStickerModal = (...args) => printCalls.push(['custom', ...args]);
     const c = (name, quantity = 1, surcharge = 0, extra = {}) => ({ optionId: name, itemId: name, name, quantity, surcharge, groups: [], subOptions: [], ...extra });
     const g = (groupName, items) => ({ groupId: groupName, groupName, items });
@@ -160,8 +161,11 @@ test('legacy portion buttons keep their original sticker indexes', async () => {
   try {
     const errors = await fixture(page, 'vi');
     await page.evaluate(() => {
-      document.getElementById('review-content').innerHTML = renderItemRowHtml({ name: 'Legacy', quantity: 2, price: '$200', stickerIndex: 4,
-        options: '第1份: 少冰\n第2份: 不加糖', note: '' }, 0, 'legacy-order');
+      latestOrders = [{ ...detailFixture, key: 'legacy-order', detailSnapshot: undefined, items: [
+        { name: 'Preceding item', quantity: 4, subtotal: 400 },
+        { name: 'Legacy', quantity: 2, subtotal: 200, options: '第1份: 少冰\n第2份: 不加糖' }
+      ] }];
+      openReview('legacy-order');
     });
     const buttons = page.locator('#review-content .portion-print-btn');
     assert.equal(await buttons.count(), 2);
@@ -171,17 +175,39 @@ test('legacy portion buttons keep their original sticker indexes', async () => {
   } finally { await page.close(); }
 });
 
+test('custom stickers handle quotes and preserve the current order when closed with Escape', async () => {
+  const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+  try {
+    const errors = await fixture(page, 'vi');
+    await page.evaluate(() => {
+      window.openQuickStickerModal = window.originalQuickStickerModal;
+      PrinterService.printQuickModifierSticker = (note, order) => printCalls.push(['note', note, order.key]);
+    });
+    await page.locator('#btn-review-print-custom').click();
+    const input = page.locator('#quick-sticker-custom-input');
+    await input.fill('Không hành, để riêng sốt "A"');
+    await input.press('Enter');
+    assert.deepEqual(await page.evaluate(() => printCalls.at(-1)), ['note', 'Không hành, để riêng sốt "A"', 'detail-fixture']);
+    await page.keyboard.press('Escape');
+    assert(!(await page.locator('#quickStickerModal').isVisible()));
+    assert(await page.locator('#reviewModal').isVisible());
+    assert.deepEqual(errors, []);
+  } finally { await page.close(); }
+});
+
 test('a sparse legacy note stays inside bundle portion 3 and prints that portion', async () => {
   const page = await browser.newPage({ viewport: { width: 1024, height: 900 } });
   try {
     const errors = await fixture(page, 'vi');
     await page.evaluate(() => {
-      const order = { key: 'legacy-bundle', items: [{ name: 'Combo A', quantity: 3, unit_price: 150, subtotal: 465,
+      const order = { ...detailFixture, key: 'legacy-bundle', detailSnapshot: undefined, items: [
+        { name: 'Preceding item', quantity: 4, subtotal: 400 },
+        { name: 'Combo A', quantity: 3, unit_price: 150, subtotal: 465,
         options: [{ choice: '第3份: 備註: Test 3', price: 0 }],
         bundle_snapshot_json: JSON.stringify({ portions: [0, 1, 2].map(portionIndex => ({ portionIndex,
           groups: [{ groupName: 'Nhóm bất kỳ', items: [{ name: 'Lựa chọn A', quantity: 1 }] }] })) }) }] };
-      const item = PrinterService.parseOrderItems(order, false)[0];
-      document.getElementById('review-content').innerHTML = renderItemRowHtml({ ...item, stickerIndex: 4 }, 0, order.key);
+      latestOrders = [order];
+      openReview(order.key);
     });
     const portions = page.locator('#review-content .detail-portion-block');
     assert.equal(await portions.count(), 3);

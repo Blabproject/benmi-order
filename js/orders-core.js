@@ -247,6 +247,7 @@ window.getTenantAiTargetLocales = getTenantAiTargetLocales;
 
 function applyTenantBranding(tenant) {
   if (!tenant) return;
+  window.posShellBranding = tenant;
   const brandName = tenant.brandName || tenant.name || "Blab POS";
   window.currentTenantBrandName = tenant.brandName || tenant.name || '';
   const bTitle = document.getElementById('brand-title');

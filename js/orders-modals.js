@@ -24,8 +24,16 @@ if (typeof window !== "undefined" && !window.__orderModalEscRegistered) {
         dismissNewAlert();
         return;
       }
+      if (document.getElementById("quickStickerModal")?.style.display === "flex") {
+        closeQuickStickerModal();
+        return;
+      }
+      if (["changeModal", "rejectModal"].some(id => document.getElementById(id)?.style.display === "flex")) {
+        closeModal();
+        return;
+      }
       const revModal = document.getElementById("reviewModal");
-      if (revModal && revModal.style.display !== "none") {
+      if (revModal?.style.display === "flex") {
         if (typeof dismissReviewModal === "function") {
           dismissReviewModal();
         } else {
@@ -134,30 +142,6 @@ function cancelOrderFromReview() {
   return updateStatus(reviewingOrder.key, "REJECTED", { reason: "取消並不回復客戶" }).then(saved => { if (saved) closeModal(); });
 }
 
-function selectChangeReason(val) {
-  const sel = document.getElementById("change-reason");
-  if (sel) {
-    sel.value = val;
-    onChangeReasonChange();
-  }
-  const noteEl = document.getElementById("change-note");
-  updateChangeSubmitButton(noteEl ? noteEl.value : "");
-}
-
-function selectRejectReason(val) {
-  const sel = document.getElementById("reject-reason");
-  if (sel) {
-    sel.value = val;
-  }
-  document.querySelectorAll(".reject-card").forEach(card => {
-    if (card.dataset.val === val || (card.dataset.val === "訂單過多" && val.startsWith("訂單過多"))) {
-      card.classList.add("active");
-    } else {
-      card.classList.remove("active");
-    }
-  });
-}
-
 function getOrderBaseTime() {
   const now = new Date();
   if (reviewingOrder?.time) {
@@ -176,75 +160,6 @@ function getOrderBaseTime() {
     }
   }
   return now;
-}
-
-function formatTimeHHMM(date) {
-  const h = String(date.getHours()).padStart(2, "0");
-  const m = String(date.getMinutes()).padStart(2, "0");
-  return `${h}:${m}`;
-}
-
-function renderTimePresets() {
-  const baseTime = getOrderBaseTime();
-  const origTimeEl = document.getElementById("change-orig-time-val");
-  if (origTimeEl) {
-    origTimeEl.innerText = formatTimeHHMM(baseTime);
-  }
-
-  const presetMinutes = [5, 10, 15, 20, 30, 45];
-  presetMinutes.forEach(mins => {
-    const target = new Date(baseTime.getTime() + mins * 60000);
-    const el = document.getElementById(`preset-target-${mins}`);
-    if (el) el.innerText = formatTimeHHMM(target);
-  });
-}
-
-function applyTimePreset(minutes) {
-  const baseTime = getOrderBaseTime();
-  const target = new Date(baseTime.getTime() + minutes * 60000);
-  const targetStr = formatTimeHHMM(target);
-  
-  const noteEl = document.getElementById("change-note");
-  if (noteEl) noteEl.value = targetStr;
-
-  document.querySelectorAll(".preset-card").forEach(card => {
-    card.classList.toggle("active", parseInt(card.dataset.mins, 10) === minutes);
-  });
-
-  updateChangeSubmitButton(targetStr);
-}
-
-function adjustTimeMinutes(deltaMinutes) {
-  const noteEl = document.getElementById("change-note");
-  if (!noteEl) return;
-  const baseTime = getOrderBaseTime();
-  let curr = new Date(baseTime.getTime());
-  const match = String(noteEl.value).match(/(\d{1,2}):(\d{2})/);
-  if (match) {
-    curr.setHours(parseInt(match[1], 10), parseInt(match[2], 10), 0, 0);
-  }
-  const target = new Date(curr.getTime() + deltaMinutes * 60000);
-  const targetStr = formatTimeHHMM(target);
-  noteEl.value = targetStr;
-
-  // Check if targetStr matches any preset card
-  const diffMins = Math.round((target.getTime() - baseTime.getTime()) / 60000);
-  document.querySelectorAll(".preset-card").forEach(card => {
-    card.classList.toggle("active", parseInt(card.dataset.mins, 10) === diffMins);
-  });
-
-  updateChangeSubmitButton(targetStr);
-}
-
-function updateChangeSubmitButton(timeStr) {
-  const btn = document.getElementById("btn-change-send");
-  if (!btn) return;
-  const reason = document.getElementById("change-reason").value;
-  if (reason === "時間需調整" && timeStr) {
-    btn.innerText = `${t('btnSendSuggest')} (${timeStr})`;
-  } else {
-    btn.innerText = t('btnSendSuggest');
-  }
 }
 
 let tenantMenuItemsCache = null;
@@ -298,124 +213,39 @@ async function fetchTenantMenuItems() {
   return [];
 }
 
-async function renderSoldOutItemsGrid(order = null) {
-  const grid = document.getElementById("change-soldout-grid");
-  if (!grid) return;
-
-  const menuItems = await fetchTenantMenuItems();
-  if (!menuItems || menuItems.length === 0) {
-    grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: #9ca3af; padding: 16px;">(尚無菜單品項)</div>`;
-    return;
-  }
-
-  // Detect ordered items from reviewingOrder if available
-  const orderItemNames = new Set();
-  if (order && order.content) {
-    menuItems.forEach(item => {
-      if (order.content.includes(item.name)) {
-        orderItemNames.add(item.name);
-      }
-    });
-  }
-
-  // Sort items: items appearing in current order come first
-  const sortedItems = [...menuItems].sort((a, b) => {
-    const aInOrder = orderItemNames.has(a.name) ? 1 : 0;
-    const bInOrder = orderItemNames.has(b.name) ? 1 : 0;
-    return bInOrder - aInOrder;
-  });
-
-  grid.innerHTML = sortedItems.map(item => {
-    const isInOrder = orderItemNames.has(item.name);
-    const badgeHtml = isInOrder ? `<span style="font-size: var(--pos-text-meta); background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-weight: 800; margin-left: 4px;">本單</span>` : '';
-    return `
-      <label class="checkbox-card" style="${isInOrder ? 'border-color: #f59e0b; background: #fffdf5;' : ''}">
-        <input type="checkbox" value="${escapeHtml(item.name)}" class="sold-item">
-        <span>${escapeHtml(item.name)}</span>${badgeHtml}
-      </label>
-    `;
-  }).join("");
-}
-
-function clearSoldOutItems() {
-  const checkboxes = document.querySelectorAll(".sold-item");
-  if (checkboxes) checkboxes.forEach(cb => cb.checked = false);
-}
-
 function reviewOpenChange() {
   if (!reviewingOrder?.key) return;
-  const savedKey = reviewingOrder.key;  // Save key BEFORE closeModal wipes it
-  const savedOrder = reviewingOrder;
+  const order = reviewingOrder;
+  const base = getOrderBaseTime();
   closeModal();
-  reviewingOrder = savedOrder;
-  currentOrderKey = savedKey;           // Restore after closeModal
-  document.getElementById("change-reason").value = "時間需調整";
-  renderSoldOutItemsGrid(savedOrder);
-  clearSoldOutItems();
-  onChangeReasonChange();
-  renderTimePresets();
-  applyTimePreset(10);
+  reviewingOrder = order;
+  currentOrderKey = order.key;
+  window.PosOrderDetailDialogs?.openChange(order, base);
   showModalFromTop(document.getElementById("changeModal"));
 }
 
 function reviewOpenReject() {
   if (!reviewingOrder?.key) return;
-  const savedKey = reviewingOrder.key;  // Save key BEFORE closeModal wipes it
-  const savedOrder = reviewingOrder;
+  const order = reviewingOrder;
   closeModal();
-  reviewingOrder = savedOrder;
-  currentOrderKey = savedKey;           // Restore after closeModal
-  document.getElementById("reject-reason").selectedIndex = 0;
-  selectRejectReason("今日已售完");
+  reviewingOrder = order;
+  currentOrderKey = order.key;
+  window.PosOrderDetailDialogs?.openReject();
   showModalFromTop(document.getElementById("rejectModal"));
-}
-
-function onChangeReasonChange() {
-  const reason = document.getElementById("change-reason").value;
-  const timeDiv = document.getElementById("change-time-div");
-  const itemsDiv = document.getElementById("change-items-div");
-  const tabTime = document.getElementById("tab-reason-time");
-  const tabSold = document.getElementById("tab-reason-soldout");
-
-  if (reason === "時間需調整") {
-    if (timeDiv) timeDiv.style.display = "block";
-    if (itemsDiv) itemsDiv.style.display = "none";
-    if (tabTime) tabTime.classList.add("active");
-    if (tabSold) tabSold.classList.remove("active");
-  } else {
-    if (timeDiv) timeDiv.style.display = "none";
-    if (itemsDiv) itemsDiv.style.display = "block";
-    if (tabTime) tabTime.classList.remove("active");
-    if (tabSold) tabSold.classList.add("active");
-    renderSoldOutItemsGrid(reviewingOrder);
-  }
 }
 
 // Pre-fetch menu items for instant modal responsiveness
 fetchTenantMenuItems();
 
-async function confirmAction(type, btn) {
+async function confirmAction(type, reason, note) {
   const key = currentOrderKey;
-  const isChange = type === "CHANGE";
-  const status = isChange ? "CHANGED" : "REJECTED";
-  const reason = isChange ? document.getElementById("change-reason").value : document.getElementById("reject-reason").value;
-  let note = isChange ? document.getElementById("change-note").value.trim() : undefined;
-
-  if (isChange && reason === "時間需調整" && !note) {
-    alert(t("alertInputTime"));
+  if (!key) return;
+  const status = type === "CHANGE" ? "CHANGED" : "REJECTED";
+  if (type === "CHANGE" && !note) {
+    alert(t(reason === "口味售完" ? "alertSelectSoldout" : "alertInputTime"));
     return;
   }
-
-  if (isChange && reason === "口味售完") {
-    const checked = Array.from(document.querySelectorAll(".sold-item:checked")).map(cb => cb.value);
-    if (checked.length === 0) {
-      alert(t("alertSelectSoldout"));
-      return;
-    }
-    note = checked.join(",");
-  }
-
-  if (!await updateStatus(key, status, { reason, note }, btn)) return;
+  if (!await updateStatus(key, status, { reason, note })) return;
 
   const nextKey = typeof getRemainingNewOrderKey === "function" ? getRemainingNewOrderKey(key) : null;
   if (nextKey && typeof openReview === "function") {
@@ -649,14 +479,9 @@ var quickStickerOrderKey = null;
 
 function openQuickStickerModal(orderKey) {
   quickStickerOrderKey = orderKey || (typeof reviewingOrder !== "undefined" && reviewingOrder ? reviewingOrder.key : null);
-  const modal = document.getElementById("quickStickerModal");
-  if (modal) showModalFromTop(modal);
-  const customInput = document.getElementById("quick-sticker-custom-input");
-  if (customInput) {
-    customInput.value = "";
-    setTimeout(() => customInput.focus(), 100);
-  }
-  renderQuickStickerOptions();
+  window.PosOrderDetailDialogs?.openSticker();
+  showModalFromTop(document.getElementById("quickStickerModal"));
+  document.getElementById("quick-sticker-custom-input")?.focus();
 }
 
 function closeQuickStickerModal() {
@@ -665,10 +490,7 @@ function closeQuickStickerModal() {
   quickStickerOrderKey = null;
 }
 
-function renderQuickStickerOptions() {
-  const container = document.getElementById("quick-sticker-chips-container");
-  if (!container) return;
-
+function getQuickStickerGroups() {
   const currentLanguage = (typeof currentLang !== "undefined" && currentLang) || (typeof window !== "undefined" && window.currentLang) || "zh-TW";
   const isVi = currentLanguage === "vi";
 
@@ -726,23 +548,7 @@ function renderQuickStickerOptions() {
     }
   }
 
-  let html = "";
-  groups.forEach(grp => {
-    html += `
-      <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 12px 14px;">
-        <div style="font-size: var(--pos-text-meta); font-weight: 800; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">${escapeHtml(grp.title)}</div>
-        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-          ${grp.options.map(opt => `
-            <button type="button" class="btn btn-ghost quick-sticker-chip" style="min-height: 44px; padding: 8px 14px; font-size: var(--pos-text-body); font-weight: 800; border-radius: 8px; background: #ffffff; border: 1.5px solid #cbd5e1; color: #1e293b; cursor: pointer; transition: all 0.15s ease;" onclick="printQuickModifierOption('${escapeHtml(opt)}')">
-              ${escapeHtml(opt)}
-            </button>
-          `).join("")}
-        </div>
-      </div>
-    `;
-  });
-
-  container.innerHTML = html;
+  return groups;
 }
 
 async function printQuickModifierOption(text) {
@@ -753,19 +559,6 @@ async function printQuickModifierOption(text) {
   }
 }
 
-async function printCustomQuickSticker() {
-  const input = document.getElementById("quick-sticker-custom-input");
-  const val = input ? input.value.trim() : "";
-  if (!val) {
-    if (input) input.focus();
-    return;
-  }
-  await printQuickModifierOption(val);
-  if (input) input.value = "";
-}
-
 window.openQuickStickerModal = openQuickStickerModal;
 window.closeQuickStickerModal = closeQuickStickerModal;
-window.renderQuickStickerOptions = renderQuickStickerOptions;
 window.printQuickModifierOption = printQuickModifierOption;
-window.printCustomQuickSticker = printCustomQuickSticker;

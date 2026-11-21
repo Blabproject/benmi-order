@@ -3769,6 +3769,11 @@ html.is-web-platform .store-activation-modal:not(.force-show) {
 }
 
 .status-option {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -12799,4 +12804,53 @@ html.no-flex-gap .printer-report-row > * + * { margin-left: 8px; }
 @media (max-width: 680px) {
   html.no-flex-gap .sidebar-nav > .sidebar-nav-item + .sidebar-nav-item { margin-top: 6px !important; }
   html.no-flex-gap .main-topbar-left > * + * { margin-left: 8px; }
+}
+
+/* Order detail dialogs and POS shell */
+#quickStickerModal .modal-content {
+  max-width: 600px;
+}
+
+.change-tab-btn .tab-title,
+.change-tab-btn .tab-sub,
+.reject-card .reject-title,
+.reject-card .reject-sub {
+  display: block;
+}
+
+#store-status-menu .status-opt-title,
+#store-status-menu .status-opt-desc {
+  display: block;
+}
+
+.staff-order-alert-toast {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 32px);
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #fff;
+  font-size: var(--pos-text-meta);
+  font-weight: 700;
+}
+
+.staff-order-alert-toast > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.staff-order-alert-toast button {
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--primary, #10b981);
+  color: #fff;
+  font: inherit;
 }
