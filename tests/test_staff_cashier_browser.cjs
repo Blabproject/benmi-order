@@ -75,7 +75,7 @@ test('chromium: staff order cashier change calculator UI, placement, icons, and 
   await page.goto(`http://127.0.0.1:${server.address().port}/staff-order.html?tenant_id=a&env=dev`);
   await page.waitForFunction(() => window.StaffOrder?.ready());
 
-  // Empty cart: cashier button is above submit button, disabled, and both buttons have SVG icons.
+  // Empty cart: cashier button is below submit button, disabled, and both buttons have SVG icons.
   assert.equal(await page.locator('#staff-cashier-btn').isVisible(), true);
   assert.equal(await page.locator('#staff-cashier-btn').isDisabled(), true);
   assert.equal(await page.locator('#staff-cashier-btn svg.staff-btn-icon').count(), 1);
@@ -86,7 +86,7 @@ test('chromium: staff order cashier change calculator UI, placement, icons, and 
     const btns = Array.from(document.querySelectorAll('.desktop-sidebar-submit-wrap button')).map(b => b.id);
     return btns;
   });
-  assert.deepEqual(orderCheck, ['staff-cashier-btn', 'btn-desktop-submit']);
+  assert.deepEqual(orderCheck, ['btn-desktop-submit', 'staff-cashier-btn']);
 
   // Add 1 meal ($215)
   await page.locator('#item-food-Meal').click();
@@ -100,8 +100,8 @@ test('chromium: staff order cashier change calculator UI, placement, icons, and 
     assert(cashierBox && submitBox);
     assert(cashierBox.height >= 48, `Cashier button touch target < 48px: ${JSON.stringify(cashierBox)}`);
     assert(submitBox.height >= 48, `Submit button touch target < 48px: ${JSON.stringify(submitBox)}`);
-    assert(cashierBox.y + cashierBox.height <= submitBox.y + 1, `Cashier button must be above submit button: ${JSON.stringify({ cashierBox, submitBox })}`);
-    assert(submitBox.y + submitBox.height <= viewport.height + 1);
+    assert(submitBox.y + submitBox.height <= cashierBox.y + 1, `Cashier button must be below submit button: ${JSON.stringify({ submitBox, cashierBox })}`);
+    assert(cashierBox.y + cashierBox.height <= viewport.height + 1);
   }
 
   await page.setViewportSize({ width: 1024, height: 768 });

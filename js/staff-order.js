@@ -933,7 +933,7 @@ window.StaffOrder = (() => {
       cashierBtn.disabled = true;
       cashierBtn.innerHTML = `${CASHIER_CALC_ICON_SVG}<span>${escapeHtmlStr(text('計算找零', 'Tính tiền thối'))}</span>`;
       cashierBtn.addEventListener('click', openCashierModal);
-      submitWrap.insertBefore(cashierBtn, deskSubmitBtn);
+      deskSubmitBtn.after(cashierBtn);
     }
   }
 
