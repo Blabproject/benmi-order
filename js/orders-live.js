@@ -355,17 +355,20 @@ function formatLiveOrderTimeDisplay(order) {
   return `${String(parseInt(timeMatch[1], 10)).padStart(2, "0")}:${timeMatch[2]}`;
 }
 
+function syncDiningFilterButtons() {
+  for (const filter of ["all", "takeaway", "dine_in"]) {
+    const button = document.getElementById(`filter-btn-${filter.replace("_", "-")}`);
+    if (!button) continue;
+    const selected = currentDiningFilter === filter;
+    button.classList.toggle("active", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  }
+}
+
 function setDiningFilter(filter) {
   if (filter !== currentDiningFilter && isLiveMobilePortrait()) resetLiveScrollPositions();
   currentDiningFilter = filter;
-  const filterAllBtn = document.getElementById("filter-btn-all");
-  const filterTakeawayBtn = document.getElementById("filter-btn-takeaway");
-  const filterDineInBtn = document.getElementById("filter-btn-dine-in");
-
-  if (filterAllBtn) filterAllBtn.classList.toggle("active", filter === "all");
-  if (filterTakeawayBtn) filterTakeawayBtn.classList.toggle("active", filter === "takeaway");
-  if (filterDineInBtn) filterDineInBtn.classList.toggle("active", filter === "dine_in");
-
+  syncDiningFilterButtons();
   renderAll();
 }
 
@@ -421,8 +424,7 @@ function updateDiningFilterStats(allLiveOrders) {
     if (dineInStatEl) dineInStatEl.style.display = "none";
     if (currentDiningFilter === "dine_in") {
       currentDiningFilter = "all";
-      const filterAllBtn = document.getElementById("filter-btn-all");
-      if (filterAllBtn) filterAllBtn.classList.add("active");
+      syncDiningFilterButtons();
     }
   } else {
     if (diningFilterBar) diningFilterBar.style.display = "flex";

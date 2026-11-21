@@ -123,8 +123,15 @@ async function swipeQueue(page, direction, options) {
     page.on('pageerror', error => errors.push(error.message));
     await loadFixture(page);
 
+    assert.equal(await page.locator('#list-left .tile').first().getAttribute('data-slot'), 'card');
+    assert.equal(await page.locator('#list-left .tile-action-btn').first().getAttribute('data-slot'), 'button');
+    assert.equal(await page.locator('#list-left .tile-badge').first().getAttribute('data-slot'), 'badge');
+
     for (const lang of ['zh-TW', 'vi']) {
       await page.evaluate(lang => { currentLang = lang; window.currentLang = lang; applyLanguageToDOM(); renderAll(); }, lang);
+      assert.equal(await page.locator('#filter-count-all').innerText(), '80');
+      assert.equal(await page.locator('#filter-count-takeaway').innerText(), '40');
+      assert.equal(await page.locator('#filter-count-dinein').innerText(), '40');
       for (const width of [320, 375, 390, 430, 600]) {
         await resize(page, { width, height: 900 });
         assert(await page.locator('#live-mobile-tabs').isVisible());
@@ -142,7 +149,8 @@ async function swipeQueue(page, direction, options) {
             overflow: visibleNodes.filter(node => node.getBoundingClientRect().right > window.innerWidth + 1 || node.scrollWidth > node.clientWidth + 1).map(node => node.className),
             overlap: button.top < info.bottom,
             buttonHeight: button.height,
-            tabHeights: [...document.querySelectorAll('.live-mobile-tab')].map(node => node.getBoundingClientRect().height)
+            tabHeights: [...document.querySelectorAll('.live-mobile-tab')].map(node => node.getBoundingClientRect().height),
+            filterHeights: [...document.querySelectorAll('.dining-filter-btn')].map(node => node.getBoundingClientRect().height)
           };
         });
         assert(metrics.listHeight > 100 && metrics.listBottom <= 900, `${lang}/${width}: list must fit viewport`);
@@ -150,6 +158,7 @@ async function swipeQueue(page, direction, options) {
         assert.deepEqual(metrics.overflow, [], `${lang}/${width}: overflowing content`);
         assert(!metrics.overlap && metrics.buttonHeight >= 48);
         assert(metrics.tabHeights.every(height => height >= 48));
+        assert(metrics.filterHeights.every(height => height >= 48));
         assert.equal(await page.locator('#live-mobile-count-pending').innerText(), '24');
         assert.equal(await page.locator('#live-mobile-count-ready').innerText(), '56');
       }
@@ -261,10 +270,13 @@ async function swipeQueue(page, direction, options) {
     assert.equal(await page.locator('#list-right').evaluate(node => node.scrollTop), 700);
 
     await page.locator('#filter-btn-takeaway').click();
+    assert.equal(await page.locator('#filter-btn-takeaway').getAttribute('aria-pressed'), 'true');
+    assert.equal(await page.locator('#filter-btn-all').getAttribute('aria-pressed'), 'false');
     assert.equal(await page.locator('#list-right').evaluate(node => node.scrollTop), 0);
     await page.locator('#live-mobile-tab-pending').click();
     assert.equal(await page.locator('#list-left').evaluate(node => node.scrollTop), 0);
     await page.locator('#filter-btn-all').click();
+    assert.equal(await page.locator('#filter-btn-all').getAttribute('aria-pressed'), 'true');
     // Use actual action buttons and production status handlers; only HTTP is mocked.
     await page.evaluate(() => { window.holdFixtureStatus = true; });
     const readyAction = page.locator('#list-left .btn-action-ready').first();

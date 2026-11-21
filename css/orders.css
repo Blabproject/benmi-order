@@ -928,6 +928,11 @@ body.is-staff-order-active .page-main-title {
   background: rgba(255, 255, 255, 0.6);
 }
 
+.dining-filter-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+
 .dining-filter-btn.active {
   background: #ffffff;
   color: #0f172a;
@@ -11191,9 +11196,18 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
   min-width: 0;
   min-height: 48px;
   justify-content: center;
-  flex-wrap: wrap;
   gap: 4px;
   padding: 6px 4px;
+}
+
+#view-live.live-adaptive-stations .dining-filter-btn > svg {
+  display: none;
+}
+
+#view-live.live-adaptive-stations .dining-filter-btn > span:not(.filter-count-badge) {
+  min-width: 0;
+  white-space: normal;
+  line-height: 1.2;
 }
 
 #view-live.live-adaptive-stations .dining-filter-stats {
@@ -11824,7 +11838,6 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
   }
 
   .dining-filter-btn {
-    min-height: 38px !important;
     font-size: 13px !important;
     padding: 6px 12px !important;
   }
@@ -11839,7 +11852,6 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
   .live-mobile-tab {
     font-size: 13.5px !important;
     font-weight: 700 !important;
-    min-height: 42px !important;
   }
 
   .order-detail-title,
@@ -11878,8 +11890,6 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
   }
 
   .dining-filter-btn {
-    min-height: 40px !important;
-    height: 40px !important;
     font-size: 13px !important;
     padding: 0 12px !important;
     border-radius: 8px !important;

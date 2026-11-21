@@ -3055,6 +3055,7 @@ function applyLanguageToDOM() {
   if (fTakeaway) fTakeaway.innerText = dict.filterTakeaway || "外帶";
   const fDinein = document.getElementById("i18n-filter-dinein");
   if (fDinein) fDinein.innerText = dict.filterDineIn || "內用";
+  document.querySelector('#dining-filter-bar .dining-filter-group')?.setAttribute('aria-label', dict.diningOption);
 
   // View History Headers & Search
   const histTitle = document.getElementById("i18n-history-title");
@@ -3671,14 +3672,6 @@ function applyLanguageToDOM() {
   });
   document.getElementById('btn-stock-close')?.setAttribute('aria-label', dict.btnClose);
   if (typeof updateStockSaveState === 'function') updateStockSaveState();
-
-  // Dining Filter Buttons
-  const btnFilterAll = document.getElementById("filter-btn-all");
-  if (btnFilterAll) btnFilterAll.innerText = dict.filterAll;
-  const btnFilterTakeaway = document.getElementById("filter-btn-takeaway");
-  if (btnFilterTakeaway) btnFilterTakeaway.innerText = dict.filterTakeaway;
-  const btnFilterDineIn = document.getElementById("filter-btn-dine-in");
-  if (btnFilterDineIn) btnFilterDineIn.innerText = dict.filterDineIn;
 
   // Dine-in Settings
   const setDineInT = document.getElementById("i18n-setting-dinein-title");
