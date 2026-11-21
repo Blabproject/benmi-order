@@ -127,8 +127,13 @@
           <!-- Staff In-Store Table Ordering Button (Shown if staff_ordering_enabled) -->
           <span id="pos-topbar-staff" style="display:contents;"></span>
 
-          <!-- Uber-style Store Status Dropdown Widget -->
+          <!-- Keep the status control in place while the POS scripts load. -->
           <div class="store-status-dropdown" id="store-status-dropdown">
+            <button type="button" class="store-status-pill open" disabled>
+              <span class="status-dot dot-open"></span>
+              <span class="status-label">營業中</span>
+              <svg class="status-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+            </button>
           </div>
         </div>
       </header>
