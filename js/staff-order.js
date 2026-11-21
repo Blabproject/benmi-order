@@ -2,7 +2,7 @@
 window.StaffOrder = (() => {
   if (!window.isStaffOrderMode) return null;
   let capabilities = null, tables = [], busy = false, initialized = false, activeTabId = '', noteOpen = false;
-  let cashTender = null, lastComputedTotal = 0, cashierModalOpen = false, cashierInputStr = '', cashierReplaceOnDigit = false;
+  let lastComputedTotal = 0, cashierModalOpen = false, cashierInputStr = '', cashierReplaceOnDigit = false;
   const language = () => document.documentElement.lang;
   const text = (zh, vi) => language() === 'vi' ? vi : zh;
   const tenant = () => getTenantIdFromUrl();
@@ -606,43 +606,10 @@ window.StaffOrder = (() => {
 
   function syncCashierButton(totalQty, computedTotal) {
     lastComputedTotal = roundMoney(computedTotal);
-    if (totalQty <= 0 || lastComputedTotal <= 0) {
-      cashTender = null;
-    } else if (cashTender && Math.abs(cashTender.total - lastComputedTotal) > 0.001) {
-      cashTender = null;
-    }
-
     const cashierBtn = document.getElementById('staff-cashier-btn');
-    const summaryEl = document.getElementById('staff-cashier-summary');
-    const disabled = !initialized || busy || totalQty <= 0 || lastComputedTotal <= 0;
-
-    if (cashierBtn) {
-      cashierBtn.disabled = disabled;
-      cashierBtn.classList.toggle('has-tender', Boolean(cashTender && !disabled));
-      cashierBtn.innerHTML = `${CASHIER_CALC_ICON_SVG}<span>${escapeHtmlStr(text('計算找零', 'Tính tiền thối'))}</span>`;
-    }
-
-    if (summaryEl) {
-      if (cashTender && !disabled) {
-        const changeValueText = cashTender.change > 0
-          ? `$${formatMoney(cashTender.change)}`
-          : text('剛好免找 ($0)', 'Vừa đủ ($0)');
-        summaryEl.hidden = false;
-        summaryEl.innerHTML = `
-          <div class="staff-cashier-summary-row">
-            <span class="staff-cashier-summary-label">${escapeHtmlStr(text('實收', 'Khách đưa'))}</span>
-            <span class="staff-cashier-summary-amount">$${escapeHtmlStr(formatMoney(cashTender.amount))}</span>
-          </div>
-          <div class="staff-cashier-summary-row is-change">
-            <span class="staff-cashier-summary-label">${escapeHtmlStr(text('找零', 'Thối lại'))}</span>
-            <span class="staff-cashier-summary-amount">${escapeHtmlStr(changeValueText)}</span>
-          </div>
-        `;
-      } else {
-        summaryEl.hidden = true;
-        summaryEl.innerHTML = '';
-      }
-    }
+    if (!cashierBtn) return;
+    cashierBtn.disabled = !initialized || busy || totalQty <= 0 || lastComputedTotal <= 0;
+    cashierBtn.innerHTML = `${CASHIER_CALC_ICON_SVG}<span>${escapeHtmlStr(text('計算找零', 'Tính tiền thối'))}</span>`;
   }
 
   function renderCashierModal() {
@@ -733,29 +700,22 @@ window.StaffOrder = (() => {
     renderCashierModal();
   }
 
-  function closeCashierModal() {
+  function closeCashierModal(options = {}) {
     if (!cashierModalOpen) return;
     cashierModalOpen = false;
     const modal = document.getElementById('staff-cashier-modal');
     if (modal) modal.style.display = 'none';
-    document.getElementById('staff-cashier-btn')?.focus();
+    if (options.restoreFocus !== false) {
+      document.getElementById('staff-cashier-btn')?.focus();
+    }
   }
 
   function confirmCashierModal() {
     const total = lastComputedTotal;
     const tendered = cashierInputStr ? roundMoney(parseFloat(cashierInputStr)) : 0;
     if (total <= 0 || tendered < total) return;
-    const change = roundMoney(tendered - total);
-    cashTender = {
-      amount: tendered,
-      change,
-      total,
-      isExact: Math.abs(change) < 0.001
-    };
-    closeCashierModal();
-    const quantity = Object.values(window.cart || {}).reduce((sum, q) => sum + Number(q || 0), 0);
-    syncCashierButton(quantity, total);
-    saveDraft();
+    closeCashierModal({ restoreFocus: false });
+    submit();
   }
 
   function ensureCashierModal() {
@@ -867,13 +827,8 @@ window.StaffOrder = (() => {
     lastComputedTotal = total;
 
     const modal = ensureCashierModal();
-    if (cashTender && Math.abs(cashTender.total - total) <= 0.001) {
-      cashierInputStr = formatMoney(cashTender.amount);
-      cashierReplaceOnDigit = true;
-    } else {
-      cashierInputStr = '';
-      cashierReplaceOnDigit = false;
-    }
+    cashierInputStr = '';
+    cashierReplaceOnDigit = false;
     cashierModalOpen = true;
     renderCashierModal();
     modal.style.display = 'flex';
@@ -970,19 +925,6 @@ window.StaffOrder = (() => {
       totalRow.prepend(countSpan);
     }
 
-    if (submitWrap && deskSubmitBtn && !document.getElementById('staff-cashier-summary')) {
-      const summaryDiv = document.createElement('div');
-      summaryDiv.id = 'staff-cashier-summary';
-      summaryDiv.className = 'staff-cashier-summary';
-      summaryDiv.hidden = true;
-      const hint = document.getElementById('checkout-empty-cart-hint');
-      if (hint && hint.parentElement === submitWrap) {
-        submitWrap.insertBefore(summaryDiv, hint);
-      } else {
-        submitWrap.insertBefore(summaryDiv, deskSubmitBtn);
-      }
-    }
-
     if (submitWrap && deskSubmitBtn && !document.getElementById('staff-cashier-btn')) {
       const cashierBtn = document.createElement('button');
       cashierBtn.type = 'button';
@@ -1001,8 +943,7 @@ window.StaffOrder = (() => {
       sessionStorage.setItem(storageKey('draft'), JSON.stringify({
         cart, customizeData, bundleCartData: window.bundleCartData,
         orderSelections: DetailCheckout.selections(), dining: window.currentDiningOption,
-        table: select().value, note: document.getElementById('note').value,
-        cashTender
+        table: select().value, note: document.getElementById('note').value
       }));
     } catch (_) {}
   }
@@ -1033,7 +974,7 @@ window.StaffOrder = (() => {
     const nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
     for (const node of nodes) {
-      if (node.parentElement.closest('script,style,.item-name,.choice-name,.custom-label,#unified-option-modal,#cart-summary,#staff-table-bar,#staff-cart-header,#staff-cashier-summary,#staff-cashier-btn,#staff-cashier-modal')) continue;
+      if (node.parentElement.closest('script,style,.item-name,.choice-name,.custom-label,#unified-option-modal,#cart-summary,#staff-table-bar,#staff-cart-header,#staff-cashier-btn,#staff-cashier-modal')) continue;
       if (node.parentElement.closest('#catalog-sections .section-title') && !node.parentElement.closest('#sec-order-option')) continue;
       const value = node.textContent.trim();
       if (dictionary[value]) node.textContent = dictionary[value];
@@ -1135,9 +1076,6 @@ window.StaffOrder = (() => {
           }
           reconcileCartOptions();
           for (const key of Object.keys(cart)) { const { catSlug, origName } = parseCartKey(key); updateQty(catSlug, origName, 0); }
-          if (draft.cashTender && typeof draft.cashTender.amount === 'number' && typeof draft.cashTender.total === 'number') {
-            cashTender = draft.cashTender;
-          }
         }
       } catch (_) {}
 
@@ -1237,7 +1175,6 @@ window.StaffOrder = (() => {
       window.bundleCartData = {}; comboDrinkData = {}; window.comboDrinkData = comboDrinkData;
       document.getElementById('note').value = '';
       noteOpen = false;
-      cashTender = null;
       if (typeof window.resetPickupTimeToDefault === 'function') {
         window.resetPickupTimeToDefault();
       }

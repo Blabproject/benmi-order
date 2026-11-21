@@ -135,57 +135,50 @@ test('chromium: staff order cashier change calculator UI, placement, icons, and 
   assert.equal(await page.locator('#staff-cashier-confirm-btn').isDisabled(), false);
   assert.match(await page.locator('#staff-cashier-confirm-btn').innerText(), /Xác nhận · thối \$285/);
 
-  // Confirm -> saves into cart draft, closes modal, and renders received/change outside the button
-  assert.equal(await page.locator('#staff-cashier-summary').isVisible(), false);
-  await page.locator('#staff-cashier-confirm-btn').click();
-  assert.equal(await page.locator('#staff-cashier-modal').isVisible(), false);
-  assert.equal(await page.locator('#staff-cashier-summary').isVisible(), true);
-  assert.match(await page.locator('#staff-cashier-summary').innerText(), /Khách đưa[\s\S]*\$500/);
-  assert.match(await page.locator('#staff-cashier-summary').innerText(), /Thối lại[\s\S]*\$285/);
-  assert.match(await page.locator('#staff-cashier-btn').innerText(), /^Tính tiền thối$/);
-  assert.equal(await page.locator('#staff-cashier-btn').evaluate(el => el.classList.contains('has-tender')), true);
-  const summaryBox = await page.locator('#staff-cashier-summary').boundingBox();
-  const cashierBtnBox = await page.locator('#staff-cashier-btn').boundingBox();
-  assert(summaryBox && cashierBtnBox && summaryBox.y + summaryBox.height <= cashierBtnBox.y + 1);
-  assert.match(await page.locator('#btn-desktop-submit').innerText(), /Gửi bếp · \$215/);
-
-  // Reload persists draft including tender/change; adding another item resets stale tender
-  await page.reload();
+  // Confirm -> immediately closes modal, submits order, and renders nothing outside popup
+  assert.equal(await page.locator('#staff-cashier-summary').count(), 0);
+  await Promise.all([
+    page.waitForResponse(r => r.url().includes('/api/staff/orders') && r.request().method() === 'POST'),
+    page.locator('#staff-cashier-confirm-btn').click()
+  ]);
   await page.waitForFunction(() => window.StaffOrder?.ready());
-  assert.equal(await page.locator('#staff-cashier-summary').isVisible(), true);
-  assert.match(await page.locator('#staff-cashier-summary').innerText(), /Khách đưa[\s\S]*\$500/);
-  assert.match(await page.locator('#staff-cashier-summary').innerText(), /Thối lại[\s\S]*\$285/);
+  assert.equal(await page.locator('#staff-cashier-modal').isVisible(), false);
+  assert.equal(await page.locator('#staff-cashier-summary').count(), 0);
   assert.match(await page.locator('#staff-cashier-btn').innerText(), /^Tính tiền thối$/);
-  await page.locator('#item-food-Meal').click();
-  assert.equal(await page.locator('#staff-cashier-summary').isVisible(), false);
-  assert.match(await page.locator('#staff-cashier-btn').innerText(), /^Tính tiền thối$/);
-  assert.equal(await page.locator('#staff-cashier-btn').evaluate(el => el.classList.contains('has-tender')), false);
+  assert.equal(await page.locator('#staff-cashier-btn').isDisabled(), true);
+  assert.match(await page.locator('#staff-order-status').innerText(), /Đã gửi/);
 
-  // Switch to zh-TW and verify pure Traditional Chinese labels
+  let orders = await f.DB.prepare("SELECT * FROM orders WHERE tenant_id='a'").all();
+  assert.equal(orders.results.length, 1);
+  assert.equal(orders.results[0].total_amount, 215);
+
+  // Switch to zh-TW, open calculator for new item, and confirm to submit immediately
   await page.evaluate(() => { localStorage.setItem('staff_order_lang', 'zh-TW'); });
   await page.reload();
   await page.waitForFunction(() => window.StaffOrder?.ready());
   assert.equal(await page.locator('html').getAttribute('lang'), 'zh-TW');
   assert.match(await page.locator('#staff-cashier-btn').innerText(), /計算找零/);
+  await page.locator('#item-food-Meal').click();
+  await page.locator('[data-staff-table="table-a"]').click();
   await page.locator('#staff-cashier-btn').click();
   assert.equal(await page.locator('#staff-cashier-due-label').innerText(), '應收金額');
   assert.equal(await page.locator('#staff-cashier-tender-label').innerText(), '實收金額');
   assert.equal(await page.locator('#staff-cashier-close-btn').innerText(), '關閉');
   await page.locator('[data-cashier-chip="500"]').click();
-  assert.match(await page.locator('#staff-cashier-confirm-btn').innerText(), /確認 · 找零 \$70/);
-  await page.locator('#staff-cashier-confirm-btn').click();
-  assert.equal(await page.locator('#staff-cashier-summary').isVisible(), true);
-  assert.match(await page.locator('#staff-cashier-summary').innerText(), /實收[\s\S]*\$500/);
-  assert.match(await page.locator('#staff-cashier-summary').innerText(), /找零[\s\S]*\$70/);
-  assert.match(await page.locator('#staff-cashier-btn').innerText(), /^計算找零$/);
+  assert.match(await page.locator('#staff-cashier-confirm-btn').innerText(), /確認 · 找零 \$285/);
 
-  // Submitting order clears tender state
   await Promise.all([
     page.waitForResponse(r => r.url().includes('/api/staff/orders') && r.request().method() === 'POST'),
-    page.locator('#btn-desktop-submit').click()
+    page.locator('#staff-cashier-confirm-btn').click()
   ]);
-  assert.equal(await page.locator('#staff-cashier-summary').isVisible(), false);
+  await page.waitForFunction(() => window.StaffOrder?.ready());
+  assert.equal(await page.locator('#staff-cashier-modal').isVisible(), false);
+  assert.equal(await page.locator('#staff-cashier-summary').count(), 0);
   assert.match(await page.locator('#staff-cashier-btn').innerText(), /計算找零/);
   assert.equal(await page.locator('#staff-cashier-btn').isDisabled(), true);
+
+  const appended = await f.DB.prepare('SELECT * FROM orders WHERE key=?').bind(orders.results[0].key).first();
+  assert.equal(appended.round_count, 2);
+  assert.equal(appended.total_amount, 430);
   assert.deepEqual(errors, []);
 });
