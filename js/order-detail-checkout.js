@@ -51,7 +51,8 @@ var DetailCheckout = (function () {
       targetRound: payload.order_key ? window.detailTargetRound : undefined };
     const fingerprint = JSON.stringify({ key, items: modern.items, groups: modern.orderSelections, note: modern.note,
       total: modern.appended_total ?? modern.new_total ?? modern.total, revision: modern.expectedDetailRevision,
-      target: modern.targetRound, dining: modern.dining_option, table: modern.table_number });
+      target: modern.targetRound, dining: modern.dining_option, table: modern.table_number,
+      channel: modern.channel_id || modern.channel_code, shift: modern.shift_id });
     try { pending ||= JSON.parse(sessionStorage.getItem(storageKey()) || 'null'); } catch (_) {}
     if (pending?.fingerprint === fingerprint) return pending.payload;
     modern.operationId = crypto.randomUUID();

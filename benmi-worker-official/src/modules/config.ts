@@ -10,6 +10,7 @@ import { parseAISettings, validAISettingsPatch } from './ai-settings';
 import { isMultilingualCanaryEnabled, parseSupportedLocales } from './menu-i18n';
 import {
   loadTenantOperatingShifts,
+  loadTenantQrChannels,
   saveTenantOperatingShifts,
   parseFeaturesArray,
   readScheduleContext,
@@ -54,6 +55,10 @@ export async function getConfig(
   const scheduleContext = hasMenuSchedule ? await readScheduleContext(env.DB, tenantId) : null;
   if (scheduleContext) domainRow.operating_hours = scheduleContext.hoursRaw;
   const operatingShifts = hasMenuSchedule ? await loadTenantOperatingShifts(env.DB, tenantId) : [];
+  const qrChannels = await loadTenantQrChannels(env.DB, tenantId);
+  const dineInTableMode = domainRow.dine_in_table_mode === 'none' || domainRow.dine_in_table_mode === 'optional'
+    ? domainRow.dine_in_table_mode
+    : 'required';
   let operatingHours = parseOperatingHours(domainRow.operating_hours, tenantId);
   if (!operatingHours) {
     operatingHours = parseOperatingHours(null, tenantId);
@@ -105,9 +110,11 @@ export async function getConfig(
     ...orderConfig,
     operatingHours,
     operatingShifts,
+    qrChannels,
     scheduleRevision: scheduleContext?.revision,
     allowScheduledPickup,
     allowDineIn,
+    dineInTableMode,
     features: finalFeatures,
     locale: primaryLocale,
     supportedLocales,
@@ -263,6 +270,9 @@ export async function updateConfig(
       scheduleRevision: payload.scheduleRevision,
       allowScheduledPickup: payload.allowScheduledPickup,
       allowDineIn: allowDineInVal,
+      dineInTableMode: payload.dineInTableMode === 'none' || payload.dineInTableMode === 'optional' || payload.dineInTableMode === 'required'
+        ? payload.dineInTableMode
+        : undefined,
       storeStatus: payload.storeStatus,
       autoOpenBeforeMinutes: payload.autoOpenBeforeMinutes !== undefined ? Number(payload.autoOpenBeforeMinutes) : undefined,
       prepTimeMinutes: payload.prepTimeMinutes !== undefined ? Number(payload.prepTimeMinutes) : undefined,

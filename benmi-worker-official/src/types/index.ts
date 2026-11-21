@@ -48,6 +48,9 @@ export interface Order {
   tableNumber?: string | null;
   tableId?: string | null;
   table_id?: string | null;
+  channelId?: string | null;
+  channelLabel?: string | null;
+  shiftId?: string | null;
   source?: 'legacy' | 'staff' | string;
   revision?: number;
   roundCount?: number;
@@ -194,6 +197,15 @@ export interface ItemAnalyticsRow {
   optionsBreakdown?: { [optionName: string]: number };
 }
 
+export interface ChannelAnalyticsRow {
+  channelId: string;
+  channelLabel: string;
+  totalOrders: number;
+  totalSales: number;
+  dineInCount: number;
+  takeawayCount: number;
+}
+
 export interface ItemAnalyticsSummary {
   tenantId: string;
   range: string;
@@ -204,6 +216,7 @@ export interface ItemAnalyticsSummary {
   totalOrders: number;
   topItem: ItemAnalyticsRow | null;
   items: ItemAnalyticsRow[];
+  channels?: ChannelAnalyticsRow[];
 }
 
 export interface StoreConfig {

@@ -473,6 +473,8 @@ async function loadOperatingHours() {
             id: s.id || `shift_${idx + 1}`,
             name: s.name || `${t("shiftDefaultNamePrefix") || "時段"} ${idx + 1}`,
             shiftType: s.shiftType === "menu_window" ? "menu_window" : "operating",
+            displayMode: s.displayMode || "switcher",
+            diningPolicy: s.diningPolicy || "inherit",
             sortOrder: Number.isFinite(Number(s.sortOrder)) ? Number(s.sortOrder) : idx,
             isActive: s.isActive !== false,
             windows: Array.isArray(s.windows) ? s.windows.map(w => ({
@@ -485,6 +487,8 @@ async function loadOperatingHours() {
           }))
         : [];
       window.storeOperatingShifts = storeOperatingShifts;
+      window.storeQrChannels = Array.isArray(data.qrChannels) ? data.qrChannels : [];
+      window.dineInTableMode = data.dineInTableMode || "required";
       allowScheduledPickup = data.allowScheduledPickup !== undefined ? data.allowScheduledPickup : true;
       allowDineIn = data.allowDineIn !== undefined ? Boolean(data.allowDineIn) : true;
       window.allowDineIn = allowDineIn;
@@ -2459,15 +2463,211 @@ function openStaffOrderWindow() {
 // =======================================================
 var activeQrModalTable = null;
 
-function generateTableQrUrl(tableLabel) {
+function getOrderPortalBaseUrl() {
   const tenantId = (typeof getTenantIdFromUrl === "function" && getTenantIdFromUrl()) || "";
   const liffId = (typeof currentTenantLiffId !== "undefined" && currentTenantLiffId)
     || (window.storeConfig && (window.storeConfig.liff_id || window.storeConfig.liffId))
     || "";
   if (liffId) {
-    return `https://liff.line.me/${encodeURIComponent(liffId)}?table=${encodeURIComponent(tableLabel)}`;
+    return `https://liff.line.me/${encodeURIComponent(liffId)}`;
   }
-  return `https://order.blabfood.app/${encodeURIComponent(tenantId)}?table=${encodeURIComponent(tableLabel)}`;
+  return `https://order.blabfood.app/${encodeURIComponent(tenantId)}`;
+}
+
+function generateTableQrUrl(tableLabel) {
+  return `${getOrderPortalBaseUrl()}?table=${encodeURIComponent(tableLabel)}`;
+}
+
+function generateCollectionQrUrl({ shiftId, channelCode, lang } = {}) {
+  const baseUrl = getOrderPortalBaseUrl();
+  const params = new URLSearchParams();
+  if (shiftId) params.set("collection", String(shiftId));
+  if (channelCode) params.set("ch", String(channelCode));
+  if (lang) params.set("lang", String(lang));
+  const query = params.toString();
+  return query ? `${baseUrl}?${query}` : baseUrl;
+}
+
+function renderModalQrPreview(qrUrl) {
+  const wrap = document.getElementById("table-qr-canvas-wrap");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  if (typeof qrcode === "function") {
+    const qr = qrcode(0, "M");
+    qr.addData(qrUrl);
+    qr.make();
+    wrap.innerHTML = qr.createImgTag(7, 2);
+    const img = wrap.querySelector("img");
+    if (img) {
+      img.style.maxWidth = "220px";
+      img.style.height = "auto";
+      img.style.borderRadius = "8px";
+      img.style.border = "1px solid #e2e8f0";
+    }
+  }
+}
+
+function populateCollectionQrChannelOptions(selectedCode = "") {
+  const chSel = document.getElementById("qr-col-channel-select");
+  if (!chSel) return;
+  const channels = Array.isArray(window.storeQrChannels) ? window.storeQrChannels : [];
+  chSel.innerHTML = "";
+  const directOpt = document.createElement("option");
+  directOpt.value = "";
+  directOpt.textContent = t("collectionQrChannelDirect") || "一般連結 (不指定客群)";
+  chSel.appendChild(directOpt);
+  channels.filter(c => c && c.isActive !== false && c.is_active !== 0).forEach(ch => {
+    const opt = document.createElement("option");
+    opt.value = ch.code;
+    opt.textContent = ch.label;
+    chSel.appendChild(opt);
+  });
+  chSel.value = selectedCode || "";
+}
+
+function openCollectionQrModal(initialShiftId = "") {
+  const modal = document.getElementById("tableQrModal");
+  if (!modal) return;
+
+  const controls = document.getElementById("collection-qr-controls");
+  if (controls) controls.style.display = "block";
+
+  const titleEl = document.getElementById("table-qr-modal-title");
+  if (titleEl) titleEl.innerText = t("collectionQrModalTitle") || "菜單與客群 QR Code";
+
+  const shiftSel = document.getElementById("qr-col-shift-select");
+  const shifts = Array.isArray(window.storeOperatingShifts)
+    ? window.storeOperatingShifts
+    : (Array.isArray(storeOperatingShifts) ? storeOperatingShifts : []);
+  if (shiftSel) {
+    shiftSel.innerHTML = "";
+    const allOpt = document.createElement("option");
+    allOpt.value = "";
+    allOpt.textContent = t("collectionQrAllShiftsOption") || "全部供應菜單 (自動依時段)";
+    shiftSel.appendChild(allOpt);
+    shifts.forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = String(s.id);
+      opt.textContent = s.name;
+      shiftSel.appendChild(opt);
+    });
+    shiftSel.value = initialShiftId ? String(initialShiftId) : "";
+  }
+
+  const langSel = document.getElementById("qr-col-lang-select");
+  if (langSel) {
+    const autoOpt = langSel.querySelector('option[value=""]');
+    if (autoOpt) autoOpt.textContent = t("collectionQrLangAuto") || "依顧客裝置語言";
+    langSel.value = "";
+  }
+
+  populateCollectionQrChannelOptions("");
+  refreshCollectionQrPreview();
+  modal.style.display = "flex";
+}
+
+function refreshCollectionQrPreview() {
+  const shiftSel = document.getElementById("qr-col-shift-select");
+  const langSel = document.getElementById("qr-col-lang-select");
+  const chSel = document.getElementById("qr-col-channel-select");
+  const shiftId = shiftSel ? shiftSel.value : "";
+  const lang = langSel ? langSel.value : "";
+  const channelCode = chSel ? chSel.value : "";
+
+  const shifts = Array.isArray(window.storeOperatingShifts)
+    ? window.storeOperatingShifts
+    : (Array.isArray(storeOperatingShifts) ? storeOperatingShifts : []);
+  const selectedShift = shifts.find(s => String(s.id) === String(shiftId));
+  const channels = Array.isArray(window.storeQrChannels) ? window.storeQrChannels : [];
+  const selectedChannel = channels.find(c => c.code === channelCode);
+  const langNames = { "zh-TW": "繁體中文", en: "English", vi: "Tiếng Việt" };
+
+  const storeName = window.currentTenantBrandName || "BLAB Store";
+  const parts = [];
+  if (selectedShift && selectedShift.name) parts.push(selectedShift.name);
+  if (selectedChannel && selectedChannel.label) parts.push(selectedChannel.label);
+  if (lang && langNames[lang]) parts.push(langNames[lang]);
+  const displayLabel = parts.length > 0 ? parts.join(" · ") : (t("collectionQrAllShiftsOption") || storeName);
+
+  const qrUrl = generateCollectionQrUrl({ shiftId, channelCode, lang });
+  const badgeTitle = t("collectionQrBadgeTitle") || "專屬點餐碼 / Menu QR";
+  activeQrModalTable = {
+    id: "collection_qr",
+    label: displayLabel,
+    customQrUrl: qrUrl,
+    badgeSubtitle: badgeTitle,
+    badgePrefix: t("collectionQrBadgePrefix") || "專屬菜單",
+    fileSlug: [shiftId || "menu", channelCode, lang].filter(Boolean).join("_")
+  };
+  window.activeQrModalTable = activeQrModalTable;
+
+  const brandEl = document.getElementById("table-qr-brand-display");
+  if (brandEl) brandEl.innerText = storeName;
+  const badgeEl = document.getElementById("i18n-table-qr-dinein-badge");
+  if (badgeEl) badgeEl.innerText = badgeTitle;
+  const labelEl = document.getElementById("table-qr-label-display");
+  if (labelEl) labelEl.innerText = displayLabel;
+  const inputUrl = document.getElementById("table-qr-url-input");
+  if (inputUrl) inputUrl.value = qrUrl;
+
+  renderModalQrPreview(qrUrl);
+}
+
+async function createQuickQrChannel() {
+  const labelInput = document.getElementById("qr-col-new-label");
+  if (!labelInput) return;
+  const label = labelInput.value.trim();
+  if (!label) {
+    labelInput.focus();
+    return;
+  }
+  const addBtn = document.getElementById("qr-col-add-btn");
+  if (addBtn) addBtn.disabled = true;
+
+  try {
+    const tenantId = (typeof getTenantIdFromUrl === "function" && getTenantIdFromUrl()) || "";
+    const shiftSel = document.getElementById("qr-col-shift-select");
+    const langSel = document.getElementById("qr-col-lang-select");
+    const shiftId = shiftSel && shiftSel.value ? shiftSel.value : null;
+    const lang = langSel && langSel.value ? langSel.value : null;
+    const asciiSlug = label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 24);
+    const code = asciiSlug || `ch_${Date.now().toString(36)}`;
+
+    const res = await fetch(`${WORKER_BASE}/api/menu/qr-channels?tenant_id=${encodeURIComponent(tenantId)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        label,
+        code,
+        defaultShiftId: shiftId,
+        defaultLocale: lang
+      })
+    });
+    const resData = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(resData.error || `HTTP ${res.status}`);
+    }
+    const createdChannel = resData.channel || { code, label, defaultShiftId: shiftId, defaultLocale: lang, isActive: true };
+    if (Array.isArray(resData.qrChannels)) {
+      window.storeQrChannels = resData.qrChannels;
+    } else {
+      const existing = Array.isArray(window.storeQrChannels) ? window.storeQrChannels : [];
+      const filtered = existing.filter(c => c.code !== createdChannel.code);
+      filtered.push(createdChannel);
+      window.storeQrChannels = filtered;
+    }
+    labelInput.value = "";
+    populateCollectionQrChannelOptions(createdChannel.code);
+    refreshCollectionQrPreview();
+    if (typeof showToast === "function") {
+      showToast(t("collectionQrCreatedToast") || "已建立客群 QR 渠道");
+    }
+  } catch (err) {
+    console.error("[CollectionQR] Create channel failed:", err);
+    alert((t("saveFail") || "儲存失敗") + (err?.message ? `: ${err.message}` : ""));
+  } finally {
+    if (addBtn) addBtn.disabled = false;
+  }
 }
 
 function openTableQrModal(tableId) {
@@ -2478,6 +2678,15 @@ function openTableQrModal(tableId) {
 
   const modal = document.getElementById("tableQrModal");
   if (!modal) return;
+
+  const controls = document.getElementById("collection-qr-controls");
+  if (controls) controls.style.display = "none";
+
+  const titleEl = document.getElementById("table-qr-modal-title");
+  if (titleEl) titleEl.innerText = t("tableQrTitle") || "桌號 QR Code";
+
+  const badgeEl = document.getElementById("i18n-table-qr-dinein-badge");
+  if (badgeEl) badgeEl.innerText = t("tableQrDineInBadge") || "內用桌號 / Table";
 
   const storeName = window.currentTenantBrandName || "BLAB Store";
   const brandEl = document.getElementById("table-qr-brand-display");
@@ -2490,25 +2699,7 @@ function openTableQrModal(tableId) {
   const inputUrl = document.getElementById("table-qr-url-input");
   if (inputUrl) inputUrl.value = qrUrl;
 
-  const wrap = document.getElementById("table-qr-canvas-wrap");
-  if (wrap) {
-    wrap.innerHTML = "";
-    if (typeof qrcode === "function") {
-      const qr = qrcode(0, "M");
-      qr.addData(qrUrl);
-      qr.make();
-      const imgTag = qr.createImgTag(7, 2);
-      wrap.innerHTML = imgTag;
-      const img = wrap.querySelector("img");
-      if (img) {
-        img.style.maxWidth = "220px";
-        img.style.height = "auto";
-        img.style.borderRadius = "8px";
-        img.style.border = "1px solid #e2e8f0";
-      }
-    }
-  }
-
+  renderModalQrPreview(qrUrl);
   modal.style.display = "flex";
 }
 
@@ -2539,7 +2730,8 @@ async function downloadTableQrPng(tableId) {
   if (!table) return;
 
   const storeName = window.currentTenantBrandName || "BLAB Store";
-  const qrUrl = generateTableQrUrl(table.label);
+  const qrUrl = table.customQrUrl || generateTableQrUrl(table.label);
+  const badgeTitle = table.badgeSubtitle || (t("tableQrDineInBadge") || "內用桌號 / Table");
 
   const canvas = document.createElement("canvas");
   canvas.width = 600;
@@ -2579,7 +2771,7 @@ async function downloadTableQrPng(tableId) {
 
   ctx.fillStyle = "#166534";
   ctx.font = "bold 18px sans-serif";
-  ctx.fillText("內用桌號 / Table", canvas.width / 2, badgeY + 32);
+  ctx.fillText(badgeTitle, canvas.width / 2, badgeY + 32);
 
   ctx.font = "900 44px sans-serif";
   ctx.fillStyle = "#15803d";
@@ -2615,7 +2807,9 @@ async function downloadTableQrPng(tableId) {
   ctx.fillText("Powered by BLAB Multi-Tenant Order Platform", canvas.width / 2, 750);
 
   const link = document.createElement("a");
-  link.download = `QR_Table_${table.label.replace(/\s+/g, '_')}.png`;
+  link.download = table.fileSlug
+    ? `QR_Menu_${table.fileSlug}.png`
+    : `QR_Table_${table.label.replace(/\s+/g, '_')}.png`;
   link.href = canvas.toDataURL("image/png");
   document.body.appendChild(link);
   link.click();
@@ -2637,7 +2831,8 @@ async function printTableQrToPrinter(tableId) {
   try {
     const cashierConfig = PrinterService.getSettings()?.cashier;
     const storeName = window.currentTenantBrandName || "BLAB Store";
-    const qrUrl = generateTableQrUrl(table.label);
+    const qrUrl = table.customQrUrl || generateTableQrUrl(table.label);
+    const badgeTitle = table.badgeSubtitle || (t("tableQrDineInBadge") || "內用桌號 / Table");
 
     const canvas = document.createElement("canvas");
     canvas.width = 576;
@@ -2659,7 +2854,7 @@ async function printTableQrToPrinter(tableId) {
     ctx.stroke();
 
     ctx.font = "bold 26px sans-serif";
-    ctx.fillText("內用桌號 / Table", canvas.width / 2, 130);
+    ctx.fillText(badgeTitle, canvas.width / 2, 130);
 
     ctx.font = "900 48px sans-serif";
     ctx.fillText(table.label, canvas.width / 2, 190);
@@ -2712,7 +2907,7 @@ function renderPrintQrCardHtml(table, storeName, qrDataUrl) {
   return `
     <div class="print-table-qr-card">
       <div class="print-store-name">${escapeHtml(storeName)}</div>
-      <div class="print-table-badge">內用桌號: ${escapeHtml(table.label)}</div>
+      <div class="print-table-badge">${escapeHtml(table.badgePrefix || "內用桌號")}: ${escapeHtml(table.label)}</div>
       <img src="${qrDataUrl}" alt="QR" class="print-qr-img">
       <div class="print-instruction-primary">請掃描 QR Code 線上點餐</div>
       <div class="print-instruction-secondary">Quét mã QR để đặt món</div>
@@ -2728,7 +2923,7 @@ function printSingleTableQrA4(tableId) {
   if (!printSheet) return;
 
   const storeName = window.currentTenantBrandName || "BLAB Store";
-  const qrUrl = generateTableQrUrl(table.label);
+  const qrUrl = table.customQrUrl || generateTableQrUrl(table.label);
   let qrDataUrl = "";
   if (typeof qrcode === "function") {
     const qr = qrcode(0, "M");
@@ -2849,6 +3044,10 @@ window.submitTableEditor = submitTableEditor;
 window.toggleTableActive = toggleTableActive;
 window.openStaffOrderWindow = openStaffOrderWindow;
 window.openTableQrModal = openTableQrModal;
+window.openCollectionQrModal = openCollectionQrModal;
+window.generateCollectionQrUrl = generateCollectionQrUrl;
+window.refreshCollectionQrPreview = refreshCollectionQrPreview;
+window.createQuickQrChannel = createQuickQrChannel;
 window.closeTableQrModal = closeTableQrModal;
 window.generateTableQrUrl = generateTableQrUrl;
 window.copyTableQrUrl = copyTableQrUrl;

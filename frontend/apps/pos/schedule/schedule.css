@@ -212,3 +212,46 @@ body.is-menu-schedule-active .main-topbar { display: none !important; }
   .ms-outside-option span { padding-inline: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { .ms-expand-btn svg, .ms-check-mark { transition: none; } }
+
+.ms-shift-meta-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.ms-shift-meta-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ms-shift-meta-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.ms-shift-meta-select {
+  min-height: 48px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
+  width: 100%;
+}
+
+.ms-qr-btn {
+  min-height: 48px;
+  gap: 6px;
+}
+
+.ms-shift-qr-btn {
+  min-height: 48px;
+  width: 100%;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 6px;
+}

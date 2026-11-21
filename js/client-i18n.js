@@ -349,7 +349,13 @@
             outside_schedule_badge: '非供應時段',
             schedule_window_badge: '{label} 供應',
             alert_schedule_items_removed: '以下餐點不在所選取餐時段供應，請調整餐點或更換取餐時間：{items}',
-            cart_outside_schedule: '非所選時段供應'
+            cart_outside_schedule: '非所選時段供應',
+            collection_all_label: '全部菜單',
+            collection_all_sub: '依目前時段',
+            collection_takeaway_only_hint: '此時段僅供外帶自取',
+            collection_scheduled_hint: '此時段供應時間為 {window}，已自動切換為預約時段',
+            collection_preview_hint: '此時段供應時間為 {window}（目前僅供瀏覽）',
+            qr_channel_banner_prefix: '專屬點餐通道：'
         },
 
         'en': {
@@ -674,7 +680,13 @@
             outside_schedule_badge: 'Unavailable now',
             schedule_window_badge: 'Served: {label}',
             alert_schedule_items_removed: 'These items are not served at your selected pickup time. Please remove them or change pickup time: {items}',
-            cart_outside_schedule: 'Not served at selected time'
+            cart_outside_schedule: 'Not served at selected time',
+            collection_all_label: 'All Menus',
+            collection_all_sub: 'Available now',
+            collection_takeaway_only_hint: 'Takeaway only during this menu period',
+            collection_scheduled_hint: 'Served {window}. Switched to scheduled pickup.',
+            collection_preview_hint: 'Served {window} (preview only)',
+            qr_channel_banner_prefix: 'Group Order Channel: '
         },
 
         'vi': {
@@ -999,7 +1011,13 @@
             outside_schedule_badge: 'Ngoài giờ bán',
             schedule_window_badge: 'Phục vụ: {label}',
             alert_schedule_items_removed: 'Các món sau không phục vụ vào giờ nhận đã chọn. Vui lòng bỏ món hoặc đổi giờ nhận: {items}',
-            cart_outside_schedule: 'Không bán vào giờ đã chọn'
+            cart_outside_schedule: 'Không bán vào giờ đã chọn',
+            collection_all_label: 'Tất cả món',
+            collection_all_sub: 'Theo giờ hiện tại',
+            collection_takeaway_only_hint: 'Khung giờ này chỉ phục vụ mang đi',
+            collection_scheduled_hint: 'Thực đơn phục vụ lúc {window}. Đã chuyển sang hẹn giờ lấy.',
+            collection_preview_hint: 'Thực đơn phục vụ lúc {window} (chỉ xem trước)',
+            qr_channel_banner_prefix: 'Kênh đặt món riêng: '
         }
     };
 
@@ -1140,6 +1158,11 @@
         var chosen = null;
         if (explicitUrlLang && (supported.indexOf(explicitUrlLang) !== -1 || SUPPORTED_LOCALES.indexOf(explicitUrlLang) !== -1)) {
             chosen = explicitUrlLang;
+        }
+
+        var channelLocale = global.currentQrChannel && normalizeLocale(global.currentQrChannel.defaultLocale);
+        if (!chosen && channelLocale && (supported.indexOf(channelLocale) !== -1 || SUPPORTED_LOCALES.indexOf(channelLocale) !== -1)) {
+            chosen = channelLocale;
         }
 
         var tenantId = resolveTenantId(activeTenant);
@@ -1370,7 +1393,9 @@
         var enabled = isI18nActiveForTenant(activeTenant);
         var supported = resolveSupportedLocales(activeTenant);
         var explicitUrlLang = readExplicitUrlLang();
-        if (explicitUrlLang && supported.indexOf(explicitUrlLang) === -1) {
+        var channelLocale = global.currentQrChannel && normalizeLocale(global.currentQrChannel.defaultLocale);
+        var forcedLocale = explicitUrlLang || channelLocale;
+        if (forcedLocale && supported.indexOf(forcedLocale) === -1) {
             supported = SUPPORTED_LOCALES.slice();
         }
 

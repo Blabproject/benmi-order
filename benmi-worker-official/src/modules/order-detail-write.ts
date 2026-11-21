@@ -9,6 +9,7 @@ import { prepareOrderReceipt, pushOrderReceiptInBackground } from './line-order-
 import { buildOrderFlexMessage } from './line/templates/order-receipt';
 import { json } from '../utils/http';
 import { buildDetailRound, DetailError, DetailView, detailWrites, detailStatement, detailProjection, readDetail } from './order-detail';
+import { hasDbColumn, resolveOrderQrChannelAndShiftPolicy } from './operating-shifts';
 
 type Kind = 'create' | 'append' | 'modify';
 const digest = async (value: unknown) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',
@@ -19,7 +20,9 @@ export async function detailRequestHash(kind: Kind, input: any, key: string) {
   return digest({ kind, key, items: input.items, selections: input.orderSelections, note: input.note,
     total: input.appended_total ?? input.new_total ?? input.total, round: input.targetRound,
     revision: input.expectedDetailRevision, customer: input.customer, user: input.userId || input.user_id,
-    time: input.time, dining: input.dining_option || input.diningOption, table: input.table_number || input.tableNumber });
+    time: input.time, dining: input.dining_option || input.diningOption, table: input.table_number || input.tableNumber,
+    channel: input.channel_id || input.channelId || input.channel_code || input.channelCode,
+    shift: input.shift_id || input.shiftId });
 }
 
 export async function writeDetailedOrder(env: Env, tenant: string, input: any, kind: Kind,
@@ -52,7 +55,12 @@ export async function writeDetailedOrder(env: Env, tenant: string, input: any, k
     let businessDate: string;
     let dining: DiningOption = input.dining_option === 'dine_in' || input.diningOption === 'dine_in' ? 'dine_in' : 'takeaway';
     if (dining === 'dine_in' && tenantCtx && !tenantHasFeature(tenantCtx, 'dine_in')) dining = 'takeaway';
+    const attribution = kind === 'create'
+      ? await resolveOrderQrChannelAndShiftPolicy(env.DB, tenant, input)
+      : { channelId: null, channelLabel: null, shiftId: null, diningPolicy: 'inherit' as const };
     if (kind === 'create') {
+      if (attribution.diningPolicy === 'takeaway_only') dining = 'takeaway';
+      else if (attribution.diningPolicy === 'dine_in_only' && (!tenantCtx || tenantHasFeature(tenantCtx, 'dine_in'))) dining = 'dine_in';
       const next = await getNextDailyOrderSeq(env, tenant, dining, new Date(), resolveTenantOrderPrefix(tenantCtx, tenant));
       orderId = crypto.randomUUID();
       displayKey = next.key;
@@ -109,12 +117,18 @@ export async function writeDetailedOrder(env: Env, tenant: string, input: any, k
         .bind(tenant, order.tableNumber).first<{ id: string }>();
       if (tblRow) tableId = tblRow.id;
     }
-    if (kind === 'create') statements.push(env.DB.prepare(`INSERT INTO orders
-      (key,order_id,display_key,business_date,uuid,tenant_id,user_id,customer_name,pickup_time,status,total_amount,
-       order_content,note,dining_option,table_number,table_id,round_count,created_at,updated_at)
-      VALUES (?,?,?,?,?,?,?,?,?,'NEW',?,?,?,?,?,?,1,datetime('now'),strftime('%Y-%m-%d %H:%M:%f','now'))`)
-      .bind(key, orderId, displayKey, businessDate, order.uuid || operation, tenant, order.userId || null,
-        order.customer, order.time, order.total, order.content, order.note || '', dining, order.tableNumber || null, tableId || null));
+    if (kind === 'create') {
+      const hasAttrCols = env.DB ? await hasDbColumn(env.DB, 'orders', 'channel_id') : false;
+      const attrCols = hasAttrCols ? ',channel_id,channel_label,shift_id' : '';
+      const attrPlaceholders = hasAttrCols ? ',?,?,?' : '';
+      const attrBindings = hasAttrCols ? [attribution.channelId || null, attribution.channelLabel || null, attribution.shiftId || null] : [];
+      statements.push(env.DB.prepare(`INSERT INTO orders
+        (key,order_id,display_key,business_date,uuid,tenant_id,user_id,customer_name,pickup_time,status,total_amount,
+         order_content,note,dining_option,table_number,table_id${attrCols},round_count,created_at,updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,'NEW',?,?,?,?,?,?${attrPlaceholders},1,datetime('now'),strftime('%Y-%m-%d %H:%M:%f','now'))`)
+        .bind(key, orderId, displayKey, businessDate, order.uuid || operation, tenant, order.userId || null,
+          order.customer, order.time, order.total, order.content, order.note || '', dining, order.tableNumber || null, tableId || null, ...attrBindings));
+    }
     statements.push(detailStatement(env, tenant, key, revision, operation, hash, snapshot, kind));
     statements.push(env.DB.prepare(`UPDATE orders SET detail_revision=?,order_content=?,note=?,total_amount=?,status='NEW',
       round_count=?,last_appended_at=CASE WHEN ?='append' THEN strftime('%Y-%m-%d %H:%M:%f','now') ELSE last_appended_at END,

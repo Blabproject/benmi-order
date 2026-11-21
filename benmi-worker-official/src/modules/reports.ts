@@ -49,7 +49,7 @@ export async function getItemAnalyticsReport(request: Request, env: Env): Promis
 
   try {
     const reportRepo = createReportRepository(env.DB);
-    const { items, totalItemsSold, totalRevenue, totalOrders } = await reportRepo.getItemAnalytics(
+    const { items, channels, totalItemsSold, totalRevenue, totalOrders } = await reportRepo.getItemAnalytics(
       tenantId,
       startUtcIso,
       endUtcIso
@@ -64,7 +64,8 @@ export async function getItemAnalyticsReport(request: Request, env: Env): Promis
       totalRevenue,
       totalOrders,
       topItem: items.length > 0 ? items[0] : null,
-      items
+      items,
+      ...(channels && channels.length > 0 ? { channels } : {})
     };
 
     return json(summary);

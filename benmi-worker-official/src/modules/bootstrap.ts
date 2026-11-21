@@ -8,8 +8,10 @@ import { resolveTenantContext } from './tenant';
 import {
   loadCategoryAndItemShiftLinks,
   loadTenantOperatingShifts,
+  loadTenantQrChannels,
   hasTenantMenuScheduleFeature,
   type OperatingShiftDto,
+  type QrChannelDto,
 } from './operating-shifts';
 
 type EntityI18nEntry = Record<string, string | Record<string, string> | undefined>;
@@ -225,6 +227,8 @@ export interface BootstrapResponse {
     storeNotice?: { enabled: boolean; title: string; body: string; version: string } | null;
     operatingHours: string | null;
     operatingShifts?: OperatingShiftDto[];
+    qrChannels?: QrChannelDto[];
+    dineInTableMode?: 'required' | 'optional' | 'none';
     parsedHours: Record<string, Array<{ start: string; end: string }>>;
     formattedHours?: string;
     deliveryPolicy: string | null;
@@ -634,6 +638,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
     let tenantMetaRow: { i18n_json?: string | null; supported_locales?: string | null } | null = null;
     const hasMenuScheduleFeature = await hasTenantMenuScheduleFeature(env.DB, tenantId, tenantCtx);
     let operatingShifts: OperatingShiftDto[] = [];
+    let qrChannels: QrChannelDto[] = [];
     let categoryShiftIdsMap = new Map<string, string[]>();
     let itemShiftIdsMap = new Map<string, string[]>();
 
@@ -651,6 +656,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
           hasItemAvailCol,
           loadedShifts,
           loadedShiftLinks,
+          loadedQrChannels,
         ] = await Promise.all([
           hasTableColumn(env.DB, 'tenant_config', 'i18n_json'),
           hasTableColumn(env.DB, 'tenant_config', 'supported_locales'),
@@ -663,10 +669,12 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
           hasTableColumn(env.DB, 'menu_items', 'availability_mode'),
           hasMenuScheduleFeature ? loadTenantOperatingShifts(env.DB, tenantId) : Promise.resolve([]),
           hasMenuScheduleFeature ? loadCategoryAndItemShiftLinks(env.DB, tenantId) : Promise.resolve({ categoryShiftIds: new Map(), itemShiftIds: new Map() }),
+          loadTenantQrChannels(env.DB, tenantId),
         ]);
         operatingShifts = loadedShifts;
         categoryShiftIdsMap = loadedShiftLinks.categoryShiftIds;
         itemShiftIdsMap = loadedShiftLinks.itemShiftIds;
+        qrChannels = loadedQrChannels;
 
         const baseOrderModifierSql =
           `SELECT g.id AS group_id, g.name AS group_name, g.selection_type,
@@ -1234,11 +1242,13 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
         storeNotice: tenantCtx?.storeNotice && tenantCtx.storeNotice.enabled ? tenantCtx.storeNotice : null,
         operatingHours,
         operatingShifts,
+        qrChannels,
         parsedHours: resolvedParsedHours,
         formattedHours: formatOperatingHoursForDisplay(operatingHours, locale, tenantId),
         deliveryPolicy,
         allowScheduledPickup: tenantCtx?.allowScheduledPickup !== undefined ? tenantCtx.allowScheduledPickup : true,
         allowDineIn: tenantCtx?.allowDineIn !== undefined ? tenantCtx.allowDineIn : true,
+        dineInTableMode: tenantCtx?.dineInTableMode || 'required',
         features: tenantCtx?.features || [],
         orderPrefix: tenantCtx?.orderPrefix || (tenantId === 'benmi' ? 'B' : tenantId.charAt(0).toUpperCase()),
         storeStatus: tenantCtx?.storeStatus || 'open',

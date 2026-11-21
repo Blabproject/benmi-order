@@ -207,6 +207,15 @@ export interface StaffTablesResponseDto {
 
 export type ReportRange = 'today' | '7d' | '30d';
 
+export interface ChannelAnalyticsRowDto {
+  channelId: string;
+  channelLabel: string;
+  totalOrders: number;
+  totalSales: number;
+  dineInCount: number;
+  takeawayCount: number;
+}
+
 export interface ItemAnalyticsRowDto {
   itemName: string;
   categoryName: string;
@@ -226,4 +235,5 @@ export interface ItemAnalyticsSummaryDto {
   totalOrders: number;
   topItem: ItemAnalyticsRowDto | null;
   items: ItemAnalyticsRowDto[];
+  channels?: readonly ChannelAnalyticsRowDto[];
 }

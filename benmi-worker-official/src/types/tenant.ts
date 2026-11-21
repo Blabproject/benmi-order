@@ -33,6 +33,7 @@ export interface TenantContext {
   deliveryPolicy: string | null;
   allowScheduledPickup?: boolean;
   allowDineIn?: boolean;
+  dineInTableMode?: 'required' | 'optional' | 'none';
   storeStatus?: 'open' | 'busy' | 'paused' | 'closed';
   autoOpenBeforeMinutes?: number | null;
   prepTimeMinutes?: number | null;

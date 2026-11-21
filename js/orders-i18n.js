@@ -1407,6 +1407,29 @@ const I18N = {
     menuScheduleDismissHelp: "關閉操作提示",
     menuScheduleCancelConnection: "取消連線",
     menuScheduleFiltersAria: "篩選菜單分類",
+    shiftDisplayModeLabel: "顧客端顯示方式",
+    shiftDisplayModeSwitcher: "顯示於菜單切換列",
+    shiftDisplayModeScheduleOnly: "僅依時段自動顯示",
+    shiftDisplayModeQrOnly: "僅限 QR / 專屬連結開啟",
+    shiftDiningPolicyLabel: "用餐方式限制",
+    shiftDiningPolicyInherit: "依門市預設",
+    shiftDiningPolicyBoth: "內用 / 外帶皆可",
+    shiftDiningPolicyTakeawayOnly: "僅限外帶",
+    shiftDiningPolicyDineInOnly: "僅限內用",
+    menuScheduleQrBtn: "專屬 QR",
+    menuScheduleChannelsQrBtn: "菜單與客群 QR",
+    collectionQrModalTitle: "菜單與客群 QR Code",
+    collectionQrBadgeTitle: "專屬點餐碼 / Menu QR",
+    collectionQrBadgePrefix: "專屬菜單",
+    collectionQrShiftLabel: "菜單集合 / 時段",
+    collectionQrAllShiftsOption: "全部供應菜單 (自動依時段)",
+    collectionQrLangLabel: "預設語言",
+    collectionQrLangAuto: "依顧客裝置語言",
+    collectionQrChannelLabel: "客群 / 歸因渠道",
+    collectionQrChannelDirect: "一般連結 (不指定客群)",
+    collectionQrNewPlaceholder: "新增客群名稱 (例如：資訊系、男宿A棟)",
+    collectionQrAddBtn: "建立渠道",
+    collectionQrCreatedToast: "已建立客群 QR 渠道",
     menuScheduleSearchPlaceholder: "搜尋分類或餐點…",
     menuScheduleFilterAll: "全部",
     menuScheduleFilterAlways: "全時段",
@@ -2851,6 +2874,29 @@ const I18N = {
     menuScheduleSearchPlaceholder: "Tìm danh mục hoặc món…",
     menuScheduleFilterAll: "Tất cả",
     menuScheduleFilterAlways: "Bán mọi ca",
+    shiftDisplayModeLabel: "Hiển thị trên menu khách",
+    shiftDisplayModeSwitcher: "Hiện nút chuyển trên thanh menu",
+    shiftDisplayModeScheduleOnly: "Chỉ lọc ngầm theo khung giờ",
+    shiftDisplayModeQrOnly: "Ẩn — chỉ mở qua QR / link riêng",
+    shiftDiningPolicyLabel: "Chính sách dùng bữa",
+    shiftDiningPolicyInherit: "Theo cài đặt mặc định của quán",
+    shiftDiningPolicyBoth: "Cho phép cả tại quán & mang đi",
+    shiftDiningPolicyTakeawayOnly: "Chỉ cho phép mang đi",
+    shiftDiningPolicyDineInOnly: "Chỉ cho phép ăn tại quán",
+    menuScheduleQrBtn: "Tạo mã QR",
+    menuScheduleChannelsQrBtn: "QR Menu & Nhóm khách",
+    collectionQrModalTitle: "Mã QR Menu & Nhóm khách",
+    collectionQrBadgeTitle: "Mã QR đặt món / Menu QR",
+    collectionQrBadgePrefix: "Menu riêng",
+    collectionQrShiftLabel: "Bộ sưu tập / Ca phục vụ",
+    collectionQrAllShiftsOption: "Toàn bộ thực đơn (theo khung giờ)",
+    collectionQrLangLabel: "Ngôn ngữ mặc định",
+    collectionQrLangAuto: "Theo thiết bị khách hàng",
+    collectionQrChannelLabel: "Nhóm khách / Kênh thống kê",
+    collectionQrChannelDirect: "Liên kết chung (không gắn nhóm)",
+    collectionQrNewPlaceholder: "Tên nhóm mới (VD: Khoa CNTT, KTX Nam)",
+    collectionQrAddBtn: "Tạo kênh QR",
+    collectionQrCreatedToast: "Đã tạo kênh QR nhóm khách",
     menuScheduleFilterSelected: "Giới hạn ca",
     menuScheduleSelectedCount: "Chỉ bán ở {count} ca đã nối",
     menuScheduleLinkCount: "Đang nối {count} liên kết ca",
@@ -3276,6 +3322,16 @@ function applyLanguageToDOM() {
   if (btnQrDown) btnQrDown.innerText = dict.tableQrDownloadPng;
   const btnQrA4 = document.getElementById("i18n-btn-qr-print-a4");
   if (btnQrA4) btnQrA4.innerText = dict.tableQrPrintA4;
+  const colShiftLabel = document.getElementById("qr-col-shift-label");
+  if (colShiftLabel) colShiftLabel.innerText = dict.collectionQrShiftLabel;
+  const colLangLabel = document.getElementById("qr-col-lang-label");
+  if (colLangLabel) colLangLabel.innerText = dict.collectionQrLangLabel;
+  const colChannelLabel = document.getElementById("qr-col-channel-label");
+  if (colChannelLabel) colChannelLabel.innerText = dict.collectionQrChannelLabel;
+  const colNewInput = document.getElementById("qr-col-new-label");
+  if (colNewInput) colNewInput.placeholder = dict.collectionQrNewPlaceholder;
+  const colAddBtn = document.getElementById("qr-col-add-btn");
+  if (colAddBtn) colAddBtn.innerText = dict.collectionQrAddBtn;
 
   const modalBatchTitle = document.getElementById("batch-table-modal-title");
   if (modalBatchTitle) modalBatchTitle.innerText = dict.tableBatchAddTitle;

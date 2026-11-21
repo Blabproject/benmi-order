@@ -2792,7 +2792,8 @@ async function submitOrder() {
     };
 
     if (isDineIn) {
-        if (!window.isAppendMode) {
+        const requiresTable = !window.isAppendMode && (!storeConfig || !storeConfig.dineInTableMode || storeConfig.dineInTableMode === 'required');
+        if (requiresTable) {
             const tableInput = document.getElementById('dinein-table-number');
             const tableNumber = tableInput ? tableInput.value.trim() : '';
             if (!tableNumber) {
@@ -3405,6 +3406,8 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
             return;
         }
 
+        const activeChannel = (typeof window !== 'undefined' && window.currentQrChannel) ? window.currentQrChannel : null;
+        const activeCollectionId = (typeof window !== 'undefined' && window.selectedMenuCollectionId) ? window.selectedMenuCollectionId : null;
         const orderPayload = {
             key: orderNum,
             uuid: orderUuid,
@@ -3414,6 +3417,10 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
             time: `${dateInput} ${timeInput}`,
             dining_option: diningOption,
             table_number: tableNumber || undefined,
+            channel_id: activeChannel?.id || undefined,
+            channel_code: activeChannel?.code || undefined,
+            channel_label: activeChannel?.label || undefined,
+            shift_id: activeCollectionId || undefined,
             content: formatOrderTextMessage(orderNum, dateInput, timeInput, currentTotal, mainNote, true).split('\n\n🕒')[0].replace(/\[.*?點餐\]\n/g, '').replace('[Benmi 點餐]\n', ''),
             total: currentTotal,
             note: mainNote,
