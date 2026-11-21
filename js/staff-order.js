@@ -2,51 +2,28 @@
 window.StaffOrder = (() => {
   if (!window.isStaffOrderMode) return null;
   let capabilities = null, tables = [], busy = false, initialized = false, activeTabId = '', noteOpen = false;
-  let lastComputedTotal = 0, cashierModalOpen = false, cashierInputStr = '', cashierReplaceOnDigit = false;
+  let lastComputedTotal = 0, cashierModalOpen = false, catalogSections = [];
   const language = () => document.documentElement.lang;
   const text = (zh, vi) => language() === 'vi' ? vi : zh;
   const tenant = () => getTenantIdFromUrl();
   const storageKey = suffix => `staff_liff_${suffix}:${tenant()}`;
   const select = () => document.getElementById('dinein-table-number');
-  const status = () => document.getElementById('staff-order-status');
   const ready = () => initialized && !busy;
   const escapeHtmlStr = val => String(val ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
-  const escapeJsArg = val => String(val ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   const roundMoney = val => Math.round((Number(val) || 0) * 100) / 100;
-  const formatMoney = val => {
-    const rounded = roundMoney(val);
-    return Number.isInteger(rounded) ? String(rounded) : String(Number(rounded.toFixed(2)));
-  };
-
-  const CASHIER_CALC_ICON_SVG = `<svg class="staff-btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line><path d="M16 10h.01"></path><path d="M12 10h.01"></path><path d="M8 10h.01"></path><path d="M12 14h.01"></path><path d="M8 14h.01"></path><path d="M12 18h.01"></path><path d="M8 18h.01"></path></svg>`;
   const CASHIER_REGISTER_ICON_SVG = `<svg class="staff-btn-icon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="3" width="10" height="5" rx="1"></rect><path d="M12 8v2"></path><path d="M5 10h14l2 5H3l2-5Z"></path><rect x="3" y="15" width="18" height="6" rx="1.5"></rect><line x1="10" y1="18" x2="14" y2="18"></line></svg>`;
-  const BACKSPACE_ICON_SVG = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>`;
 
   let toastTimer = null;
   function showStaffToast(textMsg, type = 'info') {
     if (!textMsg) return;
-    let toast = document.getElementById('staff-order-toast');
-    if (!toast) {
-      toast = document.createElement('div');
-      toast.id = 'staff-order-toast';
-      toast.className = 'staff-toast';
-      document.body.appendChild(toast);
-    }
-    toast.className = `staff-toast staff-toast-${type}`;
-    toast.textContent = textMsg;
-    toast.classList.add('staff-toast-show');
+    window.StaffOrderView.toast(textMsg, type, true);
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-      toast.classList.remove('staff-toast-show');
-    }, 3200);
+    toastTimer = setTimeout(() => window.StaffOrderView.toast(textMsg, type, false), 3200);
   }
 
   function message(value, options = {}) {
-    const el = status();
-    if (el) el.textContent = value;
-    if (options.toast || options.type) {
-      showStaffToast(value, options.type || 'info');
-    }
+    window.StaffOrderView.message(value);
+    if (options.toast || options.type) showStaffToast(value, options.type || 'info');
   }
 
   function createTimeoutSignal(ms) {
@@ -92,87 +69,42 @@ window.StaffOrder = (() => {
   }
 
   function syncCartHeader() {
-    const targetEl = document.getElementById('staff-cart-target');
-    const roundEl = document.getElementById('staff-cart-round');
-    if (!targetEl || !roundEl) return;
-    const isTakeaway = !dineInAllowed() || window.currentDiningOption === 'takeaway';
-    if (isTakeaway) {
-      targetEl.textContent = text('外帶自取', 'Mang đi');
-      roundEl.hidden = true;
-      roundEl.textContent = '';
+    if (!dineInAllowed() || window.currentDiningOption === 'takeaway') {
+      window.StaffOrderView.cartHeader(text('外帶自取', 'Mang đi'), '');
       return;
     }
     const table = tables.find(row => row.id === select()?.value);
-    if (!table) {
-      targetEl.textContent = text('店內用餐（請選桌）', 'Tại bàn (Chọn bàn)');
-    } else {
-      const label = table.label || '';
-      const hasPrefix = /^(table|bàn|桌|桌號)\b/i.test(label);
-      targetEl.textContent = hasPrefix ? label : `${text('桌號', 'Bàn')} ${label}`;
-    }
-    if (table?.active_order_key) {
-      roundEl.hidden = false;
-      roundEl.textContent = `${OrderCode.format(table.active_display_key || table.active_order_id)} · ${text('加點', 'Gọi thêm')}`;
-    } else {
-      roundEl.hidden = true;
-      roundEl.textContent = '';
-    }
+    const label = table?.label || '';
+    const hasPrefix = /^(table|bàn|桌|桌號)\b/i.test(label);
+    const target = !table ? text('店內用餐（請選桌）', 'Tại bàn (Chọn bàn)')
+      : hasPrefix ? label : `${text('桌號', 'Bàn')} ${label}`;
+    const round = table?.active_order_key
+      ? `${OrderCode.format(table.active_display_key || table.active_order_id)} · ${text('加點', 'Gọi thêm')}` : '';
+    window.StaffOrderView.cartHeader(target, round);
+  }
+
+  function selectTable(tableId) {
+    const picker = select();
+    if (picker) picker.value = tableId;
+    setCustomerDiningOption(tableId ? 'dine_in' : 'takeaway');
+    updateTotal();
+    saveDraft();
   }
 
   function renderTableBar() {
-    const bar = document.getElementById('staff-table-bar');
-    const chipsWrap = document.getElementById('staff-table-chips');
-    const legendEl = document.getElementById('staff-bar-legend');
-    const tableGroup = document.getElementById('dinein-table-input-group');
-    if (!bar || !chipsWrap) return;
-
     const allowDine = dineInAllowed();
-    const isTakeaway = !allowDine || window.currentDiningOption === 'takeaway';
-    const selectedTableId = select()?.value || '';
-
-    let html = `<button type="button" class="staff-chip ${isTakeaway ? 'on' : ''}" aria-pressed="${isTakeaway}" data-staff-chip="takeaway">${text('外帶', 'Mang đi')}</button>`;
-    if (allowDine) {
-      for (const row of tables) {
-        const isOn = !isTakeaway && selectedTableId === row.id;
-        const dot = row.active_order_key ? `<span class="staff-dot-occupied" title="${text('使用中', 'Đang phục vụ')}"></span>` : '';
-        html += `<button type="button" class="staff-chip ${isOn ? 'on' : ''}" aria-pressed="${isOn}" data-staff-table="${escapeHtmlStr(row.id)}">${escapeHtmlStr(row.label)}${dot}</button>`;
-      }
-    }
-    chipsWrap.innerHTML = html;
-
-    chipsWrap.querySelector('[data-staff-chip="takeaway"]')?.addEventListener('click', () => {
-      if (select()) select().value = '';
-      setCustomerDiningOption('takeaway');
-      renderTableBar();
-      describeSelection();
-      updateTotal();
-      saveDraft();
-    });
-
-    chipsWrap.querySelectorAll('[data-staff-table]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const tblId = btn.getAttribute('data-staff-table') || '';
-        if (select()) select().value = tblId;
-        setCustomerDiningOption('dine_in');
-        renderTableBar();
-        describeSelection();
-        updateTotal();
-        saveDraft();
-      });
-    });
-
-    if (tableGroup) {
-      tableGroup.style.display = allowDine ? 'inline-flex' : 'none';
-    }
-    if (legendEl) {
-      legendEl.style.display = allowDine && tables.length > 0 ? 'inline-flex' : 'none';
-      legendEl.innerHTML = `<span class="staff-dot-occupied"></span><span>${text('用餐中', 'Đang có khách')}</span>`;
-    }
+    const tableGroup = document.getElementById('dinein-table-input-group');
+    const legend = document.getElementById('staff-bar-legend');
+    if (tableGroup) tableGroup.style.display = allowDine ? 'inline-flex' : 'none';
+    if (legend) legend.style.display = allowDine && tables.length ? 'inline-flex' : 'none';
+    window.StaffOrderView.tables({
+      tables, allowDine, selected: select()?.value || '',
+      takeaway: !allowDine || window.currentDiningOption === 'takeaway'
+    }, selectTable);
     syncCartHeader();
   }
 
   function describeSelection() {
-    syncCartHeader();
     renderTableBar();
     if (!dineInAllowed() || window.currentDiningOption === 'takeaway') {
       return message(scheduledPickupAllowed()
@@ -194,30 +126,14 @@ window.StaffOrder = (() => {
       describeSelection();
       return;
     }
-    const selected = select().value;
     const data = await api('/api/staff/tables');
+    const selected = select().value;
     tables = data.tables || [];
     select().replaceChildren(new Option(text('請選擇桌號', 'Chọn bàn'), ''));
     for (const row of tables) select().add(new Option(`${row.label} — ${row.active_order_key ? text('使用中', 'Đang phục vụ') : text('空桌', 'Trống')}`, row.id));
     select().value = tables.some(row => row.id === selected) ? selected : '';
     if (!tables.length) message(text('尚未設定桌號，請先在設定中新增桌號。', 'Chưa cấu hình bàn. Hãy thêm bàn trong Cài đặt.'));
     else describeSelection();
-  }
-
-  function setStaffTab(sectionId) {
-    const container = document.getElementById('catalog-sections');
-    const nav = document.getElementById('main-nav');
-    if (!container || !nav) return;
-    const sections = Array.from(container.querySelectorAll(':scope > .section-container'));
-    if (!sections.length) return;
-    const targetSec = sections.find(sec => sec.id === sectionId) || sections[0];
-    activeTabId = targetSec.id;
-    sections.forEach(sec => {
-      sec.classList.toggle('staff-tab-hidden', sec.id !== activeTabId);
-    });
-    nav.querySelectorAll('.nav-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.getAttribute('data-staff-sec') === activeTabId);
-    });
   }
 
   function itemHasRequiredOptions(catSlug, itemName) {
@@ -261,172 +177,82 @@ window.StaffOrder = (() => {
     }
   }
 
-  function syncTileBadges() {
-    const bData = window.bootstrapData || (typeof bootstrapData !== 'undefined' ? bootstrapData : null);
-    const cartObj = window.cart || (typeof cart !== 'undefined' ? cart : {}) || {};
-    if (!bData?.catalog) return;
-
-    bData.catalog.forEach(cat => {
-      (cat.items || []).forEach(item => {
-        const card = document.getElementById(`item-${cat.slug}-${item.name}`);
-        if (!card) return;
-        const key = `${cat.slug}_${item.name}`;
-        const qty = Number(cartObj[key] || 0);
-        card.classList.toggle('staff-tile-has', qty > 0);
-
-        const title = card.querySelector('.card-title');
-        const badges = title?.querySelectorAll('.badge');
-        if (badges?.length) {
-          const row = document.createElement('div');
-          row.className = 'staff-tile-badges';
-          for (const badge of badges) { badge.title = badge.textContent.trim(); row.appendChild(badge); }
-          title.parentElement.after(row);
-        }
-
-        let qtyBadge = card.querySelector('.staff-tile-qty');
-        if (qty > 0) {
-          if (!qtyBadge) {
-            qtyBadge = document.createElement('span');
-            qtyBadge.className = 'staff-tile-qty';
-            card.appendChild(qtyBadge);
-          }
-          qtyBadge.textContent = `×${qty}`;
-        } else if (qtyBadge) {
-          qtyBadge.remove();
-        }
-
-        const footer = card.querySelector('.card-footer');
-        const hasRequiredOpts = !item.isOutOfStock && itemHasRequiredOptions(cat.slug, item.name);
-        if (footer && !item.isOutOfStock) {
-          let reqBadge = footer.querySelector('.staff-tile-req');
-          if (hasRequiredOpts) {
-            if (!reqBadge) {
-              reqBadge = document.createElement('span');
-              reqBadge.className = 'staff-tile-req';
-              footer.appendChild(reqBadge);
-            }
-            reqBadge.textContent = text('必選', 'Bắt buộc');
-          } else if (reqBadge) {
-            reqBadge.remove();
-          }
-        }
-
-        const hasOptionalOpts = !item.isOutOfStock && itemHasAnyOptions(cat.slug, item.name) && !hasRequiredOpts;
-        let optBtn = card.querySelector('.staff-tile-opt-btn');
-        if (hasOptionalOpts) {
-          if (!optBtn) {
-            optBtn = document.createElement('button');
-            optBtn.type = 'button';
-            optBtn.className = 'staff-tile-opt-btn';
-            optBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg><span class="staff-tile-opt-label"></span>`;
-            optBtn.addEventListener('click', event => {
-              event.stopPropagation();
-              openItemCustomizeFromTile(cat.slug, item.name);
-            });
-            card.appendChild(optBtn);
-          }
-          const label = text('選項', 'Tùy chọn');
-          const labelEl = optBtn.querySelector('.staff-tile-opt-label');
-          if (labelEl) labelEl.textContent = label;
-          optBtn.setAttribute('aria-label', `${label} - ${item.name}`);
-        } else if (optBtn) {
-          optBtn.remove();
-        }
-      });
-    });
+  function itemView(category, item) {
+    const availability = getItemScheduleState(category, item);
+    const isUnavailable = item.isOutOfStock || !availability.available;
+    const required = !isUnavailable && itemHasRequiredOptions(category.slug, item.name);
+    const image = item.imageUrl
+      ? /^https?:\/\//i.test(item.imageUrl) ? item.imageUrl : `${WORKER_BASE}${item.imageUrl}`
+      : '';
+    return {
+      name: item.name,
+      displayName: locText(item, 'name', item.name),
+      price: item.price,
+      quantity: Number(window.cart?.[`${category.slug}_${item.name}`] || 0),
+      badge: String(locText(item, 'badgeText', item.badgeText || item.badge || '') || '').trim(),
+      limit: item.maxPerOrder > 0 ? _cmT('item_limit_badge', { max: item.maxPerOrder }, `限購${item.maxPerOrder}份`, `Tối đa ${item.maxPerOrder} phần`) : '',
+      image: image ? `${image}${image.includes('?') ? '&' : '?'}v=2` : '',
+      soldOut: Boolean(item.isOutOfStock),
+      outsideSchedule: !availability.available,
+      unavailableLabel: item.isOutOfStock
+        ? _cmT('sold_out_today', null, '今日已售完', 'Hôm nay đã hết')
+        : _cmT('outside_schedule_badge', null, '非供應時段', 'Ngoài khung giờ'),
+      schedule: availability.scheduleLabel || '',
+      required,
+      optional: !isUnavailable && !required && itemHasAnyOptions(category.slug, item.name)
+    };
   }
 
-  function syncCatalogTabs() {
-    const container = document.getElementById('catalog-sections');
-    const nav = document.getElementById('main-nav');
-    const bData = window.bootstrapData || (typeof bootstrapData !== 'undefined' ? bootstrapData : null);
-    if (!container || !nav || !bData?.catalog) return;
-
-    const orderOptSec = document.getElementById('sec-order-option');
-    if (orderOptSec && orderOptSec.parentElement === container && container.firstElementChild !== orderOptSec) {
-      container.prepend(orderOptSec);
-    }
-
-    const tabs = [];
-    if (orderOptSec) {
-      tabs.push({ id: 'sec-order-option', label: text('口味選擇', 'Tùy chọn chung') });
-    }
-    bData.catalog.forEach(cat => {
-      const secId = `sec-${cat.slug}`;
-      if (document.getElementById(secId)) {
-        const navTitle = (cat.shortName && cat.name && cat.name.includes(cat.shortName)) ? cat.shortName : cat.name;
-        tabs.push({ id: secId, label: navTitle });
+  function refreshCatalog() {
+    const models = catalogSections.map(section => {
+      if (section.type === 'customizations') {
+        const label = text('口味選擇', 'Tùy chọn chung');
+        return { id: section.sectionId, label, title: label };
       }
+      const category = section.category;
+      const title = locText(category, 'name', category.name);
+      const locale = window.currentClientLocale || 'zh-TW';
+      const label = category.i18n?.[locale]?.shortName
+        || (category.shortName && title.includes(category.shortName) ? category.shortName : title);
+      const promo = category.pricingRules?.promo_label_i18n?.[locale]
+        || locText(category, 'promo_label', '') || category.pricingRules?.promo_label || '';
+      const availability = section.availability;
+      const items = section.visibleItems.map(item => itemView(category, item));
+      let schedule = '';
+      if (availability.mode === 'selected_shifts' && (availability.available || !items.some(item => !item.outsideSchedule))) {
+        schedule = availability.available
+          ? (availability.scheduleLabel ? _cmT('schedule_window_badge', { label: availability.scheduleLabel },
+            `${availability.scheduleLabel} 限定`, `Chỉ bán ${availability.scheduleLabel}`) : '')
+          : _cmT('outside_schedule_badge', null, '非供應時段', 'Ngoài khung giờ');
+      }
+      return { id: `sec-${category.slug}`, slug: category.slug, label, title, promo, schedule, outsideSchedule: !availability.available, items };
     });
-
-    nav.innerHTML = tabs.map(t =>
-      `<div class="nav-btn" data-staff-sec="${escapeHtmlStr(t.id)}">${escapeHtmlStr(t.label)}</div>`
-    ).join('');
-
-    nav.querySelectorAll('.nav-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        setStaffTab(btn.getAttribute('data-staff-sec'));
-      });
-    });
-
-    const firstFoodTab = tabs.find(t => t.id !== 'sec-order-option') || tabs[0];
-    const defaultTabId = (activeTabId && tabs.some(t => t.id === activeTabId)) ? activeTabId : (firstFoodTab?.id || '');
-    if (defaultTabId) setStaffTab(defaultTabId);
-    syncTileBadges();
+    if (!models.some(section => section.id === activeTabId)) {
+      activeTabId = models.find(section => section.slug)?.id || models[0]?.id || '';
+    }
+    window.StaffOrderView.catalog(models, activeTabId, id => {
+      activeTabId = id;
+      refreshCatalog();
+    }, openItemCustomizeFromTile);
   }
 
-  function summarizePortion(key, portionIdx, hasBundleGroups) {
-    const cData = window.customizeData || (typeof customizeData !== 'undefined' ? customizeData : {}) || {};
-    const getPrice = window.getModifierPrice || (typeof getModifierPrice === 'function' ? getModifierPrice : (() => 0));
-    const parts = [];
-
-    if (hasBundleGroups && window.bundleCartData?.[key]?.[portionIdx]) {
-      const p = window.bundleCartData[key][portionIdx];
-      (p.groups || []).forEach(g => {
-        const itemsStr = (g.items || []).map(item =>
-          `${item.name}${item.quantity > 1 ? ` x${item.quantity}` : ''}${(item.modifiers || []).length ? ` (${item.modifiers.map(m => m.name).join('、')})` : ''}`
-        ).join('、');
-        if (itemsStr) parts.push(itemsStr);
-      });
-    }
-
-    const c = cData[key]?.[portionIdx];
-    if (c) {
-      if (c.selectedDetails && Object.keys(c.selectedDetails).length > 0) {
-        Object.values(c.selectedDetails).forEach(detail => {
-          if (!detail) return;
-          const sub = detail.subOption || c.subOptions?.[detail.id] || c.subOptions?.[detail.name];
-          const price = Number(detail.price || 0) + Number(sub?.price || 0);
-          const label = `${detail.name || detail.id}${sub ? ` (${sub.name})` : ''}`;
-          parts.push(price > 0 ? `${label} +$${price}` : label);
-        });
-      } else if (c.single) {
-        for (const s in c.single) {
-          const rawVal = c.single[s];
-          const val = (typeof resolveOptionDisplayName === 'function') ? resolveOptionDisplayName(rawVal) : rawVal;
-          if (val && val !== '不辣' && val !== '不需要') {
-            const addP = getPrice(val) || getPrice(rawVal);
-            const label = addP > 0 ? `${val} +$${addP}` : val;
-            if (!parts.includes(label)) parts.push(label);
-          }
-        }
+  function renderCatalog(sections, resetOrderOptions, stockOnly) {
+    const globalOptions = sections.find(section => section.type === 'customizations');
+    catalogSections = globalOptions
+      ? [globalOptions, ...sections.filter(section => section !== globalOptions)]
+      : sections;
+    refreshCatalog();
+    if (globalOptions) {
+      const optionsHost = document.getElementById(globalOptions.sectionId);
+      if (optionsHost && (!stockOnly || !optionsHost.firstElementChild)) {
+        if (resetOrderOptions) optionsHost.replaceChildren();
+        renderCustomizationsPanel(optionsHost, globalOptions.groups, globalOptions.title);
       }
-      if ((!c.selectedDetails || Object.keys(c.selectedDetails).length === 0) && c.multiple) {
-        for (const topName in c.multiple) {
-          if (c.multiple[topName]) {
-            const topPrice = getPrice(topName);
-            parts.push(topPrice > 0 ? `${topName} +$${topPrice}` : topName);
-          }
-        }
-      }
-      if (c.note && c.note.trim()) parts.push(c.note.trim());
     }
-
-    return parts.join(' · ');
+    if (!stockOnly && typeof updateDesktopAuthUI === 'function') updateDesktopAuthUI();
   }
 
   function renderStaffCart(computedTotal) {
-    const summaryContainer = document.getElementById('cart-summary');
     const bData = window.bootstrapData || (typeof bootstrapData !== 'undefined' ? bootstrapData : null);
     const cartObj = window.cart || (typeof cart !== 'undefined' ? cart : {}) || {};
     const cData = window.customizeData || (typeof customizeData !== 'undefined' ? customizeData : {}) || {};
@@ -434,7 +260,7 @@ window.StaffOrder = (() => {
     const resolveFn = typeof resolveCatalogItem === 'function' ? resolveCatalogItem : (window.resolveCatalogItem || (k => ({ origName: k, displayName: k })));
 
     let totalQty = 0;
-    const linesHTML = [];
+    const rows = [];
     const priceMap = {};
     const categoryMetaMap = {};
     if (bData?.catalog) {
@@ -494,33 +320,7 @@ window.StaffOrder = (() => {
 
         const lineTotal = (qty * price) + itemModifiersTotal;
         const hasOpts = itemHasAnyOptions(catSlug, itemName);
-        const safeCat = escapeJsArg(catSlug);
-        const safeName = escapeJsArg(itemName);
-
-        let portionsHTML = '';
-        if (hasOpts) {
-          portionsHTML = `<div class="staff-cart-portions"><span class="staff-cart-opt-link">${text('修改選項', 'Sửa tùy chọn')}</span></div>`;
-        }
-
-        const lineClick = hasOpts ? ` onclick="editCartPortion('${safeCat}','${safeName}',${qty - 1})"` : '';
-        const lineClass = hasOpts ? 'staff-cart-line staff-cart-has-opts' : 'staff-cart-line';
-
-        linesHTML.push(`
-          <div class="${lineClass}"${lineClick}>
-            <div class="staff-cart-line-top">
-              <div class="staff-cart-line-info">
-                <div class="staff-cart-name">${escapeHtmlStr(displayName)}</div>
-                <div class="staff-cart-price">$${lineTotal}</div>
-                ${portionsHTML}
-              </div>
-              <div class="staff-cart-stepper" onclick="event.stopPropagation()">
-                <button type="button" class="staff-step-btn" onclick="event.stopPropagation();updateQty('${safeCat}','${safeName}',-1)">−</button>
-                <span class="staff-step-qty">${qty}</span>
-                <button type="button" class="staff-step-btn" onclick="event.stopPropagation();updateQty('${safeCat}','${safeName}',1)">+</button>
-              </div>
-            </div>
-          </div>
-        `);
+        rows.push({ type: 'item', key, catSlug, itemName, displayName, qty, lineTotal, hasOptions: hasOpts });
       });
 
       const catMeta = categoryMetaMap[slug] || {};
@@ -528,313 +328,74 @@ window.StaffOrder = (() => {
         ? calculateCategoryBundleSubtotal(catMeta.pricingRules, catItems.filter(i => !i.isOutOfStock))
         : { discountAmount: 0 };
       if (bundleRes.discountAmount > 0) {
-        linesHTML.push(`
-          <div class="staff-cart-line staff-cart-discount">
-            <span>${escapeHtmlStr((catMeta.name || '').split(' ')[0] || text('組合優惠', 'Ưu đãi combo'))}</span>
-            <span>-$${bundleRes.discountAmount}</span>
-          </div>
-        `);
+        rows.push({ type: 'discount', key: `discount:${slug}`,
+          label: (catMeta.name || '').split(' ')[0] || text('組合優惠', 'Ưu đãi combo'), amount: bundleRes.discountAmount });
       }
     }
 
+    const options = [];
     if (totalQty > 0) {
-      const optionRows = [];
       for (const group of bData?.customizations || []) {
-        const choices = Array.from(document.getElementsByName(`opt-${group.key}`)).filter(input => input.checked);
-        if (!choices.length) continue;
-        const values = choices.map(input => {
+        const controls = Array.from(document.getElementsByName(`opt-${group.key}`)).filter(input => input.checked);
+        if (!controls.length) continue;
+        const choices = controls.map(input => {
           const subs = Array.from(input.closest('.flavor-option-container')?.querySelectorAll('.sub-opt-chk:checked') || []);
           const label = input.value + (subs.length ? ` (${subs.map(sub => sub.value).join(language() === 'vi' ? ', ' : '、')})` : '');
           const extra = [input, ...subs].reduce((sum, control) => sum + (Number(control.dataset.price) || 0), 0);
-          return `<div class="staff-cart-order-choice"><span>${escapeHtmlStr(label)}</span>${extra ? `<span class="staff-cart-order-extra">+$${extra}</span>` : ''}</div>`;
+          return { label, extra };
         });
-        optionRows.push(`<div class="staff-cart-order-group"><div class="staff-cart-order-label">${escapeHtmlStr(group.title)}</div>${values.join('')}</div>`);
-      }
-      if (optionRows.length) linesHTML.push(`<div class="staff-cart-order-options">${optionRows.join('')}</div>`);
-    }
-
-    if (summaryContainer) {
-      if (linesHTML.length === 0) {
-        summaryContainer.innerHTML = `<div class="staff-cart-empty">${text('點擊左側餐點加入購物車', 'Chạm món bên trái để thêm')}</div>`;
-      } else {
-        summaryContainer.innerHTML = linesHTML.join('');
+        options.push({ key: group.key, title: group.title, choices });
       }
     }
+    window.StaffOrderView.cart({ rows, options, quantity: totalQty });
 
-    const countEl = document.getElementById('staff-cart-count');
-    if (countEl) countEl.textContent = `${totalQty} ${text('份', 'phần')}`;
-
-    const noteWrap = document.getElementById('staff-note-wrap');
-    const noteToggle = document.getElementById('staff-note-toggle');
-    const noteInput = document.getElementById('note');
-    if (noteWrap && noteToggle && noteInput) {
-      const hasNote = Boolean(noteInput.value && noteInput.value.trim());
-      noteWrap.classList.toggle('staff-note-open', noteOpen || hasNote);
-      noteToggle.textContent = (noteOpen || hasNote) ? text('備註', 'Ghi chú') : text('+ 備註', '+ Ghi chú');
-      noteInput.placeholder = text('備註（少冰、切半、先上...）', 'Ghi chú cho bếp...');
-    }
-
+    renderNote();
     syncSubmitLabel(totalQty, computedTotal);
   }
 
-  function buildQuickCashOptions(total) {
-    const cleanTotal = roundMoney(total);
-    if (cleanTotal <= 0) return [];
-    const options = [{
-      amount: cleanTotal,
-      isExact: true,
-      label: `${text('剛好', 'Vừa đủ')} $${formatMoney(cleanTotal)}`
-    }];
-    const next50 = Math.ceil((cleanTotal + 0.001) / 50) * 50;
-    const next100 = Math.ceil((cleanTotal + 0.001) / 100) * 100;
-    const next500 = Math.ceil((cleanTotal + 0.001) / 500) * 500;
-    const next1000 = Math.ceil((cleanTotal + 0.001) / 1000) * 1000;
-    const standardBills = [100, 500, 1000, 1500, 2000, 3000, 5000, 10000].filter(b => b > cleanTotal);
-    const extraPool = [next50, ...standardBills, next100, next500, next1000];
-    const picked = [];
-    for (const candidate of extraPool) {
-      if (candidate <= cleanTotal || picked.includes(candidate)) continue;
-      picked.push(candidate);
-      if (picked.length === 3) break;
-    }
-    picked.sort((a, b) => a - b);
-    for (const amount of picked) {
-      options.push({ amount, isExact: false, label: `$${formatMoney(amount)}` });
-    }
-    return options;
+  function renderNote() {
+    const noteInput = document.getElementById('note');
+    const noteWrap = document.getElementById('staff-note-wrap');
+    if (!noteInput || !noteWrap) return;
+    const open = noteOpen || Boolean(noteInput.value.trim());
+    noteWrap.classList.toggle('staff-note-open', open);
+    noteInput.placeholder = text('備註（少冰、切半、先上...）', 'Ghi chú cho bếp...');
+    window.StaffOrderView.note(open, () => {
+      noteOpen = !noteOpen;
+      renderNote();
+      if (noteOpen) noteInput.focus();
+    });
   }
 
   function syncCashierButton(totalQty, computedTotal) {
-    lastComputedTotal = roundMoney(computedTotal);
-    const cashierBtn = document.getElementById('staff-cashier-btn');
-    if (!cashierBtn) return;
-    cashierBtn.disabled = !initialized || busy || totalQty <= 0 || lastComputedTotal <= 0;
-    cashierBtn.innerHTML = `${CASHIER_CALC_ICON_SVG}<span>${escapeHtmlStr(text('計算找零', 'Tính tiền thối'))}</span>`;
-  }
-
-  function renderCashierModal() {
-    const modal = document.getElementById('staff-cashier-modal');
-    if (!modal) return;
-    const total = lastComputedTotal;
-    const tendered = cashierInputStr ? roundMoney(parseFloat(cashierInputStr)) : 0;
-    const diff = roundMoney(tendered - total);
-
-    const dueLabel = document.getElementById('staff-cashier-due-label');
-    const dueAmount = document.getElementById('staff-cashier-due-amount');
-    const closeBtn = document.getElementById('staff-cashier-close-btn');
-    const tenderLabel = document.getElementById('staff-cashier-tender-label');
-    const tenderDisplay = document.getElementById('staff-cashier-tender-display');
-    const chipsEl = document.getElementById('staff-cashier-chips');
-    const changeBox = document.getElementById('staff-cashier-change-box');
-    const changeLabel = document.getElementById('staff-cashier-change-label');
-    const changeValue = document.getElementById('staff-cashier-change-value');
-    const confirmBtn = document.getElementById('staff-cashier-confirm-btn');
-
-    if (dueLabel) dueLabel.textContent = text('應收金額', 'Cần thu');
-    if (dueAmount) dueAmount.textContent = `$${formatMoney(total)}`;
-    if (closeBtn) closeBtn.textContent = text('關閉', 'Đóng');
-    if (tenderLabel) tenderLabel.textContent = text('實收金額', 'Khách đưa');
-    if (tenderDisplay) {
-      tenderDisplay.textContent = `$${cashierInputStr ? formatMoney(tendered) : '0'}`;
-      tenderDisplay.classList.toggle('is-empty', !cashierInputStr);
+    const total = roundMoney(computedTotal);
+    if (cashierModalOpen && total !== lastComputedTotal) {
+      window.StaffOrderView.renderCashier(total, closeCashierModal, confirmCashierModal);
     }
-
-    if (chipsEl) {
-      const chips = buildQuickCashOptions(total);
-      chipsEl.innerHTML = chips.map(chip => {
-        const selected = cashierInputStr !== '' && Math.abs(tendered - chip.amount) < 0.001;
-        return `<button type="button" class="staff-cashier-chip${selected ? ' on' : ''}" data-cashier-chip="${chip.amount}" aria-pressed="${selected}">${escapeHtmlStr(chip.label)}</button>`;
-      }).join('');
-    }
-
-    if (changeBox && changeLabel && changeValue) {
-      changeBox.classList.remove('is-insufficient', 'is-empty');
-      if (!cashierInputStr || tendered <= 0) {
-        changeBox.classList.add('is-empty');
-        changeLabel.textContent = text('找零', 'Thối lại');
-        changeValue.textContent = '$0';
-      } else if (diff < 0) {
-        changeBox.classList.add('is-insufficient');
-        changeLabel.textContent = text('尚欠金額', 'Còn thiếu');
-        changeValue.textContent = `$${formatMoney(Math.abs(diff))}`;
-      } else {
-        changeLabel.textContent = text('找零', 'Thối lại');
-        changeValue.textContent = `$${formatMoney(diff)}`;
-      }
-    }
-
-    if (confirmBtn) {
-      const canConfirm = total > 0 && tendered >= total;
-      confirmBtn.disabled = !canConfirm;
-      if (!cashierInputStr || tendered <= 0) {
-        confirmBtn.textContent = text('請輸入實收金額', 'Nhập số tiền khách đưa');
-      } else if (diff < 0) {
-        confirmBtn.textContent = text(`尚欠 $${formatMoney(Math.abs(diff))}`, `Còn thiếu $${formatMoney(Math.abs(diff))}`);
-      } else if (diff === 0) {
-        confirmBtn.textContent = text('確認 · 剛好免找', 'Xác nhận · vừa đủ');
-      } else {
-        confirmBtn.textContent = text(`確認 · 找零 $${formatMoney(diff)}`, `Xác nhận · thối $${formatMoney(diff)}`);
-      }
-    }
-  }
-
-  function handleCashierKey(key) {
-    if (!cashierModalOpen) return;
-    if (key === 'backspace') {
-      cashierReplaceOnDigit = false;
-      cashierInputStr = cashierInputStr.slice(0, -1);
-    } else if (/^(?:\d|00)$/.test(key)) {
-      if (cashierReplaceOnDigit) {
-        cashierInputStr = '';
-        cashierReplaceOnDigit = false;
-      }
-      if (key === '00' && (!cashierInputStr || cashierInputStr === '0')) {
-        cashierInputStr = '0';
-      } else if (cashierInputStr === '0') {
-        cashierInputStr = key === '00' ? '0' : key;
-      } else {
-        const next = cashierInputStr + key;
-        if (next.replace('.', '').length <= 7) cashierInputStr = next;
-      }
-    }
-    renderCashierModal();
+    lastComputedTotal = total;
+    window.StaffOrderView.cashierButton(!initialized || busy || totalQty <= 0 || lastComputedTotal <= 0, openCashierModal);
   }
 
   function closeCashierModal(options = {}) {
     if (!cashierModalOpen) return;
     cashierModalOpen = false;
-    const modal = document.getElementById('staff-cashier-modal');
-    if (modal) modal.style.display = 'none';
-    if (options.restoreFocus !== false) {
-      document.getElementById('staff-cashier-btn')?.focus();
-    }
-  }
-
-  function confirmCashierModal() {
-    const total = lastComputedTotal;
-    const tendered = cashierInputStr ? roundMoney(parseFloat(cashierInputStr)) : 0;
-    if (total <= 0 || tendered < total) return;
-    closeCashierModal({ restoreFocus: false });
-    submit();
-  }
-
-  function ensureCashierModal() {
-    let modal = document.getElementById('staff-cashier-modal');
-    if (modal) return modal;
-
-    modal = document.createElement('div');
-    modal.id = 'staff-cashier-modal';
-    modal.className = 'staff-cashier-overlay';
-    modal.setAttribute('role', 'dialog');
-    modal.setAttribute('aria-modal', 'true');
-    modal.setAttribute('aria-labelledby', 'staff-cashier-due-label');
-    modal.style.display = 'none';
-    modal.innerHTML = `
-      <div class="staff-cashier-dialog">
-        <div class="staff-cashier-header">
-          <div class="staff-cashier-due-wrap">
-            <span id="staff-cashier-due-label" class="staff-cashier-due-label"></span>
-            <span id="staff-cashier-due-amount" class="staff-cashier-due-amount"></span>
-          </div>
-          <button type="button" id="staff-cashier-close-btn" class="staff-cashier-close-btn"></button>
-        </div>
-        <div class="staff-cashier-body">
-          <div class="staff-cashier-left">
-            <div class="staff-cashier-tender-block">
-              <div id="staff-cashier-tender-label" class="staff-cashier-field-label"></div>
-              <div id="staff-cashier-tender-display" class="staff-cashier-tender-display">$0</div>
-            </div>
-            <div id="staff-cashier-chips" class="staff-cashier-chips"></div>
-            <div id="staff-cashier-change-box" class="staff-cashier-change-box is-empty">
-              <div id="staff-cashier-change-label" class="staff-cashier-field-label"></div>
-              <div id="staff-cashier-change-value" class="staff-cashier-change-value">$0</div>
-            </div>
-          </div>
-          <div class="staff-cashier-keypad">
-            <button type="button" class="staff-cashier-key" data-cashier-key="7">7</button>
-            <button type="button" class="staff-cashier-key" data-cashier-key="8">8</button>
-            <button type="button" class="staff-cashier-key" data-cashier-key="9">9</button>
-            <button type="button" class="staff-cashier-key" data-cashier-key="4">4</button>
-            <button type="button" class="staff-cashier-key" data-cashier-key="5">5</button>
-            <button type="button" class="staff-cashier-key" data-cashier-key="6">6</button>
-            <button type="button" class="staff-cashier-key" data-cashier-key="1">1</button>
-            <button type="button" class="staff-cashier-key" data-cashier-key="2">2</button>
-            <button type="button" class="staff-cashier-key" data-cashier-key="3">3</button>
-            <button type="button" class="staff-cashier-key" data-cashier-key="0">0</button>
-            <button type="button" class="staff-cashier-key" data-cashier-key="00">00</button>
-            <button type="button" class="staff-cashier-key staff-cashier-key-backspace" data-cashier-key="backspace" aria-label="Backspace">${BACKSPACE_ICON_SVG}</button>
-          </div>
-        </div>
-        <div class="staff-cashier-footer">
-          <button type="button" id="staff-cashier-confirm-btn" class="staff-cashier-confirm-btn"></button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-
-    modal.addEventListener('click', event => {
-      if (event.target === modal) {
-        closeCashierModal();
-        return;
-      }
-      const keyBtn = event.target.closest('[data-cashier-key]');
-      if (keyBtn) {
-        handleCashierKey(keyBtn.getAttribute('data-cashier-key'));
-        return;
-      }
-      const chipBtn = event.target.closest('[data-cashier-chip]');
-      if (chipBtn) {
-        cashierInputStr = formatMoney(parseFloat(chipBtn.getAttribute('data-cashier-chip') || '0'));
-        cashierReplaceOnDigit = true;
-        renderCashierModal();
-      }
-    });
-    modal.querySelector('#staff-cashier-close-btn')?.addEventListener('click', closeCashierModal);
-    modal.querySelector('#staff-cashier-confirm-btn')?.addEventListener('click', confirmCashierModal);
-
-    if (!window.__staffCashierKeyListenerBound) {
-      window.__staffCashierKeyListenerBound = true;
-      document.addEventListener('keydown', event => {
-        if (!cashierModalOpen) return;
-        if (event.key === 'Escape') {
-          event.preventDefault();
-          closeCashierModal();
-        } else if (event.key >= '0' && event.key <= '9') {
-          event.preventDefault();
-          handleCashierKey(event.key);
-        } else if (event.key === 'Backspace' || event.key === 'Delete') {
-          event.preventDefault();
-          handleCashierKey('backspace');
-        } else if (event.key === 'Enter') {
-          if (event.target?.closest?.('#staff-cashier-close-btn, [data-cashier-chip]')) return;
-          event.preventDefault();
-          const confirmBtn = document.getElementById('staff-cashier-confirm-btn');
-          if (confirmBtn && !confirmBtn.disabled) {
-            confirmCashierModal();
-          }
-        }
-      });
-    }
-    return modal;
+    window.StaffOrderView.closeCashier();
+    if (options.restoreFocus !== false) document.getElementById('staff-cashier-btn')?.focus();
   }
 
   function openCashierModal() {
-    if (!ready()) return;
-    const total = lastComputedTotal > 0
-      ? lastComputedTotal
-      : (typeof window.updateTotal === 'function' ? roundMoney(window.updateTotal()) : 0);
+    if (!ready() || cashierModalOpen) return;
+    const total = lastComputedTotal > 0 ? lastComputedTotal : roundMoney(window.updateTotal());
     if (total <= 0) return;
     lastComputedTotal = total;
-
-    const modal = ensureCashierModal();
-    cashierInputStr = '';
-    cashierReplaceOnDigit = false;
     cashierModalOpen = true;
-    renderCashierModal();
-    modal.style.display = 'flex';
-    const backspaceBtn = modal.querySelector('[data-cashier-key="backspace"]');
-    if (backspaceBtn) backspaceBtn.setAttribute('aria-label', text('退格', 'Xóa số'));
-    modal.querySelector('#staff-cashier-close-btn')?.focus();
+    window.StaffOrderView.renderCashier(total, closeCashierModal, confirmCashierModal);
+  }
+
+  function confirmCashierModal(tendered) {
+    if (lastComputedTotal <= 0 || tendered < lastComputedTotal) return;
+    closeCashierModal({ restoreFocus: false });
+    void submit();
   }
 
   function syncSubmitLabel(totalQty, computedTotal) {
@@ -858,8 +419,6 @@ window.StaffOrder = (() => {
   }
 
   function mountCounterLayout() {
-    const pageBody = document.getElementById('page-body-content');
-    const mainLayout = document.querySelector('.container.main-order-layout');
     const leftCol = document.querySelector('.menu-catalog-col');
     const catalogWrapper = document.getElementById('catalog-sections-wrapper');
     const nav = document.getElementById('main-nav');
@@ -871,17 +430,19 @@ window.StaffOrder = (() => {
     const totalRow = document.querySelector('.desktop-sidebar-total-row');
     const deskSubmitBtn = document.getElementById('btn-desktop-submit');
 
-    let bar = document.getElementById('staff-table-bar');
-    if (!bar && pageBody && mainLayout) {
-      bar = document.createElement('div');
+    if (leftCol && !document.getElementById('staff-table-bar')) {
+      const bar = document.createElement('div');
       bar.id = 'staff-table-bar';
-      bar.innerHTML = `<div class="staff-table-chips" id="staff-table-chips"></div><div class="staff-bar-legend" id="staff-bar-legend"></div>`;
-      if (tableGroup) {
-        bar.insertBefore(tableGroup, bar.querySelector('#staff-bar-legend'));
-      }
-    }
-    if (bar && leftCol && bar.parentElement !== leftCol) {
-      leftCol.insertBefore(bar, leftCol.firstChild);
+      const chips = document.createElement('div');
+      chips.id = 'staff-table-chips';
+      chips.className = 'staff-table-chips';
+      const legend = document.createElement('div');
+      legend.id = 'staff-bar-legend';
+      legend.className = 'staff-bar-legend';
+      bar.appendChild(chips);
+      if (tableGroup) bar.appendChild(tableGroup);
+      bar.appendChild(legend);
+      leftCol.prepend(bar);
     }
 
     if (leftCol && nav && catalogWrapper && nav.parentElement !== leftCol) {
@@ -891,7 +452,6 @@ window.StaffOrder = (() => {
     if (checkoutSec && cartSummary && !document.getElementById('staff-cart-header')) {
       const header = document.createElement('div');
       header.id = 'staff-cart-header';
-      header.innerHTML = `<span id="staff-cart-target"></span><span id="staff-cart-round" hidden></span>`;
       checkoutSec.insertBefore(header, cartSummary);
 
       const info = document.getElementById('staff-order-status') || document.createElement('p');
@@ -904,16 +464,10 @@ window.StaffOrder = (() => {
       const noteGroup = noteInput.closest('.input-group') || noteInput;
       const wrap = document.createElement('div');
       wrap.id = 'staff-note-wrap';
-      const toggle = document.createElement('button');
-      toggle.type = 'button';
-      toggle.id = 'staff-note-toggle';
-      toggle.textContent = text('+ 備註', '+ Ghi chú');
-      toggle.addEventListener('click', () => {
-        noteOpen = !noteOpen;
-        wrap.classList.toggle('staff-note-open', noteOpen || Boolean(noteInput.value.trim()));
-        if (noteOpen) noteInput.focus();
-      });
-      wrap.appendChild(toggle);
+      const control = document.createElement('span');
+      control.id = 'staff-note-control';
+      control.style.display = 'contents';
+      wrap.appendChild(control);
       wrap.appendChild(noteInput);
       noteGroup.replaceWith(wrap);
     }
@@ -921,19 +475,13 @@ window.StaffOrder = (() => {
     if (totalRow && !document.getElementById('staff-cart-count')) {
       const countSpan = document.createElement('span');
       countSpan.id = 'staff-cart-count';
-      countSpan.textContent = `0 ${text('份', 'phần')}`;
       totalRow.prepend(countSpan);
     }
 
-    if (submitWrap && deskSubmitBtn && !document.getElementById('staff-cashier-btn')) {
-      const cashierBtn = document.createElement('button');
-      cashierBtn.type = 'button';
-      cashierBtn.id = 'staff-cashier-btn';
-      cashierBtn.className = 'staff-cashier-btn';
-      cashierBtn.disabled = true;
-      cashierBtn.innerHTML = `${CASHIER_CALC_ICON_SVG}<span>${escapeHtmlStr(text('計算找零', 'Tính tiền thối'))}</span>`;
-      cashierBtn.addEventListener('click', openCashierModal);
-      deskSubmitBtn.after(cashierBtn);
+    if (submitWrap && deskSubmitBtn && !document.getElementById('staff-cashier-control')) {
+      const control = document.createElement('div');
+      control.id = 'staff-cashier-control';
+      deskSubmitBtn.after(control);
     }
   }
 
@@ -1005,20 +553,11 @@ window.StaffOrder = (() => {
         saveDraft();
       });
 
-      const baseRenderCatalog = window.renderDynamicCatalog;
-      if (typeof baseRenderCatalog === 'function') {
-        window.renderDynamicCatalog = function () {
-          const res = baseRenderCatalog.apply(this, arguments);
-          syncCatalogTabs();
-          return res;
-        };
-      }
-
       const baseUpdateTotal = window.updateTotal;
       if (typeof baseUpdateTotal === 'function') {
         window.updateTotal = function () {
           const total = baseUpdateTotal.apply(this, arguments);
-          syncTileBadges();
+          refreshCatalog();
           renderStaffCart(total);
           return total;
         };
@@ -1029,13 +568,6 @@ window.StaffOrder = (() => {
         baseFooterState?.apply(this, arguments);
         const quantity = Object.values(window.cart || {}).reduce((sum, q) => sum + Number(q || 0), 0);
         syncSubmitLabel(quantity, Number(document.getElementById('desktop-total-price')?.textContent) || 0);
-      };
-
-      window.handleItemCardClick = function (catSlug, itemName, event) {
-        if (event && (event.target.closest('.qty-control') || event.target.closest('.btn-qty') || event.target.closest('.staff-tile-opt-btn'))) return;
-        const key = `${catSlug}_${itemName}`;
-        if (typeof isItemOutOfStock === 'function' && isItemOutOfStock(key)) return;
-        updateQty(catSlug, itemName, 1);
       };
 
       const baseSetDining = window.setCustomerDiningOption;
@@ -1050,7 +582,6 @@ window.StaffOrder = (() => {
       }
 
       await initApp();
-      syncCatalogTabs();
       setCustomerDiningOption(dineInAllowed() ? 'dine_in' : 'takeaway');
       await refreshTables();
 
@@ -1228,5 +759,5 @@ window.StaffOrder = (() => {
     if (document.visibilityState === 'visible') syncTables();
   }, 15000);
 
-  return { start, submit, ready, syncTables, openCashierModal, closeCashierModal };
+  return { start, submit, ready, syncTables, renderCatalog, openCashierModal, closeCashierModal };
 })();

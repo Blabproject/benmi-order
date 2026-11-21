@@ -135,6 +135,21 @@ test('chromium: staff order cashier change calculator UI, placement, icons, and 
   assert.equal(await page.locator('#staff-cashier-confirm-btn').isDisabled(), false);
   assert.match(await page.locator('#staff-cashier-confirm-btn').innerText(), /Xác nhận · thối \$285/);
 
+  // A cart refresh can change the total while the cashier panel stays open.
+  await page.evaluate(() => {
+    updateQty('food', 'Meal', 1);
+    updateQty('food', 'Meal', 1);
+  });
+  assert.equal(await page.locator('#staff-cashier-due-amount').innerText(), '$645');
+  assert.equal(await page.locator('#staff-cashier-tender-display').innerText(), '$500');
+  assert.equal(await page.locator('#staff-cashier-confirm-btn').isDisabled(), true);
+  await page.evaluate(() => {
+    updateQty('food', 'Meal', -1);
+    updateQty('food', 'Meal', -1);
+  });
+  assert.equal(await page.locator('#staff-cashier-due-amount').innerText(), '$215');
+  assert.equal(await page.locator('#staff-cashier-confirm-btn').isEnabled(), true);
+
   // Confirm -> immediately closes modal, submits order, and renders nothing outside popup
   assert.equal(await page.locator('#staff-cashier-summary').count(), 0);
   await Promise.all([

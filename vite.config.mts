@@ -13,7 +13,6 @@ const LEGACY_ROOT_FILES = [
   '_routes.json',
   '_build.json',
   'index.css',
-  'index.html',
   'marketplace.html',
   'staff-order.html',
   'landing.html',
@@ -76,6 +75,7 @@ export default defineConfig({
         content: [
           './frontend/apps/pos/{PosHistoryPanel,history-bridge,settings-bridge,PosDisplaySettings,PosAiSettingsPanel,ItemDetailForm}.tsx',
           './frontend/apps/pos/{settings,schedule}/**/*.tsx',
+          './frontend/apps/staff-order/*.tsx',
           './frontend/shared/ui/*.tsx'
         ],
         prefix: 'ps-',
@@ -95,6 +95,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         'pos-sandbox': path.resolve(rootDir, 'frontend/apps/pos/sandbox.html'),
+        index: path.resolve(rootDir, 'index.html'),
         orders: path.resolve(rootDir, 'orders.html'),
         'payment-result': path.resolve(rootDir, 'payment-result.html')
       }

@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="/css/staff-order.css?v=20261121_staff_cashier_v3">
+    <link rel="stylesheet" href="/css/staff-order.css?v=20261122_staff_order_react_v1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title id="page-title" data-i18n="page_default_title">線上點餐</title>
     <link rel="preload" href="/index.css?v=20261115_staff_text_size_v1" as="style">
@@ -11,7 +11,7 @@
     <link rel="preload" href="/js/menu-schedule.js?v=20261119_shift_management_v1" as="script">
     <link rel="preload" href="/js/client-i18n.js?v=20261120_counter_payment_v1" as="script">
     <link rel="preload" href="/js/client-core.js?v=20261120_dinein_payment_label_v1" as="script">
-    <link rel="preload" href="/js/client-menu.js?v=20261120_order_option_refresh_v1" as="script">
+    <link rel="preload" href="/js/client-menu.js?v=20261122_staff_order_react_v1" as="script">
     <link rel="stylesheet" href="/index.css?v=20261115_staff_text_size_v1">
     <style>html.tenant-resolution-failed body > :not(#tenant-resolution-error) { display: none !important; }</style>
     <script>
@@ -1069,10 +1069,10 @@
     <script src="/js/store-notice-format.js?v=20261111_store_notice_v1"></script>
     <script src="/js/client-i18n.js?v=20261120_counter_payment_v1"></script>
     <script src="/js/client-core.js?v=20261120_dinein_payment_label_v1"></script>
-    <script src="/js/client-menu.js?v=20261120_order_option_refresh_v1"></script>
+    <script src="/js/client-menu.js?v=20261122_staff_order_react_v1"></script>
     <script src="/js/client-customizations.js?v=20261118_multi_portion_copy_v1"></script>
     <script src="/js/client-bundle.js?v=20261114_multilingual_v2"></script>
-    <script src="/js/client-cart.js?v=20261116_menu_schedule_v1"></script>
+    <script src="/js/client-cart.js?v=20261122_staff_order_react_v1"></script>
     <script src="/js/bundle-builder-v2.js?v=20261114_multilingual_v1"></script>
     <script src="/js/client-option-groups.js?v=20261118_multi_portion_copy_v1"></script>
     <!-- Center Auth Card & Overlay for Desktop Guest Users -->
@@ -1102,20 +1102,20 @@
   <script src="/js/order-detail-checkout.js?v=20261114_multilingual_v1"></script>
   <script src="/js/line-order-presentation.js?v=20261030_line_portions_v3"></script>
     <script src="/js/client-checkout.js?v=20261119_staff_pickup_reset_v1"></script>
-    <script src="/js/staff-order.js?v=20261121_staff_cashier_v4"></script>
+    <script src="/js/staff-order.js?v=20261122_staff_order_react_v1"></script>
     <script>
         if (window.__TENANT_RESOLUTION_FAILED) {
             document.getElementById('page-body-content').style.display = 'none';
             document.getElementById('tenant-resolution-error').style.display = 'block';
         } else {
-            if (window.isStaffOrderMode) StaffOrder.start();
-            else initApp();
+            if (!window.isStaffOrderMode) initApp();
         }
     </script>
   <script src="/js/payment-session.js?v=20261103_linepay_mobile_redirect_v1"></script>
   <script src="/js/payment-view.js?v=20261101_payment_result_v1"></script>
   <script src="/js/payment-actions.js?v=20261109_order_code_v1"></script>
   <script src="/js/client-payments.js?v=20261120_counter_payment_v1"></script>
+    <script type="module" src="/frontend/apps/staff-order/entry.ts"></script>
 </body>
 
 </html>

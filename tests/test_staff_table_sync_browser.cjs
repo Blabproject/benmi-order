@@ -154,7 +154,9 @@ test('Staff Order iframe refreshes table occupancy after Live Order marks a tabl
   assert.equal(await staffFrame.locator('[data-staff-table="empty-a"] .staff-dot-occupied').count(), 0);
 
   // Select Table A1 and put an item into the draft cart before leaving the tab.
-  await staffFrame.locator('[data-staff-table="table-a"]').click();
+  const tableA = staffFrame.locator('[data-staff-table="table-a"]');
+  await tableA.evaluate(node => { node.dataset.identityProbe = 'retained'; });
+  await tableA.click();
   await staffFrame.locator('.card').first().click();
   await page.waitForFunction(() => {
     const win = document.getElementById('staff-order-iframe')?.contentWindow;
@@ -191,6 +193,7 @@ test('Staff Order iframe refreshes table occupancy after Live Order marks a tabl
 
   assert.equal(tablesFetchCount > fetchesBeforeLeave, true, 'Returning to Staff Order must refresh /api/staff/tables');
   assert.equal(await staffFrame.locator('[data-staff-table="table-a"] .staff-dot-occupied').count(), 0);
+  assert.equal(await tableA.getAttribute('data-identity-probe'), 'retained', 'Table refresh keeps the same interactive control');
 
   const tableAOptionText = await staffFrame.locator('#dinein-table-number option[value="table-a"]').innerText();
   assert.match(tableAOptionText, /(空桌|Trống)/);

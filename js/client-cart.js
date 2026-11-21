@@ -459,7 +459,7 @@ function updateQty(category, origName, change) {
     if (cartObj[key] < 0) cartObj[key] = 0;
 
     const qtySpan = document.getElementById('qty-' + category + '-' + origName);
-    if (qtySpan) {
+    if (qtySpan && !(window.isStaffOrderMode && window.StaffOrderView)) {
         qtySpan.innerText = cartObj[key];
         qtySpan.style.color = cartObj[key] > 0 ? 'var(--primary)' : 'inherit';
     }
@@ -517,7 +517,7 @@ function removeCartPortion(category, origName, index) {
     }
     cartObj[key] = quantity - 1;
     const qty = document.getElementById('qty-' + category + '-' + origName);
-    if (qty) {
+    if (qty && !(window.isStaffOrderMode && window.StaffOrderView)) {
         qty.textContent = String(cartObj[key]);
         qty.style.color = cartObj[key] > 0 ? 'var(--primary)' : 'inherit';
     }
@@ -1091,7 +1091,7 @@ function updateTotal() {
     if (desktopTotalEl) desktopTotalEl.innerText = total;
 
     const summaryContainer = document.getElementById('cart-summary');
-    if (summaryContainer) {
+    if (summaryContainer && !(window.isStaffOrderMode && window.StaffOrderView)) {
         const hasRemovedItems = window.isEditOrderMode && Array.isArray(window.editOrderRemovedItems) && window.editOrderRemovedItems.length > 0;
         if (totalQty === 0 && addonsTotal === 0 && !hasRemovedItems) {
             summaryContainer.innerHTML = `<div style="text-align:center; color:#9ca3af;">${escapeCartText(t('cart_empty', null, '(目前沒有已選商品)'))}</div>`;

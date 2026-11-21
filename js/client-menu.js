@@ -195,7 +195,7 @@ function getItemScheduleState(cat, item) {
     return sched.resolveItemAvailability(cat, item, ctx.shifts, ctx.legacyHours, ctx.target, ctx.options);
 }
 
-function renderDynamicCatalog({ resetOrderOptions = false } = {}) {
+function renderDynamicCatalog({ resetOrderOptions = false, stockOnly = false } = {}) {
     const bData = window.bootstrapData || bootstrapData;
     if (!bData || !bData.catalog) return;
 
@@ -232,6 +232,11 @@ function renderDynamicCatalog({ resetOrderOptions = false } = {}) {
         });
     }
     catalogSections.sort((a, b) => a.sortOrder - b.sortOrder);
+
+    if (window.isStaffOrderMode && window.StaffOrderView) {
+        window.StaffOrder.renderCatalog(catalogSections, resetOrderOptions, stockOnly);
+        return;
+    }
 
     // 1. Navigation Tabs
     const nav = document.getElementById('main-nav');
@@ -689,6 +694,10 @@ function getDynamicItemFooterHTML(catSlug, itemName, price, isOos, isOutsideSche
 }
 
 function updateDynamicStockAndPrices() {
+    if (window.isStaffOrderMode && window.StaffOrderView) {
+        renderDynamicCatalog({ stockOnly: true });
+        return;
+    }
     const bData = window.bootstrapData || bootstrapData;
     if (!bData || !bData.catalog) return;
     const cartObj = window.cart || cart || {};
