@@ -11147,12 +11147,6 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
   padding: 12px;
 }
 
-#view-live.live-adaptive-stations .tile-customer {
-  max-width: 100%;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
 #view-live.live-adaptive-stations .tile-order-key,
 #view-live.live-adaptive-stations .tile-badge {
   max-width: 100%;
@@ -11254,7 +11248,7 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
 .tile-customer, .pos-display-preview-item {
   font-size: var(--pos-text-body);
 }
-.tile-order-key, .tile-customer, .tile-item-preview, .tile-badge,
+.tile-order-key, .tile-item-preview, .tile-badge,
 .review-item-name, .review-item-options, .mod-chip, .flavor-chip {
   white-space: normal;
   overflow-wrap: anywhere;

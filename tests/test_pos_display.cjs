@@ -129,7 +129,16 @@ async function run() {
           const needsTabs = (viewport.width <= 600 && viewport.height >= viewport.width) || live.mainWidth < 2 * 320 * scale + 64;
           assert.equal(live.adaptive, needsTabs, `${viewport.width}/${mode}: column minimum`);
           assert(live.listBottom <= viewport.height + 1, `${viewport.width}x${viewport.height}/${lang}/${mode}: Live list bottom ${live.listBottom} stays within viewport`);
-          await assertNoOverflow(page, ['.tile-info', '.tile-order-key', '.tile-customer', '.tile-price', '.tile-item-preview', '.tile-action-btn']);
+          await assertNoOverflow(page, ['.tile-info', '.tile-order-key', '.tile-price', '.tile-item-preview', '.tile-action-btn']);
+          const customerNameTruncated = await page.locator('.live-panel:not([hidden]) .tile-customer').first().evaluate(name => {
+            const style = getComputedStyle(name);
+            const range = document.createRange();
+            range.selectNodeContents(name);
+            const lines = new Set([...range.getClientRects()].map(rect => rect.top)).size;
+            return name.scrollWidth > name.clientWidth && style.textOverflow === 'ellipsis' &&
+              style.overflowX === 'hidden' && lines === 1;
+          });
+          assert(customerNameTruncated, `${viewport.width}/${lang}/${mode}: long customer name is truncated on one line`);
           await assertTouchTargets(page);
           if (mode === 'extra-large' && lang === 'vi') await screenshot(page, `live-${viewport.width}`);
 

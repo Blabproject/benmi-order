@@ -142,11 +142,21 @@ async function swipeQueue(page, direction, options) {
           const tile = list.querySelector('.tile');
           const info = tile.querySelector('.tile-info').getBoundingClientRect();
           const button = tile.querySelector('button').getBoundingClientRect();
+          const longName = list.querySelector('[data-order-key="fixture-1"] .tile-customer');
+          const longNameStyle = getComputedStyle(longName);
+          const nameRange = document.createRange();
+          nameRange.selectNodeContents(longName);
           const visibleNodes = [list, tile, ...tile.querySelectorAll('.tile-info > *, .tile-info span, button'), ...document.querySelectorAll('.live-mobile-tab')];
           return {
             listHeight: list.clientHeight, listBottom: list.getBoundingClientRect().bottom,
             documentWidth: document.documentElement.scrollWidth,
-            overflow: visibleNodes.filter(node => node.getBoundingClientRect().right > window.innerWidth + 1 || node.scrollWidth > node.clientWidth + 1).map(node => node.className),
+            overflow: visibleNodes.filter(node => node.getBoundingClientRect().right > window.innerWidth + 1 ||
+              (!node.classList.contains('tile-customer') && node.scrollWidth > node.clientWidth + 1)).map(node => node.className),
+            longName: {
+              width: longName.clientWidth, scrollWidth: longName.scrollWidth,
+              textOverflow: longNameStyle.textOverflow, overflowX: longNameStyle.overflowX,
+              lines: new Set([...nameRange.getClientRects()].map(rect => rect.top)).size
+            },
             overlap: button.top < info.bottom,
             buttonHeight: button.height,
             tabHeights: [...document.querySelectorAll('.live-mobile-tab')].map(node => node.getBoundingClientRect().height),
@@ -156,6 +166,9 @@ async function swipeQueue(page, direction, options) {
         assert(metrics.listHeight > 100 && metrics.listBottom <= 900, `${lang}/${width}: list must fit viewport`);
         assert.equal(metrics.documentWidth, width);
         assert.deepEqual(metrics.overflow, [], `${lang}/${width}: overflowing content`);
+        const { width: nameWidth, scrollWidth, textOverflow, overflowX, lines } = metrics.longName;
+        assert(nameWidth > 0 && scrollWidth > nameWidth && textOverflow === 'ellipsis' && overflowX === 'hidden' && lines === 1,
+          `${lang}/${width}: expected a single-line customer name with ellipsis, got ${JSON.stringify(metrics.longName)}`);
         assert(!metrics.overlap && metrics.buttonHeight >= 48);
         assert(metrics.tabHeights.every(height => height >= 48));
         assert(metrics.filterHeights.every(height => height >= 48));
@@ -165,6 +178,10 @@ async function swipeQueue(page, direction, options) {
     }
     await resize(page, { width: 390, height: 844 });
     await snapshot(page, 'live-mobile-vi');
+
+    await page.locator('#list-left [data-order-key="fixture-1"] .tile-customer').tap();
+    assert.equal(await page.locator('#review-customer').innerText(), 'Khách có tên rất dài để kiểm tra bố cục đơn hàng trên điện thoại');
+    await page.evaluate(() => closeModal());
 
     await page.locator('#mobile-nav-toggle-btn').tap();
     assert(await page.locator('#app-sidebar.expanded').count());
