@@ -613,21 +613,36 @@ window.StaffOrder = (() => {
     }
 
     const cashierBtn = document.getElementById('staff-cashier-btn');
-    if (!cashierBtn) return;
-
+    const summaryEl = document.getElementById('staff-cashier-summary');
     const disabled = !initialized || busy || totalQty <= 0 || lastComputedTotal <= 0;
-    cashierBtn.disabled = disabled;
 
-    let label = text('計算找零', 'Tính tiền thối');
-    if (cashTender && !disabled) {
-      cashierBtn.classList.add('has-tender');
-      label = cashTender.change > 0
-        ? text(`實收 $${formatMoney(cashTender.amount)} · 找零 $${formatMoney(cashTender.change)}`, `Khách đưa $${formatMoney(cashTender.amount)} · Thối $${formatMoney(cashTender.change)}`)
-        : text(`實收 $${formatMoney(cashTender.amount)} · 剛好免找`, `Khách đưa $${formatMoney(cashTender.amount)} · Vừa đủ`);
-    } else {
-      cashierBtn.classList.remove('has-tender');
+    if (cashierBtn) {
+      cashierBtn.disabled = disabled;
+      cashierBtn.classList.toggle('has-tender', Boolean(cashTender && !disabled));
+      cashierBtn.innerHTML = `${CASHIER_CALC_ICON_SVG}<span>${escapeHtmlStr(text('計算找零', 'Tính tiền thối'))}</span>`;
     }
-    cashierBtn.innerHTML = `${CASHIER_CALC_ICON_SVG}<span>${escapeHtmlStr(label)}</span>`;
+
+    if (summaryEl) {
+      if (cashTender && !disabled) {
+        const changeValueText = cashTender.change > 0
+          ? `$${formatMoney(cashTender.change)}`
+          : text('剛好免找 ($0)', 'Vừa đủ ($0)');
+        summaryEl.hidden = false;
+        summaryEl.innerHTML = `
+          <div class="staff-cashier-summary-row">
+            <span class="staff-cashier-summary-label">${escapeHtmlStr(text('實收', 'Khách đưa'))}</span>
+            <span class="staff-cashier-summary-amount">$${escapeHtmlStr(formatMoney(cashTender.amount))}</span>
+          </div>
+          <div class="staff-cashier-summary-row is-change">
+            <span class="staff-cashier-summary-label">${escapeHtmlStr(text('找零', 'Thối lại'))}</span>
+            <span class="staff-cashier-summary-amount">${escapeHtmlStr(changeValueText)}</span>
+          </div>
+        `;
+      } else {
+        summaryEl.hidden = true;
+        summaryEl.innerHTML = '';
+      }
+    }
   }
 
   function renderCashierModal() {
@@ -955,6 +970,19 @@ window.StaffOrder = (() => {
       totalRow.prepend(countSpan);
     }
 
+    if (submitWrap && deskSubmitBtn && !document.getElementById('staff-cashier-summary')) {
+      const summaryDiv = document.createElement('div');
+      summaryDiv.id = 'staff-cashier-summary';
+      summaryDiv.className = 'staff-cashier-summary';
+      summaryDiv.hidden = true;
+      const hint = document.getElementById('checkout-empty-cart-hint');
+      if (hint && hint.parentElement === submitWrap) {
+        submitWrap.insertBefore(summaryDiv, hint);
+      } else {
+        submitWrap.insertBefore(summaryDiv, deskSubmitBtn);
+      }
+    }
+
     if (submitWrap && deskSubmitBtn && !document.getElementById('staff-cashier-btn')) {
       const cashierBtn = document.createElement('button');
       cashierBtn.type = 'button';
@@ -1005,7 +1033,7 @@ window.StaffOrder = (() => {
     const nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
     for (const node of nodes) {
-      if (node.parentElement.closest('script,style,.item-name,.choice-name,.custom-label,#unified-option-modal,#cart-summary,#staff-table-bar,#staff-cart-header,#staff-cashier-btn,#staff-cashier-modal')) continue;
+      if (node.parentElement.closest('script,style,.item-name,.choice-name,.custom-label,#unified-option-modal,#cart-summary,#staff-table-bar,#staff-cart-header,#staff-cashier-summary,#staff-cashier-btn,#staff-cashier-modal')) continue;
       if (node.parentElement.closest('#catalog-sections .section-title') && !node.parentElement.closest('#sec-order-option')) continue;
       const value = node.textContent.trim();
       if (dictionary[value]) node.textContent = dictionary[value];
