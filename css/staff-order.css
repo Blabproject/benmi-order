@@ -918,10 +918,57 @@ html.staff-order-mode .desktop-sidebar-price {
   color: #0f172a !important;
 }
 
+html.staff-order-mode .staff-cashier-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: calc(13.5px * var(--pos-font-scale, 1));
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  touch-action: manipulation;
+  transition: border-color 0.14s ease, background-color 0.14s ease, color 0.14s ease;
+}
+
+html.staff-order-mode .staff-cashier-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+html.staff-order-mode .staff-cashier-btn.has-tender {
+  background: #ecfdf5;
+  border-color: #10b981;
+  color: #047857;
+}
+
+html.staff-order-mode .staff-cashier-btn:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+html.staff-order-mode .staff-cashier-btn:focus-visible,
+html.staff-order-mode #btn-desktop-submit:focus-visible {
+  outline: 2px solid var(--primary, #059669);
+  outline-offset: 2px;
+}
+
+html.staff-order-mode .staff-btn-icon {
+  flex-shrink: 0;
+}
+
 html.staff-order-mode #btn-desktop-submit {
   display: flex !important;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   width: 100%;
   min-height: 48px !important;
   padding: 10px 14px !important;
@@ -963,7 +1010,7 @@ html.staff-order-mode #staff-access-error {
     height: auto;
     min-height: 100%;
     overflow: visible;
-    padding-bottom: calc(128px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(196px + env(safe-area-inset-bottom, 0px));
   }
 
   html.staff-order-mode .container.main-order-layout {
@@ -1025,4 +1072,277 @@ html.staff-order-mode .staff-cart-discount {
   font-size: calc(12px * var(--pos-font-scale, 1));
   font-weight: 700;
   color: #059669;
+}
+
+/* Cashier & Change Calculator Modal */
+html.staff-order-mode .staff-cashier-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2700;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+html.staff-order-mode .staff-cashier-dialog {
+  width: 100%;
+  max-width: 720px;
+  max-height: 92vh;
+  max-height: 92dvh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 22px 24px 20px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+html.staff-order-mode .staff-cashier-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+html.staff-order-mode .staff-cashier-due-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+html.staff-order-mode .staff-cashier-due-label {
+  font-size: calc(15px * var(--pos-font-scale, 1));
+  font-weight: 600;
+  color: #64748b;
+}
+
+html.staff-order-mode .staff-cashier-due-amount {
+  font-size: calc(30px * var(--pos-font-scale, 1));
+  font-weight: 900;
+  color: #0f172a;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+html.staff-order-mode .staff-cashier-close-btn {
+  min-width: 48px;
+  min-height: 48px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #64748b;
+  font-size: calc(14px * var(--pos-font-scale, 1));
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+html.staff-order-mode .staff-cashier-close-btn:hover {
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+html.staff-order-mode .staff-cashier-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 276px;
+  gap: 24px;
+  align-items: stretch;
+}
+
+html.staff-order-mode .staff-cashier-left {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+html.staff-order-mode .staff-cashier-field-label {
+  font-size: calc(13px * var(--pos-font-scale, 1));
+  font-weight: 600;
+  color: #64748b;
+}
+
+html.staff-order-mode .staff-cashier-tender-block {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+html.staff-order-mode .staff-cashier-tender-display {
+  margin-top: 4px;
+  font-size: calc(38px * var(--pos-font-scale, 1));
+  font-weight: 900;
+  color: #0f172a;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  word-break: break-all;
+}
+
+html.staff-order-mode .staff-cashier-tender-display.is-empty {
+  color: #94a3b8;
+}
+
+html.staff-order-mode .staff-cashier-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+html.staff-order-mode .staff-cashier-chip {
+  min-width: 48px;
+  min-height: 48px;
+  padding: 6px 13px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+  font-size: calc(13.5px * var(--pos-font-scale, 1));
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all 0.12s ease;
+}
+
+html.staff-order-mode .staff-cashier-chip:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+html.staff-order-mode .staff-cashier-chip.on {
+  background: #ecfdf5;
+  border-color: #059669;
+  color: #047857;
+}
+
+html.staff-order-mode .staff-cashier-change-box {
+  margin-top: auto;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+html.staff-order-mode .staff-cashier-change-value {
+  font-size: calc(36px * var(--pos-font-scale, 1));
+  font-weight: 900;
+  color: #047857;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+html.staff-order-mode .staff-cashier-change-box.is-empty .staff-cashier-change-value {
+  color: #94a3b8;
+}
+
+html.staff-order-mode .staff-cashier-change-box.is-insufficient {
+  background: #fef2f2;
+}
+
+html.staff-order-mode .staff-cashier-change-box.is-insufficient .staff-cashier-field-label,
+html.staff-order-mode .staff-cashier-change-box.is-insufficient .staff-cashier-change-value {
+  color: #dc2626;
+}
+
+html.staff-order-mode .staff-cashier-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+html.staff-order-mode .staff-cashier-key {
+  min-width: 48px;
+  min-height: 56px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: calc(20px * var(--pos-font-scale, 1));
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: background-color 0.1s ease, transform 0.08s ease;
+}
+
+html.staff-order-mode .staff-cashier-key:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+html.staff-order-mode .staff-cashier-key:active {
+  transform: scale(0.96);
+  background: #f1f5f9;
+}
+
+html.staff-order-mode .staff-cashier-footer {
+  padding-top: 4px;
+}
+
+html.staff-order-mode .staff-cashier-confirm-btn {
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 12px;
+  background: var(--primary, #059669);
+  color: #ffffff;
+  font-size: calc(16px * var(--pos-font-scale, 1));
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: opacity 0.14s ease, background-color 0.14s ease;
+}
+
+html.staff-order-mode .staff-cashier-confirm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+html.staff-order-mode .staff-cashier-close-btn:focus-visible,
+html.staff-order-mode .staff-cashier-chip:focus-visible,
+html.staff-order-mode .staff-cashier-key:focus-visible,
+html.staff-order-mode .staff-cashier-confirm-btn:focus-visible {
+  outline: 2px solid var(--primary, #059669);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  html.staff-order-mode .staff-cashier-dialog {
+    padding: 18px 16px 16px;
+    border-radius: 16px;
+    gap: 14px;
+  }
+
+  html.staff-order-mode .staff-cashier-body {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  html.staff-order-mode .staff-cashier-tender-display {
+    font-size: calc(32px * var(--pos-font-scale, 1));
+  }
+
+  html.staff-order-mode .staff-cashier-change-value {
+    font-size: calc(28px * var(--pos-font-scale, 1));
+  }
+
+  html.staff-order-mode .staff-cashier-key {
+    min-height: 50px;
+  }
 }

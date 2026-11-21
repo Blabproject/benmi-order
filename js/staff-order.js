@@ -2,6 +2,7 @@
 window.StaffOrder = (() => {
   if (!window.isStaffOrderMode) return null;
   let capabilities = null, tables = [], busy = false, initialized = false, activeTabId = '', noteOpen = false;
+  let cashTender = null, lastComputedTotal = 0, cashierModalOpen = false, cashierInputStr = '', cashierReplaceOnDigit = false;
   const language = () => document.documentElement.lang;
   const text = (zh, vi) => language() === 'vi' ? vi : zh;
   const tenant = () => getTenantIdFromUrl();
@@ -11,6 +12,15 @@ window.StaffOrder = (() => {
   const ready = () => initialized && !busy;
   const escapeHtmlStr = val => String(val ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
   const escapeJsArg = val => String(val ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  const roundMoney = val => Math.round((Number(val) || 0) * 100) / 100;
+  const formatMoney = val => {
+    const rounded = roundMoney(val);
+    return Number.isInteger(rounded) ? String(rounded) : String(Number(rounded.toFixed(2)));
+  };
+
+  const CASHIER_CALC_ICON_SVG = `<svg class="staff-btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line><path d="M16 10h.01"></path><path d="M12 10h.01"></path><path d="M8 10h.01"></path><path d="M12 14h.01"></path><path d="M8 14h.01"></path><path d="M12 18h.01"></path><path d="M8 18h.01"></path></svg>`;
+  const CASHIER_REGISTER_ICON_SVG = `<svg class="staff-btn-icon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="3" width="10" height="5" rx="1"></rect><path d="M12 8v2"></path><path d="M5 10h14l2 5H3l2-5Z"></path><rect x="3" y="15" width="18" height="6" rx="1.5"></rect><line x1="10" y1="18" x2="14" y2="18"></line></svg>`;
+  const BACKSPACE_ICON_SVG = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>`;
 
   let toastTimer = null;
   function showStaffToast(textMsg, type = 'info') {
@@ -567,22 +577,314 @@ window.StaffOrder = (() => {
     syncSubmitLabel(totalQty, computedTotal);
   }
 
+  function buildQuickCashOptions(total) {
+    const cleanTotal = roundMoney(total);
+    if (cleanTotal <= 0) return [];
+    const options = [{
+      amount: cleanTotal,
+      isExact: true,
+      label: `${text('剛好', 'Vừa đủ')} $${formatMoney(cleanTotal)}`
+    }];
+    const next50 = Math.ceil((cleanTotal + 0.001) / 50) * 50;
+    const next100 = Math.ceil((cleanTotal + 0.001) / 100) * 100;
+    const next500 = Math.ceil((cleanTotal + 0.001) / 500) * 500;
+    const next1000 = Math.ceil((cleanTotal + 0.001) / 1000) * 1000;
+    const standardBills = [100, 500, 1000, 1500, 2000, 3000, 5000, 10000].filter(b => b > cleanTotal);
+    const extraPool = [next50, ...standardBills, next100, next500, next1000];
+    const picked = [];
+    for (const candidate of extraPool) {
+      if (candidate <= cleanTotal || picked.includes(candidate)) continue;
+      picked.push(candidate);
+      if (picked.length === 3) break;
+    }
+    picked.sort((a, b) => a - b);
+    for (const amount of picked) {
+      options.push({ amount, isExact: false, label: `$${formatMoney(amount)}` });
+    }
+    return options;
+  }
+
+  function syncCashierButton(totalQty, computedTotal) {
+    lastComputedTotal = roundMoney(computedTotal);
+    if (totalQty <= 0 || lastComputedTotal <= 0) {
+      cashTender = null;
+    } else if (cashTender && Math.abs(cashTender.total - lastComputedTotal) > 0.001) {
+      cashTender = null;
+    }
+
+    const cashierBtn = document.getElementById('staff-cashier-btn');
+    if (!cashierBtn) return;
+
+    const disabled = !initialized || busy || totalQty <= 0 || lastComputedTotal <= 0;
+    cashierBtn.disabled = disabled;
+
+    let label = text('計算找零', 'Tính tiền thối');
+    if (cashTender && !disabled) {
+      cashierBtn.classList.add('has-tender');
+      label = cashTender.change > 0
+        ? text(`實收 $${formatMoney(cashTender.amount)} · 找零 $${formatMoney(cashTender.change)}`, `Khách đưa $${formatMoney(cashTender.amount)} · Thối $${formatMoney(cashTender.change)}`)
+        : text(`實收 $${formatMoney(cashTender.amount)} · 剛好免找`, `Khách đưa $${formatMoney(cashTender.amount)} · Vừa đủ`);
+    } else {
+      cashierBtn.classList.remove('has-tender');
+    }
+    cashierBtn.innerHTML = `${CASHIER_CALC_ICON_SVG}<span>${escapeHtmlStr(label)}</span>`;
+  }
+
+  function renderCashierModal() {
+    const modal = document.getElementById('staff-cashier-modal');
+    if (!modal) return;
+    const total = lastComputedTotal;
+    const tendered = cashierInputStr ? roundMoney(parseFloat(cashierInputStr)) : 0;
+    const diff = roundMoney(tendered - total);
+
+    const dueLabel = document.getElementById('staff-cashier-due-label');
+    const dueAmount = document.getElementById('staff-cashier-due-amount');
+    const closeBtn = document.getElementById('staff-cashier-close-btn');
+    const tenderLabel = document.getElementById('staff-cashier-tender-label');
+    const tenderDisplay = document.getElementById('staff-cashier-tender-display');
+    const chipsEl = document.getElementById('staff-cashier-chips');
+    const changeBox = document.getElementById('staff-cashier-change-box');
+    const changeLabel = document.getElementById('staff-cashier-change-label');
+    const changeValue = document.getElementById('staff-cashier-change-value');
+    const confirmBtn = document.getElementById('staff-cashier-confirm-btn');
+
+    if (dueLabel) dueLabel.textContent = text('應收金額', 'Cần thu');
+    if (dueAmount) dueAmount.textContent = `$${formatMoney(total)}`;
+    if (closeBtn) closeBtn.textContent = text('關閉', 'Đóng');
+    if (tenderLabel) tenderLabel.textContent = text('實收金額', 'Khách đưa');
+    if (tenderDisplay) {
+      tenderDisplay.textContent = `$${cashierInputStr ? formatMoney(tendered) : '0'}`;
+      tenderDisplay.classList.toggle('is-empty', !cashierInputStr);
+    }
+
+    if (chipsEl) {
+      const chips = buildQuickCashOptions(total);
+      chipsEl.innerHTML = chips.map(chip => {
+        const selected = cashierInputStr !== '' && Math.abs(tendered - chip.amount) < 0.001;
+        return `<button type="button" class="staff-cashier-chip${selected ? ' on' : ''}" data-cashier-chip="${chip.amount}" aria-pressed="${selected}">${escapeHtmlStr(chip.label)}</button>`;
+      }).join('');
+    }
+
+    if (changeBox && changeLabel && changeValue) {
+      changeBox.classList.remove('is-insufficient', 'is-empty');
+      if (!cashierInputStr || tendered <= 0) {
+        changeBox.classList.add('is-empty');
+        changeLabel.textContent = text('找零', 'Thối lại');
+        changeValue.textContent = '$0';
+      } else if (diff < 0) {
+        changeBox.classList.add('is-insufficient');
+        changeLabel.textContent = text('尚欠金額', 'Còn thiếu');
+        changeValue.textContent = `$${formatMoney(Math.abs(diff))}`;
+      } else {
+        changeLabel.textContent = text('找零', 'Thối lại');
+        changeValue.textContent = `$${formatMoney(diff)}`;
+      }
+    }
+
+    if (confirmBtn) {
+      const canConfirm = total > 0 && tendered >= total;
+      confirmBtn.disabled = !canConfirm;
+      if (!cashierInputStr || tendered <= 0) {
+        confirmBtn.textContent = text('請輸入實收金額', 'Nhập số tiền khách đưa');
+      } else if (diff < 0) {
+        confirmBtn.textContent = text(`尚欠 $${formatMoney(Math.abs(diff))}`, `Còn thiếu $${formatMoney(Math.abs(diff))}`);
+      } else if (diff === 0) {
+        confirmBtn.textContent = text('確認 · 剛好免找', 'Xác nhận · vừa đủ');
+      } else {
+        confirmBtn.textContent = text(`確認 · 找零 $${formatMoney(diff)}`, `Xác nhận · thối $${formatMoney(diff)}`);
+      }
+    }
+  }
+
+  function handleCashierKey(key) {
+    if (!cashierModalOpen) return;
+    if (key === 'backspace') {
+      cashierReplaceOnDigit = false;
+      cashierInputStr = cashierInputStr.slice(0, -1);
+    } else if (/^(?:\d|00)$/.test(key)) {
+      if (cashierReplaceOnDigit) {
+        cashierInputStr = '';
+        cashierReplaceOnDigit = false;
+      }
+      if (key === '00' && (!cashierInputStr || cashierInputStr === '0')) {
+        cashierInputStr = '0';
+      } else if (cashierInputStr === '0') {
+        cashierInputStr = key === '00' ? '0' : key;
+      } else {
+        const next = cashierInputStr + key;
+        if (next.replace('.', '').length <= 7) cashierInputStr = next;
+      }
+    }
+    renderCashierModal();
+  }
+
+  function closeCashierModal() {
+    if (!cashierModalOpen) return;
+    cashierModalOpen = false;
+    const modal = document.getElementById('staff-cashier-modal');
+    if (modal) modal.style.display = 'none';
+    document.getElementById('staff-cashier-btn')?.focus();
+  }
+
+  function confirmCashierModal() {
+    const total = lastComputedTotal;
+    const tendered = cashierInputStr ? roundMoney(parseFloat(cashierInputStr)) : 0;
+    if (total <= 0 || tendered < total) return;
+    const change = roundMoney(tendered - total);
+    cashTender = {
+      amount: tendered,
+      change,
+      total,
+      isExact: Math.abs(change) < 0.001
+    };
+    closeCashierModal();
+    const quantity = Object.values(window.cart || {}).reduce((sum, q) => sum + Number(q || 0), 0);
+    syncCashierButton(quantity, total);
+    saveDraft();
+  }
+
+  function ensureCashierModal() {
+    let modal = document.getElementById('staff-cashier-modal');
+    if (modal) return modal;
+
+    modal = document.createElement('div');
+    modal.id = 'staff-cashier-modal';
+    modal.className = 'staff-cashier-overlay';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'staff-cashier-due-label');
+    modal.style.display = 'none';
+    modal.innerHTML = `
+      <div class="staff-cashier-dialog">
+        <div class="staff-cashier-header">
+          <div class="staff-cashier-due-wrap">
+            <span id="staff-cashier-due-label" class="staff-cashier-due-label"></span>
+            <span id="staff-cashier-due-amount" class="staff-cashier-due-amount"></span>
+          </div>
+          <button type="button" id="staff-cashier-close-btn" class="staff-cashier-close-btn"></button>
+        </div>
+        <div class="staff-cashier-body">
+          <div class="staff-cashier-left">
+            <div class="staff-cashier-tender-block">
+              <div id="staff-cashier-tender-label" class="staff-cashier-field-label"></div>
+              <div id="staff-cashier-tender-display" class="staff-cashier-tender-display">$0</div>
+            </div>
+            <div id="staff-cashier-chips" class="staff-cashier-chips"></div>
+            <div id="staff-cashier-change-box" class="staff-cashier-change-box is-empty">
+              <div id="staff-cashier-change-label" class="staff-cashier-field-label"></div>
+              <div id="staff-cashier-change-value" class="staff-cashier-change-value">$0</div>
+            </div>
+          </div>
+          <div class="staff-cashier-keypad">
+            <button type="button" class="staff-cashier-key" data-cashier-key="7">7</button>
+            <button type="button" class="staff-cashier-key" data-cashier-key="8">8</button>
+            <button type="button" class="staff-cashier-key" data-cashier-key="9">9</button>
+            <button type="button" class="staff-cashier-key" data-cashier-key="4">4</button>
+            <button type="button" class="staff-cashier-key" data-cashier-key="5">5</button>
+            <button type="button" class="staff-cashier-key" data-cashier-key="6">6</button>
+            <button type="button" class="staff-cashier-key" data-cashier-key="1">1</button>
+            <button type="button" class="staff-cashier-key" data-cashier-key="2">2</button>
+            <button type="button" class="staff-cashier-key" data-cashier-key="3">3</button>
+            <button type="button" class="staff-cashier-key" data-cashier-key="0">0</button>
+            <button type="button" class="staff-cashier-key" data-cashier-key="00">00</button>
+            <button type="button" class="staff-cashier-key staff-cashier-key-backspace" data-cashier-key="backspace" aria-label="Backspace">${BACKSPACE_ICON_SVG}</button>
+          </div>
+        </div>
+        <div class="staff-cashier-footer">
+          <button type="button" id="staff-cashier-confirm-btn" class="staff-cashier-confirm-btn"></button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.addEventListener('click', event => {
+      if (event.target === modal) {
+        closeCashierModal();
+        return;
+      }
+      const keyBtn = event.target.closest('[data-cashier-key]');
+      if (keyBtn) {
+        handleCashierKey(keyBtn.getAttribute('data-cashier-key'));
+        return;
+      }
+      const chipBtn = event.target.closest('[data-cashier-chip]');
+      if (chipBtn) {
+        cashierInputStr = formatMoney(parseFloat(chipBtn.getAttribute('data-cashier-chip') || '0'));
+        cashierReplaceOnDigit = true;
+        renderCashierModal();
+      }
+    });
+    modal.querySelector('#staff-cashier-close-btn')?.addEventListener('click', closeCashierModal);
+    modal.querySelector('#staff-cashier-confirm-btn')?.addEventListener('click', confirmCashierModal);
+
+    if (!window.__staffCashierKeyListenerBound) {
+      window.__staffCashierKeyListenerBound = true;
+      document.addEventListener('keydown', event => {
+        if (!cashierModalOpen) return;
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeCashierModal();
+        } else if (event.key >= '0' && event.key <= '9') {
+          event.preventDefault();
+          handleCashierKey(event.key);
+        } else if (event.key === 'Backspace' || event.key === 'Delete') {
+          event.preventDefault();
+          handleCashierKey('backspace');
+        } else if (event.key === 'Enter') {
+          if (event.target?.closest?.('#staff-cashier-close-btn, [data-cashier-chip]')) return;
+          event.preventDefault();
+          const confirmBtn = document.getElementById('staff-cashier-confirm-btn');
+          if (confirmBtn && !confirmBtn.disabled) {
+            confirmCashierModal();
+          }
+        }
+      });
+    }
+    return modal;
+  }
+
+  function openCashierModal() {
+    if (!ready()) return;
+    const total = lastComputedTotal > 0
+      ? lastComputedTotal
+      : (typeof window.updateTotal === 'function' ? roundMoney(window.updateTotal()) : 0);
+    if (total <= 0) return;
+    lastComputedTotal = total;
+
+    const modal = ensureCashierModal();
+    if (cashTender && Math.abs(cashTender.total - total) <= 0.001) {
+      cashierInputStr = formatMoney(cashTender.amount);
+      cashierReplaceOnDigit = true;
+    } else {
+      cashierInputStr = '';
+      cashierReplaceOnDigit = false;
+    }
+    cashierModalOpen = true;
+    renderCashierModal();
+    modal.style.display = 'flex';
+    const backspaceBtn = modal.querySelector('[data-cashier-key="backspace"]');
+    if (backspaceBtn) backspaceBtn.setAttribute('aria-label', text('退格', 'Xóa số'));
+    modal.querySelector('#staff-cashier-close-btn')?.focus();
+  }
+
   function syncSubmitLabel(totalQty, computedTotal) {
     const deskBtn = document.getElementById('btn-desktop-submit');
     if (deskBtn) {
-      const span = deskBtn.querySelector('span') || deskBtn;
-      if (totalQty <= 0) {
-        span.textContent = text('選擇餐點', 'Chọn món');
+      let label = '';
+      if (deskBtn.disabled && !deskBtn.dataset.emptyCart) {
+        label = (deskBtn.querySelector('span')?.textContent || deskBtn.textContent || '').trim();
+      } else if (totalQty <= 0) {
+        label = text('選擇餐點', 'Chọn món');
       } else {
         const dining = dineInAllowed() && window.currentDiningOption === 'dine_in' ? 'dine_in' : 'takeaway';
         const hasTable = dining === 'takeaway' || Boolean(select()?.value);
-        if (!hasTable) {
-          span.textContent = `${text('選擇桌號', 'Chọn bàn')} · $${computedTotal}`;
-        } else {
-          span.textContent = `${text('送出訂單', 'Gửi bếp')} · $${computedTotal}`;
-        }
+        label = !hasTable
+          ? `${text('選擇桌號', 'Chọn bàn')} · $${computedTotal}`
+          : `${text('送出訂單', 'Gửi bếp')} · $${computedTotal}`;
       }
+      deskBtn.innerHTML = `${CASHIER_REGISTER_ICON_SVG}<span>${escapeHtmlStr(label)}</span>`;
     }
+    syncCashierButton(totalQty, computedTotal);
   }
 
   function mountCounterLayout() {
@@ -597,6 +899,7 @@ window.StaffOrder = (() => {
     const noteInput = document.getElementById('note');
     const submitWrap = document.querySelector('.desktop-sidebar-submit-wrap');
     const totalRow = document.querySelector('.desktop-sidebar-total-row');
+    const deskSubmitBtn = document.getElementById('btn-desktop-submit');
 
     let bar = document.getElementById('staff-table-bar');
     if (!bar && pageBody && mainLayout) {
@@ -651,6 +954,17 @@ window.StaffOrder = (() => {
       countSpan.textContent = `0 ${text('份', 'phần')}`;
       totalRow.prepend(countSpan);
     }
+
+    if (submitWrap && deskSubmitBtn && !document.getElementById('staff-cashier-btn')) {
+      const cashierBtn = document.createElement('button');
+      cashierBtn.type = 'button';
+      cashierBtn.id = 'staff-cashier-btn';
+      cashierBtn.className = 'staff-cashier-btn';
+      cashierBtn.disabled = true;
+      cashierBtn.innerHTML = `${CASHIER_CALC_ICON_SVG}<span>${escapeHtmlStr(text('計算找零', 'Tính tiền thối'))}</span>`;
+      cashierBtn.addEventListener('click', openCashierModal);
+      submitWrap.insertBefore(cashierBtn, deskSubmitBtn);
+    }
   }
 
   function saveDraft() {
@@ -659,7 +973,8 @@ window.StaffOrder = (() => {
       sessionStorage.setItem(storageKey('draft'), JSON.stringify({
         cart, customizeData, bundleCartData: window.bundleCartData,
         orderSelections: DetailCheckout.selections(), dining: window.currentDiningOption,
-        table: select().value, note: document.getElementById('note').value
+        table: select().value, note: document.getElementById('note').value,
+        cashTender
       }));
     } catch (_) {}
   }
@@ -690,7 +1005,7 @@ window.StaffOrder = (() => {
     const nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
     for (const node of nodes) {
-      if (node.parentElement.closest('script,style,.item-name,.choice-name,.custom-label,#unified-option-modal,#cart-summary,#staff-table-bar,#staff-cart-header')) continue;
+      if (node.parentElement.closest('script,style,.item-name,.choice-name,.custom-label,#unified-option-modal,#cart-summary,#staff-table-bar,#staff-cart-header,#staff-cashier-btn,#staff-cashier-modal')) continue;
       if (node.parentElement.closest('#catalog-sections .section-title') && !node.parentElement.closest('#sec-order-option')) continue;
       const value = node.textContent.trim();
       if (dictionary[value]) node.textContent = dictionary[value];
@@ -792,6 +1107,9 @@ window.StaffOrder = (() => {
           }
           reconcileCartOptions();
           for (const key of Object.keys(cart)) { const { catSlug, origName } = parseCartKey(key); updateQty(catSlug, origName, 0); }
+          if (draft.cashTender && typeof draft.cashTender.amount === 'number' && typeof draft.cashTender.total === 'number') {
+            cashTender = draft.cashTender;
+          }
         }
       } catch (_) {}
 
@@ -835,7 +1153,10 @@ window.StaffOrder = (() => {
       return message(text('請選擇桌號。', 'Hãy chọn bàn.'), { toast: true, type: 'warning' });
     }
     const before = tableContext();
+    closeCashierModal();
     saveDraft(); busy = true; window.isSubmitting = true;
+    const cashierBtn = document.getElementById('staff-cashier-btn');
+    if (cashierBtn) cashierBtn.disabled = true;
     const buttons = getAllSubmitButtons();
     buttons.forEach(button => {
       button.disabled = true;
@@ -888,6 +1209,7 @@ window.StaffOrder = (() => {
       window.bundleCartData = {}; comboDrinkData = {}; window.comboDrinkData = comboDrinkData;
       document.getElementById('note').value = '';
       noteOpen = false;
+      cashTender = null;
       if (typeof window.resetPickupTimeToDefault === 'function') {
         window.resetPickupTimeToDefault();
       }
@@ -941,5 +1263,5 @@ window.StaffOrder = (() => {
     if (document.visibilityState === 'visible') syncTables();
   }, 15000);
 
-  return { start, submit, ready, syncTables };
+  return { start, submit, ready, syncTables, openCashierModal, closeCashierModal };
 })();
