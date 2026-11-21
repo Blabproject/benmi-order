@@ -1,8 +1,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
-const { chromium } = require('playwright');
-const { getOptionGroupsBridgeBundleCode } = require('./helpers/option-groups-bundle.cjs');
+const browserType = require('playwright')[process.env.MENU_QA_BROWSER || 'chromium'];
+const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
@@ -53,8 +53,8 @@ const sampleMenu = [
 ];
 
 async function run() {
-  const optionGroupsBundle = await getOptionGroupsBridgeBundleCode();
-  const browser = await chromium.launch({ headless: true });
+  execFileSync(process.execPath, [path.join(root, 'node_modules/vite/bin/vite.js'), 'build', '--config', 'vite.config.mts'], { cwd: root, stdio: 'pipe' });
+  const browser = await browserType.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   
   const errors = [];
@@ -64,17 +64,11 @@ async function run() {
   await page.route('**/*', route => {
     const url = new URL(route.request().url());
     if (url.pathname === '/orders.html') {
-      const html = read('orders.html').replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '');
+      const html = read('dist/orders.html').replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '');
       return route.fulfill({ body: html, contentType: 'text/html' });
     }
-    if (url.pathname === '/frontend/apps/pos/option-groups-bridge.tsx') {
-      return route.fulfill({ body: optionGroupsBundle, contentType: 'application/javascript' });
-    }
-    if (/^\/frontend\/.*\.tsx?$/.test(url.pathname)) {
-      return route.fulfill({ body: '', contentType: 'application/javascript' });
-    }
-    if (/^\/frontend\/.*\.css$/.test(url.pathname)) {
-      return route.fulfill({ body: read(url.pathname.slice(1)), contentType: 'text/css' });
+    if (/^\/assets\/[\w.-]+$/.test(url.pathname)) {
+      return route.fulfill({ path: path.join(root, 'dist', url.pathname.slice(1)) });
     }
     if (/^\/(js|css)\/[\w.-]+$/.test(url.pathname)) {
       return route.fulfill({ body: read(url.pathname.slice(1)), contentType: url.pathname.endsWith('.css') ? 'text/css' : 'text/javascript' });
@@ -161,6 +155,108 @@ async function run() {
   assert.equal(detailMetrics.itemCardsCount, 3, 'Items in selected category are rendered');
   assert(detailMetrics.firstItemCardWidth >= 340, 'Item card takes full width with padding');
   assert(!detailMetrics.hasHorizontalOverflow, 'No horizontal overflow in Level 2');
+
+  // Inline inputs feed the same draft across sorting and Lịch bán.
+  await page.evaluate(() => {
+    clearMenuDirty();
+    window.currentTenantFeatures = ['menu_schedule'];
+    window.storeOperatingShifts = [{ id: 'lunch', name: 'Lunch', windows: [] }];
+  });
+  const rows = page.locator('#menu-editor-body .menu-catalog-row');
+  const firstName = await rows.first().locator('.menu-item-name-input').inputValue();
+  const secondName = await rows.nth(1).locator('.menu-item-name-input').inputValue();
+  await rows.first().locator('.menu-item-price-input').fill('188');
+  await page.evaluate(() => moveMenuItem(0, 0, 1));
+  assert.equal(await rows.nth(1).locator('.menu-item-name-input').inputValue(), firstName);
+  assert.equal(await rows.nth(1).locator('.menu-item-price-input').inputValue(), '188');
+  assert.equal(await rows.first().locator('.menu-item-name-input').inputValue(), secondName);
+
+  await page.evaluate(() => switchTab('menu-schedule'));
+  await page.locator('.ms-matrix').waitFor();
+  await page.locator('.ms-back-btn').click();
+  await page.locator('#menu-categories .menu-option-card').first().click();
+  assert.equal(await rows.nth(1).locator('.menu-item-price-input').inputValue(), '188');
+  assert.equal(await page.evaluate(() => isMenuDirty), true);
+
+  page.once('dialog', dialog => dialog.accept());
+  await rows.first().locator('.menu-item-action-icon-btn.delete-btn').click();
+  assert.equal(await rows.first().locator('.menu-item-name-input').inputValue(), firstName);
+  assert.equal(await rows.first().locator('.menu-item-price-input').inputValue(), '188');
+
+  const png = await page.evaluate(() => document.createElement('canvas').toDataURL('image/png').split(',')[1]);
+  await rows.first().locator('input[type=file]').setInputFiles({
+    name: 'product.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64')
+  });
+  const thumbnail = rows.first().locator('.menu-item-thumb-img');
+  await thumbnail.waitFor();
+  assert.match(await thumbnail.getAttribute('src'), /^data:image\//);
+
+  // Test the compatibility form with the same React product rows.
+  await page.evaluate(() => {
+    window.__testUnifiedMenu = window.UnifiedMenu;
+    window.isTenantMultilingualEnabled = () => true;
+    window.getTenantAiTargetLocales = () => ['en', 'vi'];
+    const originalFetch = window.fetch;
+    window.fetch = async (url, options) => {
+      if (!String(url).includes('/api/menu/ai-translate?')) return originalFetch(url, options);
+      const [entry] = JSON.parse(options.body).entries;
+      return { ok: true, json: async () => ({ byId: { [entry.id]: { en: { name: 'Translated dish' } } } }) };
+    };
+    window.UnifiedMenu = undefined;
+    window._tenantImageList = new Set();
+  });
+  const details = page.locator('#itemDetailModal');
+  await rows.first().locator('.menu-item-quick-actions button').first().click();
+  const detailName = details.locator('#item-detail-name-input');
+  const detailPrice = details.locator('#item-detail-price-input');
+  assert.equal(await detailName.inputValue(), firstName);
+  await detailName.fill('Canceled name');
+  await page.keyboard.press('Escape');
+  await details.waitFor({ state: 'hidden' });
+  assert.equal(await rows.first().locator('.menu-item-name-input').inputValue(), firstName);
+
+  await rows.first().locator('.menu-item-quick-actions button').first().click();
+  await detailName.fill('React dish');
+  await detailPrice.fill('210');
+  await details.locator('#item-detail-i18n-details summary').click();
+  await details.locator('#btn-item-detail-ai-translate').click();
+  await page.waitForFunction(() => document.getElementById('item-detail-i18n-en-name').value === 'Translated dish');
+  const chip = details.locator('.quick-tag-chip').first();
+  await chip.click();
+  assert.equal(await chip.getAttribute('aria-pressed'), 'true');
+  assert.equal(await details.locator('#item-detail-badge-input').inputValue(), await chip.textContent());
+  await details.locator('#btn-item-detail-done').click();
+  await details.waitFor({ state: 'hidden' });
+  assert.equal(await rows.first().locator('.menu-item-name-input').inputValue(), 'React dish');
+  assert.equal(await rows.first().locator('.menu-item-price-input').inputValue(), '210');
+  assert.equal(await page.evaluate(() => currentMenuData[0].items[0].i18n.en.name), 'Translated dish');
+
+  await page.evaluate(() => openCreateItemModal(0));
+  assert.equal(await detailName.inputValue(), '');
+  await detailName.fill('New React dish');
+  await detailPrice.fill('110');
+  await details.locator('#item-detail-file-input').setInputFiles({
+    name: 'new-product.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64')
+  });
+  await details.locator('#item-detail-img-preview').waitFor();
+  page.once('dialog', dialog => dialog.accept());
+  await details.locator('#btn-item-detail-delete-img').click();
+  await details.locator('#item-detail-img-preview').waitFor({ state: 'hidden' });
+  await details.locator('#btn-item-detail-done').click();
+  await details.waitFor({ state: 'hidden' });
+  assert.equal(await rows.last().locator('.menu-item-name-input').inputValue(), 'New React dish');
+  await page.evaluate(() => {
+    window.UnifiedMenu = window.__testUnifiedMenu;
+    delete window.__testUnifiedMenu;
+  });
+
+  // Restore the fixture before switching to the options workspace.
+  await page.evaluate(menuData => {
+    currentMenuData = menuData;
+    window._tenantImageList = new Set();
+    renderMenuCategoryEditor(0);
+    clearMenuDirty();
+  }, sampleMenu);
 
   // 3. Click Back Button -> Return to Level 1: Master View
   await page.locator('#btn-menu-mobile-back').click();

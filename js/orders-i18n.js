@@ -3724,10 +3724,7 @@ function applyLanguageToDOM() {
     ['filter-all-label', 'filterAll'],
     ['filter-instock-label', 'filterInStock'],
     ['filter-oos-label', 'filterOutOfStock'],
-    ['menu-footer-sync-status', 'menuFooterPosSync'],
-    ['item-detail-modal-sub', 'itemDetailSub'],
-    ['i18n-item-basic-title', 'itemBasicTitle'],
-    ['i18n-item-advanced-desc', 'itemAdvancedDesc']
+    ['menu-footer-sync-status', 'menuFooterPosSync']
   ].forEach(([id, key]) => {
     const el = document.getElementById(id);
     if (el) el.textContent = dict[key];
@@ -4163,43 +4160,7 @@ function applyLanguageToDOM() {
   const btnBndlGGotIt = document.getElementById("i18n-btn-bundle-guide-gotit");
   if (btnBndlGGotIt) btnBndlGGotIt.innerText = dict.btnBundleGuideGotIt;
 
-  // Item Detail Hub Modal DOM mappings
-  const itemDetailTitle = document.getElementById("item-detail-modal-title");
-  if (itemDetailTitle && (typeof itemDetailTitle.getAttribute !== "function" || !itemDetailTitle.getAttribute("data-custom-title"))) itemDetailTitle.innerText = dict.itemDetailTitle;
-  const itemNameLabel = document.getElementById("i18n-item-name-label");
-  if (itemNameLabel) itemNameLabel.innerHTML = `${dict.itemNameLabel} <span style="color: #dc2626;">*</span>`;
-  const itemPriceLabel = document.getElementById("i18n-item-price-label");
-  if (itemPriceLabel) itemPriceLabel.innerText = dict.itemPriceLabel;
-  const itemNameInput = document.getElementById("item-detail-name-input");
-  if (itemNameInput && typeof itemNameInput.setAttribute === "function") itemNameInput.setAttribute("placeholder", dict.itemNamePlaceholder);
-  const itemBadgeTitle = document.getElementById("i18n-item-badge-title");
-  if (itemBadgeTitle) itemBadgeTitle.innerText = dict.itemBadgeTitle;
-  const itemBadgeInput = document.getElementById("item-detail-badge-input");
-  if (itemBadgeInput && typeof itemBadgeInput.setAttribute === "function") itemBadgeInput.setAttribute("placeholder", dict.itemBadgePlaceholder);
-  const itemRecLabel = document.getElementById("i18n-item-recommended-label");
-  if (itemRecLabel) itemRecLabel.innerText = dict.itemRecommendedLabel;
-  const itemAdvTitle = document.getElementById("i18n-item-advanced-title");
-  if (itemAdvTitle) itemAdvTitle.innerText = dict.itemAdvancedTitle;
-  const cardModTitle = document.getElementById("i18n-card-mod-title");
-  if (cardModTitle) cardModTitle.innerText = dict.cardModifiersTitle;
-  const cardBundleTitle = document.getElementById("i18n-card-bundle-title");
-  if (cardBundleTitle) cardBundleTitle.innerText = dict.cardBundleTitle;
-  const btnItemPhotoUpload = document.getElementById("i18n-btn-item-photo-upload");
-  if (btnItemPhotoUpload) btnItemPhotoUpload.innerText = dict.btnUploadPhoto;
-  const btnItemPhotoRemove = document.getElementById("i18n-btn-item-photo-remove");
-  if (btnItemPhotoRemove) btnItemPhotoRemove.innerText = dict.btnRemovePhoto;
-  const spanCancel = document.getElementById("i18n-btn-item-detail-cancel");
-  if (spanCancel) spanCancel.innerText = dict.btnItemCancel;
-  else {
-    const btnItemDetailCancel = document.getElementById("btn-item-detail-cancel");
-    if (btnItemDetailCancel) btnItemDetailCancel.innerText = dict.btnItemCancel;
-  }
-  const spanDone = document.getElementById("i18n-btn-item-detail-done");
-  if (spanDone) spanDone.innerText = dict.btnDetailDone;
-  else {
-    const btnItemDetailDone = document.getElementById("btn-item-detail-done");
-    if (btnItemDetailDone && (typeof btnItemDetailDone.getAttribute !== "function" || !btnItemDetailDone.getAttribute("data-custom-text"))) btnItemDetailDone.innerText = dict.btnDetailDone;
-  }
+  window.PosItemDetailForm?.refreshLanguage();
   const spanModSave = document.getElementById("i18n-btn-item-mod-save");
   if (spanModSave) spanModSave.innerText = dict.btnItemModSave || dict.btnSave || "完成設定";
 
@@ -4211,16 +4172,7 @@ function applyLanguageToDOM() {
       ? formatMenuI18nSectionTitle()
       : dict.itemI18nSectionTitle;
   }
-  const itemEnNameLabel = document.getElementById("i18n-item-en-name-label");
-  if (itemEnNameLabel) itemEnNameLabel.innerText = dict.itemI18nEnName;
-  const itemEnBadgeLabel = document.getElementById("i18n-item-en-badge-label");
-  if (itemEnBadgeLabel) itemEnBadgeLabel.innerText = dict.itemI18nEnBadge;
-  const itemViNameLabel = document.getElementById("i18n-item-vi-name-label");
-  if (itemViNameLabel) itemViNameLabel.innerText = dict.itemI18nViName;
-  const itemViBadgeLabel = document.getElementById("i18n-item-vi-badge-label");
-  if (itemViBadgeLabel) itemViBadgeLabel.innerText = dict.itemI18nViBadge;
-  const btnItemAiTranslate = document.getElementById("i18n-btn-item-ai-translate");
-  if (btnItemAiTranslate) btnItemAiTranslate.innerText = dict.btnItemAiTranslate;
+
 }
 
 window.I18N = I18N;
