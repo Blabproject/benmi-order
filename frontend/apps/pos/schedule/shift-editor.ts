@@ -167,11 +167,27 @@ export function createShiftEditor(options: ShiftEditorOptions) {
       if (!canEdit()) return;
       const index = state.draft.length;
       state.draft.push({
-        id: `shift_${Date.now()}_${++newShiftId}`, name: defaultName(index), shiftType: 'operating', sortOrder: index, isActive: true,
+        id: `shift_${Date.now()}_${++newShiftId}`,
+        name: defaultName(index),
+        shiftType: 'operating',
+        displayMode: 'switcher',
+        diningPolicy: 'inherit',
+        sortOrder: index,
+        isActive: true,
         windows: Object.entries(state.hours).flatMap(([day, ranges]) => ranges.map(range => ({
           dayOfWeek: Number(day), startTime: range.start, endTime: range.end, isActive: true
         })))
       });
+      changed();
+    },
+    setDisplayMode(index: number, displayMode: 'switcher' | 'schedule_only' | 'qr_only') {
+      if (!canEdit() || !state.draft[index]) return;
+      state.draft[index].displayMode = displayMode;
+      changed();
+    },
+    setDiningPolicy(index: number, diningPolicy: 'inherit' | 'both' | 'takeaway_only' | 'dine_in_only') {
+      if (!canEdit() || !state.draft[index]) return;
+      state.draft[index].diningPolicy = diningPolicy;
       changed();
     },
     rename(index: number, value: string, commit = false) {

@@ -3,7 +3,7 @@ import { attachPayments } from './payments';
 import { writeDetailedOrder } from './order-detail-write';
 import { attachOrderDetails, detailReads } from './order-detail';
 import { unifiedMenuEnabled, validateUnifiedOrderItems, loadOptionCatalog } from './option-groups';
-import { hasDbTable, validateCatalogScheduleForItems, hasTenantMenuScheduleFeature } from './operating-shifts';
+import { hasDbTable, hasDbColumn, validateCatalogScheduleForItems, hasTenantMenuScheduleFeature, resolveOrderQrChannelAndShiftPolicy } from './operating-shifts';
 import { resolveOrderKey } from './order-identity';
 import { Env } from '../types/env';
 import { Order, DiningOption, AppendOrderPayload, OrderItemInput } from '../types/index';
@@ -422,6 +422,30 @@ export async function createOrder(
     diningOption = 'takeaway';
   }
 
+  const rawRequestedDining = data.dining_option || data.diningOption;
+  const attribution = await resolveOrderQrChannelAndShiftPolicy(env.DB, tenantId, data);
+  if (attribution.diningPolicy === 'takeaway_only') {
+    if (rawRequestedDining === 'dine_in') {
+      return json({
+        error: 'SHIFT_DINING_OPTION_FORBIDDEN',
+        message: 'Selected menu shift/collection only permits takeaway orders',
+        shiftId: attribution.shiftId,
+        diningPolicy: attribution.diningPolicy
+      }, 409);
+    }
+    diningOption = 'takeaway';
+  } else if (attribution.diningPolicy === 'dine_in_only' && (!tenantCtx || tenantHasFeature(tenantCtx, 'dine_in'))) {
+    if (rawRequestedDining === 'takeaway') {
+      return json({
+        error: 'SHIFT_DINING_OPTION_FORBIDDEN',
+        message: 'Selected menu shift/collection only permits dine-in orders',
+        shiftId: attribution.shiftId,
+        diningPolicy: attribution.diningPolicy
+      }, 409);
+    }
+    diningOption = 'dine_in';
+  }
+
   const orderUuid = data.uuid || data.order_uuid || null;
 
   // 0. Idempotency Check via UUID
@@ -627,11 +651,15 @@ export async function createOrder(
     note: data.note || "",
     diningOption: diningOption,
     tableNumber: tableNumber,
+    channelId: attribution.channelId,
+    channelLabel: attribution.channelLabel,
+    shiftId: attribution.shiftId,
     roundCount: 1,
     round_count: 1
   };
 
   let receipt: Awaited<ReturnType<typeof prepareOrderReceipt>> = null;
+  const hasAttrCols = env.DB ? await hasDbColumn(env.DB, 'orders', 'channel_id') : false;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       receipt = await prepareOrderReceipt(env, tenantId, order.key, order.userId, 'create',
@@ -644,10 +672,13 @@ export async function createOrder(
             .bind(tenantId, order.tableNumber).first<{ id: string }>();
           if (tblRow) tableId = tblRow.id;
         }
+        const attrColNames = hasAttrCols ? ', channel_id, channel_label, shift_id' : '';
+        const attrColPlaceholders = hasAttrCols ? ', ?, ?, ?' : '';
+        const attrBindings = hasAttrCols ? [order.channelId || null, order.channelLabel || null, order.shiftId || null] : [];
         const batchStatements: any[] = [
           env.DB.prepare(
-            `INSERT INTO orders (key, order_id, display_key, business_date, uuid, tenant_id, user_id, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, table_id, round_count, last_appended_at, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?, ?, ?, 1, NULL, datetime(?, 'unixepoch'), datetime('now'))`
+            `INSERT INTO orders (key, order_id, display_key, business_date, uuid, tenant_id, user_id, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, table_id${attrColNames}, round_count, last_appended_at, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?, ?, ?${attrColPlaceholders}, 1, NULL, datetime(?, 'unixepoch'), datetime('now'))`
           ).bind(
             order.key,
             order.orderId,
@@ -665,6 +696,7 @@ export async function createOrder(
             order.diningOption || "takeaway",
             order.tableNumber || null,
             tableId || null,
+            ...attrBindings,
             Math.floor((order.createdAt || Date.now()) / 1000)
           ),
           ...rawItems.map(item => {
@@ -1569,9 +1601,13 @@ export async function saveOrder(env: Env, order: Order, tenantId: string, create
       .bind(tenantId, order.tableNumber).first<{ id: string }>();
     if (tblRow) tableId = tblRow.id;
   }
+  const hasAttrCols = env.DB ? await hasDbColumn(env.DB, 'orders', 'channel_id') : false;
+  const attrColNames = hasAttrCols ? ', channel_id, channel_label, shift_id' : '';
+  const attrColPlaceholders = hasAttrCols ? ', ?, ?, ?' : '';
+  const attrBindings = hasAttrCols ? [order.channelId || null, order.channelLabel || null, order.shiftId || null] : [];
   const statement = env.DB.prepare(
-    `INSERT INTO orders (key, order_id, display_key, business_date, uuid, tenant_id, user_id, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, table_id, round_count, last_appended_at, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, 1), ?, datetime(?, 'unixepoch'), datetime('now'))
+    `INSERT INTO orders (key, order_id, display_key, business_date, uuid, tenant_id, user_id, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, table_id${attrColNames}, round_count, last_appended_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${attrColPlaceholders}, COALESCE(?, 1), ?, datetime(?, 'unixepoch'), datetime('now'))
      ${createOnly ? '' : `ON CONFLICT(key) DO UPDATE SET
        uuid = CASE WHEN excluded.uuid IS NOT NULL THEN excluded.uuid ELSE orders.uuid END,
        status = CASE
@@ -1609,6 +1645,7 @@ export async function saveOrder(env: Env, order: Order, tenantId: string, create
     order.diningOption || "takeaway",
     order.tableNumber || null,
     tableId || null,
+    ...attrBindings,
     order.roundCount || order.round_count || 1,
     order.lastAppendedAt || order.last_appended_at || null,
     Math.floor((order.createdAt || Date.now()) / 1000)

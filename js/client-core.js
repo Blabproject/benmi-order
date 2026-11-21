@@ -592,6 +592,275 @@ function getModifierPrice(optIdOrName, contextItemOrGroup) {
 }
 
 // Dining Option State ('takeaway' | 'dine_in')
+function getClientUrlParams() {
+    if (typeof getUrlParamsWithLiffState === 'function') {
+        return getUrlParamsWithLiffState();
+    }
+    const merged = new URLSearchParams();
+    try {
+        const direct = new URLSearchParams(window.location.search || '');
+        for (const [k, v] of direct.entries()) {
+            if (k !== 'liff.state') merged.set(k, v);
+        }
+        const liffState = direct.get('liff.state');
+        if (liffState) {
+            const decoded = decodeURIComponent(liffState);
+            const qIdx = decoded.indexOf('?');
+            const stateParams = new URLSearchParams(qIdx >= 0 ? decoded.slice(qIdx + 1) : decoded);
+            for (const [k, v] of stateParams.entries()) merged.set(k, v);
+        }
+        if (window.location.hash) {
+            const rawHash = decodeURIComponent(window.location.hash.substring(1));
+            const hqIdx = rawHash.indexOf('?');
+            const hashParams = new URLSearchParams(hqIdx >= 0 ? rawHash.slice(hqIdx + 1) : rawHash);
+            for (const [k, v] of hashParams.entries()) merged.set(k, v);
+        }
+    } catch (e) {}
+    return merged;
+}
+window.getClientUrlParams = getClientUrlParams;
+
+function resolveQrChannelAndInitialCollection(tenant) {
+    if (!tenant || window.isStaffOrderMode || window.isEditOrderMode) return;
+    const params = getClientUrlParams();
+    const rawCh = (params.get('ch') || params.get('channel') || '').trim();
+    const rawTag = (params.get('tag') || '').trim();
+    const rawCol = (params.get('collection') || params.get('shift') || '').trim();
+
+    const channels = Array.isArray(tenant.qrChannels) ? tenant.qrChannels : [];
+    let resolvedChannel = null;
+    if (rawCh) {
+        const matched = channels.find(c => c && c.isActive !== false && (c.code === rawCh || c.id === rawCh));
+        resolvedChannel = matched || { id: null, code: rawCh, label: rawTag || rawCh, defaultShiftId: null, defaultLocale: null };
+    } else if (rawTag) {
+        const matched = channels.find(c => c && c.isActive !== false && (c.label === rawTag || c.code === rawTag));
+        resolvedChannel = matched || { id: null, code: null, label: rawTag, defaultShiftId: null, defaultLocale: null };
+    }
+    if (resolvedChannel) {
+        window.currentQrChannel = resolvedChannel;
+    } else if (!window.__qrChannelResolvedOnce) {
+        window.currentQrChannel = null;
+    }
+
+    const shifts = Array.isArray(tenant.operatingShifts) ? tenant.operatingShifts : [];
+    if (!window.__collectionUrlResolvedOnce) {
+        const targetColId = rawCol || (resolvedChannel && resolvedChannel.defaultShiftId) || '';
+        if (targetColId) {
+            const matchedShift = shifts.find(s => s && s.isActive !== false && s.id === targetColId);
+            if (matchedShift) {
+                window.selectedMenuCollectionId = matchedShift.id;
+                window.__collectionUrlResolvedOnce = true;
+            }
+        }
+    }
+    window.__qrChannelResolvedOnce = true;
+}
+window.resolveQrChannelAndInitialCollection = resolveQrChannelAndInitialCollection;
+
+function renderQrChannelBanner() {
+    const banner = document.getElementById('qr-channel-banner');
+    const labelEl = document.getElementById('qr-channel-banner-label');
+    if (!banner || !labelEl) return;
+
+    const ch = window.currentQrChannel;
+    if (!ch || !ch.label || window.isStaffOrderMode || window.isAppendMode || window.currentTableNumber) {
+        banner.style.display = 'none';
+        return;
+    }
+    const localizedLabel = typeof locText === 'function' ? locText(ch, 'label', ch.label) : ch.label;
+    labelEl.textContent = localizedLabel || ch.label;
+    banner.style.display = 'flex';
+}
+window.renderQrChannelBanner = renderQrChannelBanner;
+
+function formatCollectionWindowSummary(shift) {
+    if (!shift || !Array.isArray(shift.windows) || shift.windows.length === 0) return '';
+    const unique = [];
+    for (const w of shift.windows) {
+        if (!w || w.isActive === false) continue;
+        const range = `${w.startTime}–${w.endTime}`;
+        if (!unique.includes(range)) unique.push(range);
+    }
+    if (unique.length === 1) return unique[0];
+    return unique.length > 1 ? unique[0] : '';
+}
+
+function findNextCollectionSlot(shift) {
+    if (!shift || typeof MenuSchedule === 'undefined' || typeof MenuSchedule.isShiftActiveAt !== 'function') return null;
+    const twNow = getTaiwanDate();
+    const prepMinutes = Number(storeConfig?.prepTimeMinutes ?? 5) || 0;
+    const isBusy = storeConfig?.storeStatus === 'busy';
+    const minTodayMin = twNow.getHours() * 60 + twNow.getMinutes() + prepMinutes + (isBusy ? 60 : 0);
+
+    for (let offset = 0; offset <= 7; offset++) {
+        const dObj = new Date(twNow.getTime() + offset * 86400000);
+        const { dateStr } = formatTaiwanDateTime(dObj);
+        const slots = typeof generatePickupSlots === 'function'
+            ? generatePickupSlots(dateStr)
+            : (() => {
+                const list = [];
+                const startM = offset === 0 ? Math.ceil(minTodayMin / 15) * 15 : 0;
+                for (let m = startM; m < 1440; m += 15) {
+                    const hh = String(Math.floor(m / 60)).padStart(2, '0');
+                    const mm = String(m % 60).padStart(2, '0');
+                    list.push(`${hh}:${mm}`);
+                }
+                return list;
+            })();
+        for (const timeStr of slots) {
+            if (MenuSchedule.isShiftActiveAt(shift, { dateStr, timeStr }, { inclusiveEnd: true })) {
+                return { dateStr, timeStr };
+            }
+        }
+    }
+    return null;
+}
+
+function syncCollectionPickupSlotIfNeeded(shift) {
+    if (!shift || window.isStaffOrderMode || window.isEditOrderMode || window.isAppendMode || window.currentTableNumber) return;
+    if (window.isPickupTimeManuallyChanged) return;
+    if (storeConfig && storeConfig.allowScheduledPickup === false) return;
+    if (typeof MenuSchedule === 'undefined' || typeof MenuSchedule.isShiftActiveAt !== 'function') return;
+
+    const twNow = getTaiwanDate();
+    const targetInfo = typeof getEffectiveMenuScheduleTime === 'function' ? getEffectiveMenuScheduleTime() : { dateStr: '', timeStr: '' };
+    const evalTarget = targetInfo.dateStr && targetInfo.timeStr ? { dateStr: targetInfo.dateStr, timeStr: targetInfo.timeStr } : twNow;
+    if (MenuSchedule.isShiftActiveAt(shift, evalTarget, { inclusiveEnd: Boolean(targetInfo.isScheduled) })) {
+        return;
+    }
+
+    const nextSlot = findNextCollectionSlot(shift);
+    if (!nextSlot) return;
+
+    const dateEl = document.getElementById('pickup-date');
+    const timeEl = document.getElementById('pickup-time');
+    if (dateEl) dateEl.value = nextSlot.dateStr;
+    if (timeEl) timeEl.value = nextSlot.timeStr;
+    if (typeof pickupTimePickerState !== 'undefined' && pickupTimePickerState) {
+        pickupTimePickerState.selectedDate = nextSlot.dateStr;
+        pickupTimePickerState.selectedTime = nextSlot.timeStr;
+        pickupTimePickerState.selectedType = 'slot';
+    }
+    window.__collectionAutoSnappedTime = true;
+    if (typeof syncPickupTimeDisplay === 'function') syncPickupTimeDisplay();
+}
+
+function getSelectedMenuCollectionShift() {
+    const selectedId = window.selectedMenuCollectionId;
+    if (!selectedId) return null;
+    const shifts = Array.isArray(storeConfig?.operatingShifts)
+        ? storeConfig.operatingShifts
+        : (Array.isArray(window.bootstrapData?.tenant?.operatingShifts) ? window.bootstrapData.tenant.operatingShifts : []);
+    return shifts.find(s => s && s.id === selectedId) || null;
+}
+window.getSelectedMenuCollectionShift = getSelectedMenuCollectionShift;
+
+function renderMenuCollectionSwitcher() {
+    const wrapper = document.getElementById('collection-switcher-wrapper');
+    const bar = document.getElementById('collection-switcher-bar');
+    const banner = document.getElementById('collection-schedule-banner');
+    if (!wrapper || !bar) return;
+
+    const features = Array.isArray(storeConfig?.features)
+        ? storeConfig.features
+        : (Array.isArray(window.bootstrapData?.tenant?.features) ? window.bootstrapData.tenant.features : []);
+    const hasMenuSchedule = features.includes('menu_schedule');
+    const shifts = Array.isArray(storeConfig?.operatingShifts)
+        ? storeConfig.operatingShifts
+        : (Array.isArray(window.bootstrapData?.tenant?.operatingShifts) ? window.bootstrapData.tenant.operatingShifts : []);
+
+    const activeId = window.selectedMenuCollectionId || '';
+    const visibleShifts = shifts.filter(s =>
+        s && s.isActive !== false &&
+        ((s.displayMode !== 'schedule_only' && s.displayMode !== 'qr_only') || s.id === activeId)
+    );
+
+    if (!hasMenuSchedule || visibleShifts.length === 0 || window.isStaffOrderMode || window.isEditOrderMode) {
+        wrapper.style.display = 'none';
+        if (!hasMenuSchedule) window.selectedMenuCollectionId = null;
+        return;
+    }
+
+    const locale = window.currentClientLocale || 'zh-TW';
+    const tFn = (key, vars, fallback) => (typeof ct === 'function' ? ct(key, vars) : fallback);
+    const allLabel = tFn('collection_all_label', null, '全部菜單');
+    const allSub = tFn('collection_all_sub', null, '依目前時段');
+
+    let html = `<button type="button" class="collection-seg-btn ${!activeId ? 'active' : ''}" data-collection-id="" role="tab" aria-selected="${!activeId}" onclick="setCustomerMenuCollection('')">
+        <span class="collection-seg-title">${escapeHtml(allLabel)}</span>
+        <span class="collection-seg-time">${escapeHtml(allSub)}</span>
+    </button>`;
+
+    for (const shift of visibleShifts) {
+        const isActive = activeId === shift.id;
+        const localizedName = (typeof MenuSchedule !== 'undefined' && typeof MenuSchedule.getLocalizedShiftName === 'function')
+            ? MenuSchedule.getLocalizedShiftName(shift, locale)
+            : shift.name;
+        const winSummary = formatCollectionWindowSummary(shift);
+        html += `<button type="button" class="collection-seg-btn ${isActive ? 'active' : ''}" data-collection-id="${escapeHtml(shift.id)}" role="tab" aria-selected="${isActive}" onclick="setCustomerMenuCollection('${escapeHtml(shift.id)}')">
+            <span class="collection-seg-title">${escapeHtml(localizedName)}</span>
+            ${winSummary ? `<span class="collection-seg-time">${escapeHtml(winSummary)}</span>` : ''}
+        </button>`;
+    }
+
+    bar.innerHTML = html;
+    wrapper.style.display = 'block';
+
+    if (banner) {
+        const selectedShift = visibleShifts.find(s => s.id === activeId) || null;
+        if (!selectedShift) {
+            banner.style.display = 'none';
+            banner.className = 'collection-schedule-banner';
+        } else {
+            const twNow = getTaiwanDate();
+            const isOpenNow = (typeof MenuSchedule !== 'undefined' && typeof MenuSchedule.isShiftActiveAt === 'function')
+                ? MenuSchedule.isShiftActiveAt(selectedShift, twNow)
+                : true;
+            const winLabel = formatCollectionWindowSummary(selectedShift);
+            const allowScheduled = !storeConfig || storeConfig.allowScheduledPickup !== false;
+            if (!isOpenNow && winLabel) {
+                banner.textContent = allowScheduled
+                    ? tFn('collection_scheduled_hint', { window: winLabel }, `此時段供應時間為 ${winLabel}，已自動切換為預約時段`)
+                    : tFn('collection_preview_hint', { window: winLabel }, `此時段供應時間為 ${winLabel}（目前僅供瀏覽）`);
+                banner.className = 'collection-schedule-banner is-outside';
+                banner.style.display = 'block';
+            } else if (selectedShift.diningPolicy === 'takeaway_only') {
+                banner.textContent = tFn('collection_takeaway_only_hint', null, '此時段僅供外帶自取');
+                banner.className = 'collection-schedule-banner is-takeaway-only';
+                banner.style.display = 'block';
+            } else {
+                banner.style.display = 'none';
+                banner.className = 'collection-schedule-banner';
+            }
+        }
+    }
+}
+window.renderMenuCollectionSwitcher = renderMenuCollectionSwitcher;
+
+function setCustomerMenuCollection(shiftId) {
+    const nextId = shiftId ? String(shiftId).trim() : '';
+    window.selectedMenuCollectionId = nextId || null;
+    window.isPickupTimeManuallyChanged = false;
+
+    const shift = getSelectedMenuCollectionShift();
+    if (!nextId) {
+        if (window.__collectionAutoSnappedTime && typeof resetPickupTimeToDefault === 'function') {
+            resetPickupTimeToDefault();
+        }
+        window.__collectionAutoSnappedTime = false;
+    } else if (shift) {
+        if (shift.diningPolicy === 'takeaway_only' && !window.isAppendMode && !window.currentTableNumber) {
+            window.currentDiningOption = 'takeaway';
+        } else if (shift.diningPolicy === 'dine_in_only' && storeConfig?.allowDineIn !== false && Array.isArray(storeConfig?.features) && storeConfig.features.includes('dine_in')) {
+            window.currentDiningOption = 'dine_in';
+        }
+        syncCollectionPickupSlotIfNeeded(shift);
+    }
+
+    applyPickupConfig();
+}
+window.setCustomerMenuCollection = setCustomerMenuCollection;
+
 function setCustomerDiningOption(opt) {
     if (opt !== 'takeaway' && opt !== 'dine_in') return;
     window.currentDiningOption = opt;
@@ -753,6 +1022,9 @@ function applyTenantTheme(tenant, skipLocaleInit = false) {
             localStorage.setItem("tenant_branding_" + tenantId, JSON.stringify(tenant));
             localStorage.setItem("tenant_theme_" + tenantId, JSON.stringify(tenant));
         } catch(e) {}
+        if (typeof resolveQrChannelAndInitialCollection === 'function') {
+            resolveQrChannelAndInitialCollection(tenant);
+        }
         if (typeof window.initClientLocale === 'function') {
             window.initClientLocale(tenant);
         }
@@ -810,6 +1082,9 @@ function applyTenantTheme(tenant, skipLocaleInit = false) {
     if (Array.isArray(tenant.operatingShifts)) {
         storeConfig.operatingShifts = tenant.operatingShifts;
     }
+    if (Array.isArray(tenant.qrChannels)) {
+        storeConfig.qrChannels = tenant.qrChannels;
+    }
     if (tenant.parsedHours) {
         storeConfig.operatingHours = tenant.parsedHours;
     } else if (tenant.operatingHours) {
@@ -821,6 +1096,7 @@ function applyTenantTheme(tenant, skipLocaleInit = false) {
     if (tenant.features) storeConfig.features = tenant.features;
     if (tenant.allowScheduledPickup !== undefined) storeConfig.allowScheduledPickup = tenant.allowScheduledPickup;
     if (tenant.allowDineIn !== undefined) storeConfig.allowDineIn = tenant.allowDineIn;
+    if (tenant.dineInTableMode) storeConfig.dineInTableMode = tenant.dineInTableMode;
     if (tenant.storeStatus) storeConfig.storeStatus = tenant.storeStatus;
     if (tenant.prepTimeMinutes !== undefined) {
         storeConfig.prepTimeMinutes = Number(tenant.prepTimeMinutes);
@@ -915,16 +1191,24 @@ function applyPickupConfig() {
     const dineInNotice = document.getElementById('pickup-time-dinein-notice');
     const diningWrapper = document.getElementById('dining-option-wrapper');
     const checkoutDiningGroup = document.getElementById('checkout-dining-option-group');
+    const selectedShift = typeof getSelectedMenuCollectionShift === 'function' ? getSelectedMenuCollectionShift() : null;
+    const showLegacyDiningToggle = Boolean(window.enableLegacyDiningToggle);
 
     if (window.isAppendMode || window.currentTableNumber) {
         window.currentDiningOption = 'dine_in';
         if (diningWrapper) diningWrapper.style.display = 'none';
         if (checkoutDiningGroup) checkoutDiningGroup.style.display = 'none';
+    } else if (selectedShift && selectedShift.diningPolicy === 'takeaway_only') {
+        window.currentDiningOption = 'takeaway';
+        if (diningWrapper) diningWrapper.style.display = 'none';
+        if (checkoutDiningGroup) checkoutDiningGroup.style.display = 'none';
     } else {
         const hasDineInFeature = Boolean(storeConfig && Array.isArray(storeConfig.features) && storeConfig.features.includes('dine_in'));
-        const isDineInAllowed = hasDineInFeature && !(storeConfig && storeConfig.allowDineIn === false);
+        const isDineInAllowed = showLegacyDiningToggle && hasDineInFeature && !(storeConfig && storeConfig.allowDineIn === false);
         if (!isDineInAllowed) {
-            window.currentDiningOption = 'takeaway';
+            if (!selectedShift || selectedShift.diningPolicy !== 'dine_in_only' || !hasDineInFeature || storeConfig?.allowDineIn === false) {
+                window.currentDiningOption = 'takeaway';
+            }
             if (diningWrapper) diningWrapper.style.display = 'none';
             if (checkoutDiningGroup) checkoutDiningGroup.style.display = 'none';
         } else {
@@ -943,8 +1227,9 @@ function applyPickupConfig() {
         if (pickerGroup) pickerGroup.style.display = 'none';
         if (asapNotice) asapNotice.style.display = 'none';
         if (dineInNotice) dineInNotice.style.display = window.isStaffOrderMode ? 'none' : 'block';
+        const hideTableInput = Boolean(window.isAppendMode || (storeConfig && storeConfig.dineInTableMode === 'none'));
         if (tableGroup) {
-            tableGroup.style.display = window.isAppendMode ? 'none' : 'block';
+            tableGroup.style.display = hideTableInput ? 'none' : 'block';
             if (window.currentTableNumber) {
                 const tableInput = document.getElementById('dinein-table-number');
                 if (tableInput) {
@@ -971,8 +1256,13 @@ function applyPickupConfig() {
             if (typeof initPickupTimePicker === 'function') {
                 initPickupTimePicker();
             }
+            if (selectedShift) {
+                syncCollectionPickupSlotIfNeeded(selectedShift);
+            }
         }
     }
+    if (typeof renderQrChannelBanner === 'function') renderQrChannelBanner();
+    if (typeof renderMenuCollectionSwitcher === 'function') renderMenuCollectionSwitcher();
     if (typeof renderDynamicCatalog === 'function' && (window.bootstrapData?.catalog || (typeof bootstrapData !== 'undefined' && bootstrapData?.catalog))) {
         renderDynamicCatalog();
         if (typeof updateTotal === 'function') updateTotal();
@@ -1215,7 +1505,7 @@ function getLiffLoginRedirectUri() {
     if (!activeLiffConfig?.liffEndpointUrl) throw new Error('LINE endpoint configuration unavailable');
     const target = new URL(activeLiffConfig.liffEndpointUrl);
     const current = new URL(window.location.href);
-    const businessKeys = ['mode', 'order_key', 'key', 'parent_order_key', 'parent_display_key', 'display_key', 'table', 'table_number', 'takeaway', 'lang'];
+    const businessKeys = ['mode', 'order_key', 'key', 'parent_order_key', 'parent_display_key', 'display_key', 'table', 'table_number', 'takeaway', 'lang', 'collection', 'shift', 'ch', 'channel', 'tag'];
     const hashParams = new URLSearchParams(current.hash.replace(/^#/, ''));
     businessKeys.forEach(key => {
         const value = current.searchParams.get(key) ?? hashParams.get(key);
@@ -1485,7 +1775,7 @@ function hasConfiguredOperatingHours(cfg = storeConfig) {
 }
 
 function getEffectiveMenuScheduleTime() {
-    const orderType = (typeof window !== 'undefined' && window.selectedOrderType)
+    const orderType = (typeof window !== 'undefined' && (window.currentDiningOption || window.selectedOrderType))
         || (typeof selectedOrderType !== 'undefined' ? selectedOrderType : 'takeaway');
     const allowScheduled = !storeConfig || storeConfig.allowScheduledPickup !== false;
     if (orderType === 'takeaway' && allowScheduled && !window.isStaffOrderMode && typeof document !== 'undefined') {
@@ -1777,11 +2067,14 @@ async function initApp() {
                 storeConfig = {
                     allowScheduledPickup: parsed.tenant.allowScheduledPickup,
                     allowDineIn: parsed.tenant.allowDineIn,
+                    dineInTableMode: parsed.tenant.dineInTableMode || 'required',
                     features: parsed.tenant.features || [],
                     orderPrefix: parsed.tenant.orderPrefix,
                     storeStatus: parsed.tenant.storeStatus,
                     prepTimeMinutes: parsed.tenant.prepTimeMinutes !== undefined ? Number(parsed.tenant.prepTimeMinutes) : 5,
                     operatingHours: parsed.tenant.parsedHours,
+                    operatingShifts: parsed.tenant.operatingShifts || [],
+                    qrChannels: parsed.tenant.qrChannels || [],
                     liffId: parsed.tenant.liffId
                 };
                 window.storeConfig = storeConfig;

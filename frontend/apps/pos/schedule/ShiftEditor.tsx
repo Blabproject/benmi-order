@@ -52,6 +52,27 @@ export function ShiftEditor({ editor, dayNames, t, assignmentBusy, openHours }: 
                   onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} />
                 <Button variant="outline" className="ms-shift-delete-btn" onClick={() => editor.remove(index)}>{t('shiftDeleteBtn')}</Button>
               </div>
+              <div className="ms-shift-meta-row">
+                <label className="ms-shift-meta-field">
+                  <span className="ms-shift-meta-label">{t('shiftDisplayModeLabel')}</span>
+                  <select className="ms-shift-meta-select" value={shift.displayMode ?? 'switcher'}
+                    onChange={event => editor.setDisplayMode(index, event.currentTarget.value as 'switcher' | 'schedule_only' | 'qr_only')}>
+                    <option value="switcher">{t('shiftDisplayModeSwitcher')}</option>
+                    <option value="schedule_only">{t('shiftDisplayModeScheduleOnly')}</option>
+                    <option value="qr_only">{t('shiftDisplayModeQrOnly')}</option>
+                  </select>
+                </label>
+                <label className="ms-shift-meta-field">
+                  <span className="ms-shift-meta-label">{t('shiftDiningPolicyLabel')}</span>
+                  <select className="ms-shift-meta-select" value={shift.diningPolicy ?? 'inherit'}
+                    onChange={event => editor.setDiningPolicy(index, event.currentTarget.value as 'inherit' | 'both' | 'takeaway_only' | 'dine_in_only')}>
+                    <option value="inherit">{t('shiftDiningPolicyInherit')}</option>
+                    <option value="both">{t('shiftDiningPolicyBoth')}</option>
+                    <option value="takeaway_only">{t('shiftDiningPolicyTakeawayOnly')}</option>
+                    <option value="dine_in_only">{t('shiftDiningPolicyDineInOnly')}</option>
+                  </select>
+                </label>
+              </div>
               {bands.map((band, bandIndex) => {
                 const invalid = [...coverage, ...serverConflicts].some(conflict =>
                   conflict.shiftId === shift.id && conflict.startTime === band.startTime && conflict.endTime === band.endTime);

@@ -8,14 +8,30 @@ export interface OperatingShiftWindowDto {
   isActive?: boolean;
 }
 
+export type ShiftDisplayMode = 'switcher' | 'schedule_only' | 'qr_only';
+export type ShiftDiningPolicy = 'inherit' | 'both' | 'takeaway_only' | 'dine_in_only';
+
 export interface OperatingShiftDto {
   id: string;
   name: string;
   i18n?: Record<string, { name?: string }>;
   shiftType: 'operating' | 'menu_window';
+  displayMode?: ShiftDisplayMode;
+  diningPolicy?: ShiftDiningPolicy;
   sortOrder: number;
   isActive: boolean;
   windows: OperatingShiftWindowDto[];
+}
+
+export interface QrChannelDto {
+  id: string;
+  code: string;
+  label: string;
+  i18n?: Record<string, { label?: string; name?: string }>;
+  defaultShiftId?: string | null;
+  defaultLocale?: string | null;
+  sortOrder: number;
+  isActive: boolean;
 }
 
 export function parseFeaturesArray(raw: unknown): string[] {
@@ -110,17 +126,38 @@ export function serializeShiftI18n(input: unknown): string {
   return Object.keys(parsed).length > 0 ? JSON.stringify(parsed) : '{}';
 }
 
+function normalizeDisplayMode(raw: unknown): ShiftDisplayMode {
+  return raw === 'schedule_only' || raw === 'qr_only' ? raw : 'switcher';
+}
+
+function normalizeDiningPolicy(raw: unknown): ShiftDiningPolicy {
+  return raw === 'both' || raw === 'takeaway_only' || raw === 'dine_in_only' ? raw : 'inherit';
+}
+
 export async function loadTenantOperatingShifts(db: D1Database | undefined | null, tenantId: string): Promise<OperatingShiftDto[]> {
   if (!db) return [];
-  const [hasShiftsTable, hasHoursTable] = await Promise.all([
+  const [hasShiftsTable, hasHoursTable, hasDisplayCol, hasPolicyCol] = await Promise.all([
     hasDbTable(db, 'tenant_operating_shifts'),
     hasDbTable(db, 'tenant_operating_hours'),
+    hasDbColumn(db, 'tenant_operating_shifts', 'display_mode'),
+    hasDbColumn(db, 'tenant_operating_shifts', 'dining_policy'),
   ]);
   if (!hasShiftsTable || !hasHoursTable) return [];
 
+  const shiftCols = [
+    'id',
+    'name',
+    'i18n_json',
+    'shift_type',
+    ...(hasDisplayCol ? ['display_mode'] : []),
+    ...(hasPolicyCol ? ['dining_policy'] : []),
+    'sort_order',
+    'is_active',
+  ].join(', ');
+
   const [shiftsRes, hoursRes] = await db.batch([
     db.prepare(
-      `SELECT id, name, i18n_json, shift_type, sort_order, is_active
+      `SELECT ${shiftCols}
        FROM tenant_operating_shifts
        WHERE tenant_id = ?
        ORDER BY sort_order ASC, rowid ASC`
@@ -156,6 +193,8 @@ export async function loadTenantOperatingShifts(db: D1Database | undefined | nul
       name: String(s.name || `Shift ${idx + 1}`),
       ...(Object.keys(i18n).length > 0 ? { i18n } : {}),
       shiftType: s.shift_type === 'menu_window' ? 'menu_window' : 'operating',
+      displayMode: normalizeDisplayMode(s.display_mode),
+      diningPolicy: normalizeDiningPolicy(s.dining_policy),
       sortOrder: Number(s.sort_order ?? idx),
       isActive: s.is_active !== 0,
       windows: windowsByShiftId.get(String(s.id)) || [],
@@ -254,6 +293,8 @@ export function normalizeIncomingShifts(rawShifts: unknown, tenantId: string): O
       name,
       i18n: parseShiftI18n(raw.i18n ?? raw.i18n_json),
       shiftType,
+      displayMode: normalizeDisplayMode(raw.displayMode ?? raw.display_mode),
+      diningPolicy: normalizeDiningPolicy(raw.diningPolicy ?? raw.dining_policy),
       sortOrder: Number.isFinite(Number(raw.sortOrder ?? raw.sort_order)) ? Number(raw.sortOrder ?? raw.sort_order) : idx,
       isActive: raw.isActive !== undefined ? Boolean(raw.isActive) : (raw.is_active !== undefined ? Boolean(raw.is_active) : true),
       windows,
@@ -355,21 +396,37 @@ export async function saveTenantOperatingShifts(
   const incomingSet = new Set(incomingShiftIds);
   const removedShiftIds = existingShiftIds.filter((id) => !incomingSet.has(id));
 
+  const [hasDisplayCol, hasPolicyCol] = await Promise.all([
+    hasDbColumn(db, 'tenant_operating_shifts', 'display_mode'),
+    hasDbColumn(db, 'tenant_operating_shifts', 'dining_policy'),
+  ]);
+
   const statements: D1PreparedStatement[] = [];
   for (const sid of removedShiftIds) {
     statements.push(db.prepare('DELETE FROM tenant_operating_shifts WHERE tenant_id = ? AND id = ?').bind(tenantId, sid));
   }
 
   for (const shift of shifts) {
+    const extraCols = [
+      ...(hasDisplayCol ? ['display_mode'] : []),
+      ...(hasPolicyCol ? ['dining_policy'] : []),
+    ];
+    const extraPlaceholders = extraCols.map(() => '?').join(', ');
+    const extraUpdates = extraCols.map((col) => `${col} = excluded.${col}`).join(',\n           ');
+    const extraBindings = [
+      ...(hasDisplayCol ? [normalizeDisplayMode(shift.displayMode)] : []),
+      ...(hasPolicyCol ? [normalizeDiningPolicy(shift.diningPolicy)] : []),
+    ];
+
     statements.push(
       db.prepare(
-        `INSERT INTO tenant_operating_shifts (id, tenant_id, name, i18n_json, shift_type, sort_order, is_active, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        `INSERT INTO tenant_operating_shifts (id, tenant_id, name, i18n_json, shift_type, ${extraCols.length ? `${extraCols.join(', ')}, ` : ''}sort_order, is_active, updated_at)
+         VALUES (?, ?, ?, ?, ?, ${extraCols.length ? `${extraPlaceholders}, ` : ''}?, ?, CURRENT_TIMESTAMP)
          ON CONFLICT(id) DO UPDATE SET
            name = excluded.name,
            i18n_json = excluded.i18n_json,
            shift_type = excluded.shift_type,
-           sort_order = excluded.sort_order,
+           ${extraUpdates ? `${extraUpdates},\n           ` : ''}sort_order = excluded.sort_order,
            is_active = excluded.is_active,
            updated_at = CURRENT_TIMESTAMP
          WHERE tenant_operating_shifts.tenant_id = excluded.tenant_id`
@@ -379,6 +436,7 @@ export async function saveTenantOperatingShifts(
         shift.name,
         serializeShiftI18n(shift.i18n),
         shift.shiftType,
+        ...extraBindings,
         shift.sortOrder,
         shift.isActive ? 1 : 0
       )
@@ -485,4 +543,189 @@ export function validateCatalogScheduleForItems(
     valid: unavailableItemNames.length === 0,
     unavailableItemNames,
   };
+}
+
+function parseChannelI18n(raw: unknown): Record<string, { label?: string; name?: string }> {
+  if (!raw) return {};
+  let parsed: unknown = raw;
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed || trimmed === '{}') return {};
+    try { parsed = JSON.parse(trimmed); } catch { return {}; }
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+  const out: Record<string, { label?: string; name?: string }> = {};
+  for (const [locale, entry] of Object.entries(parsed as Record<string, unknown>)) {
+    if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+      const label = typeof (entry as any).label === 'string'
+        ? (entry as any).label.trim()
+        : (typeof (entry as any).name === 'string' ? (entry as any).name.trim() : '');
+      if (label) out[locale] = { label, name: label };
+    }
+  }
+  return out;
+}
+
+function normalizeChannelCode(rawCode: unknown, fallbackLabel: string): string {
+  const candidate = typeof rawCode === 'string' && rawCode.trim() ? rawCode.trim() : fallbackLabel;
+  const ascii = candidate
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 40);
+  return ascii || `ch_${crypto.randomUUID().slice(0, 8)}`;
+}
+
+export async function loadTenantQrChannels(
+  db: D1Database | undefined | null,
+  tenantId: string
+): Promise<QrChannelDto[]> {
+  if (!db || !tenantId || !await hasDbTable(db, 'tenant_qr_channels')) return [];
+  const res = await db.prepare(
+    `SELECT id, code, label, i18n_json, default_shift_id, default_locale, sort_order, is_active
+     FROM tenant_qr_channels
+     WHERE tenant_id = ?
+     ORDER BY sort_order ASC, rowid ASC`
+  ).bind(tenantId).all<any>();
+  const rows = Array.isArray(res?.results) ? res.results : [];
+  return rows.map((r, idx) => {
+    const i18n = parseChannelI18n(r.i18n_json);
+    return {
+      id: String(r.id),
+      code: String(r.code),
+      label: String(r.label),
+      ...(Object.keys(i18n).length > 0 ? { i18n } : {}),
+      defaultShiftId: r.default_shift_id ? String(r.default_shift_id) : null,
+      defaultLocale: r.default_locale ? String(r.default_locale) : null,
+      sortOrder: Number(r.sort_order ?? idx),
+      isActive: r.is_active !== 0,
+    };
+  });
+}
+
+export async function saveTenantQrChannel(
+  db: D1Database,
+  tenantId: string,
+  raw: Record<string, unknown>
+): Promise<QrChannelDto> {
+  if (!await hasDbTable(db, 'tenant_qr_channels')) {
+    throw new ScheduleIntegrityError('QR_CHANNELS_SCHEMA_NOT_READY', 503);
+  }
+  const label = typeof raw.label === 'string' ? raw.label.trim().slice(0, 80) : '';
+  if (!label) throw new ScheduleIntegrityError('QR_CHANNEL_LABEL_REQUIRED', 400);
+
+  const requestedId = typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : '';
+  if (requestedId) {
+    const owner = await db.prepare('SELECT tenant_id FROM tenant_qr_channels WHERE id = ?').bind(requestedId).first<{ tenant_id: string }>();
+    if (owner && owner.tenant_id !== tenantId) throw new ScheduleIntegrityError('FORBIDDEN_QR_CHANNEL_ID', 403);
+  }
+
+  const id = requestedId || `ch_${tenantId}_${crypto.randomUUID().slice(0, 8)}`;
+  let code = normalizeChannelCode(raw.code, label);
+  const codeConflict = await db.prepare('SELECT id FROM tenant_qr_channels WHERE tenant_id = ? AND code = ? AND id <> ?')
+    .bind(tenantId, code, id).first<{ id: string }>();
+  if (codeConflict) {
+    code = `${code.slice(0, 31)}_${crypto.randomUUID().slice(0, 4)}`;
+  }
+
+  let defaultShiftId: string | null = typeof raw.defaultShiftId === 'string' && raw.defaultShiftId.trim()
+    ? raw.defaultShiftId.trim()
+    : (typeof raw.default_shift_id === 'string' && raw.default_shift_id.trim() ? raw.default_shift_id.trim() : null);
+  if (defaultShiftId) {
+    const ownedShift = await db.prepare('SELECT id FROM tenant_operating_shifts WHERE tenant_id = ? AND id = ?')
+      .bind(tenantId, defaultShiftId).first<{ id: string }>();
+    if (!ownedShift) throw new ScheduleIntegrityError('INVALID_SHIFT_ID', 400);
+  }
+
+  const rawLocale = typeof raw.defaultLocale === 'string' ? raw.defaultLocale.trim()
+    : (typeof raw.default_locale === 'string' ? raw.default_locale.trim() : '');
+  const defaultLocale = rawLocale && ['zh-TW', 'en', 'vi'].includes(rawLocale) ? rawLocale : null;
+  const sortOrder = Number.isFinite(Number(raw.sortOrder ?? raw.sort_order)) ? Number(raw.sortOrder ?? raw.sort_order) : 0;
+  const isActive = raw.isActive !== undefined ? Boolean(raw.isActive) : (raw.is_active !== undefined ? Boolean(raw.is_active) : true);
+  const i18n = parseChannelI18n(raw.i18n ?? raw.i18n_json);
+
+  await db.prepare(
+    `INSERT INTO tenant_qr_channels (id, tenant_id, code, label, i18n_json, default_shift_id, default_locale, sort_order, is_active, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+     ON CONFLICT(id) DO UPDATE SET
+       code = excluded.code,
+       label = excluded.label,
+       i18n_json = excluded.i18n_json,
+       default_shift_id = excluded.default_shift_id,
+       default_locale = excluded.default_locale,
+       sort_order = excluded.sort_order,
+       is_active = excluded.is_active,
+       updated_at = CURRENT_TIMESTAMP
+     WHERE tenant_qr_channels.tenant_id = excluded.tenant_id`
+  ).bind(id, tenantId, code, label, JSON.stringify(i18n), defaultShiftId, defaultLocale, sortOrder, isActive ? 1 : 0).run();
+
+  const saved = (await loadTenantQrChannels(db, tenantId)).find((c) => c.id === id);
+  if (!saved) throw new ScheduleIntegrityError('QR_CHANNEL_SAVE_FAILED', 500);
+  return saved;
+}
+
+export async function deleteTenantQrChannel(db: D1Database, tenantId: string, id: string): Promise<boolean> {
+  if (!id || !await hasDbTable(db, 'tenant_qr_channels')) return false;
+  const res = await db.prepare('DELETE FROM tenant_qr_channels WHERE tenant_id = ? AND id = ?').bind(tenantId, id).run();
+  return Boolean(res?.meta?.changes);
+}
+
+export async function resolveOrderQrChannelAndShiftPolicy(
+  db: D1Database | undefined | null,
+  tenantId: string,
+  input: Record<string, unknown>
+): Promise<{
+  channelId: string | null;
+  channelLabel: string | null;
+  shiftId: string | null;
+  diningPolicy: ShiftDiningPolicy;
+}> {
+  let channelId: string | null = null;
+  let channelLabel: string | null = null;
+  let shiftId: string | null = null;
+  let diningPolicy: ShiftDiningPolicy = 'inherit';
+
+  if (!db) return { channelId, channelLabel, shiftId, diningPolicy };
+
+  const rawChId = typeof input.channel_id === 'string' ? input.channel_id.trim()
+    : (typeof input.channelId === 'string' ? input.channelId.trim() : '');
+  const rawChCode = typeof input.channel_code === 'string' ? input.channel_code.trim()
+    : (typeof input.channelCode === 'string' ? input.channelCode.trim() : '');
+  const rawChLabel = typeof input.channel_label === 'string' ? input.channel_label.trim()
+    : (typeof input.channelLabel === 'string' ? input.channelLabel.trim() : '');
+
+  if ((rawChId || rawChCode) && await hasDbTable(db, 'tenant_qr_channels')) {
+    const row = rawChId
+      ? await db.prepare('SELECT id, label, default_shift_id FROM tenant_qr_channels WHERE tenant_id = ? AND id = ? AND is_active = 1 LIMIT 1')
+          .bind(tenantId, rawChId).first<{ id: string; label: string; default_shift_id: string | null }>()
+      : await db.prepare('SELECT id, label, default_shift_id FROM tenant_qr_channels WHERE tenant_id = ? AND code = ? AND is_active = 1 LIMIT 1')
+          .bind(tenantId, rawChCode).first<{ id: string; label: string; default_shift_id: string | null }>();
+    if (row) {
+      channelId = row.id;
+      channelLabel = row.label;
+      if (!input.shift_id && !input.shiftId && row.default_shift_id) {
+        shiftId = row.default_shift_id;
+      }
+    }
+  }
+  if (!channelLabel && rawChLabel) {
+    channelLabel = rawChLabel.slice(0, 80);
+  }
+
+  const rawShiftId = typeof input.shift_id === 'string' ? input.shift_id.trim()
+    : (typeof input.shiftId === 'string' ? input.shiftId.trim() : (shiftId || ''));
+  if (rawShiftId && await hasDbTable(db, 'tenant_operating_shifts')) {
+    const hasPolicy = await hasDbColumn(db, 'tenant_operating_shifts', 'dining_policy');
+    const shiftRow = await db.prepare(
+      `SELECT id${hasPolicy ? ', dining_policy' : ''} FROM tenant_operating_shifts WHERE tenant_id = ? AND id = ? LIMIT 1`
+    ).bind(tenantId, rawShiftId).first<{ id: string; dining_policy?: string }>();
+    if (shiftRow) {
+      shiftId = shiftRow.id;
+      diningPolicy = normalizeDiningPolicy(shiftRow.dining_policy);
+    } else {
+      shiftId = null;
+    }
+  }
+
+  return { channelId, channelLabel, shiftId, diningPolicy };
 }

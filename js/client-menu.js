@@ -63,12 +63,14 @@ async function fetchMenu() {
             storeConfig = bootstrapData.tenant ? {
                 allowScheduledPickup: bootstrapData.tenant.allowScheduledPickup,
                 allowDineIn: bootstrapData.tenant.allowDineIn,
+                dineInTableMode: bootstrapData.tenant.dineInTableMode || 'required',
                 features: bootstrapData.tenant.features || [],
                 orderPrefix: bootstrapData.tenant.orderPrefix,
                 storeStatus: bootstrapData.tenant.storeStatus,
                 prepTimeMinutes: bootstrapData.tenant.prepTimeMinutes,
                 operatingHours: bootstrapData.tenant.parsedHours,
                 operatingShifts: bootstrapData.tenant.operatingShifts || [],
+                qrChannels: bootstrapData.tenant.qrChannels || [],
                 liffId: bootstrapData.tenant.liffId
             } : null;
             window.storeConfig = storeConfig;
@@ -195,19 +197,51 @@ function getItemScheduleState(cat, item) {
     return sched.resolveItemAvailability(cat, item, ctx.shifts, ctx.legacyHours, ctx.target, ctx.options);
 }
 
+function getSelectedCollectionId() {
+    return (typeof window !== 'undefined' && window.selectedMenuCollectionId) ? String(window.selectedMenuCollectionId) : '';
+}
+
+function getCollectionVisibilityFlags() {
+    const colId = getSelectedCollectionId();
+    const cfg = (typeof window !== 'undefined' && window.storeConfig) || (typeof storeConfig !== 'undefined' ? storeConfig : null) || {};
+    const allowScheduled = cfg.allowScheduledPickup !== false;
+    return { colId, previewMode: Boolean(colId && !allowScheduled) };
+}
+
+function isEntityInSelectedCollection(cat, item, colId) {
+    if (!colId) return true;
+    const sched = (typeof MenuSchedule !== 'undefined' && MenuSchedule) || (typeof window !== 'undefined' ? window.MenuSchedule : null);
+    if (item && sched && typeof sched.isItemInCollection === 'function') {
+        return sched.isItemInCollection(cat, item, colId);
+    }
+    if (!item && sched && typeof sched.isCategoryInCollection === 'function') {
+        return sched.isCategoryInCollection(cat, colId);
+    }
+    return true;
+}
+
 function renderDynamicCatalog({ resetOrderOptions = false } = {}) {
     const bData = window.bootstrapData || bootstrapData;
     if (!bData || !bData.catalog) return;
+
+    const { colId, previewMode } = getCollectionVisibilityFlags();
+    if (typeof window !== 'undefined') window.__lastRenderedCollectionId = colId;
 
     const catalogSections = [];
     for (const cat of bData.catalog) {
         const catAvail = getCategoryScheduleState(cat);
         const allItems = Array.isArray(cat.items) ? cat.items : [];
-        const visibleItems = allItems.filter(item => {
+        const collectionItems = colId
+            ? allItems.filter(item => isEntityInSelectedCollection(cat, item, colId))
+            : allItems;
+        if (colId && allItems.length > 0 && collectionItems.length === 0) continue;
+        if (colId && allItems.length === 0 && !isEntityInSelectedCollection(cat, null, colId)) continue;
+
+        const visibleItems = collectionItems.filter(item => {
             const itemAvail = getItemScheduleState(cat, item);
-            return itemAvail.available || !itemAvail.hidden;
+            return itemAvail.available || !itemAvail.hidden || previewMode;
         });
-        if (allItems.length === 0 && !catAvail.available && catAvail.hidden) continue;
+        if (allItems.length === 0 && !catAvail.available && catAvail.hidden && !previewMode) continue;
         if (allItems.length > 0 && visibleItems.length === 0) continue;
         catalogSections.push({
             type: 'catalog',
@@ -692,22 +726,34 @@ function updateDynamicStockAndPrices() {
     const bData = window.bootstrapData || bootstrapData;
     if (!bData || !bData.catalog) return;
     const cartObj = window.cart || cart || {};
+    const { colId, previewMode } = getCollectionVisibilityFlags();
+    if (typeof window !== 'undefined' && window.__lastRenderedCollectionId !== colId) {
+        renderDynamicCatalog();
+        return;
+    }
 
     let needsStructureRerender = false;
     bData.catalog.forEach(cat => {
         const catAvail = getCategoryScheduleState(cat);
         const catSecEl = document.getElementById(`sec-${cat.slug}`);
-        const shouldHideCat = (cat.items || []).length > 0
-            ? (cat.items || []).every(item => { const availability = getItemScheduleState(cat, item); return !availability.available && availability.hidden; })
-            : !catAvail.available && catAvail.hidden;
-        if ((shouldHideCat && catSecEl) || (!shouldHideCat && !catSecEl && (cat.items || []).length > 0)) {
+        const allItems = Array.isArray(cat.items) ? cat.items : [];
+        const collectionItems = colId
+            ? allItems.filter(item => isEntityInSelectedCollection(cat, item, colId))
+            : allItems;
+        const shouldHideCat = (allItems.length > 0 && collectionItems.length === 0) ||
+            (allItems.length === 0 && colId && !isEntityInSelectedCollection(cat, null, colId)) ||
+            (collectionItems.length > 0
+                ? collectionItems.every(item => { const availability = getItemScheduleState(cat, item); return !availability.available && availability.hidden && !previewMode; })
+                : (!catAvail.available && catAvail.hidden && !previewMode));
+        if ((shouldHideCat && catSecEl) || (!shouldHideCat && !catSecEl && collectionItems.length > 0)) {
             needsStructureRerender = true;
             return;
         }
-        (cat.items || []).forEach(item => {
+        allItems.forEach(item => {
             const itemAvail = getItemScheduleState(cat, item);
             const card = document.getElementById(`item-${cat.slug}-${item.name}`);
-            const shouldHideItem = !itemAvail.available && itemAvail.hidden;
+            const inCollection = isEntityInSelectedCollection(cat, item, colId);
+            const shouldHideItem = !inCollection || (!itemAvail.available && itemAvail.hidden && !previewMode);
             if ((shouldHideItem && card) || (!shouldHideItem && !card && !shouldHideCat)) {
                 needsStructureRerender = true;
                 return;

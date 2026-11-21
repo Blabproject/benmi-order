@@ -133,6 +133,7 @@ export function createTenantRepository(
               deliveryPolicy: normalizeMultiline(row.delivery_policy),
               allowScheduledPickup: row.allow_scheduled_pickup !== undefined && row.allow_scheduled_pickup !== null ? Boolean(row.allow_scheduled_pickup) : true,
               allowDineIn: row.allow_dine_in !== undefined && row.allow_dine_in !== null ? Boolean(row.allow_dine_in) : true,
+              dineInTableMode: row.dine_in_table_mode === 'none' || row.dine_in_table_mode === 'optional' ? row.dine_in_table_mode : 'required',
               autoOpenBeforeMinutes: (row.auto_open_before_minutes !== undefined && row.auto_open_before_minutes !== null) ? Number(row.auto_open_before_minutes) : 60,
               storeStatus: normalizeStoreStatus(row.store_status, new Date(), row.operating_hours, (row.auto_open_before_minutes !== undefined && row.auto_open_before_minutes !== null) ? Number(row.auto_open_before_minutes) : 60),
               prepTimeMinutes: (row.prep_time_minutes !== undefined && row.prep_time_minutes !== null) ? Number(row.prep_time_minutes) : 5,
@@ -358,6 +359,13 @@ export function createTenantRepository(
         await db.prepare(
           'UPDATE tenant_config SET i18n_json = ?, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = ?'
         ).bind(serializedI18n, tenantId).run();
+      }
+
+      if (input.dineInTableMode !== undefined && input.dineInTableMode !== null && await hasTenantConfigColumn('dine_in_table_mode')) {
+        const mode = input.dineInTableMode === 'none' || input.dineInTableMode === 'optional' ? input.dineInTableMode : 'required';
+        await db.prepare(
+          'UPDATE tenant_config SET dine_in_table_mode = ?, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = ?'
+        ).bind(mode, tenantId).run();
       }
 
       await invalidateCache(tenantId);

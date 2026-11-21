@@ -262,6 +262,60 @@ export function PosReportsPanel({
           )}
         </div>
       </div>
+
+      {data?.channels && data.channels.length > 0 && (
+        <div className="reports-card" style={{ marginTop: '16px' }}>
+          <div className="reports-card-header">
+            <span className="reports-card-title">{t('reportsChannelsTitle')}</span>
+            <span className="reports-item-count">{data.channels.length}</span>
+          </div>
+          <div className="reports-table-scroll">
+            <table className="reports-table" data-testid="reports-channels-table">
+              <thead>
+                <tr>
+                  <th>{t('colChannel')}</th>
+                  <th style={{ textAlign: 'right' }}>{t('colChannelOrders')}</th>
+                  <th>{t('colChannelDiningSplit')}</th>
+                  <th style={{ textAlign: 'right' }}>{t('colChannelSales')}</th>
+                  <th style={{ width: '160px' }}>{t('colChannelRatio')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.channels.map(ch => {
+                  const ratioPercent = data.totalRevenue > 0
+                    ? Math.round((ch.totalSales / data.totalRevenue) * 1000) / 10
+                    : 0;
+                  const barPercent = Math.min(100, Math.max(0, ratioPercent));
+                  return (
+                    <tr key={ch.channelId}>
+                      <td>
+                        <div className="reports-item-name">
+                          {ch.channelId === 'direct' ? t('channelDirectDefault') : ch.channelLabel}
+                        </div>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <span className="reports-qty-value">{ch.totalOrders.toLocaleString()}</span>
+                      </td>
+                      <td>
+                        {`${t('badgeDineIn')} ${ch.dineInCount} / ${t('badgeTakeaway')} ${ch.takeawayCount}`}
+                      </td>
+                      <td className="reports-sales-value">${ch.totalSales.toLocaleString()}</td>
+                      <td>
+                        <div className="reports-ratio-wrap">
+                          <div className="reports-ratio-track">
+                            <div className="reports-ratio-fill" style={{ width: `${barPercent}%` }} />
+                          </div>
+                          <span className="reports-ratio-label">{ratioPercent}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </>
   );
 }

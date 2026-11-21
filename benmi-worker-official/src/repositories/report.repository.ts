@@ -1,5 +1,6 @@
-import type { ItemAnalyticsRow } from '../types';
-import type { ReportRepository, ReportItemAnalyticsResult, RawItemAnalyticsRow } from './types';
+import type { ChannelAnalyticsRow, ItemAnalyticsRow } from '../types';
+import type { ReportRepository, ReportItemAnalyticsResult, RawChannelAnalyticsRow, RawItemAnalyticsRow } from './types';
+import { hasDbColumn } from '../modules/operating-shifts';
 
 export function createReportRepository(db: D1Database): ReportRepository {
   return {
@@ -79,8 +80,37 @@ export function createReportRepository(db: D1Database): ReportRepository {
 
       const totalOrders = Number(orderCountRow?.total_orders) || 0;
 
+      let channels: ChannelAnalyticsRow[] = [];
+      if (await hasDbColumn(db, 'orders', 'channel_label')) {
+        const chRes = await db.prepare(
+          `SELECT
+             COALESCE(o.channel_id, 'direct') AS channel_id,
+             COALESCE(NULLIF(TRIM(o.channel_label), ''), '一般點餐') AS channel_label,
+             COUNT(DISTINCT o.key) AS total_orders,
+             COALESCE(SUM(o.total_amount), 0) AS total_sales,
+             SUM(CASE WHEN o.dining_option = 'dine_in' THEN 1 ELSE 0 END) AS dine_in_count,
+             SUM(CASE WHEN o.dining_option = 'takeaway' THEN 1 ELSE 0 END) AS takeaway_count
+           FROM orders o
+           WHERE o.tenant_id = ?
+             AND o.status IN ('DONE', 'PICKED_UP', 'PAID')
+             AND o.created_at >= ?
+             AND o.created_at <= ?
+           GROUP BY COALESCE(o.channel_id, 'direct'), COALESCE(NULLIF(TRIM(o.channel_label), ''), '一般點餐')
+           ORDER BY total_sales DESC, total_orders DESC`
+        ).bind(tenantId, startUtcIso, endUtcIso).all<RawChannelAnalyticsRow>();
+        channels = (chRes.results || []).map((row) => ({
+          channelId: String(row.channel_id || 'direct'),
+          channelLabel: String(row.channel_label || '一般點餐'),
+          totalOrders: Number(row.total_orders) || 0,
+          totalSales: Number(row.total_sales) || 0,
+          dineInCount: Number(row.dine_in_count) || 0,
+          takeawayCount: Number(row.takeaway_count) || 0,
+        }));
+      }
+
       return {
         items,
+        ...(channels.length > 0 ? { channels } : {}),
         totalItemsSold,
         totalRevenue,
         totalOrders

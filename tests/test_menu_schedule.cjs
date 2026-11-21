@@ -732,3 +732,164 @@ test('shift CRUD and hours writes enforce scope, expected revisions and transact
   assert.equal(db.prepare('SELECT operating_hours FROM tenant_config WHERE tenant_id=?').get('zhenbaochufang').operating_hours,hoursBefore);
   db.close();
 });
+
+test('MenuSchedule supports all-day collections, displayMode, diningPolicy, and collection visibility filters', () => {
+  const hours = { '1': [{ start: '11:00', end: '22:00' }], '0': [] };
+  const shifts = MenuSchedule.normalizeOperatingShifts([
+    { id: 'col_students', name: 'Students Combo', displayMode: 'switcher', diningPolicy: 'both', windows: [] },
+    { id: 'col_club', name: 'Club Secret Menu', displayMode: 'qr_only', diningPolicy: 'takeaway_only', windows: [] }
+  ]);
+  assert.equal(shifts.length, 2);
+  assert.equal(shifts[0].displayMode, 'switcher');
+  assert.equal(shifts[0].diningPolicy, 'both');
+  assert.equal(shifts[1].displayMode, 'qr_only');
+  assert.equal(shifts[1].diningPolicy, 'takeaway_only');
+
+  const mondayOpen = new Date('2026-11-16T15:30:00');
+  const sundayClosed = new Date('2026-11-15T15:30:00');
+  assert.equal(MenuSchedule.isShiftActiveAt(shifts[0], mondayOpen), true);
+  const catStudents = { availabilityMode: 'selected_shifts', hideWhenUnavailable: true, shiftIds: ['col_students'] };
+  assert.equal(MenuSchedule.resolveCategoryAvailability(catStudents, shifts, hours, mondayOpen).available, true);
+  assert.equal(MenuSchedule.resolveCategoryAvailability(catStudents, shifts, hours, sundayClosed).available, false);
+
+  const catAll = { availabilityMode: 'all_shifts', hideWhenUnavailable: false, shiftIds: [] };
+  const catClubOnly = { availabilityMode: 'selected_shifts', hideWhenUnavailable: true, shiftIds: ['col_club'] };
+  const itemInherit = { availabilityMode: 'inherit', hideWhenUnavailable: null, shiftIds: [] };
+  const itemOverrideAll = { availabilityMode: 'all_shifts', hideWhenUnavailable: false, shiftIds: [] };
+
+  assert.equal(MenuSchedule.isCategoryInCollection(catAll, 'col_students'), true);
+  assert.equal(MenuSchedule.isCategoryInCollection(catClubOnly, 'col_students'), false);
+  assert.equal(MenuSchedule.isCategoryInCollection(catClubOnly, 'col_club'), true);
+  assert.equal(MenuSchedule.isItemInCollection(catClubOnly, itemInherit, 'col_students'), false);
+  assert.equal(MenuSchedule.isItemInCollection(catClubOnly, itemInherit, 'col_club'), true);
+  assert.equal(MenuSchedule.isItemInCollection(catClubOnly, itemOverrideAll, 'col_students'), true);
+});
+
+test('QR channels CRUD, bootstrap exposure, order attribution + diningPolicy enforcement, and channel analytics', async () => {
+  const { qrChannels } = require('../benmi-worker-official/src/modules/menu-shifts.ts');
+  const { getItemAnalyticsReport } = require('../benmi-worker-official/src/modules/reports.ts');
+  const db = createFullMigratedDb();
+  seedZhenbaochufang(db);
+  const env = createEnvForDb(db);
+
+  // 1. Update one operating shift to takeaway_only
+  const shiftsUrl = 'https://example.test/api/menu/shifts?tenant_id=zhenbaochufang';
+  const shiftSnapshot = await (await menuShifts(new Request(shiftsUrl), env)).json();
+  const editedShifts = structuredClone(shiftSnapshot.operatingShifts);
+  const dinnerShift = editedShifts.find(s => s.windows?.some(w => w.startTime <= '17:30' && w.endTime >= '17:30')) || editedShifts[editedShifts.length - 1];
+  dinnerShift.displayMode = 'switcher';
+  dinnerShift.diningPolicy = 'takeaway_only';
+  const putShiftRes = await menuShifts(new Request(shiftsUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ operatingShifts: editedShifts, scheduleRevision: shiftSnapshot.scheduleRevision })
+  }), env);
+  assert.equal(putShiftRes.status, 200);
+
+  // 2. Create QR channel pointing to that takeaway_only shift + English default locale
+  const chUrl = 'https://example.test/api/menu/qr-channels?tenant_id=zhenbaochufang';
+  const postChRes = await qrChannels(new Request(chUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      code: 'cs_dept',
+      label: '資訊系',
+      defaultShiftId: dinnerShift.id,
+      defaultLocale: 'en'
+    })
+  }), env);
+  assert.equal(postChRes.status, 200);
+  const postChBody = await postChRes.json();
+  assert.equal(postChBody.channel.code, 'cs_dept');
+  assert.equal(postChBody.channel.label, '資訊系');
+  assert.equal(postChBody.channel.defaultShiftId, dinnerShift.id);
+  assert.equal(postChBody.channel.defaultLocale, 'en');
+
+  const getChBody = await (await qrChannels(new Request(chUrl), env)).json();
+  assert.equal(getChBody.qrChannels.length, 1);
+  assert.equal(getChBody.qrChannels[0].code, 'cs_dept');
+
+  // 3. Configure dineInTableMode = 'none' and verify /api/tenant/bootstrap exposes channels, mode, and policy
+  const cfgRes = await updateConfig(new Request('https://example.test/api/config?tenant_id=zhenbaochufang', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dineInTableMode: 'none' })
+  }), env);
+  assert.equal(cfgRes.status, 200);
+
+  const bsRes = await getTenantBootstrap(new Request('https://example.test/api/tenant/bootstrap?tenant_id=zhenbaochufang&nocache=1'), env);
+  assert.equal(bsRes.status, 200);
+  const bsData = await bsRes.json();
+  assert.equal(bsData.tenant.dineInTableMode, 'none');
+  assert.equal(bsData.tenant.qrChannels.length, 1);
+  assert.equal(bsData.tenant.qrChannels[0].label, '資訊系');
+  const bsDinnerShift = bsData.tenant.operatingShifts.find(s => s.id === dinnerShift.id);
+  assert.equal(bsDinnerShift.diningPolicy, 'takeaway_only');
+
+  // 4. createOrder rejects dine_in on takeaway_only shift with 409 SHIFT_DINING_OPTION_FORBIDDEN
+  const baseOrderBody = {
+    userId: 'U_qr_guest',
+    customer: 'CS Student',
+    time: '2026-11-16 17:30',
+    total: 75,
+    channel_code: 'cs_dept',
+    shift_id: dinnerShift.id,
+    items: [{
+      itemId: 'zb_d_01',
+      category: 'fried-rice',
+      itemName: '肉絲蛋炒飯 230g',
+      quantity: 1,
+      price: 75,
+      subtotal: 75,
+      bundleSelections: { portions: [{ groups: [{ groupId: 'mg_zb_addon_items', items: [] }] }] }
+    }]
+  };
+
+  const rejectedRes = await createOrder(new Request('https://example.test/api/create?tenant_id=zhenbaochufang', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...baseOrderBody, dining_option: 'dine_in' })
+  }), env);
+  assert.equal(rejectedRes.status, 409);
+  const rejectedBody = await rejectedRes.json();
+  assert.equal(rejectedBody.error, 'SHIFT_DINING_OPTION_FORBIDDEN');
+
+  // 5. createOrder accepts takeaway and persists channel_id, channel_label, shift_id
+  const acceptedRes = await createOrder(new Request('https://example.test/api/create?tenant_id=zhenbaochufang', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...baseOrderBody, dining_option: 'takeaway' })
+  }), env);
+  assert.equal(acceptedRes.status, 200);
+  const acceptedBody = await acceptedRes.json();
+
+  const savedOrder = db.prepare('SELECT channel_id, channel_label, shift_id, dining_option FROM orders WHERE key = ?').get(acceptedBody.key);
+  assert.equal(savedOrder.channel_id, postChBody.channel.id);
+  assert.equal(savedOrder.channel_label, '資訊系');
+  assert.equal(savedOrder.shift_id, dinnerShift.id);
+  assert.equal(savedOrder.dining_option, 'takeaway');
+
+  // 6. Report analytics aggregates customer group consumption
+  db.prepare("UPDATE orders SET status = 'DONE' WHERE key = ?").run(acceptedBody.key);
+  const analyticsRes = await getItemAnalyticsReport(
+    new Request('https://example.com/api/reports/items-analytics?tenant_id=zhenbaochufang&range=today'),
+    env
+  );
+  assert.equal(analyticsRes.status, 200);
+  const analytics = await analyticsRes.json();
+  assert.ok(Array.isArray(analytics.channels) && analytics.channels.length >= 1);
+  const csRow = analytics.channels.find(c => c.channelLabel === '資訊系');
+  assert.ok(csRow);
+  assert.equal(csRow.totalOrders, 1);
+  assert.equal(csRow.takeawayCount, 1);
+  assert.equal(csRow.dineInCount, 0);
+  assert.equal(csRow.totalSales, 75);
+
+  // 7. Delete QR channel
+  const delRes = await qrChannels(new Request(`${chUrl}&id=${encodeURIComponent(postChBody.channel.id)}`, { method: 'DELETE' }), env);
+  assert.equal(delRes.status, 200);
+  const afterDel = await (await qrChannels(new Request(chUrl), env)).json();
+  assert.equal(afterDel.qrChannels.length, 0);
+
+  db.close();
+});

@@ -15,6 +15,7 @@ export interface TenantConfigRow extends OrderDomainRow {
   delivery_policy?: string | null;
   allow_scheduled_pickup?: number | boolean | null;
   allow_dine_in?: number | boolean | null;
+  dine_in_table_mode?: string | null;
   store_status?: string | null;
   liff_id?: string | null;
   liff_url?: string | null;
@@ -65,6 +66,7 @@ export interface UpdateTenantConfigInput {
   operatingHours?: string | null;
   allowScheduledPickup?: boolean | number | null;
   allowDineIn?: boolean | number | null;
+  dineInTableMode?: 'required' | 'optional' | 'none' | null;
   storeStatus?: string | null;
   liffId?: string | null;
   logoUrl?: string | null;
@@ -251,8 +253,18 @@ export interface RawItemAnalyticsRow {
   all_options_raw: string | null;
 }
 
+export interface RawChannelAnalyticsRow {
+  channel_id: string | null;
+  channel_label: string | null;
+  total_orders: number;
+  total_sales: number;
+  dine_in_count: number;
+  takeaway_count: number;
+}
+
 export interface ReportItemAnalyticsResult {
   items: import('../types').ItemAnalyticsRow[];
+  channels?: import('../types').ChannelAnalyticsRow[];
   totalItemsSold: number;
   totalRevenue: number;
   totalOrders: number;

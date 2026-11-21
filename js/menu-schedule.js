@@ -209,11 +209,17 @@
       .map((s, idx) => {
         if (!s || typeof s !== 'object' || !s.id) return null;
         const shiftType = s.shiftType === 'menu_window' || s.shift_type === 'menu_window' ? 'menu_window' : 'operating';
+        const rawDisplay = s.displayMode ?? s.display_mode;
+        const displayMode = (rawDisplay === 'schedule_only' || rawDisplay === 'qr_only') ? rawDisplay : 'switcher';
+        const rawPolicy = s.diningPolicy ?? s.dining_policy;
+        const diningPolicy = (rawPolicy === 'both' || rawPolicy === 'takeaway_only' || rawPolicy === 'dine_in_only') ? rawPolicy : 'inherit';
         return {
           id: String(s.id),
           name: String(s.name || '').trim() || `Shift ${idx + 1}`,
           i18n: (s.i18n && typeof s.i18n === 'object' && !Array.isArray(s.i18n)) ? s.i18n : {},
           shiftType,
+          displayMode,
+          diningPolicy,
           sortOrder: Number(s.sortOrder ?? s.sort_order ?? idx),
           isActive: s.isActive !== undefined ? Boolean(s.isActive) : (s.is_active !== undefined ? Boolean(s.is_active) : true),
           windows: normalizeWindows(s.windows)
@@ -274,6 +280,7 @@
     const parts = getTaipeiParts(targetInput);
     const yesterday = (parts.dayOfWeek + 6) % 7;
     const windows = Array.isArray(shift.windows) ? shift.windows : [];
+    if (windows.length === 0) return true;
     for (const win of windows) {
       if (win.isActive === false) continue;
       if (Number(win.dayOfWeek) === parts.dayOfWeek && isMinuteInWindow(parts.minutesOfDay, win.startTime, win.endTime, false, inclusiveEnd)) {
@@ -351,7 +358,7 @@
 
     const activeShifts = matchedShifts.filter(s => {
       if (!isShiftActiveAt(s, targetInput, opts)) return false;
-      if (s.shiftType === 'menu_window' && hasConfiguredStore) {
+      if ((s.shiftType === 'menu_window' || !Array.isArray(s.windows) || s.windows.length === 0) && hasConfiguredStore) {
         return isStoreOpenAt(normalized, legacyHours, targetInput, opts);
       }
       return true;
@@ -417,6 +424,30 @@
     return evaluateSelectedShifts(shiftIds, shifts, legacyHours, targetInput, hideWhenUnavailable, optionsOrLocale);
   }
 
+  function isCategoryInCollection(category, shiftId) {
+    if (!shiftId || !category) return true;
+    const mode = category.availabilityMode === 'selected_shifts' || category.availability_mode === 'selected_shifts'
+      ? 'selected_shifts'
+      : 'all_shifts';
+    if (mode !== 'selected_shifts') return true;
+    const shiftIds = Array.isArray(category.shiftIds)
+      ? category.shiftIds
+      : (Array.isArray(category.shift_ids) ? category.shift_ids : []);
+    return shiftIds.map(String).includes(String(shiftId));
+  }
+
+  function isItemInCollection(category, item, shiftId) {
+    if (!shiftId || !item) return true;
+    const rawItemMode = item.availabilityMode ?? item.availability_mode ?? 'inherit';
+    const itemMode = (rawItemMode === 'all_shifts' || rawItemMode === 'selected_shifts') ? rawItemMode : 'inherit';
+    if (itemMode === 'inherit') return isCategoryInCollection(category, shiftId);
+    if (itemMode === 'all_shifts') return true;
+    const shiftIds = Array.isArray(item.shiftIds)
+      ? item.shiftIds
+      : (Array.isArray(item.shift_ids) ? item.shift_ids : []);
+    return shiftIds.map(String).includes(String(shiftId));
+  }
+
   return {
     parseMinutes,
     normalizeBusinessHours,
@@ -429,6 +460,8 @@
     isStoreOpenAt,
     formatShiftsLabel,
     resolveCategoryAvailability,
-    resolveItemAvailability
+    resolveItemAvailability,
+    isCategoryInCollection,
+    isItemInCollection
   };
 });

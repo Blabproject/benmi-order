@@ -27,10 +27,15 @@ export interface ShiftWindow {
   isActive?: boolean;
 }
 
+export type ShiftDisplayMode = 'switcher' | 'schedule_only' | 'qr_only';
+export type ShiftDiningPolicy = 'inherit' | 'both' | 'takeaway_only' | 'dine_in_only';
+
 export interface Shift {
   id: string;
   name: string;
   shiftType: 'operating' | 'menu_window';
+  displayMode?: ShiftDisplayMode;
+  diningPolicy?: ShiftDiningPolicy;
   sortOrder?: number;
   isActive?: boolean;
   windows?: ShiftWindow[];
