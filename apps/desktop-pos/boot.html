@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blab POS</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 24px;
+    }
+    .card {
+      width: 100%;
+      max-width: 440px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 28px 24px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+    }
+    .spinner {
+      width: 36px;
+      height: 36px;
+      margin: 0 auto 16px;
+      border: 3px solid #334155;
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h1 { font-size: 20px; margin: 0 0 8px; font-weight: 700; }
+    p { font-size: 14px; color: #94a3b8; margin: 0 0 20px; line-height: 1.5; }
+    .url { font-size: 12px; color: #64748b; word-break: break-all; margin-bottom: 18px; }
+    .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    button {
+      min-height: 48px;
+      padding: 0 18px;
+      border-radius: 10px;
+      border: 0;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .primary { background: #0284c7; color: #fff; }
+    .secondary { background: #334155; color: #e2e8f0; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner" id="spinner"></div>
+    <h1 id="title">連線雲端 POS 中... / Đang kết nối máy chủ POS...</h1>
+    <p id="status">正在檢查網路連線，完成後將自動進入系統。</p>
+    <div class="url" id="target-url"></div>
+    <div class="actions">
+      <button class="primary" id="retry-btn" type="button">立即重試 / Thử lại ngay</button>
+      <button class="secondary" id="offline-btn" type="button">使用離線版 / Mở bản nội bộ</button>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var retryTimer = null;
+      var targetUrl = '';
+
+      function invoke(cmd, args) {
+        return window.__TAURI__.core.invoke(cmd, args || {});
+      }
+
+      async function tryConnect() {
+        if (retryTimer) {
+          clearTimeout(retryTimer);
+          retryTimer = null;
+        }
+        var statusEl = document.getElementById('status');
+        try {
+          if (!targetUrl) {
+            var cfg = await invoke('get_boot_config');
+            targetUrl = (cfg && cfg.targetUrl) || '';
+            document.getElementById('target-url').textContent = targetUrl;
+            if (!targetUrl) {
+              window.location.replace('index.html');
+              return;
+            }
+          }
+          var ok = await invoke('probe_remote_reachable', { url: targetUrl });
+          if (ok) {
+            window.location.replace(targetUrl);
+            return;
+          }
+          statusEl.textContent = '找不到網路連線，將在 2 秒後自動重試... (Mất kết nối mạng, tự động thử lại sau 2 giây...)';
+        } catch (err) {
+          statusEl.textContent = '連線暫時無法使用，將在 2 秒後自動重試... (' + (err && err.message ? err.message : err) + ')';
+        }
+        retryTimer = setTimeout(tryConnect, 2000);
+      }
+
+      document.getElementById('retry-btn').addEventListener('click', tryConnect);
+      document.getElementById('offline-btn').addEventListener('click', function () {
+        window.location.replace('index.html');
+      });
+
+      tryConnect();
+    })();
+  </script>
+</body>
+</html>

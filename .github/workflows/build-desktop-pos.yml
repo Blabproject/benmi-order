@@ -1,0 +1,179 @@
+name: Build Desktop POS (Windows & macOS - Tauri v2)
+
+on:
+  push:
+    tags:
+      - "desktop-v*"
+  workflow_dispatch:
+    inputs:
+      app_env:
+        description: Target environment (prod, staging, dev, local)
+        required: true
+        default: prod
+        type: choice
+        options:
+          - prod
+          - staging
+          - dev
+          - local
+      publish_release:
+        description: Publish installers to GitHub Releases
+        required: false
+        default: false
+        type: boolean
+      release_tag:
+        description: Optional release tag override (e.g. desktop-v1.1.4)
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    name: Build Windows POS (${{ inputs.app_env || 'prod' }})
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      APP_ENV: ${{ inputs.app_env || 'prod' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            crates/printer-core
+            apps/desktop-pos/src-tauri
+
+      - name: Run shared printer-core tests
+        run: cargo test --manifest-path crates/printer-core/Cargo.toml
+
+      - name: Install root & Desktop shell dependencies
+        run: |
+          npm ci
+          npm install --prefix apps/desktop-pos
+
+      - name: Build frontend bundle and sync Desktop assets
+        shell: bash
+        run: |
+          npm run build:frontend
+          (cd apps/desktop-pos && bash build.sh)
+
+      - name: Run Desktop Tauri Rust tests
+        run: cargo test --manifest-path apps/desktop-pos/src-tauri/Cargo.toml
+
+      - name: Build Windows MSI and NSIS installers
+        run: npm run build:win --prefix apps/desktop-pos
+
+      - name: Upload Windows installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: benmi-desktop-pos-windows-${{ env.APP_ENV }}
+          path: |
+            apps/desktop-pos/src-tauri/target/release/bundle/msi/*.msi
+            apps/desktop-pos/src-tauri/target/release/bundle/nsis/*.exe
+          retention-days: 14
+
+  build-macos:
+    name: Build macOS POS (${{ inputs.app_env || 'prod' }})
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      APP_ENV: ${{ inputs.app_env || 'prod' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            crates/printer-core
+            apps/desktop-pos/src-tauri
+
+      - name: Run shared printer-core tests
+        run: cargo test --manifest-path crates/printer-core/Cargo.toml
+
+      - name: Install root & Desktop shell dependencies
+        run: |
+          npm ci
+          npm install --prefix apps/desktop-pos
+
+      - name: Build frontend bundle and sync Desktop assets
+        shell: bash
+        run: |
+          npm run build:frontend
+          (cd apps/desktop-pos && bash build.sh)
+
+      - name: Run Desktop Tauri Rust tests
+        run: cargo test --manifest-path apps/desktop-pos/src-tauri/Cargo.toml
+
+      - name: Build macOS APP and DMG installers
+        run: npm run build:mac --prefix apps/desktop-pos
+
+      - name: Upload macOS installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: benmi-desktop-pos-macos-${{ env.APP_ENV }}
+          path: |
+            apps/desktop-pos/src-tauri/target/release/bundle/macos/*.app
+            apps/desktop-pos/src-tauri/target/release/bundle/dmg/*.dmg
+          retention-days: 14
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [build-windows, build-macos]
+    if: ${{ startsWith(github.ref, 'refs/tags/desktop-v') || inputs.publish_release == true }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      APP_ENV: ${{ inputs.app_env || 'prod' }}
+      RELEASE_TAG_INPUT: ${{ inputs.release_tag || '' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download built Windows & macOS installers
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Prepare release files and publish to GitHub Releases
+        run: |
+          set -euo pipefail
+          mkdir -p release-upload
+          find release-artifacts -type f \( -name "*.msi" -o -name "*.exe" -o -name "*.dmg" \) -exec cp {} release-upload/ \;
+          ls -lh release-upload/
+
+          VERSION="$(node -p "require('./apps/desktop-pos/package.json').version")"
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF_NAME}"
+          elif [[ -n "${RELEASE_TAG_INPUT}" ]]; then
+            TAG="${RELEASE_TAG_INPUT}"
+          elif [[ "${APP_ENV}" == "prod" ]]; then
+            TAG="desktop-v${VERSION}"
+          else
+            TAG="desktop-v${VERSION}-${APP_ENV}"
+          fi
+
+          PRERELEASE_FLAG=""
+          if [[ "${APP_ENV}" != "prod" ]]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+
+          if ! gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release create "${TAG}" \
+              --title "Blab Desktop POS ${TAG}" \
+              --notes "Desktop POS installers for Windows (.msi / .exe) and macOS (.dmg) [${APP_ENV}]." \
+              ${PRERELEASE_FLAG}
+          fi
+
+          gh release upload "${TAG}" release-upload/* --clobber

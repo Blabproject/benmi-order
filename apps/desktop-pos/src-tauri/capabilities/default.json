@@ -1,0 +1,15 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Default capability for Blab POS Windows desktop shell and remote POS origins",
+  "windows": ["main"],
+  "remote": {
+    "urls": [
+      "https://pos.blabfood.app/*",
+      "https://*.benmi-order.pages.dev/*"
+    ]
+  },
+  "permissions": [
+    "core:default"
+  ]
+}

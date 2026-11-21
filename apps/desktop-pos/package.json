@@ -1,0 +1,21 @@
+{
+  "name": "benmi-desktop-pos",
+  "version": "1.1.4",
+  "description": "Benmi Multi-Tenant Universal Desktop POS App for Windows & macOS (Tauri v2 + Shared Rust Printer Core)",
+  "private": true,
+  "scripts": {
+    "build:web": "bash build.sh",
+    "dev": "APP_ENV=local bash build.sh && npx tauri dev",
+    "dev:remote": "APP_ENV=prod bash build.sh && npx tauri dev",
+    "build": "APP_ENV=prod bash build.sh && npx tauri build",
+    "build:dev": "APP_ENV=dev bash build.sh && npx tauri build",
+    "build:staging": "APP_ENV=staging bash build.sh && npx tauri build",
+    "build:local": "APP_ENV=local bash build.sh && npx tauri build",
+    "build:mac": "APP_ENV=prod bash build.sh && npx tauri build --bundles app && bash package-dmg.sh",
+    "build:mac:local": "APP_ENV=local bash build.sh && npx tauri build --bundles app && bash package-dmg.sh",
+    "build:win": "APP_ENV=prod bash build.sh && npx tauri build --bundles msi,nsis"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.2.0"
+  }
+}

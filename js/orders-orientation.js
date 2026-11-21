@@ -18,7 +18,10 @@
 
   window.loadPOSScreenOrientationSetting = async function () {
     if (busy) return;
-    available = typeof window.isNativeAppPlatform === 'function' && window.isNativeAppPlatform();
+    const platform = window.Capacitor?.getPlatform?.();
+    available = typeof window.isNativeAppPlatform === 'function'
+      && window.isNativeAppPlatform()
+      && !['windows', 'macos', 'linux'].includes(platform);
     if (!available) {
       refreshView();
       return;

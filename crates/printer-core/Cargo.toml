@@ -1,0 +1,13 @@
+[workspace]
+
+[package]
+name = "printer-core"
+version = "0.1.0"
+edition = "2021"
+description = "Shared platform-agnostic thermal printer rasterization (ESC/POS, TSPL) and transport core for Benmi POS (Windows & Android)"
+
+[dependencies]
+base64 = "0.22"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "2.0"
