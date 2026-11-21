@@ -19,13 +19,14 @@ function storage(values = {}) {
   };
 }
 
-function resolveTenant(url, pendingTenant) {
+function resolveTenant(url, pendingTenant, fetch) {
   const parsed = new URL(url);
   const classes = new Set();
   const context = {
     URLSearchParams,
     URL,
     decodeURIComponent,
+    fetch,
     location: {
       href: parsed.href,
       hostname: parsed.hostname,
@@ -43,8 +44,36 @@ function resolveTenant(url, pendingTenant) {
   };
   context.window = context;
   vm.runInNewContext(initialScript, context);
-  return { tenant: context.__INITIAL_TENANT_ID, failed: context.__TENANT_RESOLUTION_FAILED === true, classes };
+  return {
+    tenant: context.__INITIAL_TENANT_ID,
+    failed: context.__TENANT_RESOLUTION_FAILED === true,
+    classes,
+    menuRequest: context.__initialMenuRequest,
+  };
 }
+
+test('the head starts the customer menu request against the correct environment', async () => {
+  const requests = [];
+  const response = { ok: true };
+  const fetch = async (url, options) => { requests.push([url, options.cache]); return response; };
+  for (const [url, worker] of [
+    ['https://staging.benmi-order.pages.dev/?tenant_id=bsc', 'platform-worker-staging'],
+    ['https://dev.benmi-order.pages.dev/?tenant_id=bsc', 'platform-worker-dev'],
+    ['https://order.blabfood.app/bsc', 'benmi-worker-official'],
+  ]) {
+    const { menuRequest } = resolveTenant(url, undefined, fetch);
+    assert.equal(menuRequest.tenantId, 'bsc');
+    assert.equal(await menuRequest.response, response);
+    assert.deepEqual(requests.shift(), [`https://${worker}.thuanmnc.workers.dev/api/tenant/bootstrap?tenant_id=bsc`, 'no-cache']);
+  }
+  for (const url of [
+    'https://order.blabfood.app/bsc?tenant_id=another',
+    'https://benmi-order.pages.dev/?code=abc&state=xyz',
+    'https://pos.blabfood.app/?tenant_id=bsc&mode=staff&env=staging',
+    'https://blabfood.app/',
+  ]) assert.equal(resolveTenant(url, undefined, fetch).menuRequest, undefined);
+  assert.equal(requests.length, 0);
+});
 
 test('explicit tenant and LIFF state override a stale tenant from a previous visit', () => {
   assert.equal(resolveTenant('https://benmi-order.pages.dev/?tenant_id=bsc').tenant, 'bsc');
@@ -90,6 +119,7 @@ test('desktop LINE login keeps tenant in redirect URI and does not retry without
   const context = {
     URL,
     URLSearchParams,
+    WORKER_BASE: 'https://worker.test',
     console: { log() {}, warn() {}, error() {} },
     addEventListener() {},
     location: {

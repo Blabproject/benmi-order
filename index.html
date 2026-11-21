@@ -10,24 +10,14 @@
     <link rel="preload" href="/js/store-notice-format.js?v=20261111_store_notice_v1" as="script">
     <link rel="preload" href="/js/menu-schedule.js?v=20261119_shift_management_v1" as="script">
     <link rel="preload" href="/js/client-i18n.js?v=20261120_counter_payment_v1" as="script">
-    <link rel="preload" href="/js/client-core.js?v=20261120_dinein_payment_label_v1" as="script">
-    <link rel="preload" href="/js/client-menu.js?v=20261122_staff_order_react_v1" as="script">
+    <link rel="preload" href="/js/client-core.js?v=20261122_early_menu_v1" as="script">
+    <link rel="preload" href="/js/client-menu.js?v=20261122_early_menu_v1" as="script">
     <link rel="stylesheet" href="/index.css?v=20261115_staff_text_size_v1">
     <style>html.tenant-resolution-failed body > :not(#tenant-resolution-error) { display: none !important; }</style>
     <script>
         try {
             window.isStaffOrderMode = new URLSearchParams(location.search).get('mode') === 'staff';
             if (window.isStaffOrderMode) document.documentElement.classList.add('staff-order-mode');
-        } catch (e) { }
-
-        // Redirect root visits on blabfood.app to /landing
-        try {
-            const h = window.location.hostname;
-            if ((h === 'blabfood.app' || h === 'www.blabfood.app') &&
-                (window.location.pathname === '/' || window.location.pathname === '/index.html') &&
-                !window.location.search && !window.location.hash) {
-                window.location.replace('/landing');
-            }
         } catch (e) { }
 
         function extractTenantId() {
@@ -140,11 +130,46 @@
             } catch (e) { }
         })();
 
+        function requestTenantBootstrap(tenantId) {
+            const url = `${window.WORKER_BASE}/api/tenant/bootstrap?tenant_id=${encodeURIComponent(tenantId)}`;
+            return fetch(url, { cache: 'no-cache' });
+        }
+
         (function () {
+            const { hostname, pathname, search, hash } = window.location;
+            const staffEnvironment = window.isStaffOrderMode ? new URLSearchParams(search).get('env') : null;
+            window.isDevEnv = staffEnvironment ? staffEnvironment === 'dev' : (
+                hostname === 'localhost' || hostname === '127.0.0.1' ||
+                hostname.startsWith('dev.') || hostname.includes('.dev.') ||
+                hostname.includes('-dev.') || hostname.startsWith('dev-')
+            );
+            window.isStagingEnv = staffEnvironment ? staffEnvironment === 'staging' : (
+                hostname.startsWith('staging.') || hostname.includes('.staging.') || hostname.includes('-staging.') ||
+                hostname.startsWith('test.') || hostname.includes('.test.') || hostname.includes('-test.')
+            );
+            window.WORKER_BASE = window.isDevEnv
+                ? 'https://platform-worker-dev.thuanmnc.workers.dev'
+                : (window.isStagingEnv
+                    ? 'https://platform-worker-staging.thuanmnc.workers.dev'
+                    : 'https://benmi-worker-official.thuanmnc.workers.dev');
+
+            if ((hostname === 'blabfood.app' || hostname === 'www.blabfood.app') &&
+                (pathname === '/' || pathname === '/index.html') && !search && !hash) {
+                window.location.replace('/landing');
+                return;
+            }
+
             const tenantId = extractTenantId();
             window.__INITIAL_TENANT_ID = tenantId;
             if (window.__TENANT_RESOLUTION_FAILED) {
                 document.documentElement.classList.add('tenant-resolution-failed');
+            } else if (!window.isStaffOrderMode && /^[\w-]+$/.test(tenantId || '') && typeof fetch === 'function') {
+                // Start the GET while the SDK and the rest of the page scripts load.
+                window.__initialMenuRequest = {
+                    tenantId,
+                    workerBase: window.WORKER_BASE,
+                    response: requestTenantBootstrap(tenantId).catch(() => null),
+                };
             }
             try {
                 if (tenantId) sessionStorage.setItem('current_tenant_id', tenantId);
@@ -1068,8 +1093,8 @@
     <script src="/js/client-pricing-wasm.js?v=20261116_menu_schedule_v1"></script>
     <script src="/js/store-notice-format.js?v=20261111_store_notice_v1"></script>
     <script src="/js/client-i18n.js?v=20261120_counter_payment_v1"></script>
-    <script src="/js/client-core.js?v=20261120_dinein_payment_label_v1"></script>
-    <script src="/js/client-menu.js?v=20261122_staff_order_react_v1"></script>
+    <script src="/js/client-core.js?v=20261122_early_menu_v1"></script>
+    <script src="/js/client-menu.js?v=20261122_early_menu_v1"></script>
     <script src="/js/client-customizations.js?v=20261118_multi_portion_copy_v1"></script>
     <script src="/js/client-bundle.js?v=20261114_multilingual_v2"></script>
     <script src="/js/client-cart.js?v=20261122_staff_order_react_v1"></script>
