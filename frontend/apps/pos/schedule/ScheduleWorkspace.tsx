@@ -26,6 +26,11 @@ interface ScheduleWorkspaceProps {
   openHours: () => void;
 }
 
+const outsideOptions = [
+  ['hide', 'menuScheduleOutsideHide'],
+  ['show', 'menuScheduleOutsideShow']
+] as const;
+
 function shiftSummary(shift: Shift, language: string) {
   const vietnamese = language === 'vi';
   const dayNames = vietnamese ? ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'] : ['日', '一', '二', '三', '四', '五', '六'];
@@ -107,6 +112,9 @@ export function ScheduleWorkspace(props: ScheduleWorkspaceProps) {
   const assignmentsLocked = editor.dirty() || editor.state.opening || editor.state.saving;
   const matrixLocked = assignmentsLocked || saving;
   const hiddenCount = categories.filter(category => category.hideWhenUnavailable).length;
+  const outsideMixed = hiddenCount > 0 && hiddenCount < categories.length;
+  const outsideValue = !categories.length || outsideMixed ? null : hiddenCount > 0 ? 'hide' : 'show';
+  const outsideDisabled = matrixLocked || loading || !shifts.length || !categories.length;
   const total = categories.reduce((count, category) => count + (category.items?.length ?? 0), 0);
 
   function expand(id: string) {
@@ -209,15 +217,32 @@ export function ScheduleWorkspace(props: ScheduleWorkspaceProps) {
             </div>}
         <Card className="ms-outside ps-mt-5 ps-flex ps-flex-wrap ps-items-center ps-justify-between ps-gap-4" inert={assignmentsLocked}>
           <div>
-            <h3>{t('menuScheduleOutsideTitle')}</h3>
-            <p>{t('menuScheduleOutsideSub')}</p>
-            {hiddenCount > 0 && hiddenCount < categories.length && <p className="ms-policy-mixed">{t('menuScheduleOutsideMixed')}</p>}
+            <h3 id="ms-outside-title">{t('menuScheduleOutsideTitle')}</h3>
+            <p id="ms-outside-description">{t('menuScheduleOutsideSub')}</p>
+            {outsideMixed && <p className="ms-policy-mixed" id="ms-outside-mixed">{t('menuScheduleOutsideMixed')}</p>}
           </div>
-          <div className="ms-outside-options ps-flex ps-flex-wrap ps-gap-2" role="group" aria-label={t('menuScheduleOutsideTitle')}>
-            <Button variant="outline" aria-pressed={categories.length > 0 && hiddenCount === categories.length}
-              disabled={matrixLocked || loading || !shifts.length || !categories.length} onClick={() => props.setOutside(true)}>{t('menuScheduleOutsideHide')}</Button>
-            <Button variant="outline" aria-pressed={categories.length > 0 && hiddenCount === 0}
-              disabled={matrixLocked || loading || !shifts.length || !categories.length} onClick={() => props.setOutside(false)}>{t('menuScheduleOutsideShow')}</Button>
+          <div
+            className="ms-outside-options ps-inline-grid ps-max-w-full ps-grid-cols-[auto_minmax(0,1fr)] ps-gap-1 ps-rounded-xl ps-border ps-border-solid ps-bg-white ps-p-1"
+            role="radiogroup"
+            aria-labelledby="ms-outside-title"
+            aria-describedby={outsideMixed ? 'ms-outside-description ms-outside-mixed' : 'ms-outside-description'}
+          >
+            {outsideOptions.map(([value, label]) => (
+              <label className="ms-outside-option ps-relative ps-grid ps-min-w-0" key={value}>
+                <ChoiceInput
+                  type="radio"
+                  name="menu-schedule-outside"
+                  value={value}
+                  className="ps-absolute ps-inset-0 ps-m-0 ps-h-full ps-w-full ps-opacity-0"
+                  checked={outsideValue === value}
+                  disabled={outsideDisabled}
+                  onChange={() => props.setOutside(value === 'hide')}
+                />
+                <span className="ps-flex ps-min-h-12 ps-min-w-12 ps-items-center ps-justify-center ps-rounded-lg ps-px-4 ps-py-2 ps-text-center ps-font-bold">
+                  {t(label)}
+                </span>
+              </label>
+            ))}
           </div>
         </Card>
       </section>

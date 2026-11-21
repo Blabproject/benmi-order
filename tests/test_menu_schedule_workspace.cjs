@@ -120,13 +120,21 @@ test('compact title row puts subtitle in help popover, omits filter bar, and kee
 
 test('outside policy preserves mixed initial data until explicitly selected; discard restores only schedules', async t => {
   const { w, d } = await workspace(t);
-  assert.equal(d.querySelectorAll('.ms-outside button[aria-pressed="true"]').length, 0);
-  w.msSetOutside(true);
+  const group = d.querySelector('.ms-outside-options[role="radiogroup"]');
+  const hide = group.querySelector('input[value="hide"]');
+  const show = group.querySelector('input[value="show"]');
+  assert.equal(hide.checked, false);
+  assert.equal(show.checked, false);
+  hide.click();
+  assert.equal(hide.checked, true);
+  assert.equal(show.checked, false);
   assert.equal(w.currentMenuData[0].hideWhenUnavailable, true);
   assert.equal(w.currentMenuData[1].hideWhenUnavailable, true);
   w.currentMenuData[0].items[0].price = 99;
   w.discardMenuScheduleChanges();
   assert.equal(w.currentMenuData[0].hideWhenUnavailable, false);
+  assert.equal(hide.checked, false);
+  assert.equal(show.checked, false);
   assert.equal(w.currentMenuData[0].items[0].price, 99);
   assert.equal(w.hasUnsavedMenuScheduleChanges(), false);
 });
@@ -134,7 +142,9 @@ test('outside policy preserves mixed initial data until explicitly selected; dis
 test('an empty schedule keeps shift management available without creating an unsavable assignment draft', async t => {
   const { w, d } = await workspace(t, { noShifts: true });
   assert.equal(d.querySelector('.ms-manage-shifts-btn').disabled, false);
-  assert.equal(d.querySelector('.ms-outside button').disabled, true);
+  const radios = [...d.querySelectorAll('.ms-outside input[type=radio]')];
+  assert.equal(radios.length, 2);
+  assert.ok(radios.every(radio => radio.disabled));
   w.msSetOutside(true);
   assert.equal(w.hasUnsavedMenuScheduleChanges(), false);
 });

@@ -183,6 +183,13 @@ body.is-menu-schedule-active .main-topbar { display: none !important; }
 .ms-outside h3 { margin: 0 0 4px; font-size: var(--menu-font-base); font-weight: 750; }
 .ms-outside p { margin: 0; color: #475569; font-size: var(--menu-font-sm); line-height: 1.5; }
 .ms-outside .ms-policy-mixed { margin-top: 4px; color: #92400e; font-size: var(--menu-font-xs); font-weight: 600; }
+.ms-outside-options { border-color: var(--ms-border); }
+.ms-outside-option { color: #475569; font-size: var(--menu-font-md); line-height: 1.25; }
+.ms-outside-option input:not(:disabled) { cursor: pointer; }
+.ms-outside-option input:not(:disabled):not(:checked):hover + span { background: #f1f5f9; }
+.ms-outside-option input:checked + span { background: var(--ms-accent-soft); color: var(--ms-green-text); }
+.ms-outside-option input:focus-visible + span { outline: 2px solid var(--ms-green-text); outline-offset: -2px; }
+.ms-outside-option input:disabled + span { opacity: .58; }
 .ms-empty { margin: 0; padding: 32px 16px; color: #475569; font-size: var(--menu-font-base); line-height: 1.6; text-align: center; }
 
 @media (max-width: 1200px) {
@@ -202,6 +209,6 @@ body.is-menu-schedule-active .main-topbar { display: none !important; }
   .ms-matrix .ms-item-row > th::before { left: 16px; }
   .ms-shift-heading { padding-inline: 8px; }
   .ms-outside-options { width: 100%; }
-  .ms-outside-options button { flex: 1; }
+  .ms-outside-option span { padding-inline: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { .ms-expand-btn svg, .ms-check-mark { transition: none; } }
