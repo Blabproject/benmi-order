@@ -274,21 +274,40 @@ async function swipeQueue(page, direction, options) {
     await page.waitForFunction(() => document.getElementById('live-mobile-count-ready').innerText === '55');
     assert(await page.locator('#live-panel-ready').isVisible());
     assert.deepEqual(await page.evaluate(() => window.fixturePosts.map(post => post.status)), ['DONE', 'PICKED_UP', 'PAID']);
-    await page.locator('#list-right .tile').first().press('Enter');
+    await page.locator('#list-right .tile.is-takeaway').first().press('Enter');
     assert(await page.locator('#reviewModal').isVisible(), 'Opening order details from the keyboard works');
-    await page.evaluate(() => closeModal());
+    await page.locator('#btn-review-picked').tap();
+    await page.locator('#reviewModal').waitFor({ state: 'hidden' });
+    assert.equal(await page.evaluate(() => window.fixturePosts.at(-1).status), 'PICKED_UP');
 
     await page.locator('#live-mobile-tab-pending').click();
     await page.evaluate(() => {
-      latestOrders.find(order => order.status === 'ACCEPTED').status = 'NEW';
-      latestOrders.filter(order => order.status === 'ACCEPTED')[0].status = 'WAITING_CUSTOMER_CHANGE';
-      latestOrders.filter(order => order.status === 'ACCEPTED')[0].status = 'WAITING_CUSTOMER_REJECT';
+      const [newOrder, change, reject] = window.fixtureOrders.filter(order => order.status === 'ACCEPTED');
+      newOrder.status = 'NEW';
+      change.status = 'WAITING_CUSTOMER_CHANGE';
+      reject.status = 'WAITING_CUSTOMER_REJECT';
+      latestOrders = structuredClone(window.fixtureOrders);
       renderAll();
     });
     assert.equal(await page.locator('#list-left .btn-action-waiting:disabled').count(), 2);
     await page.locator('#list-left .btn-action-review').tap();
     assert(await page.locator('#reviewModal').isVisible(), 'Reviewing a new order still works');
-    await page.evaluate(() => { closeModal(); posReturnContext = null; });
+    await page.locator('#btn-review-change').tap();
+    assert(await page.locator('#changeModal').isVisible());
+    await page.evaluate(() => closeModal());
+    await page.locator('#list-left .btn-action-review').tap();
+    await page.locator('#btn-review-reject').tap();
+    assert(await page.locator('#rejectModal').isVisible());
+    await page.evaluate(() => closeModal());
+    await page.locator('#list-left .btn-action-review').tap();
+    await page.evaluate(() => { window.holdFixtureStatus = true; });
+    const accept = page.locator('#btn-review-accept');
+    await accept.tap();
+    assert.equal(await accept.getAttribute('aria-busy'), 'true');
+    assert(await page.locator('#btn-review-reject').isDisabled());
+    await page.evaluate(() => window.releaseFixtureStatus());
+    await page.locator('#reviewModal').waitFor({ state: 'hidden' });
+    assert.equal(await page.evaluate(() => window.fixturePosts.at(-1).status), 'ACCEPTED');
 
     await page.evaluate(() => { window.currentTenantFeatures = []; renderAll(); });
     assert(!(await page.locator('#dining-filter-bar').isVisible()), 'Takeaway-only tenants retain feature gating');

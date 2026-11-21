@@ -135,8 +135,8 @@ test('default PIN discovered during a refund exits the order modal and never res
  const id=f.seed({orderStatus:'REJECTED'});
  await page.evaluate(id=>{
   switchTab('live');
-  PaymentPOS.mount({key:'setup-order',displayKey:'SETUP',status:'REJECTED',payment:{id,status:'PAID',amount:100}});
-  document.querySelector('#reviewModal').style.display='flex';
+  latestOrders=[{key:'setup-order',displayKey:'SETUP',status:'REJECTED',time:'',content:'',total:100,payment:{id,status:'PAID',amount:100}}];
+  openReview('setup-order');
  },id);
  await page.locator('#review-payment button').click();
  await page.locator('.payment-dialog input').fill('12345678');await page.locator('.payment-dialog button[type=submit]').click();

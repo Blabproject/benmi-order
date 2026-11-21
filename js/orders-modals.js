@@ -15,43 +15,6 @@ function showModalFromTop(modal) {
 }
 window.showModalFromTop = showModalFromTop;
 
-function formatOrderDetailHeaderTime(dateOrStr) {
-  let d = null;
-  if (dateOrStr) {
-    if (dateOrStr instanceof Date && !isNaN(dateOrStr.getTime())) {
-      d = dateOrStr;
-    } else {
-      const s = String(dateOrStr).trim();
-      const timeMatch = s.match(/(\d{1,2}):(\d{2})/);
-      const dateMatch = s.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
-      if (dateMatch && timeMatch) {
-        d = new Date(parseInt(dateMatch[1], 10), parseInt(dateMatch[2], 10) - 1, parseInt(dateMatch[3], 10), parseInt(timeMatch[1], 10), parseInt(timeMatch[2], 10));
-      } else {
-        const parsed = new Date(s);
-        if (!isNaN(parsed.getTime())) d = parsed;
-      }
-    }
-  }
-  if (!d || isNaN(d.getTime())) d = new Date();
-
-  const lang = (typeof window !== "undefined" && window.currentLang) || "zh-TW";
-  const monthsEn = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const mStr = monthsEn[d.getMonth()];
-  const day = String(d.getDate()).padStart(2, "0");
-  const year = d.getFullYear();
-  const hours = d.getHours();
-  const minutes = String(d.getMinutes()).padStart(2, "0");
-  const ampm = hours >= 12 ? "PM" : "AM";
-  const h12 = hours % 12 || 12;
-
-  if (lang === "vi") {
-    return `${mStr} ${day}, ${year}, ${h12}:${minutes} ${ampm}`;
-  } else {
-    return `${year}年${d.getMonth() + 1}月${d.getDate()}日 ${ampm} ${h12}:${minutes}`;
-  }
-}
-window.formatOrderDetailHeaderTime = formatOrderDetailHeaderTime;
-
 if (typeof window !== "undefined" && !window.__orderModalEscRegistered) {
   window.__orderModalEscRegistered = true;
   document.addEventListener("keydown", (e) => {
@@ -118,11 +81,6 @@ function openReview(orderKey) {
   const order = (latestOrders || []).find(o => o && o.key === orderKey) || (typeof lastHistoryOrders !== "undefined" ? (lastHistoryOrders || []).find(o => o && o.key === orderKey) : null);
   if (!order) return;
   reviewingOrder = order;
-  if (window.PaymentPOS) PaymentPOS.mount(order);
-
-  const detailTopbar = document.querySelector(".order-detail-topbar");
-  if (detailTopbar) detailTopbar.classList.remove("topbar-hidden", "is-scrolled");
-
   if (typeof unacknowledgedAppends !== "undefined") {
     unacknowledgedAppends.delete(orderKey);
   }
@@ -136,309 +94,45 @@ function openReview(orderKey) {
     updateNewAlert();
   }
 
-  const isDineIn = typeof isOrderDineIn === "function" ? isOrderDineIn(order) : order.diningOption === "dine_in";
-  const roundCount = Number(order.round_count || order.roundCount) || 1;
-  const isAppended = isDineIn && (roundCount > 1 || Boolean(order.lastAppendedAt || order.last_appended_at));
-  const isFinished = ["PICKED_UP", "PAID", "CANCELLED", "REJECTED"].includes(order.status);
-  const lang = window.currentLang || (typeof currentLang !== "undefined" ? currentLang : "zh-TW");
-  const isVi = lang === "vi";
-
-  const elPickLabel = document.getElementById("i18n-label-pickup");
-  if (elPickLabel) {
-    if (isDineIn) {
-      elPickLabel.innerText = isAppended ? t("dineInAppendedTimeLabel") : t("dineInTimeLabel");
-    } else {
-      elPickLabel.innerText = t("labelPickup");
-    }
-  }
-  const elEtaLabel = document.getElementById("i18n-label-eta");
-  if (elEtaLabel) elEtaLabel.innerText = isDineIn ? t("dineInElapsedHeader") : t("labelEta");
-
-  const elRevTitle = document.getElementById("i18n-review-title");
-  if (elRevTitle) {
-    elRevTitle.innerText = (order.status === "NEW")
-      ? (t("reviewTitleNew") || "審核訂單")
-      : (t("reviewTitle") || "訂單詳情");
-  }
-
-  const custName = (order.customer && order.customer.trim()) || (typeof t === "function" ? (t("guest") || "顧客") : "顧客");
-  const elCustHeader = document.getElementById("review-customer-header");
-  if (elCustHeader) elCustHeader.innerText = custName;
-
-  const elKeyBadge = document.getElementById("review-order-key-badge");
-  if (elKeyBadge) {
-    elKeyBadge.innerText = OrderCode.format(order.displayKey || order.key || "-");
-  }
-
-  const elCustAvatar = document.getElementById("review-customer-avatar");
-  if (elCustAvatar) {
-    elCustAvatar.innerText = custName ? custName.charAt(0).toUpperCase() : "👤";
-  }
-
-  const elKey = document.getElementById("review-order-key");
-  if (elKey) elKey.innerText = OrderCode.format(order.displayKey || order.key || "-");
-  const elCust = document.getElementById("review-customer");
-  if (elCust) {
-    elCust.innerText = order.customer ? order.customer.trim() : "-";
-  }
-
-  const elCustSub = document.getElementById("review-customer-sub");
-  if (elCustSub) {
-    const tableNum = typeof getOrderTableNumber === "function" ? getOrderTableNumber(order) : (order.tableNumber || "");
-    const diningText = isDineIn
-      ? (tableNum ? (lang === 'vi' ? `Bàn ${tableNum}` : `桌號 ${tableNum}`) : (t('dineIn') || (lang === 'vi' ? "Dùng tại quán" : "內用")))
-      : (t('takeaway') || (lang === 'vi' ? "Mang đi" : "外帶"));
-    if (order.phone) {
-      elCustSub.innerText = `${diningText} · ${order.phone}`;
-    } else {
-      elCustSub.innerText = diningText;
-    }
-  }
-
-  const elPick = document.getElementById("review-pickup");
-  const clockSvg = (typeof POS_SVG !== "undefined" && POS_SVG.clock) || "";
-  const pickTimeStr = isDineIn
-    ? (typeof formatDineInTimeDisplay === "function" ? formatDineInTimeDisplay(order) : (typeof formatOrderSubmissionTime === "function" ? formatOrderSubmissionTime(order) : formatPickupTimeDisplay(order.time)))
-    : formatPickupTimeDisplay(order.time, order.createdAt, order.content);
-
-  if (elPick) {
-    elPick.innerHTML = `${clockSvg}<span>${escapeHtml(pickTimeStr)}</span>`;
-  }
-
-  let etaText = "";
-  if (isFinished) {
-    if (order.status === "PICKED_UP") etaText = isVi ? (t("statusPillPicked") || "Đã giao hàng") : (t("statusPillPicked") || "已取餐");
-    else if (order.status === "PAID") etaText = isVi ? (t("statusPillPaid") || "Đã hoàn thành") : (t("statusPillPaid") || "已結帳");
-    else etaText = isVi ? (t("statusPillRejected") || "Đã hủy") : (t("statusPillRejected") || "已取消");
-  } else {
-    etaText = isDineIn
-      ? (typeof formatSubmissionElapsedTime === "function" ? formatSubmissionElapsedTime(order) : formatDineInElapsedTime(order))
-      : formatEta(order.time);
-  }
-
-  const elEta = document.getElementById("review-eta");
-  if (elEta) {
-    elEta.innerText = etaText;
-    if (isFinished) {
-      elEta.className = "timing-card-val";
-      elEta.style.color = order.status === "PICKED_UP" || order.status === "PAID" ? "#059669" : "#64748b";
-    } else if (isDineIn) {
-      elEta.className = "timing-card-val timing-eta-dinein";
-      elEta.style.color = "#7c3aed";
-    } else {
-      const targetMs = parsePickupTimeMs(order.time);
-      const diffMin = Math.round((targetMs - Date.now()) / 60000);
-      if (!Number.isNaN(targetMs) && diffMin <= 0) {
-        elEta.className = "timing-card-val timing-eta-overdue";
-        elEta.style.color = "var(--brand-red, #dc2626)";
-      } else if (!Number.isNaN(targetMs) && diffMin <= 15) {
-        elEta.className = "timing-card-val timing-eta-urgent";
-        elEta.style.color = "#ea580c";
-      } else {
-        elEta.className = "timing-card-val";
-        elEta.style.color = "var(--brand-red, #dc2626)";
-      }
-    }
-  }
-
-  // Pickup time and ETA are kept in the right timing card; left meta bar displays item count only
-  const elMetaPickup = document.getElementById("review-meta-pickup");
-  const elMetaPickupDivider = document.getElementById("review-meta-pickup-divider");
-  if (elMetaPickup) elMetaPickup.style.display = "none";
-  if (elMetaPickupDivider) elMetaPickupDivider.style.display = "none";
-
-  const elTot = document.getElementById("review-total");
-  if (elTot) elTot.innerText = formatOrderTotal(order);
-
-  // Check if there is an item subtotal vs total discrepancy (discount / combo savings)
-  let itemsSubtotal = 0;
-  if (typeof PrinterService !== "undefined" && typeof PrinterService.parseOrderItems === "function") {
-    const parsedItems = PrinterService.parseOrderItems(order, false) || [];
-    parsedItems.forEach(it => {
-      let linePrice = Number(String(it.price || "").replace(/[^0-9.]/g, '')) || 0;
-      if (linePrice === 0) {
-        const unitNum = Number(String(it.unitPrice || "").replace(/[^0-9.]/g, '')) || 0;
-        const q = Math.max(1, Number(it.quantity) || 1);
-        if (unitNum > 0) {
-          linePrice = unitNum * q;
-        } else if (it.name && typeof lookupItemPrice === "function") {
-          const lp = lookupItemPrice(it.name);
-          if (lp != null && Number(lp) > 0) {
-            linePrice = Number(lp) * q;
-          }
-        }
-      }
-      if (linePrice > 0) {
-        itemsSubtotal += linePrice;
-      }
-    });
-  } else if (Array.isArray(order?.items) && order.items.length > 0) {
-    order.items.forEach(it => {
-      const q = Math.max(1, Number(it.quantity) || 1);
-      const sub = Number(it.subtotal);
-      if (!isNaN(sub) && sub > 0) {
-        itemsSubtotal += sub;
-      } else {
-        const p = Number(it.price ?? it.unit_price ?? it.unitPrice) || 0;
-        itemsSubtotal += p * q;
-      }
-    });
-  }
-
-  let finalTotalNum = 0;
-  if (order?.total !== undefined && order?.total !== null && !isNaN(order.total) && Number(order.total) > 0) {
-    finalTotalNum = Number(order.total);
-  } else if (order?.content) {
-    const match = String(order.content).match(/💰\s*總金額[：:]\s*\$?(\d+)/) || String(order.content).match(/Tổng\s*(?:tiền)?[：:]\s*(\d+)/i);
-    if (match) {
-      finalTotalNum = Number(match[1]);
-    }
-  }
-
-  const subtotalRow = document.getElementById("review-subtotal-row");
-  const discountRow = document.getElementById("review-discount-row");
-  const elSubtot = document.getElementById("review-subtotal");
-  const elDiscount = document.getElementById("review-discount");
-
-  if (itemsSubtotal > finalTotalNum && finalTotalNum > 0) {
-    const discountAmount = itemsSubtotal - finalTotalNum;
-    if (subtotalRow) subtotalRow.style.display = "flex";
-    if (discountRow) discountRow.style.display = "flex";
-    if (elSubtot) elSubtot.innerText = `$${itemsSubtotal.toLocaleString()}`;
-    if (elDiscount) elDiscount.innerText = `-$${discountAmount.toLocaleString()}`;
-  } else {
-    // Normal order without discount: hide subtotal & discount rows so merchant sees only one clean "Tổng cộng"
-    if (subtotalRow) subtotalRow.style.display = "none";
-    if (discountRow) discountRow.style.display = "none";
-  }
-
-  const elSt = document.getElementById("review-status");
-  const elStatusTitle = document.getElementById("review-status-title");
-  let statusText = order.status || "-";
-  let statusCls = "status-pill-default";
-
-  if (order.status === "NEW") {
-    statusText = t("statusPillNew") || (lang === "vi" ? "Chờ xác nhận" : "待處理");
-    statusCls = "status-pill-new";
-  } else if (order.status === "ACCEPTED") {
-    statusText = t("statusPillAccepted") || (lang === "vi" ? "Đang làm" : "製作中");
-    statusCls = "status-pill-accepted";
-  } else if (order.status === "DONE") {
-    statusText = t("statusPillDone") || (lang === "vi" ? (isDineIn ? "Chờ hoàn thành" : "Chờ lấy món") : "待取餐");
-    statusCls = "status-pill-done";
-  } else if (order.status === "PICKED_UP") {
-    statusText = t("statusPillPicked") || (lang === "vi" ? "Đã giao hàng" : "已取餐");
-    statusCls = "status-pill-picked";
-  } else if (order.status === "PAID") {
-    statusText = t("statusPillPaid") || (lang === "vi" ? "Đã hoàn thành" : "已結帳");
-    statusCls = "status-pill-paid";
-  } else if (order.status === "REJECTED" || order.status === "CANCELLED") {
-    statusText = t("statusPillRejected") || (lang === "vi" ? "Đã hủy" : "已取消");
-    statusCls = "status-pill-rejected";
-  } else if (order.status === "WAITING_CUSTOMER_CHANGE" || order.status === "WAITING_CUSTOMER_REJECT") {
-    statusText = t("statusPillWaiting") || (lang === "vi" ? "Chờ khách xác nhận" : "待客人確認");
-    statusCls = "status-pill-waiting";
-  }
-
-  if (elSt) {
-    elSt.className = `status-pill ${statusCls}`;
-    elSt.innerText = statusText;
-  }
-  if (elStatusTitle) {
-    elStatusTitle.innerText = statusText;
-  }
-
-  const elTimeDisplay = document.getElementById("review-time-display");
-  if (elTimeDisplay) {
-    elTimeDisplay.innerText = formatOrderDetailHeaderTime(order.time || order.created_at);
-  }
-
-  const elDining = document.getElementById("review-dining");
-  if (elDining) {
-    const tableNum = typeof getOrderTableNumber === "function" ? getOrderTableNumber(order) : (order.tableNumber || "");
-    const tableSuffix = tableNum ? (lang === 'vi' ? ` · Bàn ${tableNum}` : ` · 桌號 ${tableNum}`) : "";
-    const svgDineIn = (typeof POS_SVG !== "undefined" && POS_SVG.dineIn) || "";
-    const svgTakeaway = (typeof POS_SVG !== "undefined" && POS_SVG.takeaway) || "";
-    elDining.innerHTML = isDineIn
-      ? `<span class="dining-pill dine-in">${svgDineIn}${t('dineIn')}${escapeHtml(tableSuffix)}</span>`
-      : `<span class="dining-pill takeaway">${svgTakeaway}${t('takeaway')}</span>`;
-  }
-
-  const elCont = document.getElementById("review-content");
-  if (elCont) elCont.innerHTML = formatContentHtml(order);
+  window.PosOrderDetail?.render(order);
+  window.PaymentPOS?.mount(order);
   if (typeof updatePrintActionAvailability === "function") updatePrintActionAvailability();
+
+  const modal = document.getElementById("reviewModal");
+  if (modal) {
+    modal.querySelector(".order-detail-topbar")?.classList.remove("topbar-hidden", "is-scrolled");
+    initOrderDetailHeaderScroll();
+    showModalFromTop(modal);
+    modal.focus?.({ preventScroll: true });
+  }
 
   if (typeof ensureTenantCustomizations === "function") {
     ensureTenantCustomizations().then(custs => {
-      if (Array.isArray(custs) && custs.length > 0 && reviewingOrder && reviewingOrder.key === order.key) {
-        if (elCont) elCont.innerHTML = formatContentHtml(reviewingOrder);
+      if (Array.isArray(custs) && custs.length > 0 && reviewingOrder?.key === order.key) {
+        refreshOrderDetail();
       }
     });
   }
+}
 
-  // Dynamic 3-level Print Macro Bar Label
-  let parsedItems = (typeof PrinterService !== "undefined" && typeof PrinterService.parseOrderItems === "function")
-    ? PrinterService.parseOrderItems(order, true)
-    : [];
-  if (parsedItems && Array.isArray(parsedItems) && typeof isOrderMetadataText === "function") {
-    parsedItems = parsedItems.filter(it => it && it.name && !isOrderMetadataText(it.name));
-  }
-  const itemCount = (parsedItems && parsedItems.length) || 1;
-  const elItemsCount = document.getElementById("review-items-count");
-  if (elItemsCount) {
-    elItemsCount.innerText = isVi ? `${itemCount} món` : `${itemCount} 項`;
-  }
-
-  const btnFullLabel = document.getElementById("i18n-btn-print-full");
-  if (btnFullLabel) {
-    btnFullLabel.innerHTML = (typeof t === "function" && t("btnPrintFullOrder", { n: itemCount })) || (isVi ? `IN CẢ ĐƠN<br>(1 Bill + ${itemCount} Tem)` : `整單全印<br>(明細+標籤）`);
-  }
-
-  const actionsNew = document.getElementById("review-actions");
-  const actionsAccepted = document.getElementById("review-actions-accepted");
-  const actionsWaiting = document.getElementById("review-actions-waiting");
-  const actionsDone = document.getElementById("review-actions-done");
-
-  if (actionsNew) actionsNew.style.display = "none";
-  if (actionsAccepted) actionsAccepted.style.display = "none";
-  if (actionsWaiting) actionsWaiting.style.display = "none";
-  if (actionsDone) actionsDone.style.display = "none";
-
-  if (order.status === "NEW") {
-    if (actionsNew) actionsNew.style.display = "grid";
-  } else if (order.status === "ACCEPTED") {
-    if (actionsAccepted) actionsAccepted.style.display = "grid";
-  } else if (order.status === "DONE") {
-    if (actionsDone) actionsDone.style.display = "grid";
-    const btnPik = document.getElementById("btn-review-picked");
-    if (btnPik) {
-      btnPik.style.display = "inline-flex";
-      const span = btnPik.querySelector("span");
-      if (span) {
-        if (isDineIn) {
-          span.textContent = lang === "vi" ? "Đã xong" : "已完成";
-        } else {
-          span.textContent = lang === "vi" ? (t("btnPickedUp") || "Đã lấy") : (t("btnPickedUp") || "已取餐");
-        }
-      }
-    }
-  } else if (order.status === "WAITING_CUSTOMER_CHANGE" || order.status === "WAITING_CUSTOMER_REJECT") {
-    if (actionsWaiting) actionsWaiting.style.display = "grid";
-  }
-
-  const revModal = document.getElementById("reviewModal");
-  if (revModal) {
-    showModalFromTop(revModal);
-  }
+function refreshOrderDetail(refreshItems = true) {
+  const modal = document.getElementById("reviewModal");
+  if (!reviewingOrder || modal?.style.display !== "flex") return;
+  const etaOrder = latestOrders.find(order => order?.key === reviewingOrder.key) || reviewingOrder;
+  window.PosOrderDetail?.render(reviewingOrder, etaOrder, refreshItems);
 }
 
 function completeOrderFromReview(btn) {
   if (!reviewingOrder) return;
-  const isDineIn = typeof isOrderDineIn === "function" ? isOrderDineIn(reviewingOrder) : reviewingOrder.diningOption === "dine_in";
-  const targetStatus = isDineIn ? "PAID" : "PICKED_UP";
-  updateStatus(reviewingOrder.key, targetStatus, {}, btn).then(saved => { if (saved) closeModal(); });
+  const targetStatus = isOrderDineIn(reviewingOrder) ? "PAID" : "PICKED_UP";
+  return updateStatus(reviewingOrder.key, targetStatus, {}, btn).then(saved => { if (saved) closeModal(); });
 }
 window.completeOrderFromReview = completeOrderFromReview;
+
+function cancelOrderFromReview() {
+  if (!reviewingOrder?.key || !confirm(t("confirmCancelOrder"))) return;
+  return updateStatus(reviewingOrder.key, "REJECTED", { reason: "取消並不回復客戶" }).then(saved => { if (saved) closeModal(); });
+}
 
 function selectChangeReason(val) {
   const sel = document.getElementById("change-reason");
@@ -1069,54 +763,6 @@ async function printCustomQuickSticker() {
   await printQuickModifierOption(val);
   if (input) input.value = "";
 }
-
-function updateReviewModalEta(order) {
-  if (!order) return;
-  const revModal = document.getElementById("reviewModal");
-  if (!revModal || revModal.style.display === "none") return;
-
-  const isDineIn = typeof isOrderDineIn === "function" ? isOrderDineIn(order) : order.diningOption === "dine_in";
-  const elEta = document.getElementById("review-eta");
-  if (!elEta) return;
-
-  const isFinished = ["PICKED_UP", "PAID", "CANCELLED", "REJECTED"].includes(order.status);
-  const lang = window.currentLang || (typeof currentLang !== "undefined" ? currentLang : "zh-TW");
-  const isVi = lang === "vi";
-
-  let etaText = "";
-  if (isFinished) {
-    if (order.status === "PICKED_UP") etaText = isVi ? (t("statusPillPicked") || "Đã giao hàng") : (t("statusPillPicked") || "已取餐");
-    else if (order.status === "PAID") etaText = isVi ? (t("statusPillPaid") || "Đã hoàn thành") : (t("statusPillPaid") || "已結帳");
-    else etaText = isVi ? (t("statusPillRejected") || "Đã hủy") : (t("statusPillRejected") || "已取消");
-    elEta.className = "timing-card-val";
-    elEta.style.color = order.status === "PICKED_UP" || order.status === "PAID" ? "#059669" : "#64748b";
-  } else {
-    etaText = isDineIn
-      ? (typeof formatSubmissionElapsedTime === "function" ? formatSubmissionElapsedTime(order) : formatDineInElapsedTime(order))
-      : formatEta(order.time);
-
-    if (isDineIn) {
-      elEta.className = "timing-card-val timing-eta-dinein";
-      elEta.style.color = "#7c3aed";
-    } else {
-      const targetMs = parsePickupTimeMs(order.time);
-      const diffMin = Math.round((targetMs - Date.now()) / 60000);
-      if (!Number.isNaN(targetMs) && diffMin <= 0) {
-        elEta.className = "timing-card-val timing-eta-overdue";
-        elEta.style.color = "var(--brand-red, #dc2626)";
-      } else if (!Number.isNaN(targetMs) && diffMin <= 15) {
-        elEta.className = "timing-card-val timing-eta-urgent";
-        elEta.style.color = "#ea580c";
-      } else {
-        elEta.className = "timing-card-val";
-        elEta.style.color = "var(--brand-red, #dc2626)";
-      }
-    }
-  }
-
-  elEta.innerText = etaText;
-}
-window.updateReviewModalEta = updateReviewModalEta;
 
 window.openQuickStickerModal = openQuickStickerModal;
 window.closeQuickStickerModal = closeQuickStickerModal;

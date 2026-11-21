@@ -698,185 +698,7 @@
   </div>
 
   <!-- Full-Page Order Detail (Uber Eats Style) -->
-  <div id="reviewModal" class="modal order-detail-fullpage" style="display:none;">
-    <div class="order-detail-page-container">
-      <!-- Top Navigation Bar -->
-      <div class="order-detail-topbar">
-        <div class="order-detail-topbar-left">
-          <button type="button" class="order-detail-circle-btn" onclick="dismissReviewModal()" aria-label="Close" title="Đóng (Esc)">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
-          </button>
-          <div class="order-detail-header-text">
-            <h1 class="order-detail-title" id="review-header-title">
-              <span id="review-customer-header">-</span>
-              <span class="order-title-dot">•</span>
-              <span class="order-title-key" id="review-order-key-badge">-</span>
-            </h1>
-          </div>
-        </div>
-        <div class="order-detail-topbar-right">
-          <button type="button" class="order-detail-circle-btn" id="btn-review-quick-print" onclick="if(typeof reviewingOrder !== 'undefined' && reviewingOrder && typeof PrinterService !== 'undefined') (PrinterService.canPrintFullOrder() ? PrinterService.printFullOrder(reviewingOrder.key) : PrinterService.printManual(reviewingOrder.key, 'all'))" title="In đơn hàng">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- Hidden compatibility hooks for existing script references -->
-      <div id="review-order-key" style="display:none;"></div>
-      <div id="i18n-review-title" style="display:none;">訂單詳情</div>
-      <div id="review-status" style="display:none;">-</div>
-      <div id="i18n-label-customer" style="display:none;"></div>
-      <div id="i18n-label-dining" style="display:none;"></div>
-      <div id="i18n-label-status" style="display:none;"></div>
-      <div id="i18n-label-total" style="display:none;"></div>
-      <div id="i18n-review-items-title" style="display:none;"></div>
-
-      <!-- 2-Column Grid Layout (Uber Eats Merchant Standard) -->
-      <div class="order-detail-grid">
-        <!-- Left Column: Items & Totals -->
-        <div class="order-detail-main-col">
-          <!-- Meta Header Row (Only item count on left; pickup and ETA kept in right timing card) -->
-          <div class="order-detail-meta-bar">
-            <span class="order-detail-items-count" id="review-items-count">0 mặt hàng</span>
-            <span class="order-detail-dining-tag" id="review-dining" style="display:none;">-</span>
-            <span class="order-detail-meta-divider" id="review-meta-pickup-divider" style="display:none;">•</span>
-            <span class="order-detail-meta-pickup" id="review-meta-pickup" style="display:none;">
-              <span class="meta-pickup-time" id="review-meta-pickup-val">-</span>
-            </span>
-          </div>
-
-          <!-- Items Content -->
-          <div class="detail-content" id="review-content">-</div>
-
-          <!-- Bottom Totals Block -->
-          <div class="order-detail-totals-block">
-            <div class="order-detail-total-row subtotal-row" id="review-subtotal-row" style="display: none;">
-              <span class="total-label" id="i18n-label-subtotal">Tạm tính</span>
-              <span class="total-val" id="review-subtotal">-</span>
-            </div>
-            <div class="order-detail-total-row discount-row" id="review-discount-row" style="display: none;">
-              <span class="total-label" id="i18n-label-discount">Giảm giá</span>
-              <span class="total-val" id="review-discount">-$0</span>
-            </div>
-            <div class="order-detail-total-row grand-total-row" id="review-grandtotal-row">
-              <span class="total-label" id="i18n-label-grandtotal">Tổng cộng</span>
-              <span class="total-val" id="review-total">-</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right Column: Status Card & Action Dock -->
-        <div class="order-detail-side-col">
-          <!-- Status Heading (time display hidden per UI optimization, kept in timing card) -->
-          <div class="order-detail-status-header">
-            <h2 class="order-detail-status-title" id="review-status-title">Đang làm</h2>
-            <div class="order-detail-time-text" id="review-time-display" style="display:none;">-</div>
-          </div>
-
-          <!-- Scheduled Pickup & ETA Countdown Card -->
-          <div class="order-detail-timing-card" id="review-timing-card">
-            <div class="timing-card-box pickup-box">
-              <div class="timing-card-label" id="i18n-label-pickup">取餐時間</div>
-              <div class="timing-card-val" id="review-pickup">-</div>
-            </div>
-            <div class="timing-card-divider"></div>
-            <div class="timing-card-box eta-box">
-              <div class="timing-card-label" id="i18n-label-eta">剩餘時間</div>
-              <div class="timing-card-val" id="review-eta">-</div>
-            </div>
-          </div>
-
-          <!-- Customer & Order Info Card -->
-          <div class="order-detail-customer-card">
-            <div class="customer-card-header">
-              <div class="customer-avatar-circle" id="review-customer-avatar">👤</div>
-              <div class="customer-card-info">
-                <span class="customer-card-name" id="review-customer">-</span>
-                <span class="customer-card-sub" id="review-customer-sub">-</span>
-              </div>
-            </div>
-
-            <!-- Lifecycle Action Buttons -->
-            <div class="modal-lifecycle-footer">
-              <div class="modal-actions" id="review-actions">
-                <button class="btn btn-primary btn-lifecycle-primary" id="btn-review-accept" onclick="reviewAccept(this)">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                  <span>接單</span>
-                </button>
-                <button class="btn btn-yellow btn-lifecycle-change" id="btn-review-change" onclick="reviewOpenChange()">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                  <span>需要更改</span>
-                </button>
-                <button class="btn btn-danger btn-lifecycle-danger" id="btn-review-reject" onclick="reviewOpenReject()">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
-                  <span>無法接單</span>
-                </button>
-              </div>
-
-              <div class="modal-actions" id="review-actions-accepted" style="display:none;">
-                <button class="btn btn-primary btn-lifecycle-primary" id="btn-review-ready" onclick="markReadyFromReview(this)">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                  <span>準備好了</span>
-                </button>
-                <button class="btn btn-danger btn-lifecycle-danger" id="btn-review-cancel-1"
-                  onclick="if(confirm(t('confirmCancelOrder'))){ updateStatus(reviewingOrder.key, 'REJECTED', { reason: '取消並不回復客戶' }, this).then(saved => { if (saved) closeModal(); }); }">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
-                  <span>取消訂單</span>
-                </button>
-              </div>
-
-              <div class="modal-actions" id="review-actions-done" style="display:none;">
-                <button class="btn btn-primary btn-lifecycle-primary btn-lifecycle-blue" id="btn-review-picked"
-                  onclick="completeOrderFromReview(this);">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 6 7 17 2 12"></polyline><path d="m22 10-7.5 7.5L13 16"></path></svg>
-                  <span>已取餐</span>
-                </button>
-                <button class="btn btn-danger btn-lifecycle-danger" id="btn-review-cancel-2"
-                  onclick="if(confirm(t('confirmCancelOrder'))){ updateStatus(reviewingOrder.key, 'REJECTED', { reason: '取消並不回復客戶' }, this).then(saved => { if (saved) closeModal(); }); }">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
-                  <span>取消訂單</span>
-                </button>
-              </div>
-
-              <div class="modal-actions" id="review-actions-waiting" style="display:none;">
-                <button class="btn btn-primary btn-lifecycle-primary" id="btn-review-accept-wait" onclick="reviewAccept(this)">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                  <span>接單</span>
-                </button>
-                <button class="btn btn-danger btn-lifecycle-danger" id="btn-review-force-cancel" onclick="reviewForceCancel(this)">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
-                  <span>取消訂單</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Order print actions (tablet touch targets) -->
-          <div class="modal-print-toolbar">
-            <div class="printer-reports" data-printer-reports="current" role="status" aria-live="polite" hidden></div>
-            <div class="print-toolbar-header">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:-2px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-              <span id="i18n-print-tools-label">出單與列印工具</span>
-            </div>
-            <div class="review-print-macro-bar" id="review-print-macro-bar">
-              <button type="button" class="btn btn-print-full" id="btn-review-print-full" data-print-action="full" onclick="if(typeof reviewingOrder !== 'undefined' && reviewingOrder && typeof PrinterService !== 'undefined') PrinterService.printFullOrder(reviewingOrder.key)">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                <span id="i18n-btn-print-full">整單全印<span class="print-action-summary">明細 + 標籤</span></span>
-              </button>
-              <button type="button" class="btn btn-print-bill" id="btn-review-print-bill" data-print-action="bill" onclick="if(typeof reviewingOrder !== 'undefined' && reviewingOrder && typeof PrinterService !== 'undefined') PrinterService.printCashierOnly(reviewingOrder.key)">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"></path><path d="M16 8h-8"></path><path d="M16 12h-8"></path><path d="M10 16h-4"></path></svg>
-                <span id="i18n-btn-print-bill-only">僅印收銀明細</span>
-              </button>
-              <button type="button" class="btn btn-print-custom" id="btn-review-print-custom" data-print-action="stickers" onclick="openQuickStickerModal(reviewingOrder ? reviewingOrder.key : '')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                <span id="i18n-btn-print-custom-opt">補印自訂標籤</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <div id="reviewModal" class="modal order-detail-fullpage" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="review-header-title" tabindex="-1"></div>
 
   <!-- Quick Sticker / Emergency Note Modal -->
   <div id="quickStickerModal" class="modal" style="display:none;">
@@ -1938,14 +1760,14 @@
 
   <!-- Benmi POS Modular Architecture Scripts -->
   <script src="js/menu-schedule.js?v=20261119_shift_management_v1"></script>
-  <script src="js/orders-i18n.js?v=20261121_item_detail_react_v1"></script>
-  <script src="js/orders-core.js?v=20261121_live_queues_react_v1"></script>
+  <script src="js/orders-i18n.js?v=20261121_order_detail_react_v1"></script>
+  <script src="js/orders-core.js?v=20261121_order_detail_react_v1"></script>
   <script src="js/orders-audio.js?v=20261114_deadcode_cleanup_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
   <script src="js/order-detail-view.js?v=20261119_print_options_v2"></script>
   <script src="js/printer-service.js?v=20261119_print_options_v2"></script>
   <script src="js/orders-live.js?v=20261121_live_queues_react_v1"></script>
-  <script src="js/orders-modals.js?v=20261112_print_recovery_v1"></script>
+  <script src="js/orders-modals.js?v=20261121_order_detail_react_v1"></script>
   <script src="js/qrcode.min.js?v=20261107_table_qr_v1"></script>
   <script src="js/store-notice-format.js?v=20261111_store_notice_v1"></script>
   <script src="js/orders-settings.js?v=20261121_settings_green_v5"></script>
@@ -1994,6 +1816,7 @@
   </script>
 <div id="pos-option-groups-drawer-root"></div>
 <script type="module" src="/frontend/apps/pos/LiveOrderQueues.tsx"></script>
+<script type="module" src="/frontend/apps/pos/OrderDetail.tsx"></script>
 <script type="module" src="/frontend/apps/pos/history-bridge.tsx"></script>
 <script type="module" src="/frontend/apps/pos/reports-bridge.tsx"></script>
 <script type="module" src="/frontend/apps/pos/ai-settings-bridge.tsx"></script>

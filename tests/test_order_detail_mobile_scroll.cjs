@@ -4,14 +4,13 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 
-const root = path.resolve(__dirname, '..');
+const { getPosDistDir } = require('./helpers/pos-dist.cjs');
 
 async function run() {
   const browser = await chromium.launch();
-  const htmlRaw = fs.readFileSync(path.join(root, 'orders.html'), 'utf8')
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<link\b[^>]*>/gi, '');
-  const css = fs.readFileSync(path.join(root, 'css/orders.css'), 'utf8');
+  const dist = getPosDistDir();
+  const html = fs.readFileSync(path.join(dist, 'orders.html'), 'utf8')
+    .replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '');
 
   const testViewports = [
     { name: 'Mobile Compact (375x600)', width: 375, height: 600, isMobile: true },
@@ -23,14 +22,18 @@ async function run() {
 
   for (const vp of testViewports) {
     const page = await browser.newPage({ viewport: { width: vp.width, height: vp.height } });
-    await page.route('**/*', route => route.fulfill({ body: '<html></html>', contentType: 'text/html' }));
-    await page.goto('http://pos.test/?tenant=fixture');
-    await page.setContent(htmlRaw);
-    await page.addStyleTag({ content: css });
-
-    for (const file of ['js/order-code.js', 'js/orders-i18n.js', 'js/order-legacy-adapter.js', 'js/orders-core.js', 'js/orders-live.js', 'js/orders-modals.js']) {
-      await page.addScriptTag({ content: fs.readFileSync(path.join(root, file), 'utf8') });
-    }
+    await page.route('**/*', route => {
+      const { hostname, pathname } = new URL(route.request().url());
+      if (hostname === 'pos.test' && pathname === '/orders.html') {
+        return route.fulfill({ body: html, contentType: 'text/html' });
+      }
+      if (hostname === 'pos.test' && /^\/(assets|css|js)\/[\w.-]+$/.test(pathname)) {
+        return route.fulfill({ path: path.join(dist, pathname.slice(1)) });
+      }
+      return route.fulfill({ json: {} });
+    });
+    await page.addInitScript(() => { window.setInterval = () => 0; });
+    await page.goto('http://pos.test/orders.html?tenant=fixture');
 
     await page.evaluate(() => {
       document.body.classList.add('is-web-platform', 'is-prod-env');

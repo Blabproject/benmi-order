@@ -424,20 +424,12 @@ async function initTenantBranding() {
         try {
           localStorage.setItem("tenant_customizations_" + tenantId, JSON.stringify(data.customizations));
         } catch(e) {}
-        if (window.reviewingOrder && typeof formatContentHtml === "function") {
-          const elCont = document.getElementById("review-content");
-          if (elCont) elCont.innerHTML = formatContentHtml(window.reviewingOrder);
-        }
       } else {
         window.tenantCustomizations = [];
         tenantCustomizations = [];
         try {
           localStorage.removeItem("tenant_customizations_" + tenantId);
         } catch(e) {}
-        if (window.reviewingOrder && typeof formatContentHtml === "function") {
-          const elCont = document.getElementById("review-content");
-          if (elCont) elCont.innerHTML = formatContentHtml(window.reviewingOrder);
-        }
       }
       if (data.catalog) {
         try {
@@ -448,6 +440,7 @@ async function initTenantBranding() {
           renderAll();
         }
       }
+      if (typeof refreshOrderDetail === "function") refreshOrderDetail();
       if (typeof checkStaffOrderingCapability === "function") {
         checkStaffOrderingCapability();
       }
@@ -1413,14 +1406,7 @@ function renderAll() {
     }
   }
 
-  // Keep open Order Detail modal countdown updated dynamically
-  const revModal = document.getElementById("reviewModal");
-  if (revModal && revModal.style.display !== "none" && typeof reviewingOrder !== "undefined" && reviewingOrder) {
-    const updatedReviewOrder = (latestOrders && latestOrders.find(o => o && o.key === reviewingOrder.key)) || reviewingOrder;
-    if (typeof updateReviewModalEta === "function") {
-      updateReviewModalEta(updatedReviewOrder);
-    }
-  }
+  if (typeof refreshOrderDetail === "function") refreshOrderDetail(false);
 }
 
 function copyToClipboard(text, msgZh, msgVi) {

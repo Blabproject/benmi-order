@@ -570,7 +570,10 @@ const I18N = {
     printModeManualTitle: "手動列印模式 (Manual-print)",
     printModeManualDesc: "店員須在螢幕點選 [整單全印] 機器才會出單。適合需要先核對確認訂單的門市。",
     // 3 Print Levels
-    btnPrintFullOrder: "整單全印<span class=\"print-action-summary\">1 張明細 + {n} 張標籤</span>",
+    btnPrintFullOrder: "整單全印",
+    reviewPrintFullSummary: "1 張明細 + {n} 張標籤",
+    reviewCompleteDineIn: "已完成",
+    reviewTable: "桌號 {table}",
     btnPrintBillOnly: "僅印收銀明細",
     btnPrintCustomOption: "補印自訂標籤",
     btnPrintSingleItem: "印此品項貼紙",
@@ -2400,7 +2403,10 @@ const I18N = {
     printModeManualTitle: "Chế độ In thủ công (Manual-print)",
     printModeManualDesc: "Nhân viên phải bấm nút [ IN CẢ ĐƠN ] trên màn hình thì máy mới in. Thích hợp cho quán muốn kiểm tra lại đơn trước khi nhận.",
     // 3 Print Levels
-    btnPrintFullOrder: "In cả đơn<span class=\"print-action-summary\">1 bill + {n} tem</span>",
+    btnPrintFullOrder: "In cả đơn",
+    reviewPrintFullSummary: "1 bill + {n} tem",
+    reviewCompleteDineIn: "Đã xong",
+    reviewTable: "Bàn {table}",
     btnPrintBillOnly: "In bill thu ngân",
     btnPrintCustomOption: "In bù tem tùy chọn",
     btnPrintSingleItem: "In tem món",
@@ -3125,60 +3131,6 @@ function applyLanguageToDOM() {
     else btnAlertDis.innerText = dict.alertBtnDismiss;
   }
 
-  // Review Modal
-  const revTitle = document.getElementById("i18n-review-title");
-  if (revTitle) revTitle.innerText = dict.reviewTitle;
-  const btnRevPrn = document.getElementById("i18n-review-btn-print");
-  if (btnRevPrn) btnRevPrn.innerText = dict.btnPrint;
-  const lOrder = document.getElementById("i18n-label-order");
-  if (lOrder) lOrder.innerText = dict.labelOrder;
-  const lCustomer = document.getElementById("i18n-label-customer");
-  if (lCustomer) lCustomer.innerText = dict.labelCustomer;
-  const lPickup = document.getElementById("i18n-label-pickup");
-  if (lPickup) lPickup.innerText = dict.labelPickup;
-  const lEta = document.getElementById("i18n-label-eta");
-  if (lEta) lEta.innerText = dict.labelEta;
-  const lTotal = document.getElementById("i18n-label-total");
-  if (lTotal) lTotal.innerText = dict.labelTotal;
-  const lSubtotal = document.getElementById("i18n-label-subtotal");
-  if (lSubtotal) lSubtotal.innerText = dict.labelSubtotal;
-  const lGrandtotal = document.getElementById("i18n-label-grandtotal");
-  if (lGrandtotal) lGrandtotal.innerText = dict.labelGrandtotal;
-  const lDiscount = document.getElementById("i18n-label-discount");
-  if (lDiscount) lDiscount.innerText = dict.labelDiscount;
-  const lStatus = document.getElementById("i18n-label-status");
-  if (lStatus) lStatus.innerText = dict.labelStatus;
-  const lDining = document.getElementById("i18n-label-dining");
-  if (lDining) lDining.innerText = dict.labelDiningOption;
-  const lItemsTitle = document.getElementById("i18n-review-items-title");
-  if (lItemsTitle) lItemsTitle.innerText = dict.labelOrderItems;
-  const lPrintTools = document.getElementById("i18n-print-tools-label");
-  if (lPrintTools) lPrintTools.innerText = dict.printToolsLabel;
-
-  const setBtnText = (id, text) => {
-    const btn = document.getElementById(id);
-    if (!btn) return;
-    const sp = btn.querySelector("span");
-    if (sp) sp.innerText = text;
-    else btn.innerText = text;
-  };
-
-  setBtnText("btn-review-accept", dict.btnAccept);
-  setBtnText("btn-review-change", dict.btnChange);
-  setBtnText("btn-review-reject", dict.btnReject);
-
-  setBtnText("btn-review-ready", dict.btnReady);
-  setBtnText("btn-review-cancel-1", dict.btnCancelOrder);
-  setBtnText("btn-review-close-1", dict.btnClose);
-
-  setBtnText("btn-review-picked", dict.btnPickedUp);
-  setBtnText("btn-review-cancel-2", dict.btnCancelOrder);
-  setBtnText("btn-review-close-2", dict.btnClose);
-
-  setBtnText("btn-review-accept-wait", dict.btnAccept);
-  setBtnText("btn-review-force-cancel", dict.btnCancelOrder);
-  setBtnText("btn-review-close-3", dict.btnClose);
-
   // Change Modal
   const chgTitle = document.getElementById("i18n-change-title");
   if (chgTitle) chgTitle.innerText = dict.changeTitle;
@@ -3839,21 +3791,6 @@ function applyLanguageToDOM() {
   const prnManualDesc = document.getElementById("i18n-print-mode-manual-desc");
   if (prnManualDesc) prnManualDesc.innerText = dict.printModeManualDesc;
 
-  // Review 3 Print levels
-  const btnPrintFull = document.getElementById("i18n-btn-print-full");
-  if (btnPrintFull) {
-    const order = (typeof reviewingOrder !== "undefined" && reviewingOrder) ? reviewingOrder : null;
-    let n = 1;
-    if (order && typeof PrinterService !== "undefined" && typeof PrinterService.parseOrderItems === "function") {
-      n = PrinterService.parseOrderItems(order, true).length || 1;
-    }
-    btnPrintFull.innerHTML = dict.btnPrintFullOrder ? dict.btnPrintFullOrder.replace("{n}", n) : `IN CẢ ĐƠN<br>(1 Bill + ${n} Tem)`;
-  }
-  const btnPrintBillOnly = document.getElementById("i18n-btn-print-bill-only");
-  if (btnPrintBillOnly) btnPrintBillOnly.innerText = dict.btnPrintBillOnly;
-  const btnPrintCustomOpt = document.getElementById("i18n-btn-print-custom-opt");
-  if (btnPrintCustomOpt) btnPrintCustomOpt.innerHTML = dict.btnPrintCustomOption;
-
   // Quick Sticker Modal
   const qStickerTitle = document.getElementById("i18n-quick-sticker-title");
   if (qStickerTitle) qStickerTitle.innerText = dict.quickStickerModalTitle;
@@ -3919,13 +3856,7 @@ function applyLanguageToDOM() {
   const btnCloseG = document.getElementById("i18n-btn-close-guide");
   if (btnCloseG) btnCloseG.innerText = dict.btnCloseGuide;
 
-  // Re-render open modal contents if active
-  if (typeof reviewingOrder !== "undefined" && reviewingOrder) {
-    const elCont = document.getElementById("review-content");
-    if (elCont && typeof formatContentHtml === "function") {
-      elCont.innerHTML = formatContentHtml(reviewingOrder);
-    }
-  }
+  if (typeof refreshOrderDetail === "function") refreshOrderDetail();
   const qModal = document.getElementById("quickStickerModal");
   if (qModal && qModal.style.display === "flex" && typeof renderQuickStickerOptions === "function") {
     renderQuickStickerOptions();
