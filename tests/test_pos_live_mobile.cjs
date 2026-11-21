@@ -4,27 +4,39 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 
-const root = path.resolve(__dirname, '..');
-const readSource = file => fs.readFileSync(path.join(root, file), 'utf8');
+const { getPosDistDir } = require('./helpers/pos-dist.cjs');
 
 async function loadFixture(page) {
-  await page.route('**/*', route => route.fulfill({ body: '<html></html>', contentType: 'text/html' }));
-  await page.goto('http://pos.test/?tenant=fixture');
-  const html = readSource('orders.html')
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<link\b[^>]*>/gi, '');
-  await page.setContent(html);
-  await page.addStyleTag({ content: readSource('css/orders.css') });
-  await page.evaluate(() => {
+  const dist = getPosDistDir();
+  await page.route('**/*', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname === '/orders.html') {
+      const body = fs.readFileSync(path.join(dist, 'orders.html'), 'utf8')
+        .replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '');
+      return route.fulfill({ body, contentType: 'text/html' });
+    }
+    if (/^\/(js|css|assets)\/[\w.-]+$/.test(pathname)) {
+      return route.fulfill({ path: path.join(dist, pathname.slice(1)) });
+    }
+    return route.fulfill({ body: '', contentType: pathname.endsWith('.css') ? 'text/css' : 'application/javascript' });
+  });
+  await page.addInitScript(() => {
     window.fixtureIntervals = [];
     window.setInterval = (callback, delay) => window.fixtureIntervals.push({ callback, delay });
     window.alert = message => { throw new Error(`Unexpected alert: ${message}`); };
     window.confirm = () => true;
     window.fixturePosts = [];
     window.fetch = async (url, options = {}) => {
+      if (url.includes('/api/orders') && window.fixtureOrdersUnavailable) {
+        return { ok: false, status: 503 };
+      }
       if (url.includes('/api/update')) {
         const update = JSON.parse(options.body);
         window.fixturePosts.push(update);
+        if (window.holdFixtureStatus) {
+          window.holdFixtureStatus = false;
+          await new Promise(resolve => { window.releaseFixtureStatus = resolve; });
+        }
         window.fixtureOrders.find(order => order.key === update.key).status = update.status;
       }
       return {
@@ -33,9 +45,7 @@ async function loadFixture(page) {
       };
     };
   });
-  for (const file of ['js/order-code.js', 'js/orders-display.js', 'js/orders-i18n.js', 'js/order-legacy-adapter.js', 'js/orders-core.js', 'js/orders-live.js', 'js/orders-modals.js']) {
-    await page.addScriptTag({ content: readSource(file) });
-  }
+  await page.goto('http://pos.test/orders.html?tenant=fixture');
   await page.evaluate(() => {
     window.currentTenantFeatures = ['dine_in'];
     window.fixtureOrders = Array.from({ length: 80 }, (_, index) => ({
@@ -194,8 +204,20 @@ async function swipeQueue(page, direction, options) {
     await scrollList(page, '#list-right', 700);
     await page.evaluate(() => window.fixtureIntervals.find(timer => timer.delay === 10000).callback());
     assert.equal(await page.locator('#list-right').evaluate(node => node.scrollTop), 700);
-    await page.evaluate(() => fetchOrders());
+    await page.evaluate(async () => {
+      const current = window.fixtureOrders.find(order => order.status === 'DONE');
+      const currentTile = [...document.querySelectorAll('#list-right .tile')].find(tile => tile.dataset.orderKey === current.key);
+      currentTile.dataset.identityProbe = 'retained';
+      window.fixtureOrders.push({ ...current, key: 'poll-arrival', customer: 'Khách mới qua polling' });
+      await fetchOrders();
+    });
+    assert.equal(await page.locator('#list-right [data-identity-probe="retained"]').count(), 1, 'React retains the same card node');
+    assert.equal(await page.locator('#list-right [data-order-key="poll-arrival"] .tile-customer').innerText(), 'Khách mới qua polling');
     assert.equal(await page.locator('#list-right').evaluate(node => node.scrollTop), 700, 'Polling preserves scroll');
+    await page.evaluate(async () => {
+      window.fixtureOrders = window.fixtureOrders.filter(order => order.key !== 'poll-arrival');
+      await fetchOrders();
+    });
     await page.locator('#live-mobile-tab-pending').click();
     assert.equal(await page.locator('#list-left').evaluate(node => node.scrollTop), 500, 'Hidden queue retains scroll');
     await swipeQueue(page, 'left');
@@ -236,7 +258,12 @@ async function swipeQueue(page, direction, options) {
     assert.equal(await page.locator('#list-left').evaluate(node => node.scrollTop), 0);
     await page.locator('#filter-btn-all').click();
     // Use actual action buttons and production status handlers; only HTTP is mocked.
-    await page.locator('#list-left .btn-action-ready').first().tap();
+    await page.evaluate(() => { window.holdFixtureStatus = true; });
+    const readyAction = page.locator('#list-left .btn-action-ready').first();
+    await readyAction.tap();
+    assert(await readyAction.isDisabled());
+    assert.equal(await readyAction.getAttribute('aria-busy'), 'true');
+    await page.evaluate(() => window.releaseFixtureStatus());
     await page.waitForFunction(() => document.getElementById('live-mobile-count-pending').innerText === '23');
     assert.equal(await page.locator('#live-mobile-count-ready').innerText(), '57');
     assert(await page.locator('#live-panel-pending').isVisible());
@@ -247,8 +274,8 @@ async function swipeQueue(page, direction, options) {
     await page.waitForFunction(() => document.getElementById('live-mobile-count-ready').innerText === '55');
     assert(await page.locator('#live-panel-ready').isVisible());
     assert.deepEqual(await page.evaluate(() => window.fixturePosts.map(post => post.status)), ['DONE', 'PICKED_UP', 'PAID']);
-    await page.locator('#list-right .tile').first().click();
-    assert(await page.locator('#reviewModal').isVisible(), 'Opening order details still works');
+    await page.locator('#list-right .tile').first().press('Enter');
+    assert(await page.locator('#reviewModal').isVisible(), 'Opening order details from the keyboard works');
     await page.evaluate(() => closeModal());
 
     await page.locator('#live-mobile-tab-pending').click();
@@ -274,6 +301,16 @@ async function swipeQueue(page, direction, options) {
     assert(await page.locator('#list-left .empty-state-card').isVisible());
     assert.equal(await page.locator('#live-mobile-count-pending').innerText(), '0');
     assert.equal(await page.locator('#live-mobile-count-ready').innerText(), '0');
+    await page.evaluate(async () => {
+      window.fixtureOrdersUnavailable = true;
+      await fetchOrders();
+    });
+    assert.match(await page.locator('#list-left [role=alert]').innerText(), /503/);
+    await page.evaluate(async () => {
+      window.fixtureOrdersUnavailable = false;
+      await fetchOrders();
+    });
+    assert(await page.locator('#list-left .empty-state-card').isVisible(), 'Queue recovers after a fetch error');
 
     // Wide screens show both queues only when each has space for scaled text.
     const current = await browser.newPage({ hasTouch: true });

@@ -3,23 +3,28 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium, webkit } = require('playwright');
-const root = path.resolve(__dirname, '..');
-const html = fs.readFileSync(path.join(root, 'orders.html'), 'utf8')
-  .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<link\b[^>]*>/gi, '');
+const { getPosDistDir } = require('./helpers/pos-dist.cjs');
+const dist = getPosDistDir();
+const html = fs.readFileSync(path.join(dist, 'orders.html'), 'utf8')
+  .replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '');
 for (const [name, engine] of Object.entries({ chromium, webkit })) {
   test(`${name}: ready remains usable during a stalled print; per-part reports recover and support targeted retry`, async t => {
     const browser = await engine.launch({ headless: true }); t.after(() => browser.close());
     const page = await browser.newPage({ viewport: { width: 1024, height: 768 }, hasTouch: true });
     page.setDefaultTimeout(8000);
     const errors = []; page.on('pageerror', error => errors.push(error.message));
-    await page.route('**/*', route => route.fulfill({ contentType: 'text/html', body: '<html></html>' }));
+    await page.route('**/*', route => {
+      const { hostname, pathname } = new URL(route.request().url());
+      if (hostname === 'pos.test' && pathname === '/orders.html') {
+        return route.fulfill({ body: html, contentType: 'text/html' });
+      }
+      if (hostname === 'pos.test' && /^\/(assets|css|js)\/[\w.-]+$/.test(pathname)) {
+        return route.fulfill({ path: path.join(dist, pathname.slice(1)) });
+      }
+      return route.fulfill({ json: {} });
+    });
+    await page.addInitScript(() => { window.setInterval = () => 0; });
     await page.goto('https://pos.test/orders.html?tenant=fixture&platform=app');
-    await page.setContent(html);
-    await page.addStyleTag({ content: fs.readFileSync(path.join(root, 'css/orders.css'), 'utf8') });
-    await page.evaluate(() => { window.setInterval = () => 0; });
-    for (const file of ['order-code', 'orders-i18n', 'order-legacy-adapter', 'orders-core', 'printer-service', 'orders-live', 'orders-modals', 'orders-settings']) {
-      await page.addScriptTag({ content: fs.readFileSync(path.join(root, `js/${file}.js`), 'utf8') });
-    }
     await page.evaluate(() => {
       window.__writes = [];
       window.__order = { key: 'fixture-order', displayKey: 'F1112-T006', customer: 'Fixture', status: 'NEW', source: 'legacy', total: 142,

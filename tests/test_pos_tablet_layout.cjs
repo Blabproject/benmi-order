@@ -3,8 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium, webkit } = require('playwright');
-const root = path.resolve(__dirname, '..');
-const read = file => fs.readFileSync(path.join(root, file), 'utf8');
+const { getPosDistDir } = require('./helpers/pos-dist.cjs');
 const viewports = [
   { width: 768, height: 1024 }, { width: 800, height: 600 },
   { width: 960, height: 600 }, { width: 1024, height: 768 }, { width: 1280, height: 800 },
@@ -12,15 +11,16 @@ const viewports = [
 ];
 
 async function withPOS(check) {
+  const dist = getPosDistDir();
   const browser = await (process.env.POS_DISPLAY_BROWSER === 'webkit' ? webkit : chromium).launch();
   try {
     const page = await browser.newPage({ viewport: { width: 960, height: 600 }, hasTouch: true });
     await page.route('**/*', route => {
       const pathname = new URL(route.request().url()).pathname;
       if (pathname === '/orders.html') return route.fulfill({ contentType: 'text/html',
-        body: read('orders.html').replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '') });
-      if (/^\/(js|css)\/[\w.-]+$/.test(pathname)) return route.fulfill({
-        contentType: pathname.endsWith('.css') ? 'text/css' : 'text/javascript', body: read(pathname.slice(1)) });
+        body: fs.readFileSync(path.join(dist, 'orders.html'), 'utf8').replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '') });
+      if (/^\/(js|css|assets)\/[\w.-]+$/.test(pathname)) return route.fulfill({
+        path: path.join(dist, pathname.slice(1)) });
       return route.fulfill({ contentType: 'application/json', body: '{}' });
     });
     await page.addInitScript(() => {

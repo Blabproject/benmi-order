@@ -379,22 +379,6 @@ function isOrderMetadataText(text) {
   return false;
 }
 
-function renderEmptyLiveState(type) {
-  const isPending = type === 'pending';
-  const title = isPending ? t('emptyLivePendingTitle') : t('emptyLiveAcceptedTitle');
-  const sub = isPending ? t('emptyLivePendingSub') : t('emptyLiveAcceptedSub');
-  const iconSvg = isPending ? (POS_SVG.inbox || "") : (POS_SVG.partyCheck || "");
-  return `
-    <div class="empty-state-card">
-      <div class="empty-state-icon-circle ${isPending ? 'pending' : 'accepted'}">
-        ${iconSvg}
-      </div>
-      <div class="empty-state-title">${escapeHtml(title)}</div>
-      <div class="empty-state-desc">${escapeHtml(sub)}</div>
-    </div>
-  `;
-}
-
 function updateDiningFilterStats(allLiveOrders) {
   const isFeatureEnabled = typeof window.isDineInSupported === "function"
     ? window.isDineInSupported()
@@ -447,192 +431,8 @@ function updateDiningFilterStats(allLiveOrders) {
   }
 }
 
-function renderListLeft(orders) {
-  const container = document.getElementById("list-left");
-  if (!container) return;
-  container.innerHTML = "";
-
-  const filteredOrders = (orders || []).filter(order => {
-    if (currentDiningFilter === "all") return true;
-    const dineIn = isOrderDineIn(order);
-    return currentDiningFilter === "dine_in" ? dineIn : !dineIn;
-  });
-
-  if (filteredOrders.length === 0) {
-    container.innerHTML = renderEmptyLiveState('pending');
-    return;
-  }
-
-  filteredOrders.forEach(order => {
-    const isNew = order.status === "NEW";
-    const isDineIn = isOrderDineIn(order);
-    const isElapsed = typeof isOrderElapsedMode === "function" ? isOrderElapsedMode(order) : isDineIn;
-
-    const totalFormatted = formatOrderTotal(order);
-    const itemCount = countItemsFromContent(order.content);
-    const itemCountStr = t("tileItemCount", { count: itemCount > 0 ? itemCount : "?" });
-
-    const isAppendedUnread = (typeof unacknowledgedAppends !== "undefined" && unacknowledgedAppends.has(order.key));
-
-    const tile = document.createElement("div");
-    tile.className = `tile ${isNew ? "is-new" : ""} ${isDineIn ? "is-dine-in" : "is-takeaway"} ${isAppendedUnread ? "is-append-new" : ""}`;
-    tile.onclick = () => {
-      if (typeof unacknowledgedAppends !== "undefined") unacknowledgedAppends.delete(order.key);
-      openReview(order.key);
-    };
-
-    let rightActions = "";
-    if (isNew) {
-      rightActions = `<button type="button" class="btn tile-action-btn btn-action-review" onclick="event.stopPropagation(); openReview('${escapeHtml(order.key)}')">${POS_SVG.eye}<span>${t('btnReview')}</span></button>`;
-    } else if (order.status === "ACCEPTED") {
-      rightActions = `<button type="button" class="btn tile-action-btn btn-action-ready" ${processingKeys.has(order.key) ? 'disabled aria-busy="true"' : ''} onclick="event.stopPropagation(); updateStatus('${escapeHtml(order.key)}','DONE', {}, this)">${(typeof POS_SVG !== 'undefined' && POS_SVG.checkCircle) || POS_SVG.check}<span>${t('btnReady')}</span></button>`;
-    } else {
-      rightActions = `<button type="button" class="btn tile-action-btn btn-action-waiting" disabled><span>${t('btnWaitingReply')}</span></button>`;
-    }
-
-    const tableNum = getOrderTableNumber(order);
-    const lang = window.currentLang || (typeof currentLang !== "undefined" ? currentLang : "zh-TW");
-    const tableLabel = tableNum ? (lang === 'vi' ? ` · Bàn ${tableNum}` : ` · 桌號 ${tableNum}`) : "";
-    const diningBadge = isDineIn
-      ? `<span class="tile-badge badge-dine-in">${POS_SVG.dineIn}${t('badgeDineIn')}${escapeHtml(tableLabel)}</span>`
-      : `<span class="tile-badge badge-takeaway">${POS_SVG.takeaway}${t('badgeTakeaway')}</span>`;
-
-    const roundCount = Number(order.round_count || order.roundCount) || 1;
-    const appendBadge = (isDineIn && roundCount > 1)
-      ? `<span class="tile-badge badge-append">${t('badgeAppendRound', { n: roundCount })}</span>`
-      : "";
-
-    const isModified = (order.is_modified === 1 || order.isModified === true);
-    const modifiedBadge = isModified
-      ? `<span class="tile-badge badge-modified">${POS_SVG.modify || ''}${t('badgeModifiedOrder')}</span>`
-      : "";
-
-    const newBadge = isNew
-      ? `<span class="tile-badge badge-new-pulse">${POS_SVG.tag}${t('badgeNewOrder')}</span>`
-      : "";
-
-    const pickupDisplay = formatLiveOrderTimeDisplay(order);
-
-    const etaDisplay = isElapsed
-      ? (typeof formatSubmissionElapsedTime === "function" ? formatSubmissionElapsedTime(order) : formatDineInElapsedTime(order))
-      : formatEta(order.time);
-
-    const etaClass = isElapsed ? 'tile-eta-dinein' : 'tile-eta-pickup';
-
-    tile.innerHTML = `
-      <div class="tile-info">
-        <div class="tile-top">
-          <span class="tile-customer" title="${escapeHtml(order.customer || t('defaultCustomer'))}">${escapeHtml(order.customer || t('defaultCustomer'))}</span>
-          <span class="tile-order-key">${escapeHtml(OrderCode.format(order.displayKey || order.key))}</span>
-          ${newBadge}
-          ${window.PaymentPOS ? PaymentPOS.badge(order) : ''}
-          ${modifiedBadge}
-          ${diningBadge}
-          ${appendBadge}
-        </div>
-        <div class="tile-meta-row">
-          <span class="tile-meta-tag"><span class="tile-meta-icon">${POS_SVG.clock}</span><span class="tile-pickup-time">${escapeHtml(pickupDisplay)}</span></span>
-          <span class="tile-meta-tag tile-eta ${etaClass}">${escapeHtml(etaDisplay)}</span>
-        </div>
-        <div class="tile-count-row">
-          <div class="tile-item-summary">
-            <span class="tile-item-count"><span class="tile-meta-icon">${POS_SVG.receipt}</span>${itemCountStr}</span>
-          </div>
-          ${totalFormatted !== '-' ? `<span class="tile-price">${escapeHtml(totalFormatted)}</span>` : ''}
-        </div>
-      </div>
-      <div class="tile-actions">
-        ${rightActions}
-      </div>
-    `;
-
-    container.appendChild(tile);
-  });
-}
-
-function renderListRight(orders) {
-  const container = document.getElementById("list-right");
-  if (!container) return;
-  container.innerHTML = "";
-
-  const filteredOrders = (orders || []).filter(order => {
-    if (currentDiningFilter === "all") return true;
-    const dineIn = isOrderDineIn(order);
-    return currentDiningFilter === "dine_in" ? dineIn : !dineIn;
-  });
-
-  if (filteredOrders.length === 0) {
-    container.innerHTML = renderEmptyLiveState('accepted');
-    return;
-  }
-
-  filteredOrders.forEach(order => {
-    const isDineIn = isOrderDineIn(order);
-    const isElapsed = typeof isOrderElapsedMode === "function" ? isOrderElapsedMode(order) : isDineIn;
-
-    const totalFormatted = formatOrderTotal(order);
-    const itemCount = countItemsFromContent(order.content);
-    const itemCountStr = t("tileItemCount", { count: itemCount > 0 ? itemCount : "?" });
-
-    const tile = document.createElement("div");
-    tile.className = `tile ${isDineIn ? "is-dine-in" : "is-takeaway"}`;
-    tile.onclick = () => openReview(order.key);
-
-    const tableNum = getOrderTableNumber(order);
-    const lang = window.currentLang || (typeof currentLang !== "undefined" ? currentLang : "zh-TW");
-    const tableLabel = tableNum ? (lang === 'vi' ? ` · Bàn ${tableNum}` : ` · 桌號 ${tableNum}`) : "";
-    const diningBadge = isDineIn
-      ? `<span class="tile-badge badge-dine-in">${POS_SVG.dineIn}${t('badgeDineIn')}${escapeHtml(tableLabel)}</span>`
-      : `<span class="tile-badge badge-takeaway">${POS_SVG.takeaway}${t('badgeTakeaway')}</span>`;
-
-    const roundCount = Number(order.round_count || order.roundCount) || 1;
-    const appendBadge = (isDineIn && roundCount > 1)
-      ? `<span class="tile-badge badge-append">${t('badgeAppendRound', { n: roundCount })}</span>`
-      : "";
-
-    const isModified = (order.is_modified === 1 || order.isModified === true);
-    const modifiedBadge = isModified
-      ? `<span class="tile-badge badge-modified">${POS_SVG.modify || ''}${t('badgeModifiedOrder')}</span>`
-      : "";
-
-    const pickupDisplay = formatLiveOrderTimeDisplay(order);
-
-    const etaDisplay = isElapsed
-      ? (typeof formatSubmissionElapsedTime === "function" ? formatSubmissionElapsedTime(order) : formatDineInElapsedTime(order))
-      : formatEta(order.time);
-
-    const etaClass = isElapsed ? 'tile-eta-dinein' : 'tile-eta-pickup';
-
-    tile.innerHTML = `
-      <div class="tile-info">
-        <div class="tile-top">
-          <span class="tile-customer" title="${escapeHtml(order.customer || t('defaultCustomer'))}">${escapeHtml(order.customer || t('defaultCustomer'))}</span>
-          <span class="tile-order-key">${escapeHtml(OrderCode.format(order.displayKey || order.key))}</span>
-          ${window.PaymentPOS ? PaymentPOS.badge(order) : ''}
-          ${modifiedBadge}
-          ${diningBadge}
-          ${appendBadge}
-        </div>
-        <div class="tile-meta-row">
-          <span class="tile-meta-tag"><span class="tile-meta-icon">${POS_SVG.clock}</span><span class="tile-pickup-time">${escapeHtml(pickupDisplay)}</span></span>
-          <span class="tile-meta-tag tile-eta ${etaClass}">${escapeHtml(etaDisplay)}</span>
-        </div>
-        <div class="tile-count-row">
-          <div class="tile-item-summary">
-            <span class="tile-item-count"><span class="tile-meta-icon">${POS_SVG.receipt}</span>${itemCountStr}</span>
-          </div>
-          ${totalFormatted !== '-' ? `<span class="tile-price">${escapeHtml(totalFormatted)}</span>` : ''}
-        </div>
-      </div>
-      <div class="tile-actions">
-        ${isDineIn
-          ? `<button type="button" class="btn tile-action-btn btn-action-paid" onclick="event.stopPropagation(); updateStatus('${escapeHtml(order.key)}','PAID', {}, this)">${POS_SVG.checkAll}<span>${t('btnPaid')}</span></button>`
-          : `<button type="button" class="btn tile-action-btn btn-action-pickup" onclick="event.stopPropagation(); updateStatus('${escapeHtml(order.key)}','PICKED_UP', {}, this)">${POS_SVG.checkAll}<span>${t('btnPickedUp')}</span></button>`
-        }
-      </div>
-    `;
-    container.appendChild(tile);
-  });
+function renderLiveOrderLists(pending, ready) {
+  window.PosLiveOrders?.render(pending, ready, currentDiningFilter);
 }
 
 function updateNewAlert() {
@@ -1739,8 +1539,7 @@ window.isOrderDineIn = isOrderDineIn;
 window.getOrderTableNumber = getOrderTableNumber;
 window.setDiningFilter = setDiningFilter;
 window.updateDiningFilterStats = updateDiningFilterStats;
-window.renderListLeft = renderListLeft;
-window.renderListRight = renderListRight;
+window.renderLiveOrderLists = renderLiveOrderLists;
 window.updateNewAlert = updateNewAlert;
 window.dismissNewAlert = dismissNewAlert;
 window.reviewNextNewOrder = reviewNextNewOrder;

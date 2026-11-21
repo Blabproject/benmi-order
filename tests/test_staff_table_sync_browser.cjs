@@ -12,7 +12,7 @@ const { getTenantBootstrap, invalidateBootstrapCache } = require('../benmi-worke
 const { getOptionCatalog } = require('../benmi-worker-official/src/modules/option-groups.ts');
 const { createTenantRepository } = require('../benmi-worker-official/src/repositories/tenant.repository.ts');
 
-const root = process.cwd();
+const { getPosDistDir } = require('./helpers/pos-dist.cjs');
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -25,6 +25,7 @@ const MIME_TYPES = {
 };
 
 function startStaticServer(t) {
+  const root = getPosDistDir();
   const server = http.createServer((req, res) => {
     const reqPath = new URL(req.url, 'http://127.0.0.1').pathname;
     const rel = reqPath === '/' ? 'orders.html' : reqPath.replace(/^\/+/, '');

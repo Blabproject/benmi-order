@@ -1327,10 +1327,7 @@ async function fetchOrders() {
       return;
     }
     console.error(e);
-    const leftEl = document.getElementById("list-left");
-    if (leftEl) leftEl.innerHTML = `<div style="text-align:center; padding: 22px; color:#d32f2f;">${escapeHtml(e?.message || e)}</div>`;
-    const rightEl = document.getElementById("list-right");
-    if (rightEl) rightEl.innerHTML = `<div style="text-align:center; padding: 22px; color:#d32f2f;">-</div>`;
+    window.PosLiveOrders?.error(String(e?.message || e));
     const histEl = document.getElementById("list-history");
     if (histEl) histEl.innerHTML = `<div style="text-align:center; padding: 22px; color:#d32f2f;">-</div>`;
   } finally {
@@ -1397,8 +1394,7 @@ function renderAll() {
   if (activeTab === "live") {
     const preserveMobileScroll = typeof isLiveMobilePortrait === "function" && isLiveMobilePortrait();
     if (preserveMobileScroll) captureLiveScrollPositions();
-    if (typeof renderListLeft === "function") renderListLeft(leftOrders);
-    if (typeof renderListRight === "function") renderListRight(rightOrders);
+    if (typeof renderLiveOrderLists === "function") renderLiveOrderLists(leftOrders, rightOrders);
     if (preserveMobileScroll) restoreLiveScrollPositions();
   } else if (activeTab === "history") {
     if (typeof lastHistoryOrders !== "undefined" && Array.isArray(lastHistoryOrders) && lastHistoryOrders.length > 0) {
