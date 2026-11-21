@@ -36,12 +36,15 @@ function shouldAutoOpenItemOptions(rule) {
 async function fetchMenu() {
     try {
         const tenantId = typeof getTenantIdFromUrl === 'function' ? getTenantIdFromUrl() : (window.__INITIAL_TENANT_ID || "benmi");
-        const workerBase = window.WORKER_BASE || "";
-        const res = await fetch(`${workerBase}/api/tenant/bootstrap?tenant_id=${tenantId}`, {
-            cache: 'no-cache'
-        });
+        const initialRequest = window.__initialMenuRequest;
+        delete window.__initialMenuRequest;
+        const initialResponse = initialRequest?.tenantId === tenantId && initialRequest.workerBase === window.WORKER_BASE
+            ? await initialRequest.response
+            : null;
+        const res = initialResponse || await requestTenantBootstrap(tenantId);
         if (res.ok) {
             const freshData = await res.json();
+            if (window.__ORDER_DOMAIN_HANDOFF || (typeof getTenantIdFromUrl === 'function' && getTenantIdFromUrl() !== tenantId)) return;
             if (freshData?.tenant?.id !== tenantId) {
                 throw new Error(`Bootstrap tenant mismatch for ${tenantId}`);
             }

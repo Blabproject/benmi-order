@@ -47,7 +47,7 @@ test('menu refresh preserves the selected spice level from cart through the stor
 
   const { JSDOM } = require('jsdom');
   const { window } = new JSDOM('<div id="catalog-sections"></div><div id="cart-summary"></div>', {
-    url: 'https://order.test/', runScripts: 'dangerously',
+    url: 'https://order.test/?tenant_id=a', runScripts: 'dangerously',
   });
   t.after(() => window.close());
   const options = [{ id: 'a_no_spice', name: '不辣', isDefault: true }, { id: 'a_mild', name: '微辣', isDefault: false }];
@@ -55,8 +55,13 @@ test('menu refresh preserves the selected spice level from cart through the stor
     catalog: [{ slug: 'food', name: 'Food', items: [{ id: 'a_main', name: 'Meal', price: 100 }] }],
     customizations: [{ id: 'a_spice', key: 'a_spice', type: 'radio', title: '辣度選擇', options }],
   };
-  Object.assign(window, { __INITIAL_TENANT_ID: 'a', bootstrapData: bootstrap, cart: { food_Meal: 1 },
-    fetch: async () => ({ ok: true, json: async () => structuredClone(bootstrap) }) });
+  window.eval(fs.readFileSync('index.html', 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1]);
+  let refreshCount = 0;
+  Object.assign(window, { bootstrapData: bootstrap, cart: { food_Meal: 1 },
+    fetch: async () => {
+      refreshCount++;
+      return { ok: true, json: async () => structuredClone(bootstrap) };
+    } });
   window.localStorage.setItem('tenant_bootstrap_a', JSON.stringify(bootstrap));
   for (const file of ['client-core', 'client-menu', 'client-cart', 'order-detail-checkout', 'client-checkout']) {
     window.eval(fs.readFileSync(`js/${file}.js`, 'utf8'));
@@ -69,6 +74,7 @@ test('menu refresh preserves the selected spice level from cart through the stor
   assert.match(cartSummary.textContent, /微辣/);
 
   await window.fetchMenu();
+  assert.equal(refreshCount, 1);
   assert.match(cartSummary.textContent, /微辣/);
   assert.doesNotMatch(cartSummary.textContent, /不辣/);
   assert.equal(window.getStructuredGlobalCustomizations()[0].optionId, 'a_mild');

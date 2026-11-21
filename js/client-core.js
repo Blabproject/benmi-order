@@ -3,33 +3,7 @@
 // ==========================================
 
 // --- WORKER BASE & TENANT RESOLUTION ---
-const hostname = window.location.hostname;
-const staffEnvironment = window.isStaffOrderMode ? new URLSearchParams(location.search).get("env") : null;
-const isDevEnv = staffEnvironment ? staffEnvironment === "dev" : (
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname.startsWith("dev.") ||
-    hostname.includes(".dev.") ||
-    hostname.includes("-dev.") ||
-    hostname.startsWith("dev-")
-);
-const isStagingEnv = staffEnvironment ? staffEnvironment === "staging" : (
-    hostname.startsWith("staging.") ||
-    hostname.includes(".staging.") ||
-    hostname.includes("-staging.") ||
-    hostname.startsWith("test.") ||
-    hostname.includes(".test.") ||
-    hostname.includes("-test.")
-);
-const WORKER_BASE = isDevEnv
-    ? "https://platform-worker-dev.thuanmnc.workers.dev"
-    : (isStagingEnv
-        ? "https://platform-worker-staging.thuanmnc.workers.dev"
-        : "https://benmi-worker-official.thuanmnc.workers.dev");
-
-window.isDevEnv = isDevEnv;
-window.isStagingEnv = isStagingEnv;
-window.WORKER_BASE = WORKER_BASE;
+const WORKER_BASE = window.WORKER_BASE;
 
 function getTenantIdFromUrl() {
     return typeof extractTenantId === 'function' ? extractTenantId() : (window.__INITIAL_TENANT_ID || "benmi");
