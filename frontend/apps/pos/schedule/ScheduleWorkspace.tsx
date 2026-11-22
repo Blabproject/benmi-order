@@ -5,6 +5,7 @@ import { ChoiceInput } from '@shared/ui/choice-input';
 import { ChevronRightIcon, ClockIcon } from '@shared/ui/PosIcons';
 import { categoryOn, itemOn } from './assignments';
 import { categoryId, categoryName, itemId, type MenuCategory, type Shift, type Translate } from './contracts';
+import { QrChannelsPanel, type QrChannelsPanelProps } from './QrChannelsPanel';
 import type { createShiftEditor } from './shift-editor';
 import { ShiftEditor } from './ShiftEditor';
 
@@ -24,6 +25,9 @@ interface ScheduleWorkspaceProps {
   save: () => void;
   back: () => void;
   openHours: () => void;
+  activeScreen?: 'schedule' | 'qr';
+  onSelectScreen?: (screen: 'schedule' | 'qr', prefillShiftId?: string) => void;
+  qrPanelProps?: Omit<QrChannelsPanelProps, 't' | 'shifts'>;
 }
 
 const outsideOptions = [
@@ -126,7 +130,36 @@ export function ScheduleWorkspace(props: ScheduleWorkspaceProps) {
     });
   }
 
+  const activeScreen = props.activeScreen ?? 'schedule';
+
   return <div className="ms-shell ps-min-h-0 ps-flex-1 ps-overflow-auto">
+    {props.onSelectScreen && (
+      <div className="ms-screen-tabs-wrap">
+        <div className="ms-screen-tabs" role="tablist" aria-label={t('menuSchedulePageTitle')}>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeScreen === 'schedule'}
+            className={`ms-screen-tab ${activeScreen === 'schedule' ? 'is-active' : ''}`}
+            onClick={() => props.onSelectScreen?.('schedule')}
+          >
+            {t('scheduleScreenTabMenu')}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeScreen === 'qr'}
+            className={`ms-screen-tab ${activeScreen === 'qr' ? 'is-active' : ''}`}
+            onClick={() => props.onSelectScreen?.('qr')}
+          >
+            {t('scheduleScreenTabQr')}
+          </button>
+        </div>
+      </div>
+    )}
+    {activeScreen === 'qr' && props.qrPanelProps ? (
+      <QrChannelsPanel t={t} shifts={shifts} {...props.qrPanelProps} />
+    ) : (
     <Card className="ms-panel" flush>
       <section aria-labelledby="ms-title" aria-busy={saving}>
         <header className="ps-mb-4">
@@ -148,7 +181,10 @@ export function ScheduleWorkspace(props: ScheduleWorkspaceProps) {
               <Button variant="outline" className="ms-hours-btn" onClick={props.openHours} disabled={matrixLocked}>
                 <ClockIcon size={18} />{t('menuScheduleOpenSettingsBtn')}
               </Button>
-              <Button variant="outline" className="ms-qr-btn" onClick={() => (window as unknown as { openCollectionQrModal?: (shiftId: string) => void }).openCollectionQrModal?.('')} disabled={matrixLocked}>
+              <Button variant="outline" className="ms-qr-btn" onClick={() => {
+                if (props.onSelectScreen) props.onSelectScreen('qr');
+                else (window as unknown as { openCollectionQrModal?: (shiftId: string) => void }).openCollectionQrModal?.('');
+              }} disabled={matrixLocked}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <rect width="5" height="5" x="3" y="3" rx="1" />
                   <rect width="5" height="5" x="16" y="3" rx="1" />
@@ -195,7 +231,10 @@ export function ScheduleWorkspace(props: ScheduleWorkspaceProps) {
                             : t('menuScheduleNoWindows')}</span>
                         </div>
                         <span className="ms-shift-count">{t('menuScheduleAvailableCount', { count, total })}</span>
-                        <Button variant="outline" className="ms-shift-qr-btn" onClick={() => (window as unknown as { openCollectionQrModal?: (shiftId: string) => void }).openCollectionQrModal?.(String(shift.id))}
+                        <Button variant="outline" className="ms-shift-qr-btn" onClick={() => {
+                          if (props.onSelectScreen) props.onSelectScreen('qr', String(shift.id));
+                          else (window as unknown as { openCollectionQrModal?: (shiftId: string) => void }).openCollectionQrModal?.(String(shift.id));
+                        }}
                           aria-label={`${t('menuScheduleQrBtn')} ${shift.name}`}>
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <rect width="5" height="5" x="3" y="3" rx="1" />
@@ -282,5 +321,6 @@ export function ScheduleWorkspace(props: ScheduleWorkspaceProps) {
         </Card>
       </section>
     </Card>
+    )}
   </div>;
 }

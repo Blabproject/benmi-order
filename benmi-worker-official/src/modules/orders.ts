@@ -3,7 +3,7 @@ import { attachPayments } from './payments';
 import { writeDetailedOrder } from './order-detail-write';
 import { attachOrderDetails, detailReads } from './order-detail';
 import { unifiedMenuEnabled, validateUnifiedOrderItems, loadOptionCatalog } from './option-groups';
-import { hasDbTable, hasDbColumn, validateCatalogScheduleForItems, hasTenantMenuScheduleFeature, resolveOrderQrChannelAndShiftPolicy } from './operating-shifts';
+import { hasDbTable, hasDbColumn, validateCatalogScheduleForItems, hasTenantMenuScheduleFeature, resolveOrderQrChannelAndShiftPolicy, resolveEffectiveOrderDiningOption } from './operating-shifts';
 import { resolveOrderKey } from './order-identity';
 import { Env } from '../types/env';
 import { Order, DiningOption, AppendOrderPayload, OrderItemInput } from '../types/index';
@@ -414,37 +414,21 @@ export async function createOrder(
   }
 
   const cleanTime = String(data.time || data.pickupTime || data.pickup_time || "").replace(/\s*\([^)]*\)/g, '').trim();
-  let diningOption: DiningOption = (data.dining_option === 'dine_in' || data.diningOption === 'dine_in') ? 'dine_in' : 'takeaway';
-
-  // Feature gate check: if tenant lacks 'dine_in' feature, automatically fallback to 'takeaway'
-  if (diningOption === 'dine_in' && tenantCtx && !tenantHasFeature(tenantCtx, 'dine_in')) {
-    console.warn(`[Orders] Tenant '${tenantId}' lacks 'dine_in' feature package. Auto-fallback to 'takeaway'.`);
-    diningOption = 'takeaway';
-  }
-
   const rawRequestedDining = data.dining_option || data.diningOption;
   const attribution = await resolveOrderQrChannelAndShiftPolicy(env.DB, tenantId, data);
-  if (attribution.diningPolicy === 'takeaway_only') {
-    if (rawRequestedDining === 'dine_in') {
-      return json({
-        error: 'SHIFT_DINING_OPTION_FORBIDDEN',
-        message: 'Selected menu shift/collection only permits takeaway orders',
-        shiftId: attribution.shiftId,
-        diningPolicy: attribution.diningPolicy
-      }, 409);
-    }
-    diningOption = 'takeaway';
-  } else if (attribution.diningPolicy === 'dine_in_only' && (!tenantCtx || tenantHasFeature(tenantCtx, 'dine_in'))) {
-    if (rawRequestedDining === 'takeaway') {
-      return json({
-        error: 'SHIFT_DINING_OPTION_FORBIDDEN',
-        message: 'Selected menu shift/collection only permits dine-in orders',
-        shiftId: attribution.shiftId,
-        diningPolicy: attribution.diningPolicy
-      }, 409);
-    }
-    diningOption = 'dine_in';
+  const resolvedDining = resolveEffectiveOrderDiningOption(rawRequestedDining, attribution, {
+    allowDineInFeature: !tenantCtx || tenantHasFeature(tenantCtx, 'dine_in'),
+    allowDineInSetting: tenantCtx?.allowDineIn !== false,
+  });
+  if (!resolvedDining.ok) {
+    return json({
+      error: resolvedDining.error,
+      message: resolvedDining.message,
+      shiftId: resolvedDining.shiftId,
+      diningPolicy: resolvedDining.diningPolicy,
+    }, resolvedDining.status);
   }
+  const diningOption: DiningOption = resolvedDining.diningOption;
 
   const orderUuid = data.uuid || data.order_uuid || null;
 

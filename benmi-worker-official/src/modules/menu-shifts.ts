@@ -4,6 +4,7 @@ import { getTenantId } from './menu';
 import { invalidateBootstrapCache } from './bootstrap';
 import {
   deleteTenantQrChannel,
+  hasDbColumn,
   hasTenantMenuScheduleFeature,
   loadTenantOperatingShifts,
   loadTenantQrChannels,
@@ -36,9 +37,19 @@ export async function qrChannels(request: Request, env: Env): Promise<Response> 
   const tenantId = getTenantId(request);
   if (!env.DB) return json({ error: 'NO_DB' }, 500);
   try {
+    const readDineInTableMode = async () => {
+      if (!await hasDbColumn(env.DB, 'tenant_config', 'dine_in_table_mode')) return 'required';
+      const row = await env.DB.prepare('SELECT dine_in_table_mode FROM tenant_config WHERE tenant_id = ? LIMIT 1')
+        .bind(tenantId).first<{ dine_in_table_mode?: string }>();
+      return row?.dine_in_table_mode === 'none' || row?.dine_in_table_mode === 'optional' ? row.dine_in_table_mode : 'required';
+    };
+
     if (request.method === 'GET') {
-      const channels = await loadTenantQrChannels(env.DB, tenantId);
-      return json({ qrChannels: channels }, 200, { 'Cache-Control': 'no-store' });
+      const [channels, dineInTableMode] = await Promise.all([
+        loadTenantQrChannels(env.DB, tenantId, { includeOrderCounts: true }),
+        readDineInTableMode(),
+      ]);
+      return json({ qrChannels: channels, dineInTableMode }, 200, { 'Cache-Control': 'no-store' });
     }
     if (request.method === 'POST' || request.method === 'PUT') {
       const body = await request.json().catch(() => null);
@@ -47,7 +58,7 @@ export async function qrChannels(request: Request, env: Env): Promise<Response> 
       }
       const saved = await saveTenantQrChannel(env.DB, tenantId, body as Record<string, unknown>);
       await invalidateBootstrapCache(tenantId, env);
-      const channels = await loadTenantQrChannels(env.DB, tenantId);
+      const channels = await loadTenantQrChannels(env.DB, tenantId, { includeOrderCounts: true });
       return json({ ok: true, channel: saved, qrChannels: channels }, 200, { 'Cache-Control': 'no-store' });
     }
     if (request.method === 'DELETE') {
@@ -60,7 +71,7 @@ export async function qrChannels(request: Request, env: Env): Promise<Response> 
       if (!id) return json({ error: 'QR_CHANNEL_ID_REQUIRED' }, 400);
       await deleteTenantQrChannel(env.DB, tenantId, id);
       await invalidateBootstrapCache(tenantId, env);
-      const channels = await loadTenantQrChannels(env.DB, tenantId);
+      const channels = await loadTenantQrChannels(env.DB, tenantId, { includeOrderCounts: true });
       return json({ ok: true, qrChannels: channels }, 200, { 'Cache-Control': 'no-store' });
     }
     return json({ error: 'METHOD_NOT_ALLOWED' }, 405);

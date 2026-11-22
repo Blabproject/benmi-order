@@ -893,3 +893,152 @@ test('QR channels CRUD, bootstrap exposure, order attribution + diningPolicy enf
 
   db.close();
 });
+
+test('QR channel diningPolicy, shift precedence, orders30d count, and partial PUT toggle', async () => {
+  const { qrChannels } = require('../benmi-worker-official/src/modules/menu-shifts.ts');
+  const db = createFullMigratedDb();
+  seedZhenbaochufang(db);
+  const env = createEnvForDb(db);
+
+  // Setup: ensure zhenbaochufang has no 'dine_in' feature package, allow_dine_in = 1, dine_in_table_mode = 'none'
+  await updateConfig(new Request('https://example.test/api/config?tenant_id=zhenbaochufang', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dineInTableMode: 'none' })
+  }), env);
+
+  const shiftsUrl = 'https://example.test/api/menu/shifts?tenant_id=zhenbaochufang';
+  let shiftSnapshot = await (await menuShifts(new Request(shiftsUrl), env)).json();
+  const editedShifts = structuredClone(shiftSnapshot.operatingShifts);
+  const dinnerShift = editedShifts.find(s => s.windows?.some(w => w.startTime <= '17:30' && w.endTime >= '17:30')) || editedShifts[1];
+  dinnerShift.diningPolicy = 'inherit';
+  const putInit = await menuShifts(new Request(shiftsUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ operatingShifts: editedShifts, scheduleRevision: shiftSnapshot.scheduleRevision })
+  }), env);
+  assert.equal(putInit.status, 200);
+  shiftSnapshot = await putInit.json();
+
+  const chUrl = 'https://example.test/api/menu/qr-channels?tenant_id=zhenbaochufang';
+  const createChannel = async payload => (await qrChannels(new Request(chUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }), env)).json();
+
+  const chChoice = (await createChannel({ code: 'in_store', label: 'Tại quán', diningPolicy: 'customer_choice' })).channel;
+  const chDineIn = (await createChannel({ code: 'mkt_dept', label: 'Khoa Marketing', diningPolicy: 'dine_in' })).channel;
+  const chTakeaway = (await createChannel({ code: 'dorm_a', label: 'KTX A', diningPolicy: 'takeaway' })).channel;
+
+  const baseItem = [{
+    itemId: 'zb_d_01',
+    category: 'fried-rice',
+    itemName: '肉絲蛋炒飯 230g',
+    quantity: 1,
+    price: 75,
+    subtotal: 75,
+    bundleSelections: { portions: [{ groups: [{ groupId: 'mg_zb_addon_items', items: [] }] }] }
+  }];
+
+  // 1. customer_choice channel allows customer to place dine_in even without 'dine_in' feature package (when shift is inherit)
+  const choiceDineInRes = await createOrder(new Request('https://example.test/api/create?tenant_id=zhenbaochufang', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: 'U_ch_1',
+      customer: 'Guest 1',
+      dining_option: 'dine_in',
+      time: '2026-11-16 17:30',
+      total: 75,
+      channel_code: 'in_store',
+      shift_id: dinnerShift.id,
+      items: baseItem
+    })
+  }), env);
+  assert.equal(choiceDineInRes.status, 200);
+  const choiceBody = await choiceDineInRes.json();
+  const choiceRow = db.prepare('SELECT dining_option, channel_id FROM orders WHERE key = ?').get(choiceBody.key);
+  assert.equal(choiceRow.dining_option, 'dine_in');
+  assert.equal(choiceRow.channel_id, chChoice.id);
+
+  // 2. dine_in channel rejects takeaway with 409 CHANNEL_DINING_OPTION_FORBIDDEN
+  const chDineReject = await createOrder(new Request('https://example.test/api/create?tenant_id=zhenbaochufang', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: 'U_ch_3',
+      customer: 'Guest 3',
+      dining_option: 'takeaway',
+      time: '2026-11-16 17:30',
+      total: 75,
+      channel_code: 'mkt_dept',
+      shift_id: dinnerShift.id,
+      items: baseItem
+    })
+  }), env);
+  assert.equal(chDineReject.status, 409);
+  assert.equal((await chDineReject.json()).error, 'CHANNEL_DINING_OPTION_FORBIDDEN');
+
+  // 3. takeaway channel rejects dine_in with 409 CHANNEL_DINING_OPTION_FORBIDDEN
+  const chTakeReject = await createOrder(new Request('https://example.test/api/create?tenant_id=zhenbaochufang', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: 'U_ch_4',
+      customer: 'Guest 4',
+      dining_option: 'dine_in',
+      time: '2026-11-16 17:30',
+      total: 75,
+      channel_code: 'dorm_a',
+      shift_id: dinnerShift.id,
+      items: baseItem
+    })
+  }), env);
+  assert.equal(chTakeReject.status, 409);
+  assert.equal((await chTakeReject.json()).error, 'CHANNEL_DINING_OPTION_FORBIDDEN');
+
+  // 4. Shift takeaway_only overrides customer_choice channel and rejects dine_in with 409 SHIFT_DINING_OPTION_FORBIDDEN
+  const nextShifts = structuredClone(shiftSnapshot.operatingShifts);
+  nextShifts.find(s => s.id === dinnerShift.id).diningPolicy = 'takeaway_only';
+  await menuShifts(new Request(shiftsUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ operatingShifts: nextShifts, scheduleRevision: shiftSnapshot.scheduleRevision })
+  }), env);
+
+  const shiftOverrideRes = await createOrder(new Request('https://example.test/api/create?tenant_id=zhenbaochufang', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: 'U_ch_2',
+      customer: 'Guest 2',
+      dining_option: 'dine_in',
+      time: '2026-11-16 17:30',
+      total: 75,
+      channel_code: 'in_store',
+      shift_id: dinnerShift.id,
+      items: baseItem
+    })
+  }), env);
+  assert.equal(shiftOverrideRes.status, 409);
+  assert.equal((await shiftOverrideRes.json()).error, 'SHIFT_DINING_OPTION_FORBIDDEN');
+
+  // 5. Partial PUT toggle preserves label/code/diningPolicy and GET returns orders30d + dineInTableMode
+  const putRes = await qrChannels(new Request(chUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: chDineIn.id, isActive: false })
+  }), env);
+  assert.equal(putRes.status, 200);
+  const getAfter = await (await qrChannels(new Request(chUrl), env)).json();
+  assert.equal(getAfter.dineInTableMode, 'none');
+  const updatedMkt = getAfter.qrChannels.find(c => c.id === chDineIn.id);
+  const updatedChoice = getAfter.qrChannels.find(c => c.id === chChoice.id);
+  assert.equal(updatedMkt.isActive, false);
+  assert.equal(updatedMkt.label, 'Khoa Marketing');
+  assert.equal(updatedMkt.diningPolicy, 'dine_in');
+  assert.equal(updatedChoice.orders30d, 1);
+
+  db.close();
+});

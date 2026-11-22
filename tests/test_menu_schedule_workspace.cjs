@@ -313,3 +313,92 @@ storeOperatingHours={'1':[{start:'09:00',end:'23:00'}]};storeScheduleRevision=3;
   conflict=false;await w.saveMenuShifts();assert.equal(w.hasUnsavedMenuShiftChanges(),false);
   for(const lang of ['vi','zh-TW']){w.currentLang=lang;w.renderMenuShiftEditor();assert.notEqual(w.document.getElementById('btn-save-menu-shifts').textContent,'btnSaveMenuShifts');}
 });
+
+test('Screen 2 QR & Entrypoints supports channel creation with diningPolicy, toggle, and table mode switch', async t => {
+  const dom = new JSDOM('<div id="menu-schedule-workspace-root"></div>', { url: 'https://pos.test/orders?tenant_id=store', runScripts: 'outside-only' });
+  t.after(() => dom.window.close());
+  const w = dom.window;
+  w.currentMenuData = [{ id: 'rice', title: 'Rice', type: 'catalog', availabilityMode: 'all_shifts', shiftIds: [], items: [{ id: 'one', name: 'Curry', price: 80 }] }];
+  w.currentTenantFeatures = ['menu_schedule'];
+  w.WORKER_BASE = 'https://worker.test';
+  w.getTenantIdFromUrl = () => 'store';
+  w.alert = () => {};
+  w.confirm = () => true;
+  w.showToast = () => {};
+  w.eval(readFileSync('js/orders-i18n.js', 'utf8'));
+  w.eval(readFileSync('js/menu-schedule.js', 'utf8'));
+  w.eval(readFileSync('js/orders-settings.js', 'utf8') + '\nwindow.DAY_NAMES=DAY_NAMES;');
+  w.currentLang = 'vi';
+  w.storeOperatingShifts = [{ id: 'lunch', name: 'Ca trưa', shiftType: 'operating', windows: [{ dayOfWeek: 1, startTime: '11:00', endTime: '14:00' }] }];
+
+  let serverChannels = [
+    { id: 'ch_1', code: 'tai_quan', label: 'Tại quán', diningPolicy: 'customer_choice', defaultShiftId: null, defaultLocale: null, sortOrder: 0, isActive: true, orders30d: 120 },
+  ];
+  let tableMode = 'none';
+  const openedModals = [];
+  w.openChannelQrModal = ch => openedModals.push(ch);
+
+  w.fetch = async (url, options = {}) => {
+    const method = (options.method || 'GET').toUpperCase();
+    if (url.includes('/api/menu/qr-channels') && method === 'GET') {
+      return { ok: true, json: async () => ({ qrChannels: serverChannels, dineInTableMode: tableMode }) };
+    }
+    if (url.includes('/api/menu/qr-channels') && method === 'POST') {
+      const body = JSON.parse(options.body);
+      const created = { id: 'ch_new', code: body.code || 'khoa_mkt', label: body.label, diningPolicy: body.diningPolicy, defaultShiftId: body.defaultShiftId || null, defaultLocale: body.defaultLocale || null, sortOrder: 1, isActive: true, orders30d: 0 };
+      serverChannels = [...serverChannels, created];
+      return { ok: true, json: async () => ({ ok: true, channel: created, qrChannels: serverChannels }) };
+    }
+    if (url.includes('/api/menu/qr-channels') && method === 'PUT') {
+      const body = JSON.parse(options.body);
+      serverChannels = serverChannels.map(c => c.id === body.id ? { ...c, ...body } : c);
+      return { ok: true, json: async () => ({ ok: true, channel: serverChannels.find(c => c.id === body.id), qrChannels: serverChannels }) };
+    }
+    if (url.includes('/api/config') && method === 'POST') {
+      const body = JSON.parse(options.body);
+      if (body.dineInTableMode) tableMode = body.dineInTableMode;
+      return { ok: true, json: async () => ({ success: true }) };
+    }
+    return { ok: true, json: async () => ({}) };
+  };
+
+  w.eval(scheduleBundle);
+  await w.initMenuScheduleWorkspace();
+
+  const d = w.document;
+  const tabs = [...d.querySelectorAll('[role="tab"]')];
+  assert.equal(tabs.length, 2);
+  await click(tabs[1]);
+  await new Promise(resolve => setImmediate(resolve));
+
+  assert.match(d.querySelector('.qr-screen-title').textContent, /QR và Điểm vào/);
+  assert.equal(d.querySelectorAll('.qr-channel-row').length, 1);
+  assert.match(d.querySelector('.qr-row-stats-num').textContent, /120 đơn/);
+  assert.match(d.querySelector('.qr-tables-title').textContent, /Quản lý bàn đang tắt/);
+
+  // Open inline add card, pick 'Tại chỗ', enter label, and save
+  const addBtn = [...d.querySelectorAll('.qr-header-btn')].find(b => b.textContent.includes('Thêm mã QR'));
+  await click(addBtn);
+  const nameInput = d.querySelector('.qr-editor-card .qr-input');
+  const setVal = Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype, 'value').set;
+  setVal.call(nameInput, 'Khoa Marketing');
+  nameInput.dispatchEvent(new w.Event('input', { bubbles: true }));
+
+  const dineInPill = [...d.querySelectorAll('.qr-seg-btn')].find(b => b.textContent === 'Tại chỗ');
+  await click(dineInPill);
+  const submitBtn = d.querySelector('.qr-footer-btn.is-submit');
+  await click(submitBtn);
+  await new Promise(resolve => setImmediate(resolve));
+
+  assert.equal(d.querySelectorAll('.qr-channel-row').length, 2);
+  assert.equal(openedModals.length, 1);
+  assert.equal(openedModals[0].label, 'Khoa Marketing');
+  assert.equal(openedModals[0].diningPolicy, 'dine_in');
+
+  // Enable table management from Screen 2 card
+  const enableTablesBtn = [...d.querySelectorAll('.qr-tables-actions button')].find(b => b.textContent.includes('Bật quản lý bàn'));
+  await click(enableTablesBtn);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(tableMode, 'required');
+  assert.match(d.querySelector('.qr-tables-title').textContent, /Quản lý bàn đang bật/);
+});

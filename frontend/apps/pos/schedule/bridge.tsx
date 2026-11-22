@@ -1,7 +1,8 @@
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { createAssignments, type AssignmentPatch } from './assignments';
-import type { CoverageConflict, MenuCategory, Shift, ShiftSnapshot, StoreHours, Translate } from './contracts';
+import type { CoverageConflict, DineInTableMode, MenuCategory, QrChannel, Shift, ShiftSnapshot, StoreHours, Translate } from './contracts';
+import type { QrChannelDraft } from './QrChannelsPanel';
 import { ScheduleWorkspace } from './ScheduleWorkspace';
 import { createShiftEditor } from './shift-editor';
 import '@shared/ui/tailwind.css';
@@ -27,6 +28,8 @@ declare function formatScheduleError(detail: { error?: string; conflicts?: Cover
 interface ScheduleHost extends Window {
   currentMenuData?: MenuCategory[];
   storeOperatingShifts?: Shift[];
+  storeQrChannels?: QrChannel[];
+  dineInTableMode?: DineInTableMode;
   currentLang?: string;
   __posFeaturesResolved?: boolean;
   isMenuScheduleFeatureEnabled?: () => boolean;
@@ -34,6 +37,8 @@ interface ScheduleHost extends Window {
   acknowledgeMenuScheduleSave?: (patch: AssignmentPatch) => void;
   pruneSavedMenuShiftAssignments?: (validIds: Set<string>) => void;
   openHoursSettingsFromSchedule: () => void;
+  loadRestaurantTablesSetting?: () => Promise<void>;
+  switchMenuScheduleScreen?: (screen: 'schedule' | 'qr', prefillShiftId?: string) => void;
 }
 
 const pos = window as unknown as ScheduleHost;
@@ -50,6 +55,16 @@ if (mount) {
   const root = createRoot(mount);
   const assignments = createAssignments(categories, shifts, translate);
   let loading = false, saving = false, initialized = false;
+  let activeScreen: 'schedule' | 'qr' = 'schedule';
+  let prefillShiftId: string | null = null;
+  let channelsLoading = false;
+  let tableConfigSaving = false;
+
+  const qrChannelsList = (): QrChannel[] => Array.isArray(pos.storeQrChannels) ? pos.storeQrChannels : [];
+  const tableModeValue = (): DineInTableMode => (
+    pos.dineInTableMode === 'none' || pos.dineInTableMode === 'optional' ? pos.dineInTableMode : 'required'
+  );
+
   const editor = createShiftEditor({
     endpoint: () => endpoint('/api/menu/shifts'),
     translate,
@@ -73,6 +88,117 @@ if (mount) {
   const writeInProgress = () => saving || editor.state.saving;
   const assignmentsLocked = () => loading || writeInProgress() || editor.state.opening || editor.dirty();
 
+  async function reloadChannels() {
+    if (channelsLoading) return;
+    channelsLoading = true;
+    render();
+    try {
+      const response = await fetch(endpoint('/api/menu/qr-channels'));
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data?.qrChannels)) pos.storeQrChannels = data.qrChannels;
+        if (data?.dineInTableMode) pos.dineInTableMode = data.dineInTableMode;
+      }
+    } catch (error) {
+      console.error('[QrChannels] Load failed', error);
+    } finally {
+      channelsLoading = false;
+      render();
+    }
+  }
+
+  async function saveChannel(draft: QrChannelDraft): Promise<QrChannel | null> {
+    const isUpdate = Boolean(draft.id);
+    const response = await fetch(endpoint('/api/menu/qr-channels'), {
+      method: isUpdate ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...(draft.id ? { id: draft.id } : {}),
+        label: draft.label,
+        ...(draft.code ? { code: draft.code } : {}),
+        diningPolicy: draft.diningPolicy,
+        defaultShiftId: draft.defaultShiftId || null,
+        defaultLocale: draft.defaultLocale || null,
+        isActive: draft.isActive,
+      }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data?.error || `API ${response.status}`);
+    }
+    if (Array.isArray(data?.qrChannels)) pos.storeQrChannels = data.qrChannels;
+    if (typeof showToast === 'function') {
+      showToast(t(isUpdate ? 'saveSuccess' : 'collectionQrCreatedToast'), 'success');
+    }
+    render();
+    return data?.channel ?? null;
+  }
+
+  async function toggleChannel(channel: QrChannel, isActive: boolean): Promise<void> {
+    const response = await fetch(endpoint('/api/menu/qr-channels'), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: channel.id, isActive }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      alert(data?.error || t('saveFail'));
+      return;
+    }
+    if (Array.isArray(data?.qrChannels)) pos.storeQrChannels = data.qrChannels;
+    render();
+  }
+
+  async function deleteChannel(channel: QrChannel): Promise<void> {
+    const response = await fetch(`${endpoint('/api/menu/qr-channels')}&id=${encodeURIComponent(channel.id)}`, {
+      method: 'DELETE',
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data?.error || `API ${response.status}`);
+    }
+    if (Array.isArray(data?.qrChannels)) pos.storeQrChannels = data.qrChannels;
+    if (typeof showToast === 'function') showToast(t('saveSuccess'), 'success');
+    render();
+  }
+
+  async function setDineInTableMode(mode: DineInTableMode): Promise<void> {
+    if (tableConfigSaving) return;
+    tableConfigSaving = true;
+    render();
+    try {
+      const response = await fetch(endpoint('/api/config'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dineInTableMode: mode }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        alert(data?.error || t('saveFail'));
+        return;
+      }
+      pos.dineInTableMode = mode;
+      if (mode !== 'none') {
+        void pos.loadRestaurantTablesSetting?.();
+      }
+      if (typeof showToast === 'function') showToast(t('saveSuccess'), 'success');
+    } finally {
+      tableConfigSaving = false;
+      render();
+    }
+  }
+
+  function selectScreen(screen: 'schedule' | 'qr', nextPrefillShiftId?: string) {
+    activeScreen = screen;
+    if (nextPrefillShiftId) {
+      prefillShiftId = nextPrefillShiftId;
+    }
+    render();
+    if (screen === 'qr') {
+      void reloadChannels();
+    }
+  }
+
   function render() {
     if (!initialized) return;
     const language = pos.currentLang || 'zh-TW';
@@ -81,6 +207,24 @@ if (mount) {
       t={translate} loading={loading} saving={saving} dirty={assignments.dirty()} editor={editor}
       toggleCategory={toggleCategory} toggleItem={toggleItem} setOutside={setOutside} save={save}
       back={() => switchTab('menu')} openHours={() => pos.openHoursSettingsFromSchedule()}
+      activeScreen={activeScreen}
+      onSelectScreen={selectScreen}
+      qrPanelProps={{
+        channels: qrChannelsList(),
+        loading: channelsLoading,
+        dineInTableMode: tableModeValue(),
+        tableConfigSaving,
+        prefillShiftId,
+        onClearPrefillShift: () => { prefillShiftId = null; },
+        onSaveChannel: saveChannel,
+        onToggleChannel: toggleChannel,
+        onDeleteChannel: deleteChannel,
+        onSetDineInTableMode: setDineInTableMode,
+        onOpenTablesSettings: () => {
+          switchTab('settings');
+          if (typeof switchSettingTab === 'function') switchSettingTab('setting-card-tables');
+        },
+      }}
     />));
   }
 
@@ -118,6 +262,8 @@ if (mount) {
         if (response.ok) {
           const data = await response.json();
           if (Array.isArray(data?.tenant?.operatingShifts)) pos.storeOperatingShifts = data.tenant.operatingShifts;
+          if (Array.isArray(data?.tenant?.qrChannels)) pos.storeQrChannels = data.tenant.qrChannels;
+          if (data?.tenant?.dineInTableMode) pos.dineInTableMode = data.tenant.dineInTableMode;
         }
       }
     } catch (error) {
@@ -186,6 +332,7 @@ if (mount) {
     updateShiftBandTime: editor.changeTime,
     saveMenuShifts: editor.save,
     hasUnsavedMenuShiftChanges: editor.dirty,
-    renderMenuShiftEditor: render
+    renderMenuShiftEditor: render,
+    switchMenuScheduleScreen: selectScreen
   });
 }

@@ -10,6 +10,7 @@ export interface OperatingShiftWindowDto {
 
 export type ShiftDisplayMode = 'switcher' | 'schedule_only' | 'qr_only';
 export type ShiftDiningPolicy = 'inherit' | 'both' | 'takeaway_only' | 'dine_in_only';
+export type QrChannelDiningPolicy = 'customer_choice' | 'dine_in' | 'takeaway';
 
 export interface OperatingShiftDto {
   id: string;
@@ -28,10 +29,12 @@ export interface QrChannelDto {
   code: string;
   label: string;
   i18n?: Record<string, { label?: string; name?: string }>;
+  diningPolicy: QrChannelDiningPolicy;
   defaultShiftId?: string | null;
   defaultLocale?: string | null;
   sortOrder: number;
   isActive: boolean;
+  orders30d?: number;
 }
 
 export function parseFeaturesArray(raw: unknown): string[] {
@@ -132,6 +135,10 @@ function normalizeDisplayMode(raw: unknown): ShiftDisplayMode {
 
 function normalizeDiningPolicy(raw: unknown): ShiftDiningPolicy {
   return raw === 'both' || raw === 'takeaway_only' || raw === 'dine_in_only' ? raw : 'inherit';
+}
+
+function normalizeQrChannelDiningPolicy(raw: unknown): QrChannelDiningPolicy {
+  return raw === 'dine_in' || raw === 'takeaway' ? raw : 'customer_choice';
 }
 
 export async function loadTenantOperatingShifts(db: D1Database | undefined | null, tenantId: string): Promise<OperatingShiftDto[]> {
@@ -578,27 +585,60 @@ function normalizeChannelCode(rawCode: unknown, fallbackLabel: string): string {
 
 export async function loadTenantQrChannels(
   db: D1Database | undefined | null,
-  tenantId: string
+  tenantId: string,
+  options?: { includeOrderCounts?: boolean }
 ): Promise<QrChannelDto[]> {
   if (!db || !tenantId || !await hasDbTable(db, 'tenant_qr_channels')) return [];
+  const hasChannelPolicy = await hasDbColumn(db, 'tenant_qr_channels', 'dining_policy');
+  const cols = [
+    'id',
+    'code',
+    'label',
+    'i18n_json',
+    ...(hasChannelPolicy ? ['dining_policy'] : []),
+    'default_shift_id',
+    'default_locale',
+    'sort_order',
+    'is_active',
+  ].join(', ');
   const res = await db.prepare(
-    `SELECT id, code, label, i18n_json, default_shift_id, default_locale, sort_order, is_active
+    `SELECT ${cols}
      FROM tenant_qr_channels
      WHERE tenant_id = ?
      ORDER BY sort_order ASC, rowid ASC`
   ).bind(tenantId).all<any>();
   const rows = Array.isArray(res?.results) ? res.results : [];
+
+  const countsByChannelId = new Map<string, number>();
+  if (options?.includeOrderCounts && rows.length > 0 && await hasDbColumn(db, 'orders', 'channel_id')) {
+    const cntRes = await db.prepare(
+      `SELECT channel_id, COUNT(DISTINCT key) AS cnt
+       FROM orders
+       WHERE tenant_id = ?
+         AND channel_id IS NOT NULL
+         AND created_at >= datetime('now', '-30 days')
+         AND status NOT IN ('REJECTED', 'FORCE_REJECT', 'EXPIRED')
+       GROUP BY channel_id`
+    ).bind(tenantId).all<{ channel_id: string; cnt: number }>();
+    for (const r of cntRes?.results || []) {
+      if (r.channel_id) countsByChannelId.set(String(r.channel_id), Number(r.cnt) || 0);
+    }
+  }
+
   return rows.map((r, idx) => {
     const i18n = parseChannelI18n(r.i18n_json);
+    const id = String(r.id);
     return {
-      id: String(r.id),
+      id,
       code: String(r.code),
       label: String(r.label),
       ...(Object.keys(i18n).length > 0 ? { i18n } : {}),
+      diningPolicy: normalizeQrChannelDiningPolicy(r.dining_policy),
       defaultShiftId: r.default_shift_id ? String(r.default_shift_id) : null,
       defaultLocale: r.default_locale ? String(r.default_locale) : null,
       sortOrder: Number(r.sort_order ?? idx),
       isActive: r.is_active !== 0,
+      ...(options?.includeOrderCounts ? { orders30d: countsByChannelId.get(id) ?? 0 } : {}),
     };
   });
 }
@@ -611,55 +651,79 @@ export async function saveTenantQrChannel(
   if (!await hasDbTable(db, 'tenant_qr_channels')) {
     throw new ScheduleIntegrityError('QR_CHANNELS_SCHEMA_NOT_READY', 503);
   }
-  const label = typeof raw.label === 'string' ? raw.label.trim().slice(0, 80) : '';
-  if (!label) throw new ScheduleIntegrityError('QR_CHANNEL_LABEL_REQUIRED', 400);
-
+  const hasChannelPolicy = await hasDbColumn(db, 'tenant_qr_channels', 'dining_policy');
   const requestedId = typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : '';
+  let existingRow: any = null;
   if (requestedId) {
-    const owner = await db.prepare('SELECT tenant_id FROM tenant_qr_channels WHERE id = ?').bind(requestedId).first<{ tenant_id: string }>();
+    const owner = await db.prepare('SELECT * FROM tenant_qr_channels WHERE id = ?').bind(requestedId).first<any>();
     if (owner && owner.tenant_id !== tenantId) throw new ScheduleIntegrityError('FORBIDDEN_QR_CHANNEL_ID', 403);
+    existingRow = owner || null;
   }
 
+  const label = typeof raw.label === 'string'
+    ? raw.label.trim().slice(0, 80)
+    : (existingRow?.label ? String(existingRow.label) : '');
+  if (!label) throw new ScheduleIntegrityError('QR_CHANNEL_LABEL_REQUIRED', 400);
+
   const id = requestedId || `ch_${tenantId}_${crypto.randomUUID().slice(0, 8)}`;
-  let code = normalizeChannelCode(raw.code, label);
+  const rawCode = raw.code !== undefined ? raw.code : existingRow?.code;
+  let code = normalizeChannelCode(rawCode, label);
   const codeConflict = await db.prepare('SELECT id FROM tenant_qr_channels WHERE tenant_id = ? AND code = ? AND id <> ?')
     .bind(tenantId, code, id).first<{ id: string }>();
   if (codeConflict) {
     code = `${code.slice(0, 31)}_${crypto.randomUUID().slice(0, 4)}`;
   }
 
-  let defaultShiftId: string | null = typeof raw.defaultShiftId === 'string' && raw.defaultShiftId.trim()
-    ? raw.defaultShiftId.trim()
-    : (typeof raw.default_shift_id === 'string' && raw.default_shift_id.trim() ? raw.default_shift_id.trim() : null);
+  let defaultShiftId: string | null = raw.defaultShiftId !== undefined
+    ? (typeof raw.defaultShiftId === 'string' && raw.defaultShiftId.trim() ? raw.defaultShiftId.trim() : null)
+    : (raw.default_shift_id !== undefined
+        ? (typeof raw.default_shift_id === 'string' && raw.default_shift_id.trim() ? raw.default_shift_id.trim() : null)
+        : (existingRow?.default_shift_id ? String(existingRow.default_shift_id) : null));
   if (defaultShiftId) {
     const ownedShift = await db.prepare('SELECT id FROM tenant_operating_shifts WHERE tenant_id = ? AND id = ?')
       .bind(tenantId, defaultShiftId).first<{ id: string }>();
     if (!ownedShift) throw new ScheduleIntegrityError('INVALID_SHIFT_ID', 400);
   }
 
-  const rawLocale = typeof raw.defaultLocale === 'string' ? raw.defaultLocale.trim()
-    : (typeof raw.default_locale === 'string' ? raw.default_locale.trim() : '');
+  const rawLocaleInput = raw.defaultLocale !== undefined
+    ? raw.defaultLocale
+    : (raw.default_locale !== undefined ? raw.default_locale : existingRow?.default_locale);
+  const rawLocale = typeof rawLocaleInput === 'string' ? rawLocaleInput.trim() : '';
   const defaultLocale = rawLocale && ['zh-TW', 'en', 'vi'].includes(rawLocale) ? rawLocale : null;
-  const sortOrder = Number.isFinite(Number(raw.sortOrder ?? raw.sort_order)) ? Number(raw.sortOrder ?? raw.sort_order) : 0;
-  const isActive = raw.isActive !== undefined ? Boolean(raw.isActive) : (raw.is_active !== undefined ? Boolean(raw.is_active) : true);
-  const i18n = parseChannelI18n(raw.i18n ?? raw.i18n_json);
+
+  const rawDiningPolicy = raw.diningPolicy !== undefined
+    ? raw.diningPolicy
+    : (raw.dining_policy !== undefined ? raw.dining_policy : existingRow?.dining_policy);
+  const diningPolicy = normalizeQrChannelDiningPolicy(rawDiningPolicy);
+
+  const rawSortOrder = raw.sortOrder ?? raw.sort_order ?? existingRow?.sort_order ?? 0;
+  const sortOrder = Number.isFinite(Number(rawSortOrder)) ? Number(rawSortOrder) : 0;
+  const isActive = raw.isActive !== undefined
+    ? Boolean(raw.isActive)
+    : (raw.is_active !== undefined ? Boolean(raw.is_active) : (existingRow ? existingRow.is_active !== 0 : true));
+  const i18n = parseChannelI18n(raw.i18n ?? raw.i18n_json ?? existingRow?.i18n_json);
+
+  const policyCol = hasChannelPolicy ? ', dining_policy' : '';
+  const policyPlaceholder = hasChannelPolicy ? ', ?' : '';
+  const policyUpdate = hasChannelPolicy ? ',\n       dining_policy = excluded.dining_policy' : '';
+  const policyBinding = hasChannelPolicy ? [diningPolicy] : [];
 
   await db.prepare(
-    `INSERT INTO tenant_qr_channels (id, tenant_id, code, label, i18n_json, default_shift_id, default_locale, sort_order, is_active, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `INSERT INTO tenant_qr_channels (id, tenant_id, code, label, i18n_json${policyCol}, default_shift_id, default_locale, sort_order, is_active, updated_at)
+     VALUES (?, ?, ?, ?, ?${policyPlaceholder}, ?, ?, ?, ?, CURRENT_TIMESTAMP)
      ON CONFLICT(id) DO UPDATE SET
        code = excluded.code,
        label = excluded.label,
-       i18n_json = excluded.i18n_json,
+       i18n_json = excluded.i18n_json${policyUpdate},
        default_shift_id = excluded.default_shift_id,
        default_locale = excluded.default_locale,
        sort_order = excluded.sort_order,
        is_active = excluded.is_active,
        updated_at = CURRENT_TIMESTAMP
      WHERE tenant_qr_channels.tenant_id = excluded.tenant_id`
-  ).bind(id, tenantId, code, label, JSON.stringify(i18n), defaultShiftId, defaultLocale, sortOrder, isActive ? 1 : 0).run();
+  ).bind(id, tenantId, code, label, JSON.stringify(i18n), ...policyBinding, defaultShiftId, defaultLocale, sortOrder, isActive ? 1 : 0).run();
 
-  const saved = (await loadTenantQrChannels(db, tenantId)).find((c) => c.id === id);
+  const saved = (await loadTenantQrChannels(db, tenantId, { includeOrderCounts: true })).find((c) => c.id === id);
   if (!saved) throw new ScheduleIntegrityError('QR_CHANNEL_SAVE_FAILED', 500);
   return saved;
 }
@@ -670,22 +734,26 @@ export async function deleteTenantQrChannel(db: D1Database, tenantId: string, id
   return Boolean(res?.meta?.changes);
 }
 
+export interface OrderAttributionPolicyResult {
+  channelId: string | null;
+  channelLabel: string | null;
+  channelDiningPolicy: QrChannelDiningPolicy | null;
+  shiftId: string | null;
+  diningPolicy: ShiftDiningPolicy;
+}
+
 export async function resolveOrderQrChannelAndShiftPolicy(
   db: D1Database | undefined | null,
   tenantId: string,
   input: Record<string, unknown>
-): Promise<{
-  channelId: string | null;
-  channelLabel: string | null;
-  shiftId: string | null;
-  diningPolicy: ShiftDiningPolicy;
-}> {
+): Promise<OrderAttributionPolicyResult> {
   let channelId: string | null = null;
   let channelLabel: string | null = null;
+  let channelDiningPolicy: QrChannelDiningPolicy | null = null;
   let shiftId: string | null = null;
   let diningPolicy: ShiftDiningPolicy = 'inherit';
 
-  if (!db) return { channelId, channelLabel, shiftId, diningPolicy };
+  if (!db) return { channelId, channelLabel, channelDiningPolicy, shiftId, diningPolicy };
 
   const rawChId = typeof input.channel_id === 'string' ? input.channel_id.trim()
     : (typeof input.channelId === 'string' ? input.channelId.trim() : '');
@@ -695,14 +763,17 @@ export async function resolveOrderQrChannelAndShiftPolicy(
     : (typeof input.channelLabel === 'string' ? input.channelLabel.trim() : '');
 
   if ((rawChId || rawChCode) && await hasDbTable(db, 'tenant_qr_channels')) {
+    const hasChPolicy = await hasDbColumn(db, 'tenant_qr_channels', 'dining_policy');
+    const selectCols = `id, label, default_shift_id${hasChPolicy ? ', dining_policy' : ''}`;
     const row = rawChId
-      ? await db.prepare('SELECT id, label, default_shift_id FROM tenant_qr_channels WHERE tenant_id = ? AND id = ? AND is_active = 1 LIMIT 1')
-          .bind(tenantId, rawChId).first<{ id: string; label: string; default_shift_id: string | null }>()
-      : await db.prepare('SELECT id, label, default_shift_id FROM tenant_qr_channels WHERE tenant_id = ? AND code = ? AND is_active = 1 LIMIT 1')
-          .bind(tenantId, rawChCode).first<{ id: string; label: string; default_shift_id: string | null }>();
+      ? await db.prepare(`SELECT ${selectCols} FROM tenant_qr_channels WHERE tenant_id = ? AND id = ? AND is_active = 1 LIMIT 1`)
+          .bind(tenantId, rawChId).first<{ id: string; label: string; default_shift_id: string | null; dining_policy?: string }>()
+      : await db.prepare(`SELECT ${selectCols} FROM tenant_qr_channels WHERE tenant_id = ? AND code = ? AND is_active = 1 LIMIT 1`)
+          .bind(tenantId, rawChCode).first<{ id: string; label: string; default_shift_id: string | null; dining_policy?: string }>();
     if (row) {
       channelId = row.id;
       channelLabel = row.label;
+      channelDiningPolicy = normalizeQrChannelDiningPolicy(row.dining_policy);
       if (!input.shift_id && !input.shiftId && row.default_shift_id) {
         shiftId = row.default_shift_id;
       }
@@ -727,5 +798,81 @@ export async function resolveOrderQrChannelAndShiftPolicy(
     }
   }
 
-  return { channelId, channelLabel, shiftId, diningPolicy };
+  return { channelId, channelLabel, channelDiningPolicy, shiftId, diningPolicy };
+}
+
+export function resolveEffectiveOrderDiningOption(
+  rawRequestedDining: unknown,
+  attribution: OrderAttributionPolicyResult,
+  options: { allowDineInFeature: boolean; allowDineInSetting?: boolean }
+):
+  | { ok: true; diningOption: 'dine_in' | 'takeaway' }
+  | { ok: false; status: 409; error: string; message: string; shiftId: string | null; diningPolicy: string } {
+  const requested = rawRequestedDining === 'dine_in' ? 'dine_in' : (rawRequestedDining === 'takeaway' ? 'takeaway' : null);
+  const storeAllowsDineIn = options.allowDineInSetting !== false;
+
+  if (attribution.diningPolicy === 'takeaway_only') {
+    if (requested === 'dine_in') {
+      return {
+        ok: false,
+        status: 409,
+        error: 'SHIFT_DINING_OPTION_FORBIDDEN',
+        message: 'Selected menu shift/collection only permits takeaway orders',
+        shiftId: attribution.shiftId,
+        diningPolicy: attribution.diningPolicy,
+      };
+    }
+    return { ok: true, diningOption: 'takeaway' };
+  }
+
+  if (attribution.diningPolicy === 'dine_in_only' && storeAllowsDineIn && (options.allowDineInFeature || attribution.channelDiningPolicy !== null)) {
+    if (requested === 'takeaway') {
+      return {
+        ok: false,
+        status: 409,
+        error: 'SHIFT_DINING_OPTION_FORBIDDEN',
+        message: 'Selected menu shift/collection only permits dine-in orders',
+        shiftId: attribution.shiftId,
+        diningPolicy: attribution.diningPolicy,
+      };
+    }
+    return { ok: true, diningOption: 'dine_in' };
+  }
+
+  if (attribution.channelDiningPolicy === 'takeaway') {
+    if (requested === 'dine_in') {
+      return {
+        ok: false,
+        status: 409,
+        error: 'CHANNEL_DINING_OPTION_FORBIDDEN',
+        message: 'Selected QR channel only permits takeaway orders',
+        shiftId: attribution.shiftId,
+        diningPolicy: attribution.channelDiningPolicy,
+      };
+    }
+    return { ok: true, diningOption: 'takeaway' };
+  }
+
+  if (attribution.channelDiningPolicy === 'dine_in' && storeAllowsDineIn) {
+    if (requested === 'takeaway') {
+      return {
+        ok: false,
+        status: 409,
+        error: 'CHANNEL_DINING_OPTION_FORBIDDEN',
+        message: 'Selected QR channel only permits dine-in orders',
+        shiftId: attribution.shiftId,
+        diningPolicy: attribution.channelDiningPolicy,
+      };
+    }
+    return { ok: true, diningOption: 'dine_in' };
+  }
+
+  if (attribution.channelDiningPolicy === 'customer_choice' && storeAllowsDineIn) {
+    return { ok: true, diningOption: requested === 'dine_in' ? 'dine_in' : 'takeaway' };
+  }
+
+  if (requested === 'dine_in' && options.allowDineInFeature && storeAllowsDineIn) {
+    return { ok: true, diningOption: 'dine_in' };
+  }
+  return { ok: true, diningOption: 'takeaway' };
 }

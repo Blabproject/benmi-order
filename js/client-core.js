@@ -605,10 +605,10 @@ function resolveQrChannelAndInitialCollection(tenant) {
     let resolvedChannel = null;
     if (rawCh) {
         const matched = channels.find(c => c && c.isActive !== false && (c.code === rawCh || c.id === rawCh));
-        resolvedChannel = matched || { id: null, code: rawCh, label: rawTag || rawCh, defaultShiftId: null, defaultLocale: null };
+        resolvedChannel = matched || { id: null, code: rawCh, label: rawTag || rawCh, diningPolicy: 'customer_choice', defaultShiftId: null, defaultLocale: null };
     } else if (rawTag) {
         const matched = channels.find(c => c && c.isActive !== false && (c.label === rawTag || c.code === rawTag));
-        resolvedChannel = matched || { id: null, code: null, label: rawTag, defaultShiftId: null, defaultLocale: null };
+        resolvedChannel = matched || { id: null, code: null, label: rawTag, diningPolicy: 'customer_choice', defaultShiftId: null, defaultLocale: null };
     }
     if (resolvedChannel) {
         window.currentQrChannel = resolvedChannel;
@@ -825,7 +825,7 @@ function setCustomerMenuCollection(shiftId) {
     } else if (shift) {
         if (shift.diningPolicy === 'takeaway_only' && !window.isAppendMode && !window.currentTableNumber) {
             window.currentDiningOption = 'takeaway';
-        } else if (shift.diningPolicy === 'dine_in_only' && storeConfig?.allowDineIn !== false && Array.isArray(storeConfig?.features) && storeConfig.features.includes('dine_in')) {
+        } else if (shift.diningPolicy === 'dine_in_only' && storeConfig?.allowDineIn !== false && (window.currentQrChannel || (Array.isArray(storeConfig?.features) && storeConfig.features.includes('dine_in')))) {
             window.currentDiningOption = 'dine_in';
         }
         syncCollectionPickupSlotIfNeeded(shift);
@@ -1168,6 +1168,11 @@ function applyPickupConfig() {
     const selectedShift = typeof getSelectedMenuCollectionShift === 'function' ? getSelectedMenuCollectionShift() : null;
     const showLegacyDiningToggle = Boolean(window.enableLegacyDiningToggle);
 
+    const ch = window.currentQrChannel || null;
+    const chPolicy = ch ? (ch.diningPolicy || 'customer_choice') : null;
+    const storeAllowsDineIn = !(storeConfig && storeConfig.allowDineIn === false);
+    const hasDineInFeature = Boolean(storeConfig && Array.isArray(storeConfig.features) && storeConfig.features.includes('dine_in'));
+
     if (window.isAppendMode || window.currentTableNumber) {
         window.currentDiningOption = 'dine_in';
         if (diningWrapper) diningWrapper.style.display = 'none';
@@ -1176,11 +1181,29 @@ function applyPickupConfig() {
         window.currentDiningOption = 'takeaway';
         if (diningWrapper) diningWrapper.style.display = 'none';
         if (checkoutDiningGroup) checkoutDiningGroup.style.display = 'none';
+    } else if (chPolicy === 'takeaway') {
+        window.currentDiningOption = 'takeaway';
+        if (diningWrapper) diningWrapper.style.display = 'none';
+        if (checkoutDiningGroup) checkoutDiningGroup.style.display = 'none';
+    } else if ((selectedShift && selectedShift.diningPolicy === 'dine_in_only' && storeAllowsDineIn) || (chPolicy === 'dine_in' && storeAllowsDineIn)) {
+        window.currentDiningOption = 'dine_in';
+        if (diningWrapper) diningWrapper.style.display = 'none';
+        if (checkoutDiningGroup) checkoutDiningGroup.style.display = 'none';
+    } else if (chPolicy === 'customer_choice' && storeAllowsDineIn) {
+        if (diningWrapper) diningWrapper.style.display = 'none';
+        if (checkoutDiningGroup) {
+            checkoutDiningGroup.style.display = 'block';
+            const btnChkTakeaway = document.getElementById('checkout-btn-takeaway');
+            const btnChkDinein = document.getElementById('checkout-btn-dinein');
+            const cur = window.currentDiningOption === 'dine_in' ? 'dine_in' : 'takeaway';
+            window.currentDiningOption = cur;
+            if (btnChkTakeaway) btnChkTakeaway.classList.toggle('active', cur === 'takeaway');
+            if (btnChkDinein) btnChkDinein.classList.toggle('active', cur === 'dine_in');
+        }
     } else {
-        const hasDineInFeature = Boolean(storeConfig && Array.isArray(storeConfig.features) && storeConfig.features.includes('dine_in'));
-        const isDineInAllowed = showLegacyDiningToggle && hasDineInFeature && !(storeConfig && storeConfig.allowDineIn === false);
+        const isDineInAllowed = showLegacyDiningToggle && hasDineInFeature && storeAllowsDineIn;
         if (!isDineInAllowed) {
-            if (!selectedShift || selectedShift.diningPolicy !== 'dine_in_only' || !hasDineInFeature || storeConfig?.allowDineIn === false) {
+            if (!selectedShift || selectedShift.diningPolicy !== 'dine_in_only' || !hasDineInFeature || !storeAllowsDineIn) {
                 window.currentDiningOption = 'takeaway';
             }
             if (diningWrapper) diningWrapper.style.display = 'none';

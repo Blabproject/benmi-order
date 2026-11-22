@@ -29,6 +29,8 @@ export interface ShiftWindow {
 
 export type ShiftDisplayMode = 'switcher' | 'schedule_only' | 'qr_only';
 export type ShiftDiningPolicy = 'inherit' | 'both' | 'takeaway_only' | 'dine_in_only';
+export type QrChannelDiningPolicy = 'customer_choice' | 'dine_in' | 'takeaway';
+export type DineInTableMode = 'required' | 'optional' | 'none';
 
 export interface Shift {
   id: string;
@@ -39,6 +41,18 @@ export interface Shift {
   sortOrder?: number;
   isActive?: boolean;
   windows?: ShiftWindow[];
+}
+
+export interface QrChannel {
+  id: string;
+  code: string;
+  label: string;
+  diningPolicy: QrChannelDiningPolicy;
+  defaultShiftId?: string | null;
+  defaultLocale?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  orders30d?: number;
 }
 
 export type StoreHours = Record<string, { start: string; end: string }[]>;

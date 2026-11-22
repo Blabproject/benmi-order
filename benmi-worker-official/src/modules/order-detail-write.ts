@@ -9,7 +9,7 @@ import { prepareOrderReceipt, pushOrderReceiptInBackground } from './line-order-
 import { buildOrderFlexMessage } from './line/templates/order-receipt';
 import { json } from '../utils/http';
 import { buildDetailRound, DetailError, DetailView, detailWrites, detailStatement, detailProjection, readDetail } from './order-detail';
-import { hasDbColumn, resolveOrderQrChannelAndShiftPolicy } from './operating-shifts';
+import { hasDbColumn, resolveOrderQrChannelAndShiftPolicy, resolveEffectiveOrderDiningOption } from './operating-shifts';
 
 type Kind = 'create' | 'append' | 'modify';
 const digest = async (value: unknown) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',
@@ -53,14 +53,25 @@ export async function writeDetailedOrder(env: Env, tenant: string, input: any, k
     let orderId: string;
     let displayKey: string;
     let businessDate: string;
-    let dining: DiningOption = input.dining_option === 'dine_in' || input.diningOption === 'dine_in' ? 'dine_in' : 'takeaway';
-    if (dining === 'dine_in' && tenantCtx && !tenantHasFeature(tenantCtx, 'dine_in')) dining = 'takeaway';
+    const rawRequestedDining = input.dining_option || input.diningOption;
+    let dining: DiningOption = rawRequestedDining === 'dine_in' ? 'dine_in' : 'takeaway';
     const attribution = kind === 'create'
       ? await resolveOrderQrChannelAndShiftPolicy(env.DB, tenant, input)
-      : { channelId: null, channelLabel: null, shiftId: null, diningPolicy: 'inherit' as const };
+      : { channelId: null, channelLabel: null, channelDiningPolicy: null, shiftId: null, diningPolicy: 'inherit' as const };
     if (kind === 'create') {
-      if (attribution.diningPolicy === 'takeaway_only') dining = 'takeaway';
-      else if (attribution.diningPolicy === 'dine_in_only' && (!tenantCtx || tenantHasFeature(tenantCtx, 'dine_in'))) dining = 'dine_in';
+      const resolvedDining = resolveEffectiveOrderDiningOption(rawRequestedDining, attribution, {
+        allowDineInFeature: !tenantCtx || tenantHasFeature(tenantCtx, 'dine_in'),
+        allowDineInSetting: tenantCtx?.allowDineIn !== false,
+      });
+      if (!resolvedDining.ok) {
+        return json({
+          error: resolvedDining.error,
+          message: resolvedDining.message,
+          shiftId: resolvedDining.shiftId,
+          diningPolicy: resolvedDining.diningPolicy,
+        }, resolvedDining.status);
+      }
+      dining = resolvedDining.diningOption;
       const next = await getNextDailyOrderSeq(env, tenant, dining, new Date(), resolveTenantOrderPrefix(tenantCtx, tenant));
       orderId = crypto.randomUUID();
       displayKey = next.key;
