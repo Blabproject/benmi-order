@@ -337,6 +337,11 @@ async function swipeQueue(page, direction, options) {
     await page.locator('#list-left .btn-action-review').tap();
     await page.locator('#btn-review-reject').tap();
     assert(await page.locator('#rejectModal').isVisible());
+    const rejectIcons = await page.locator('#rejectModal .reject-card > svg[aria-hidden="true"]')
+      .evaluateAll(icons => icons.map(icon => icon.innerHTML));
+    assert.equal(rejectIcons.length, 4);
+    assert.equal(new Set(rejectIcons).size, 4, 'Every cancellation reason has its own icon');
+    await snapshot(page, 'live-reject-dialog-vi');
     await page.evaluate(() => closeModal());
     await page.locator('#list-left .btn-action-review').tap();
     await page.evaluate(() => { window.holdFixtureStatus = true; });
