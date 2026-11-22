@@ -121,14 +121,19 @@ async function run() {
           const scale = mode === 'auto' ? (viewport.width >= 768 ? 1.125 : 1) : sizes[mode];
           await page.evaluate(mode => { closeModal(); selectPOSTextSize(mode); switchTab('live'); }, mode);
           await settle(page);
-          const live = await page.evaluate(() => ({
-            mainWidth: document.getElementById('main-layout').clientWidth,
-            adaptive: document.getElementById('view-live').classList.contains('live-adaptive-stations'),
-            listBottom: document.querySelector('.live-panel:not([hidden]) .live-panel-body').getBoundingClientRect().bottom
-          }));
+          const live = await page.evaluate(() => {
+            const bounds = document.querySelector('.live-panel:not([hidden]) .live-panel-body').getBoundingClientRect();
+            return {
+              mainWidth: document.getElementById('main-layout').clientWidth,
+              adaptive: document.getElementById('view-live').classList.contains('live-adaptive-stations'),
+              listBottom: bounds.bottom,
+              listHeight: bounds.height
+            };
+          });
           const needsTabs = (viewport.width <= 600 && viewport.height >= viewport.width) || live.mainWidth < 2 * 320 * scale + 64;
           assert.equal(live.adaptive, needsTabs, `${viewport.width}/${mode}: column minimum`);
           assert(live.listBottom <= viewport.height + 1, `${viewport.width}x${viewport.height}/${lang}/${mode}: Live list bottom ${live.listBottom} stays within viewport`);
+          assert(live.listHeight >= 48, `${viewport.width}x${viewport.height}/${lang}/${mode}: Live list has room to scroll`);
           await assertNoOverflow(page, ['.tile-info', '.tile-order-key', '.tile-price', '.tile-item-preview', '.tile-action-btn']);
           const customerNameTruncated = await page.locator('.live-panel:not([hidden]) .tile-customer').first().evaluate(name => {
             const style = getComputedStyle(name);
