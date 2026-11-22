@@ -11,10 +11,11 @@ interface ShiftEditorProps {
   t: Translate;
   assignmentBusy: boolean;
   assignmentDirty?: boolean;
+  hasDineIn?: boolean;
   openHours: () => void;
 }
 
-export function ShiftEditor({ editor, dayNames, t, assignmentBusy, assignmentDirty, openHours }: ShiftEditorProps) {
+export function ShiftEditor({ editor, dayNames, t, assignmentBusy, assignmentDirty, hasDineIn = true, openHours }: ShiftEditorProps) {
   const { draft, hours, saving, error, serverConflicts } = editor.state;
   const { coverage, timeInvalid } = editor.validation();
   const reasons = formatCoverageReasons(coverage.length ? coverage : serverConflicts, hours, dayNames, t);
@@ -65,12 +66,15 @@ export function ShiftEditor({ editor, dayNames, t, assignmentBusy, assignmentDir
                 </label>
                 <label className="ms-shift-meta-field">
                   <span className="ms-shift-meta-label">{t('shiftDiningPolicyLabel')}</span>
-                  <select className="ms-shift-meta-select" value={shift.diningPolicy ?? 'inherit'}
-                    onChange={event => editor.setDiningPolicy(index, event.currentTarget.value as 'inherit' | 'both' | 'takeaway_only' | 'dine_in_only')}>
+                  <select
+                    className="ms-shift-meta-select"
+                    value={!hasDineIn && (shift.diningPolicy === 'both' || shift.diningPolicy === 'dine_in_only') ? 'takeaway_only' : (shift.diningPolicy ?? 'inherit')}
+                    onChange={event => editor.setDiningPolicy(index, event.currentTarget.value as 'inherit' | 'both' | 'takeaway_only' | 'dine_in_only')}
+                  >
                     <option value="inherit">{t('shiftDiningPolicyInherit')}</option>
-                    <option value="both">{t('shiftDiningPolicyBoth')}</option>
+                    {hasDineIn && <option value="both">{t('shiftDiningPolicyBoth')}</option>}
                     <option value="takeaway_only">{t('shiftDiningPolicyTakeawayOnly')}</option>
-                    <option value="dine_in_only">{t('shiftDiningPolicyDineInOnly')}</option>
+                    {hasDineIn && <option value="dine_in_only">{t('shiftDiningPolicyDineInOnly')}</option>}
                   </select>
                 </label>
               </div>

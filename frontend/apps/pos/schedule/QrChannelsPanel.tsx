@@ -4,6 +4,8 @@ import { Card } from '@shared/ui/card';
 import { Input } from '@shared/ui/input';
 import { NativeSelect } from '@shared/ui/native-select';
 import { Switch } from '@shared/ui/switch';
+import { TableRows, type TablesView } from '../settings/TableRows';
+import { settingsActions as actions } from '../settings/settings-actions';
 import type { DineInTableMode, QrChannel, QrChannelDiningPolicy, Shift, Translate } from './contracts';
 
 export interface QrChannelDraft {
@@ -23,13 +25,17 @@ export interface QrChannelsPanelProps {
   loading: boolean;
   dineInTableMode: DineInTableMode;
   tableConfigSaving: boolean;
+  hasDineIn: boolean;
+  hasMenuSchedule: boolean;
+  tablesView: TablesView;
+  canReadTables: boolean;
+  canWriteTables: boolean;
   prefillShiftId?: string | null;
   onClearPrefillShift?: () => void;
   onSaveChannel: (draft: QrChannelDraft) => Promise<QrChannel | null>;
   onToggleChannel: (channel: QrChannel, isActive: boolean) => Promise<void>;
   onDeleteChannel: (channel: QrChannel) => Promise<void>;
   onSetDineInTableMode: (mode: DineInTableMode) => Promise<void>;
-  onOpenTablesSettings: () => void;
 }
 
 const ORDER_TYPE_OPTIONS: { value: QrChannelDiningPolicy; labelKey: string; helpKey: string }[] = [
@@ -82,11 +88,11 @@ function EditSvg() {
   );
 }
 
-function emptyDraft(shiftId = ''): QrChannelDraft {
+function emptyDraft(shiftId = '', hasDineIn = true): QrChannelDraft {
   return {
     label: '',
     code: '',
-    diningPolicy: 'customer_choice',
+    diningPolicy: hasDineIn ? 'customer_choice' : 'takeaway',
     defaultShiftId: shiftId,
     defaultLocale: '',
     isActive: true,
@@ -94,23 +100,23 @@ function emptyDraft(shiftId = ''): QrChannelDraft {
 }
 
 export function QrChannelsPanel(props: QrChannelsPanelProps) {
-  const { t, shifts, channels, loading, dineInTableMode, tableConfigSaving } = props;
+  const { t, shifts, channels, loading, dineInTableMode, tableConfigSaving, hasDineIn, hasMenuSchedule, tablesView, canReadTables, canWriteTables } = props;
   const [editorOpen, setEditorOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [draft, setDraft] = useState<QrChannelDraft>(() => emptyDraft());
+  const [draft, setDraft] = useState<QrChannelDraft>(() => emptyDraft('', hasDineIn));
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (props.prefillShiftId) {
-      setDraft(emptyDraft(props.prefillShiftId));
+      setDraft(emptyDraft(props.prefillShiftId, hasDineIn));
       setEditorOpen(true);
       setAdvancedOpen(true);
       setErrorMsg('');
       props.onClearPrefillShift?.();
     }
-  }, [props.prefillShiftId, props.onClearPrefillShift]);
+  }, [props.prefillShiftId, props.onClearPrefillShift, hasDineIn]);
 
   const qrHost = window as unknown as {
     openChannelQrModal?: (channel: QrChannel) => void;
@@ -118,7 +124,7 @@ export function QrChannelsPanel(props: QrChannelsPanelProps) {
   };
 
   function openNewForm() {
-    setDraft(emptyDraft());
+    setDraft(emptyDraft('', hasDineIn));
     setAdvancedOpen(false);
     setErrorMsg('');
     setEditorOpen(true);
@@ -129,7 +135,7 @@ export function QrChannelsPanel(props: QrChannelsPanelProps) {
       id: channel.id,
       label: channel.label,
       code: channel.code,
-      diningPolicy: channel.diningPolicy || 'customer_choice',
+      diningPolicy: hasDineIn ? (channel.diningPolicy || 'customer_choice') : 'takeaway',
       defaultShiftId: channel.defaultShiftId || '',
       defaultLocale: channel.defaultLocale || '',
       isActive: channel.isActive !== false,
@@ -153,6 +159,7 @@ export function QrChannelsPanel(props: QrChannelsPanelProps) {
     try {
       const saved = await props.onSaveChannel({
         ...draft,
+        diningPolicy: hasDineIn ? draft.diningPolicy : 'takeaway',
         label: draft.label.trim(),
         code: draft.code.trim(),
       });
@@ -202,14 +209,18 @@ export function QrChannelsPanel(props: QrChannelsPanelProps) {
     return t('qrOrderTypeChoice');
   }
 
-  const activeOrderHelpKey = ORDER_TYPE_OPTIONS.find(o => o.value === draft.diningPolicy)?.helpKey ?? 'qrOrderTypeHelpChoice';
+  const visibleOrderOptions = hasDineIn
+    ? ORDER_TYPE_OPTIONS
+    : ORDER_TYPE_OPTIONS.filter(option => option.value === 'takeaway');
+  const effectiveDiningPolicy = hasDineIn ? draft.diningPolicy : 'takeaway';
+  const activeOrderHelpKey = visibleOrderOptions.find(o => o.value === effectiveDiningPolicy)?.helpKey ?? (hasDineIn ? 'qrOrderTypeHelpChoice' : 'qrOrderTypeHelpTakeaway');
   const draftShift = draft.defaultShiftId ? shifts.find(s => String(s.id) === String(draft.defaultShiftId)) : null;
   const summaryMenuText = draftShift
     ? t('qrSummaryMenuFixed', { shift: draftShift.name })
     : t('qrSummaryMenuAuto');
-  const summaryPolicyText = draft.diningPolicy === 'dine_in'
+  const summaryPolicyText = effectiveDiningPolicy === 'dine_in'
     ? t('qrSummaryPolicyDineIn')
-    : (draft.diningPolicy === 'takeaway' ? t('qrSummaryPolicyTakeaway') : t('qrSummaryPolicyChoice'));
+    : (effectiveDiningPolicy === 'takeaway' ? t('qrSummaryPolicyTakeaway') : t('qrSummaryPolicyChoice'));
   const summaryText = t('qrSummaryPrefix', {
     menu: summaryMenuText,
     label: draft.label.trim() || '...',
@@ -223,38 +234,29 @@ export function QrChannelsPanel(props: QrChannelsPanelProps) {
           <h3 id="qr-tables-section-heading" className="qr-section-title">{t('qrTablesSectionTitle')}</h3>
         </div>
 
-        <div className="qr-tables-card">
-          <div className="qr-tables-info">
-            <div className="qr-tables-title">
-              {dineInTableMode === 'none' ? t('qrTablesDisabledTitle') : t('qrTablesEnabledTitle')}
+        {hasDineIn && (
+          <div className="qr-tables-card">
+            <div className="qr-tables-info">
+              <div className="qr-tables-title">
+                {dineInTableMode === 'none' ? t('qrTablesDisabledTitle') : t('qrTablesEnabledTitle')}
+              </div>
+              <div className="qr-tables-desc">
+                {dineInTableMode === 'none' ? t('qrTablesDisabledDesc') : t('qrTablesEnabledDesc')}
+              </div>
             </div>
-            <div className="qr-tables-desc">
-              {dineInTableMode === 'none' ? t('qrTablesDisabledDesc') : t('qrTablesEnabledDesc')}
-            </div>
-          </div>
 
-          <div className="qr-tables-actions">
-            {dineInTableMode === 'none' ? (
-              <Button
-                type="button"
-                variant="outline"
-                className="qr-header-btn"
-                disabled={tableConfigSaving}
-                onClick={() => props.onSetDineInTableMode('required')}
-              >
-                {t('qrTablesEnableBtn')}
-              </Button>
-            ) : (
-              <>
+            <div className="qr-tables-actions">
+              {dineInTableMode === 'none' ? (
                 <Button
                   type="button"
                   variant="outline"
                   className="qr-header-btn"
                   disabled={tableConfigSaving}
-                  onClick={props.onOpenTablesSettings}
+                  onClick={() => props.onSetDineInTableMode('required')}
                 >
-                  {t('qrTablesOpenSettingsBtn')}
+                  {t('qrTablesEnableBtn')}
                 </Button>
+              ) : (
                 <Button
                   type="button"
                   variant="outline"
@@ -264,12 +266,138 @@ export function QrChannelsPanel(props: QrChannelsPanelProps) {
                 >
                   {t('qrTablesDisableBtn')}
                 </Button>
-              </>
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        )}
+
+        <section
+          id="setting-card-tables"
+          className="restaurant-tables-card"
+          style={{ display: hasDineIn && dineInTableMode === 'none' ? 'none' : undefined }}
+        >
+          <header className="restaurant-tables-card-header" data-slot="card-header">
+            <h2 className="settings-card-title" id="i18n-setting-tables-title">{t('tabTables')}</h2>
+            <div
+              className="restaurant-tables-header"
+              id="settings-table-tools"
+              role="group"
+              aria-labelledby="i18n-setting-tables-title"
+              style={{ display: canReadTables ? undefined : 'none' }}
+            >
+              <div className="restaurant-tables-header-actions">
+                <Button
+                  type="button"
+                  className="restaurant-tables-header-btn btn-outline"
+                  onClick={() => actions.printAllTablesQrA4()}
+                  id="i18n-table-print-all-btn"
+                  style={{ display: canReadTables ? 'inline-flex' : 'none' }}
+                >
+                  <PrinterSvg />
+                  <span>{t('tableQrPrintAllA4')}</span>
+                </Button>
+                <Button
+                  type="button"
+                  className="restaurant-tables-header-btn btn-outline"
+                  onClick={() => actions.openBatchTableModal()}
+                  id="i18n-table-batch-btn"
+                  style={{ display: canWriteTables ? 'inline-flex' : 'none' }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="3" y="3" width="7" height="7" />
+                    <rect x="14" y="3" width="7" height="7" />
+                    <rect x="14" y="14" width="7" height="7" />
+                    <rect x="3" y="14" width="7" height="7" />
+                  </svg>
+                  <span>{t('tableBatchAddBtn')}</span>
+                </Button>
+                <Button
+                  type="button"
+                  className="restaurant-tables-header-btn btn-primary"
+                  onClick={() => actions.openAddTableModal()}
+                  id="i18n-table-add-btn"
+                  style={{ display: canWriteTables ? 'inline-flex' : 'none' }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  <span>{t('tableAddBtn')}</span>
+                </Button>
+              </div>
+            </div>
+          </header>
+          <div id="setting-tables-body" style={{ padding: '20px' }}>
+            <div
+              id="setting-tables-locked-body"
+              style={{
+                display: canReadTables ? 'none' : 'flex',
+                background: 'linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%)',
+                border: '1.5px dashed #cbd5e1',
+                borderRadius: '12px',
+                padding: '14px 18px',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '16px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1', minWidth: '240px' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#ede9fe', color: '#6d28d9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid #ddd6fe' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                </div>
+                <div>
+                  <div style={{ fontWeight: '900', fontSize: '15px', color: '#1e1b4b' }} data-staff-i18n="staffFeatureClosed">{t('staffFeatureClosed')}</div>
+                  <div style={{ fontSize: '13px', color: '#64748b', lineHeight: '1.4', marginTop: '2px' }} data-staff-i18n="staffFeatureClosedHelp">{t('staffFeatureClosedHelp')}</div>
+                </div>
+              </div>
+              <Button
+                type="button"
+                className="btn btn-primary"
+                style={{ padding: '8px 16px', fontSize: '14px', fontWeight: '800', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', whiteSpace: 'nowrap', minHeight: '48px' }}
+                onClick={() => actions.openBlabContactModal('upgrade')}
+                variant="default"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                <span data-staff-i18n="staffContact">{t('staffContact')}</span>
+              </Button>
+            </div>
+            <div id="setting-tables-unlocked-body" style={{ display: canReadTables ? 'flex' : 'none', flexDirection: 'column', gap: '16px' }}>
+              <div className="restaurant-tables-table-wrap">
+                <table className="restaurant-tables-table" data-slot="table">
+                  <thead>
+                    <tr>
+                      <th className="col-name" id="i18n-th-table-name">{t('tableName')}</th>
+                      <th className="col-sort" id="i18n-th-table-sort">{t('tableSort')}</th>
+                      <th className="col-status" id="i18n-th-table-status">{t('tableStatus')}</th>
+                      <th className="col-actions" id="i18n-th-table-action">{t('tableAction')}</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tables-list-tbody">
+                    <TableRows view={tablesView} />
+                  </tbody>
+                </table>
+              </div>
+              <div className="restaurant-tables-notice">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: '#64748b' }} aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                <span id="i18n-setting-tables-notice">{t('tableHistoryNotice')}</span>
+              </div>
+            </div>
+          </div>
+        </section>
       </section>
 
+      {hasMenuSchedule && (
+      <>
       <header className="qr-header">
         <div>
           <h2 className="qr-screen-title">{t('qrScreenTitle')}</h2>
@@ -337,8 +465,8 @@ export function QrChannelsPanel(props: QrChannelsPanelProps) {
             <div className="qr-field">
               <span className="qr-field-label">{t('qrFormOrderTypeLabel')}</span>
               <div className="qr-segmented" role="radiogroup" aria-label={t('qrFormOrderTypeLabel')}>
-                {ORDER_TYPE_OPTIONS.map(option => {
-                  const selected = draft.diningPolicy === option.value;
+                {visibleOrderOptions.map(option => {
+                  const selected = effectiveDiningPolicy === option.value;
                   return (
                     <button
                       key={option.value}
@@ -542,6 +670,8 @@ export function QrChannelsPanel(props: QrChannelsPanelProps) {
           )}
         </div>
       </section>
+      </>
+      )}
     </Card>
   );
 }

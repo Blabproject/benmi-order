@@ -62,13 +62,6 @@ export const settingsSections: { id: string; label: string; feature?: string; ic
     </>
   },
   {
-    id: 'tables', label: 'tabTables', icon: <>
-      <rect width="18" height="18" x="3" y="3" rx="2" />
-      <path d="M3 9h18" />
-      <path d="M9 21V9" />
-    </>
-  },
-  {
     id: 'printer', label: 'tocPrinter', icon: <>
       <polyline points="6 9 6 2 18 2 18 9" />
       <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />

@@ -5687,7 +5687,9 @@ async function translateMissingMenuWithAI() {
 function syncMenuScheduleEntryButtonVisibility() {
   const btn = document.getElementById("btn-menu-schedule-builder");
   if (!btn) return;
-  const enabled = typeof isMenuScheduleFeatureEnabled === "function" && isMenuScheduleFeatureEnabled();
+  const enabled = typeof isMenuScheduleWorkspaceAvailable === "function"
+    ? isMenuScheduleWorkspaceAvailable()
+    : (typeof isMenuScheduleFeatureEnabled === "function" && isMenuScheduleFeatureEnabled());
   btn.style.display = enabled ? "inline-flex" : "none";
 }
 

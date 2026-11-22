@@ -185,7 +185,7 @@ async function run() {
     }
 
     // Every setting panel mounts in the shadcn shell, independent of platform visibility.
-    assert.equal(await page.locator('#settings-scroll-container > [data-slot="card"][role="tabpanel"]').count(), 13);
+    assert.equal(await page.locator('#settings-scroll-container > [data-slot="card"][role="tabpanel"]').count(), 12);
     await page.setViewportSize({ width: 1024, height: 768 });
     await page.evaluate(async () => {
       closeModal();

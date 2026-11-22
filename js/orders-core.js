@@ -276,7 +276,7 @@ function applyTenantBranding(tenant) {
   if (typeof window.syncMenuScheduleEntryButtonVisibility === "function") {
     window.syncMenuScheduleEntryButtonVisibility();
   }
-  if (typeof activeTab !== "undefined" && activeTab === "menu-schedule" && typeof window.isMenuScheduleFeatureEnabled === "function" && !window.isMenuScheduleFeatureEnabled()) {
+  if (typeof activeTab !== "undefined" && activeTab === "menu-schedule" && !(typeof window.isMenuScheduleWorkspaceAvailable === "function" ? window.isMenuScheduleWorkspaceAvailable() : (typeof window.isMenuScheduleFeatureEnabled === "function" && window.isMenuScheduleFeatureEnabled()))) {
     switchTab("menu");
   }
   if (tenant) {
@@ -980,9 +980,8 @@ function parsePortionCustomizations(rawOpts) {
 window.parsePortionCustomizations = parsePortionCustomizations;
 
 function isDineInSupported() {
-  const hasFeature = Array.isArray(window.currentTenantFeatures)
-    ? window.currentTenantFeatures.includes('dine_in')
-    : false;
+  const feats = Array.isArray(window.currentTenantFeatures) ? window.currentTenantFeatures : [];
+  const hasFeature = feats.includes('dine_in') || feats.includes('table_qr_ordering');
   const isAllowed = window.allowDineIn !== false;
   return hasFeature && isAllowed;
 }
@@ -1002,7 +1001,7 @@ function switchTab(tab) {
       return;
     }
   }
-  if (tab === "menu-schedule" && window.__posFeaturesResolved && typeof isMenuScheduleFeatureEnabled === "function" && !isMenuScheduleFeatureEnabled()) {
+  if (tab === "menu-schedule" && window.__posFeaturesResolved && !(typeof isMenuScheduleWorkspaceAvailable === "function" ? isMenuScheduleWorkspaceAvailable() : (typeof isMenuScheduleFeatureEnabled === "function" && isMenuScheduleFeatureEnabled()))) {
     tab = "menu";
   }
   if (activeTab === "menu" && tab !== "menu" && tab !== "menu-schedule" && typeof confirmLeaveMenu === "function" && !confirmLeaveMenu()) {

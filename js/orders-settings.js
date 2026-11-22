@@ -18,6 +18,19 @@ function isMenuScheduleFeatureEnabled() {
   return Array.isArray(feats) && feats.includes('menu_schedule');
 }
 window.isMenuScheduleFeatureEnabled = isMenuScheduleFeatureEnabled;
+
+function hasDineInFeatureEnabled() {
+  const feats = Array.isArray(window.currentTenantFeatures) ? window.currentTenantFeatures : currentTenantFeatures;
+  return (Array.isArray(feats) && (feats.includes('dine_in') || feats.includes('table_qr_ordering')))
+    || Boolean(window.hasTableQrOrdering)
+    || Boolean(window.staffOrderingCapabilities?.tables_read);
+}
+window.hasDineInFeatureEnabled = hasDineInFeatureEnabled;
+
+function isMenuScheduleWorkspaceAvailable() {
+  return isMenuScheduleFeatureEnabled() || hasDineInFeatureEnabled();
+}
+window.isMenuScheduleWorkspaceAvailable = isMenuScheduleWorkspaceAvailable;
 let currentStoreLogoUrl = null;
 let pendingLogoDataUri = null;
 
@@ -426,7 +439,10 @@ function openSettings() {
   if (typeof window.loadPOSScreenOrientationSetting === 'function') window.loadPOSScreenOrientationSetting();
   loadPOSPrinterSettings();
   let lastTab = "setting-card-status";
-  try { lastTab = sessionStorage.getItem("last_settings_tab") || lastTab; } catch (e) {}
+  try {
+    const savedTab = sessionStorage.getItem("last_settings_tab");
+    if (savedTab && savedTab !== "setting-card-tables") lastTab = savedTab;
+  } catch (e) {}
   switchSettingTab(lastTab);
 }
 
@@ -705,9 +721,7 @@ function openPaymentSettingsFromWorkspace() {
 window.openPaymentSettingsFromWorkspace = openPaymentSettingsFromWorkspace;
 
 function renderDineInSetting() {
-  const isFeatureEnabled = Array.isArray(window.currentTenantFeatures)
-    ? window.currentTenantFeatures.includes('dine_in')
-    : (Array.isArray(currentTenantFeatures) ? currentTenantFeatures.includes('dine_in') : false);
+  const isFeatureEnabled = hasDineInFeatureEnabled();
 
   const unlockedBody = document.getElementById("setting-dinein-unlocked-body");
   const lockedBody = document.getElementById("setting-dinein-locked-body");
@@ -1837,6 +1851,20 @@ window.isPOSSettingAvailable = isPOSSettingAvailable;
 function switchSettingTab(cardId) {
   const section = (cardId || "status").replace(/^(setting-card-|toc-item-)/, "");
   const resolvedSection = ["address", "announcement", "logo"].includes(section) ? "store-info" : section;
+  if (resolvedSection === "tables") {
+    if (typeof window.switchMenuScheduleScreen === "function") window.switchMenuScheduleScreen("qr");
+    if (typeof switchTab === "function") switchTab("menu-schedule");
+    if (typeof window.switchMenuScheduleScreen === "function") window.switchMenuScheduleScreen("qr");
+    return;
+  }
+  if (typeof activeTab !== "undefined" && activeTab !== "settings") {
+    activeTab = "settings";
+    document.body?.classList?.remove("is-menu-schedule-active");
+    document.querySelectorAll(".content").forEach(c => { c.style.display = "none"; });
+    const viewSettings = document.getElementById("view-settings");
+    if (viewSettings) viewSettings.style.display = "block";
+    if (typeof updateSidebarActive === "function") updateSidebarActive("settings");
+  }
   let targetId = `setting-card-${resolvedSection}`;
   let targetCard = document.getElementById(targetId);
   if (!targetCard || !isPOSSettingAvailable(targetId)) {
@@ -2242,16 +2270,20 @@ async function checkStaffOrderingCapability() {
     const res = await fetch(`${workerUrl}/api/staff/capabilities?tenant_id=${encodeURIComponent(tenantId)}&_t=${Date.now()}`);
     if (res.ok) {
       const data = await res.json();
-      const hasTableQrFeature = (Array.isArray(window.currentTenantFeatures) && window.currentTenantFeatures.includes('table_qr_ordering'))
-        || (Array.isArray(currentTenantFeatures) && currentTenantFeatures.includes('table_qr_ordering'))
+      const respFeatures = Array.isArray(data.features) ? data.features : [];
+      const hasDineInFeature = (Array.isArray(window.currentTenantFeatures) && (window.currentTenantFeatures.includes('dine_in') || window.currentTenantFeatures.includes('table_qr_ordering')))
+        || (Array.isArray(currentTenantFeatures) && (currentTenantFeatures.includes('dine_in') || currentTenantFeatures.includes('table_qr_ordering')))
+        || respFeatures.includes('dine_in')
+        || respFeatures.includes('table_qr_ordering')
+        || data.dine_in_enabled === true
         || data.table_qr_ordering_enabled === true;
-      const canReadTables = data.capabilities?.tables_read === true || hasTableQrFeature;
-      const canWriteTables = data.capabilities?.tables_write === true || hasTableQrFeature;
+      const canReadTables = Boolean(data.capabilities?.tables_read === true || (hasDineInFeature && data.capabilities?.tables_read !== false));
+      const canWriteTables = Boolean(canReadTables && (data.capabilities?.tables_write === true || (hasDineInFeature && data.capabilities?.tables_write !== false)));
       const tablePermissionsChanged = window.staffOrderingCapabilities?.tables_read !== canReadTables
         || window.staffOrderingCapabilities?.tables_write !== canWriteTables;
       window.staffOrderingCapabilities = { ...data.capabilities, tables_read: canReadTables, tables_write: canWriteTables };
-      window.isStaffOrderingEnabled = Boolean(canReadTables || data.capabilities?.pos_entry || data.capabilities?.create);
-      window.hasTableQrOrdering = hasTableQrFeature;
+      window.isStaffOrderingEnabled = Boolean(data.staff_ordering_enabled || data.capabilities?.pos_entry || data.capabilities?.create);
+      window.hasTableQrOrdering = hasDineInFeature || canReadTables;
       const btnPill = document.getElementById("btn-staff-order-pill");
       if (btnPill) {
         btnPill.style.display = data.capabilities?.pos_entry ? "inline-flex" : "none";
@@ -2281,6 +2313,7 @@ async function checkStaffOrderingCapability() {
           if (printAllBtn) printAllBtn.style.display = "none";
         }
       }
+      window.renderMenuScheduleWorkspace?.();
       if (tablePermissionsChanged) renderRestaurantTablesList();
       return canReadTables;
     }
@@ -2301,7 +2334,9 @@ async function loadRestaurantTables() {
   const tenantId = (typeof getTenantIdFromUrl === "function" && getTenantIdFromUrl()) || "";
   if (!tenantId) return;
 
-  window.renderPOSRestaurantTables?.({ state: 'loading' });
+  if (!Array.isArray(currentRestaurantTables) || currentRestaurantTables.length === 0) {
+    window.renderPOSRestaurantTables?.({ state: 'loading' });
+  }
 
   const workerUrl = typeof WORKER_BASE !== "undefined" ? WORKER_BASE : "https://benmi-worker-official.thuanmnc.workers.dev";
   const res = await fetch(`${workerUrl}/api/staff/tables?tenant_id=${encodeURIComponent(tenantId)}&include_inactive=1&_t=${Date.now()}`);

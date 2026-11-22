@@ -326,7 +326,8 @@ test('Screen 2 QR & Entrypoints supports channel creation with diningPolicy, tog
   t.after(() => dom.window.close());
   const w = dom.window;
   w.currentMenuData = [{ id: 'rice', title: 'Rice', type: 'catalog', availabilityMode: 'all_shifts', shiftIds: [], items: [{ id: 'one', name: 'Curry', price: 80 }] }];
-  w.currentTenantFeatures = ['menu_schedule'];
+  w.currentTenantFeatures = ['menu_schedule', 'dine_in'];
+  w.__posFeaturesResolved = true;
   w.WORKER_BASE = 'https://worker.test';
   w.getTenantIdFromUrl = () => 'store';
   w.alert = () => {};
@@ -405,9 +406,11 @@ test('Screen 2 QR & Entrypoints supports channel creation with diningPolicy, tog
   assert.equal(openedModals[0].diningPolicy, 'dine_in');
 
   // Enable table management from Screen 2 card
+  assert.equal(d.getElementById('setting-card-tables').style.display, 'none');
   const enableTablesBtn = [...d.querySelectorAll('.qr-tables-actions button')].find(b => b.textContent.includes('Bật quản lý bàn'));
   await click(enableTablesBtn);
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(tableMode, 'required');
   assert.match(d.querySelector('.qr-tables-title').textContent, /Quản lý bàn đang bật/);
+  assert.notEqual(d.getElementById('setting-card-tables').style.display, 'none');
 });

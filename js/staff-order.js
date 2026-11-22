@@ -53,7 +53,7 @@ window.StaffOrder = (() => {
   function dineInAllowed() {
     if (capabilities?.allowDineIn === false) return false;
     if (storeConfig && storeConfig.allowDineIn === false) return false;
-    if (storeConfig && Array.isArray(storeConfig.features) && !storeConfig.features.includes('dine_in')) return false;
+    if (storeConfig && Array.isArray(storeConfig.features) && !storeConfig.features.includes('dine_in') && !storeConfig.features.includes('table_qr_ordering')) return false;
     return true;
   }
 

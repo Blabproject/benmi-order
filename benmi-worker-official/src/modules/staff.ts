@@ -1,7 +1,7 @@
 import { Env } from '../types/env';
 import { json } from '../utils/http';
 import { resolveTenantContext } from './tenant';
-import { TenantContext, resolveTenantOrderPrefix, tenantHasFeature } from '../types/tenant';
+import { TenantContext, resolveTenantOrderPrefix, tenantHasDineInPackage } from '../types/tenant';
 import { getStoredPassword } from './auth';
 import { getNextDailyOrderSeq } from './orders';
 import { resolveOrderKey } from './order-identity';
@@ -75,11 +75,21 @@ export async function verifyStaffSession(
 // 3. MAIN STAFF ROUTE DISPATCHER
 // ==========================================
 
-function isStaffDineInAllowed(tenantCtx: TenantContext): boolean {
-  if (tenantCtx.allowDineIn === false) return false;
-  if (Array.isArray(tenantCtx.features) && !tenantCtx.features.includes('dine_in')) {
-    return false;
+function resolveEffectiveDineInPackage(
+  tenantCtx: TenantContext,
+  access: Awaited<ReturnType<typeof staffAccess>>
+): boolean {
+  if (!access.isActive) return false;
+  if (Array.isArray(access.dbFeatures) && access.dbFeatures.length > 0) {
+    return access.dbFeatures.includes('dine_in') || access.dbFeatures.includes('table_qr_ordering');
   }
+  if (access.rowExists && !access.enabled) return false;
+  return tenantHasDineInPackage(tenantCtx);
+}
+
+function isStaffDineInAllowed(tenantCtx: TenantContext, hasDineInPackage: boolean): boolean {
+  if (!hasDineInPackage) return false;
+  if (tenantCtx.allowDineIn === false) return false;
   return true;
 }
 
@@ -101,25 +111,24 @@ async function dispatchStaffRoute(
   }
 
   const access = await staffAccess(env, tenantId);
+  const hasDineIn = resolveEffectiveDineInPackage(tenantCtx, access);
   const denied = () => json({ ok: false, error: 'FEATURE_DISABLED' }, 403, { 'Cache-Control': 'no-store' });
 
   // --- 1. GET /api/staff/capabilities ---
   if (request.method === "GET" && path === "/api/staff/capabilities") {
-    const isStaffEnabled = await checkStaffOrderingEnabled(env, tenantId);
-    const hasTableQrOrdering = tenantHasFeature(tenantCtx, 'table_qr_ordering');
+    const isStaffEnabled = access.enabled;
     const capabilities = { ...access.capabilities };
-    if (hasTableQrOrdering) {
-      capabilities.tables_read = true;
-      capabilities.tables_write = true;
-    }
+    capabilities.tables_read = hasDineIn;
+    capabilities.tables_write = hasDineIn && access.rawValues?.tables_write !== false;
     return json({
       ok: true,
       tenantId,
       brandName: tenantCtx.brandName,
-      staff_ordering_enabled: isStaffEnabled || hasTableQrOrdering,
-      table_qr_ordering_enabled: hasTableQrOrdering,
+      staff_ordering_enabled: isStaffEnabled,
+      table_qr_ordering_enabled: hasDineIn,
+      dine_in_enabled: hasDineIn,
       capabilities,
-      allowDineIn: isStaffDineInAllowed(tenantCtx),
+      allowDineIn: isStaffDineInAllowed(tenantCtx, hasDineIn),
       allowScheduledPickup: tenantCtx.allowScheduledPickup !== false,
       features: tenantCtx.features || [],
       storeStatus: tenantCtx.storeStatus || 'open'
@@ -179,21 +188,29 @@ async function dispatchStaffRoute(
   }
 
   // Staff ordering follows normal POS access, with tenant capability and schema guards.
-  // The legacy session API above and verifyStaffSession remain available for payment authentication.
-  const hasTableQrOrdering = tenantHasFeature(tenantCtx, 'table_qr_ordering');
+  // Table management belongs exclusively to the unified `dine_in` package.
   const isTableManagementPath = path === '/api/staff/tables' || path === '/api/staff/tables/batch' || path.startsWith('/api/staff/tables/');
-  const isStaffEnabled = await checkStaffOrderingEnabled(env, tenantId);
-  if (!isStaffEnabled && !(hasTableQrOrdering && isTableManagementPath)) {
-    return json({ ok: false, error: "FEATURE_DISABLED", message: "門市尚未啟用桌邊點餐功能 / Quán chưa kích hoạt tính năng nhận đơn tại bàn" }, 403);
+  if (!access.isActive) {
+    return denied();
   }
-
-  const required: StaffCapability = (path === '/api/staff/tables' || path === '/api/staff/tables/batch')
-    ? (request.method === 'GET' ? 'tables_read' : 'tables_write')
-    : path.startsWith('/api/staff/tables/') ? 'tables_write'
-    : path.endsWith('/status') ? 'status'
-    : path.endsWith('/rounds') ? 'append'
-    : path === '/api/staff/orders' ? 'create' : 'orders_read';
-  if (!access.capabilities[required] && !(hasTableQrOrdering && isTableManagementPath)) return denied();
+  if (isTableManagementPath) {
+    if (!hasDineIn) {
+      return json({ ok: false, error: "FEATURE_DISABLED", message: "門市尚未啟用桌邊點餐功能 / Quán chưa kích hoạt tính năng nhận đơn tại bàn" }, 403);
+    }
+    const isWrite = request.method !== 'GET' && request.method !== 'HEAD';
+    if (isWrite && access.rawValues?.tables_write === false) {
+      return denied();
+    }
+  } else {
+    const isStaffEnabled = access.enabled;
+    if (!isStaffEnabled) {
+      return json({ ok: false, error: "FEATURE_DISABLED", message: "門市尚未啟用桌邊點餐功能 / Quán chưa kích hoạt tính năng nhận đơn tại bàn" }, 403);
+    }
+    const required: StaffCapability = path.endsWith('/status') ? 'status'
+      : path.endsWith('/rounds') ? 'append'
+      : path === '/api/staff/orders' ? 'create' : 'orders_read';
+    if (!access.capabilities[required]) return denied();
+  }
 
   // --- 4. GET /api/staff/tables (List tables with active order info) ---
   if (request.method === "GET" && path === "/api/staff/tables") {
@@ -377,11 +394,11 @@ async function dispatchStaffRoute(
     return json({ ok: true, order, items: items || [], detailSnapshot: detail?.snapshot });
   }
 
-  return handleStaffOrderWrite(request, env, path, tenantId, tenantCtx);
+  return handleStaffOrderWrite(request, env, path, tenantId, tenantCtx, hasDineIn);
 }
 
 const FINAL = ['PAID','REJECTED','PICKED_UP','EXPIRED','FORCE_REJECT'];
-async function handleStaffOrderWrite(request: Request, env: Env, path: string, tenant: string, tenantCtx: TenantContext) {
+async function handleStaffOrderWrite(request: Request, env: Env, path: string, tenant: string, tenantCtx: TenantContext, hasDineIn: boolean) {
   const match = path.match(/^\/api\/staff\/orders\/([^/]+)\/(rounds|status)$/);
   const create = request.method === 'POST' && path === '/api/staff/orders';
   const append = request.method === 'POST' && match?.[2] === 'rounds';
@@ -409,7 +426,7 @@ async function handleStaffOrderWrite(request: Request, env: Env, path: string, t
     }
     if (tenantCtx.storeStatus === 'paused' || tenantCtx.storeStatus === 'closed') throw new DetailError('STORE_PAUSED');
     if (await tenantIsDeleted(env.DB, tenant)) throw new DetailError('TENANT_DELETED', 403);
-    const allowDineIn = isStaffDineInAllowed(tenantCtx);
+    const allowDineIn = isStaffDineInAllowed(tenantCtx, hasDineIn);
     const requestedTakeaway = body.diningOption === 'takeaway' || body.dining_option === 'takeaway'
       || (!allowDineIn && body.diningOption !== 'dine_in' && body.dining_option !== 'dine_in' && !body.tableId);
     const diningOption: 'dine_in' | 'takeaway' = row ? (row.dining_option || 'dine_in') : (requestedTakeaway ? 'takeaway' : 'dine_in');

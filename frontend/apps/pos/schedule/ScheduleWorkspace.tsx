@@ -26,6 +26,8 @@ interface ScheduleWorkspaceProps {
   back: () => void;
   openHours: () => void;
   activeScreen?: 'schedule' | 'qr';
+  hasMenuSchedule?: boolean;
+  hasDineIn?: boolean;
   onSelectScreen?: (screen: 'schedule' | 'qr', prefillShiftId?: string) => void;
   qrPanelProps?: Omit<QrChannelsPanelProps, 't' | 'shifts'>;
 }
@@ -130,10 +132,17 @@ export function ScheduleWorkspace(props: ScheduleWorkspaceProps) {
     });
   }
 
-  const activeScreen = props.activeScreen ?? 'schedule';
+  const hasMenuSchedule = props.hasMenuSchedule !== false;
+  const activeScreen = !hasMenuSchedule ? 'qr' : (props.activeScreen ?? 'schedule');
 
   return <div className="ms-shell ps-min-h-0 ps-flex-1 ps-overflow-auto">
-    {props.onSelectScreen && (
+    {!hasMenuSchedule ? (
+      <div className="ms-screen-tabs-wrap">
+        <Button variant="outline" className="ms-back-btn" onClick={props.back} disabled={saving || editor.state.saving}>
+          <ChevronRightIcon size={18} />{t('menuScheduleBackBtn')}
+        </Button>
+      </div>
+    ) : props.onSelectScreen && (
       <div className="ms-screen-tabs-wrap">
         <div className="ms-screen-tabs" role="tablist" aria-label={t('menuSchedulePageTitle')}>
           <button
@@ -299,6 +308,7 @@ export function ScheduleWorkspace(props: ScheduleWorkspaceProps) {
             t={t}
             assignmentBusy={loading || saving || dirty}
             assignmentDirty={dirty}
+            hasDineIn={props.hasDineIn}
             openHours={props.openHours}
           />
         )}

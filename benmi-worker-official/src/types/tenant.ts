@@ -108,12 +108,23 @@ export function generateStandardOrderId(diningOption: string = 'takeaway', dateO
   return `${prefix}${mm}${dd}-${typePrefix}${seqStr}`;
 }
 
+export function tenantHasDineInPackage(ctx: TenantContext | null | undefined): boolean {
+  if (!ctx) return false;
+  if (Array.isArray(ctx.features)) {
+    return ctx.features.includes('dine_in') || ctx.features.includes('table_qr_ordering');
+  }
+  return ctx.allowDineIn === true;
+}
+
 export function tenantHasFeature(ctx: TenantContext | null | undefined, featureKey: string): boolean {
   if (!ctx) return false;
   if (featureKey === 'dine_in') {
     if (ctx.allowDineIn === false) return false;
-    if (Array.isArray(ctx.features) && ctx.features.includes('dine_in')) return true;
+    if (Array.isArray(ctx.features) && (ctx.features.includes('dine_in') || ctx.features.includes('table_qr_ordering'))) return true;
     return ctx.allowDineIn === true || ctx.allowDineIn === undefined;
+  }
+  if (featureKey === 'table_qr_ordering') {
+    return tenantHasDineInPackage(ctx);
   }
   if (!Array.isArray(ctx.features)) return false;
   return ctx.features.includes(featureKey);

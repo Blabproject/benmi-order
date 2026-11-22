@@ -6,7 +6,6 @@ import { ChevronRightIcon } from '@shared/ui/PosIcons';
 import { PosDisplaySettings, type PosOrientationSetting } from './PosDisplaySettings';
 import { PosSettingsPanels } from './settings/PosSettingsPanels';
 import { HoursRows, type WeeklyHours } from './settings/HoursRows';
-import { TableRows, type TablesView } from './settings/TableRows';
 import { settingsSections } from './settings-sections';
 import '@shared/ui/tailwind.css';
 import './pos-settings.css';
@@ -18,7 +17,6 @@ interface PosSettingsWindow extends Window {
   isPOSSettingAvailable: (cardId: string) => boolean;
   syncPOSSettingsView?: () => void;
   renderPOSOperatingHours?: (days: string[], hours: WeeklyHours) => void;
-  renderPOSRestaurantTables?: (view: TablesView) => void;
   getPOSTextSize: () => string;
   selectPOSTextSize: (value: string) => void;
   getPOSScreenOrientationSetting: () => PosOrientationSetting;
@@ -76,7 +74,9 @@ function PosSettingsNavigation({ activeId }: { activeId: string }) {
       >
         {settingsSections.filter(({ id }) => pos.isPOSSettingAvailable(`setting-card-${id}`)).map((section) => {
           const cardId = `setting-card-${section.id}`;
-          const locked = section.feature && !pos.currentTenantFeatures?.includes(section.feature);
+          const locked = section.feature === 'dine_in'
+            ? !(pos.currentTenantFeatures?.includes('dine_in') || pos.currentTenantFeatures?.includes('table_qr_ordering'))
+            : Boolean(section.feature && !pos.currentTenantFeatures?.includes(section.feature));
           return (
             <TabsTrigger
               key={section.id}
@@ -123,13 +123,6 @@ if (navigation && content) {
       // Replace the native values after add/remove and after canonical saves.
       flushSync(() => hoursRoot.render(<HoursRows key={++revision} days={days} hours={operatingHours} />));
     };
-  }
-
-  const tables = document.getElementById('tables-list-tbody');
-  if (tables) {
-    const tablesRoot = createRoot(tables);
-    pos.renderPOSRestaurantTables = view => flushSync(() => tablesRoot.render(<TableRows view={view} />));
-    pos.renderPOSRestaurantTables({ state: 'loading' });
   }
 
   const display = document.getElementById('setting-card-display');

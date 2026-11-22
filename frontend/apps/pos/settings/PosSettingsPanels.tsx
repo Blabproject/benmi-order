@@ -9,7 +9,6 @@ import { PrinterSettings } from './PrinterSettings';
 import { ReportsSettings } from './ReportsSettings';
 import { StoreInfoSettings } from './StoreInfoSettings';
 import { StoreStatusSettings } from './StoreStatusSettings';
-import { TablesSettings } from './TablesSettings';
 
 // Keep the forms mounted across navigation so drafts and native device bindings
 // survive tab changes. Each controller updates its own form until it is edited.
@@ -27,7 +26,6 @@ export function PosSettingsPanels() {
       <LanguageSettings />
       <SettingsPanel section="display" />
       <DineInSettings />
-      <TablesSettings />
       <PrinterSettings />
       <ReportsSettings />
       <DeviceSettings />
