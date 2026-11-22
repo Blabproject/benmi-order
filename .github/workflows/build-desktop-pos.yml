@@ -68,6 +68,7 @@ jobs:
         run: cargo test --manifest-path apps/desktop-pos/src-tauri/Cargo.toml
 
       - name: Build Windows MSI and NSIS installers
+        shell: bash
         run: npm run build:win --prefix apps/desktop-pos
 
       - name: Upload Windows installers

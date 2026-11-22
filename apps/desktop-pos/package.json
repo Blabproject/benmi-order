@@ -13,7 +13,7 @@
     "build:local": "APP_ENV=local bash build.sh && npx tauri build",
     "build:mac": "APP_ENV=prod bash build.sh && npx tauri build --bundles app && bash package-dmg.sh",
     "build:mac:local": "APP_ENV=local bash build.sh && npx tauri build --bundles app && bash package-dmg.sh",
-    "build:win": "APP_ENV=prod bash build.sh && npx tauri build --bundles msi,nsis"
+    "build:win": "bash build.sh && npx tauri build --bundles msi,nsis"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.2.0"
