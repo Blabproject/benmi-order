@@ -254,6 +254,11 @@ body.is-menu-schedule-active .main-topbar { display: none !important; }
 .ms-screen-tabs-wrap {
   max-width: 1080px;
   margin: 0 auto 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .ms-screen-tabs {
@@ -264,6 +269,7 @@ body.is-menu-schedule-active .main-topbar { display: none !important; }
   border-radius: 12px;
   background: #ffffff;
   border: 1px solid var(--ms-border);
+  margin-left: auto;
 }
 
 .ms-screen-tab {

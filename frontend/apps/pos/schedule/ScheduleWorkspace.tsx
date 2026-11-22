@@ -136,14 +136,11 @@ export function ScheduleWorkspace(props: ScheduleWorkspaceProps) {
   const activeScreen = !hasMenuSchedule ? 'qr' : (props.activeScreen ?? 'schedule');
 
   return <div className="ms-shell ps-min-h-0 ps-flex-1 ps-overflow-auto">
-    {!hasMenuSchedule ? (
-      <div className="ms-screen-tabs-wrap">
-        <Button variant="outline" className="ms-back-btn" onClick={props.back} disabled={saving || editor.state.saving}>
-          <ChevronRightIcon size={18} />{t('menuScheduleBackBtn')}
-        </Button>
-      </div>
-    ) : props.onSelectScreen && (
-      <div className="ms-screen-tabs-wrap">
+    <div className="ms-screen-tabs-wrap">
+      <Button variant="outline" className="ms-back-btn" onClick={props.back} disabled={saving || editor.state.saving}>
+        <ChevronRightIcon size={18} />{t('menuScheduleBackBtn')}
+      </Button>
+      {hasMenuSchedule && props.onSelectScreen && (
         <div className="ms-screen-tabs" role="tablist" aria-label={t('menuSchedulePageTitle')}>
           <button
             type="button"
@@ -164,19 +161,14 @@ export function ScheduleWorkspace(props: ScheduleWorkspaceProps) {
             {t('scheduleScreenTabQr')}
           </button>
         </div>
-      </div>
-    )}
+      )}
+    </div>
     {activeScreen === 'qr' && props.qrPanelProps ? (
       <QrChannelsPanel t={t} shifts={shifts} {...props.qrPanelProps} />
     ) : (
     <Card className="ms-panel" flush>
       <section aria-labelledby="ms-title" aria-busy={saving}>
         <header className="ps-mb-4">
-          <div className="ps-mb-2">
-            <Button variant="outline" className="ms-back-btn" onClick={props.back} disabled={saving || editor.state.saving}>
-              <ChevronRightIcon size={18} />{t('menuScheduleBackBtn')}
-            </Button>
-          </div>
           <div className="ms-title-row ps-flex ps-flex-wrap ps-items-center ps-gap-2">
             <div className="ms-title-group ps-relative ps-mr-auto ps-flex ps-min-w-0 ps-items-center">
               <h2 className="ms-title" id="ms-title">{t('menuSchedulePageTitle')}</h2>
