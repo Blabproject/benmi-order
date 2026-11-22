@@ -372,6 +372,8 @@ test('Screen 2 QR & Entrypoints supports channel creation with diningPolicy, tog
   await new Promise(resolve => setImmediate(resolve));
 
   assert.match(d.querySelector('.qr-screen-title').textContent, /QR và Điểm vào/);
+  const panelChildren = [...d.querySelector('.qr-workspace-panel').children];
+  assert.ok(panelChildren[0].contains(d.querySelector('.qr-tables-card')));
   assert.equal(d.querySelectorAll('.qr-channel-row').length, 1);
   assert.match(d.querySelector('.qr-row-stats-num').textContent, /120 đơn/);
   assert.match(d.querySelector('.qr-tables-title').textContent, /Quản lý bàn đang tắt/);

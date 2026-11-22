@@ -218,6 +218,58 @@ export function QrChannelsPanel(props: QrChannelsPanelProps) {
 
   return (
     <Card className="ms-panel qr-workspace-panel" flush>
+      <section className="qr-section" aria-labelledby="qr-tables-section-heading">
+        <div className="qr-section-head">
+          <h3 id="qr-tables-section-heading" className="qr-section-title">{t('qrTablesSectionTitle')}</h3>
+        </div>
+
+        <div className="qr-tables-card">
+          <div className="qr-tables-info">
+            <div className="qr-tables-title">
+              {dineInTableMode === 'none' ? t('qrTablesDisabledTitle') : t('qrTablesEnabledTitle')}
+            </div>
+            <div className="qr-tables-desc">
+              {dineInTableMode === 'none' ? t('qrTablesDisabledDesc') : t('qrTablesEnabledDesc')}
+            </div>
+          </div>
+
+          <div className="qr-tables-actions">
+            {dineInTableMode === 'none' ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="qr-header-btn"
+                disabled={tableConfigSaving}
+                onClick={() => props.onSetDineInTableMode('required')}
+              >
+                {t('qrTablesEnableBtn')}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="qr-header-btn"
+                  disabled={tableConfigSaving}
+                  onClick={props.onOpenTablesSettings}
+                >
+                  {t('qrTablesOpenSettingsBtn')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="qr-header-btn"
+                  disabled={tableConfigSaving}
+                  onClick={() => props.onSetDineInTableMode('none')}
+                >
+                  {t('qrTablesDisableBtn')}
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
       <header className="qr-header">
         <div>
           <h2 className="qr-screen-title">{t('qrScreenTitle')}</h2>
@@ -488,58 +540,6 @@ export function QrChannelsPanel(props: QrChannelsPanelProps) {
               );
             })
           )}
-        </div>
-      </section>
-
-      <section className="qr-section" aria-labelledby="qr-tables-section-heading">
-        <div className="qr-section-head">
-          <h3 id="qr-tables-section-heading" className="qr-section-title">{t('qrTablesSectionTitle')}</h3>
-        </div>
-
-        <div className="qr-tables-card">
-          <div className="qr-tables-info">
-            <div className="qr-tables-title">
-              {dineInTableMode === 'none' ? t('qrTablesDisabledTitle') : t('qrTablesEnabledTitle')}
-            </div>
-            <div className="qr-tables-desc">
-              {dineInTableMode === 'none' ? t('qrTablesDisabledDesc') : t('qrTablesEnabledDesc')}
-            </div>
-          </div>
-
-          <div className="qr-tables-actions">
-            {dineInTableMode === 'none' ? (
-              <Button
-                type="button"
-                variant="outline"
-                className="qr-header-btn"
-                disabled={tableConfigSaving}
-                onClick={() => props.onSetDineInTableMode('required')}
-              >
-                {t('qrTablesEnableBtn')}
-              </Button>
-            ) : (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="qr-header-btn"
-                  disabled={tableConfigSaving}
-                  onClick={props.onOpenTablesSettings}
-                >
-                  {t('qrTablesOpenSettingsBtn')}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="qr-header-btn"
-                  disabled={tableConfigSaving}
-                  onClick={() => props.onSetDineInTableMode('none')}
-                >
-                  {t('qrTablesDisableBtn')}
-                </Button>
-              </>
-            )}
-          </div>
         </div>
       </section>
     </Card>
