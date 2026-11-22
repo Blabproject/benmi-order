@@ -11,6 +11,8 @@ interface ShiftEditorOptions {
   afterSave: () => void;
   assignmentsBusy: () => boolean;
   assignmentsDirty: () => boolean;
+  fallbackShifts?: () => Shift[];
+  fallbackHours?: () => StoreHours;
   render: () => void;
   focusError: () => void;
 }
@@ -42,13 +44,22 @@ export function formatCoverageReasons(conflicts: CoverageConflict[], hours: Stor
 
 export function createShiftEditor(options: ShiftEditorOptions) {
   const state = {
-    draft: [] as Shift[], hours: {} as StoreHours, editing: false, opening: false, saving: false,
+    draft: [] as Shift[], hours: {} as StoreHours, editing: true, opening: false, saving: false,
     error: '', serverConflicts: [] as CoverageConflict[]
   };
   let baseline = '[]', revision = 0, openRequest = 0, newShiftId = 0;
   const dirty = () => state.editing && JSON.stringify(state.draft) !== baseline;
-  const canEdit = () => state.editing && !state.saving && !options.assignmentsBusy();
+  const canEdit = () => state.editing && !state.opening && !state.saving && !options.assignmentsBusy();
   const defaultName = (index: number) => `${options.translate('shiftDefaultNamePrefix')} ${index + 1}`;
+
+  function seedFallback() {
+    if (dirty()) return;
+    const fallback = options.fallbackShifts ? options.fallbackShifts() : [];
+    baseline = JSON.stringify(fallback);
+    state.draft = JSON.parse(baseline) as Shift[];
+    if (options.fallbackHours) state.hours = options.fallbackHours();
+    state.serverConflicts = [];
+  }
 
   function applySnapshot(data: ShiftSnapshot) {
     baseline = JSON.stringify(data.operatingShifts);
@@ -62,15 +73,15 @@ export function createShiftEditor(options: ShiftEditorOptions) {
   function discard() {
     ++openRequest;
     state.opening = false;
-    state.editing = false;
+    state.editing = true;
     state.draft = JSON.parse(baseline) as Shift[];
     state.error = '';
     state.serverConflicts = [];
   }
 
-  async function open() {
-    if (state.opening || state.editing || state.saving || options.assignmentsBusy()) return;
-    if (options.assignmentsDirty()) {
+  async function load(loadOptions?: { quiet?: boolean }) {
+    if (state.opening || state.saving || (!loadOptions?.quiet && options.assignmentsBusy()) || dirty()) return;
+    if (!loadOptions?.quiet && options.assignmentsDirty()) {
       alert(options.translate('shiftSaveAssignmentsFirst'));
       return;
     }
@@ -82,17 +93,33 @@ export function createShiftEditor(options: ShiftEditorOptions) {
       const data = await response.json();
       if (request !== openRequest) return;
       if (!response.ok) throw new Error(options.formatError(data));
-      applySnapshot(data);
-      state.editing = true;
-      state.error = '';
+      if (Array.isArray(data?.operatingShifts)) {
+        applySnapshot(data);
+        state.editing = true;
+        state.error = '';
+      } else if (loadOptions?.quiet) {
+        seedFallback();
+      } else {
+        throw new Error(options.formatError(data));
+      }
     } catch (error) {
-      if (request === openRequest) alert(options.translate('saveFail') + (error instanceof Error ? error.message : String(error)));
+      if (request === openRequest) {
+        if (loadOptions?.quiet) {
+          seedFallback();
+        } else {
+          alert(options.translate('saveFail') + (error instanceof Error ? error.message : String(error)));
+        }
+      }
     } finally {
       if (request === openRequest) {
         state.opening = false;
         options.render();
       }
     }
+  }
+
+  function open() {
+    return load({ quiet: false });
   }
 
   function close() {
@@ -162,7 +189,7 @@ export function createShiftEditor(options: ShiftEditorOptions) {
   }
 
   return {
-    state, dirty, open, close, discard, save, validation,
+    state, dirty, load, open, close, discard, seedFallback, save, validation,
     add() {
       if (!canEdit()) return;
       const index = state.draft.length;

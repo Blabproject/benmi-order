@@ -139,9 +139,16 @@ test('outside policy preserves mixed initial data until explicitly selected; dis
   assert.equal(w.hasUnsavedMenuScheduleChanges(), false);
 });
 
-test('an empty schedule keeps shift management available without creating an unsavable assignment draft', async t => {
+test('an empty schedule keeps shift management available below without creating an unsavable assignment draft', async t => {
   const { w, d } = await workspace(t, { noShifts: true });
-  assert.equal(d.querySelector('.ms-manage-shifts-btn').disabled, false);
+  assert.equal(d.querySelector('.ms-manage-shifts-btn'), null);
+  assert.equal(d.querySelector('.ms-qr-btn'), null);
+  assert.equal(d.querySelector('.ms-actions .ms-hours-btn'), null);
+  const editorCard = d.getElementById('menu-shifts-editor');
+  const outsideCard = d.querySelector('.ms-outside');
+  assert.ok(editorCard);
+  assert.ok(outsideCard.compareDocumentPosition(editorCard) & w.Node.DOCUMENT_POSITION_FOLLOWING);
+  assert.equal(d.querySelector('#menu-shifts-editor .ms-shift-add-btn').disabled, false);
   const radios = [...d.querySelectorAll('.ms-outside input[type=radio]')];
   assert.equal(radios.length, 2);
   assert.ok(radios.every(radio => radio.disabled));

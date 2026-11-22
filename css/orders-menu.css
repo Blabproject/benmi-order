@@ -183,26 +183,6 @@
 #view-menu .store-status-pill.closed:hover {
   background: #e2e8f0;
 }
-#view-menu .menu-workspace-save-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: calc(5px * var(--menu-font-scale));
-  padding: calc(4px * var(--menu-font-scale)) calc(9px * var(--menu-font-scale));
-  min-height: calc(28px * var(--menu-font-scale));
-  border-radius: 6px;
-  font-size: var(--menu-font-xs);
-  font-weight: 600;
-}
-#view-menu .menu-workspace-save-pill.is-saved {
-  background: #ecfdf5;
-  color: #047857;
-  border: 1px solid #d1fae5;
-}
-#view-menu .menu-workspace-save-pill.is-dirty {
-  background: #fffbeb;
-  color: #b45309;
-  border: 1px solid #fde68a;
-}
 #view-menu .menu-action-btn { min-width: calc(80px * var(--menu-font-scale)); min-height: calc(34px * var(--menu-font-scale)); height: calc(34px * var(--menu-font-scale)); padding: calc(4px * var(--menu-font-scale)) calc(11px * var(--menu-font-scale)); font-size: var(--menu-font-sm); font-weight: 650; border-radius: 8px; }
 #view-menu #btn-menu-save, #view-menu #btn-menu-order-save { background: var(--menu-accent); border-color: var(--menu-accent); color: #fff; }
 #view-menu #btn-menu-save:disabled, #view-menu #btn-menu-order-save:disabled { background: var(--menu-subtle); color: var(--menu-muted); border: 1px solid var(--menu-line); opacity: 1; }
@@ -2533,20 +2513,6 @@ body.ug-open { overflow: hidden; }
     margin: 0 !important;
   }
 
-  #view-menu .menu-workspace-save-pill {
-    height: 32px !important;
-    min-height: 32px !important;
-    padding: 0 8px !important;
-    font-size: calc(11px * var(--menu-font-scale)) !important;
-    border-radius: 6px !important;
-    gap: 4px !important;
-  }
-
-  #view-menu .menu-workspace-save-pill svg {
-    width: 12px !important;
-    height: 12px !important;
-  }
-
   #view-menu #btn-menu-save {
     height: 36px !important;
     min-height: 36px !important;
@@ -3651,41 +3617,3 @@ body.ug-open { overflow: hidden; }
     grid-template-columns: 1fr;
   }
 }
-
-/* Compact schedule status strip in Menu Category Editor */
-.menu-cat-schedule-strip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 14px;
-  margin-bottom: 12px;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-}
-
-.menu-cat-schedule-strip-left {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--menu-font-base);
-  font-weight: 700;
-  color: #334155;
-}
-
-.menu-cat-schedule-strip-btn {
-  min-height: 44px;
-  padding: 8px 14px;
-  border-radius: 10px;
-  border: 1.5px solid #bfdbfe;
-  background: #eff6ff;
-  color: #1d4ed8;
-  font-size: var(--menu-font-base);
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.menu-cat-schedule-strip-btn:hover { background: #dbeafe; }

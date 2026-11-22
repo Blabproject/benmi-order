@@ -15,6 +15,7 @@ declare const WORKER_BASE: string;
 declare const DAY_NAMES: Record<string, string[]> & { 'zh-TW': string[] };
 declare const isMenuLoadedCompletely: boolean;
 declare const isMenuLoading: boolean;
+declare const storeOperatingHours: StoreHours | undefined;
 declare const MenuSchedule: { shiftCoverageIssues: (shifts: Shift[], hours: StoreHours) => CoverageConflict[] };
 declare function t(key: string, params?: Record<string, string | number>): string;
 declare function loadMenuData(): Promise<void>;
@@ -28,6 +29,7 @@ declare function formatScheduleError(detail: { error?: string; conflicts?: Cover
 interface ScheduleHost extends Window {
   currentMenuData?: MenuCategory[];
   storeOperatingShifts?: Shift[];
+  storeOperatingHours?: StoreHours;
   storeQrChannels?: QrChannel[];
   dineInTableMode?: DineInTableMode;
   currentLang?: string;
@@ -82,6 +84,8 @@ if (mount) {
     },
     assignmentsBusy: () => loading || saving,
     assignmentsDirty: assignments.dirty,
+    fallbackShifts: shifts,
+    fallbackHours: () => (typeof storeOperatingHours !== 'undefined' ? storeOperatingHours : pos.storeOperatingHours) ?? {},
     render,
     focusError: () => document.getElementById('menu-shifts-error')?.focus()
   });
@@ -243,7 +247,7 @@ if (mount) {
   const setOutside = (hidden: boolean) => edit(() => assignments.setOutside(hidden));
 
   async function init() {
-    if (loading || writeInProgress() || assignments.dirty()) return;
+    if (loading || writeInProgress() || assignments.dirty() || editor.dirty()) return;
     initialized = true;
     loading = true;
     render();
@@ -257,13 +261,16 @@ if (mount) {
         return;
       }
       assignments.reset();
+      await editor.load({ quiet: true });
       if (!shifts().length && typeof getTenantIdFromUrl === 'function') {
         const response = await fetch(`${endpoint('/api/tenant/bootstrap')}&nocache=1`);
         if (response.ok) {
           const data = await response.json();
           if (Array.isArray(data?.tenant?.operatingShifts)) pos.storeOperatingShifts = data.tenant.operatingShifts;
+          if (data?.tenant?.operatingHours) pos.storeOperatingHours = data.tenant.operatingHours;
           if (Array.isArray(data?.tenant?.qrChannels)) pos.storeQrChannels = data.tenant.qrChannels;
           if (data?.tenant?.dineInTableMode) pos.dineInTableMode = data.tenant.dineInTableMode;
+          editor.seedFallback();
         }
       }
     } catch (error) {

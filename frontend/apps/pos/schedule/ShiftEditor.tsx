@@ -10,16 +10,17 @@ interface ShiftEditorProps {
   dayNames: string[];
   t: Translate;
   assignmentBusy: boolean;
+  assignmentDirty?: boolean;
   openHours: () => void;
 }
 
-export function ShiftEditor({ editor, dayNames, t, assignmentBusy, openHours }: ShiftEditorProps) {
+export function ShiftEditor({ editor, dayNames, t, assignmentBusy, assignmentDirty, openHours }: ShiftEditorProps) {
   const { draft, hours, saving, error, serverConflicts } = editor.state;
   const { coverage, timeInvalid } = editor.validation();
   const reasons = formatCoverageReasons(coverage.length ? coverage : serverConflicts, hours, dayNames, t);
   const message = timeInvalid ? t('shiftInvalidTime') : reasons.length ? t('shiftCoverageError') : error;
   return (
-    <Card className="ms-shift-panel ps-w-full ps-order-3 ps-mt-1 ps-bg-slate-50" id="menu-shifts-editor" aria-busy={saving}>
+    <Card className="ms-shift-panel ps-mt-5 ps-bg-slate-50" id="menu-shifts-editor" aria-busy={saving}>
       <h3 className="ms-shift-panel-title">{t('menuShiftsTitle')}</h3>
       <p className="ms-shift-panel-sub">{t('shiftCoverageHint')}</p>
       <div className="ps-mb-4 ps-flex ps-flex-wrap ps-gap-2">
@@ -107,13 +108,16 @@ export function ShiftEditor({ editor, dayNames, t, assignmentBusy, openHours }: 
             <PlusIcon size={16} />{t('btnAddNamedShift').replace(/^\+\s*/, '')}
           </Button>
           <div className="ms-shift-footer-right ps-ml-auto ps-flex ps-flex-wrap ps-gap-2">
-            <Button variant="outline" className="ms-hours-btn" onClick={editor.close}>{t('shiftEditorClose')}</Button>
+            {editor.dirty() && (
+              <Button variant="outline" className="ms-hours-btn ms-shift-discard-btn" onClick={editor.close}>{t('shiftDiscardBtn')}</Button>
+            )}
             <Button variant="default" id="btn-save-menu-shifts" className="ms-save-btn" onClick={editor.save} disabled={!editor.dirty()}>
               {t(saving ? 'saving' : 'btnSaveMenuShifts')}
             </Button>
           </div>
         </div>
         {editor.dirty() && <p className="ms-shift-lock-hint" role="status">{t('shiftDirtyLockHint')}</p>}
+        {assignmentDirty && !editor.dirty() && <p className="ms-shift-lock-hint" role="status">{t('shiftSaveAssignmentsFirst')}</p>}
       </fieldset>
     </Card>
   );

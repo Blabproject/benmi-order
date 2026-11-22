@@ -138,17 +138,6 @@ function updateMenuSaveState() {
       statusText.textContent = t('statusAutoSaved');
     }
   }
-  const wsSavePill = document.getElementById('menu-workspace-save-pill');
-  const wsSaveStatusText = document.getElementById('menu-workspace-save-status-text');
-  if (wsSavePill && wsSaveStatusText) {
-    if (isMenuDirty) {
-      wsSavePill.className = 'menu-workspace-save-pill is-dirty';
-      wsSaveStatusText.textContent = t('statusUnsaved');
-    } else {
-      wsSavePill.className = 'menu-workspace-save-pill is-saved';
-      wsSaveStatusText.textContent = t('statusAutoSaved');
-    }
-  }
   const revertBtn = document.getElementById('btn-menu-order-revert');
   if (revertBtn) {
     revertBtn.disabled = isMenuSaving || !isMenuDirty;
@@ -1873,35 +1862,6 @@ function renderMenuCategoryEditor(index) {
       `;
     }
     catalogCard.appendChild(modCard);
-  }
-
-  if (cat.type === 'catalog' && typeof isMenuScheduleFeatureEnabled === 'function' && isMenuScheduleFeatureEnabled()) {
-    const availShifts = Array.isArray(window.storeOperatingShifts) ? window.storeOperatingShifts : [];
-    const curMode = cat.availabilityMode === 'selected_shifts' ? 'selected_shifts' : 'all_shifts';
-    const curShiftIds = Array.isArray(cat.shiftIds) ? cat.shiftIds : [];
-    const curHide = Boolean(cat.hideWhenUnavailable);
-    const matchedShifts = availShifts.filter(sh => curShiftIds.includes(sh.id));
-    const clockSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
-
-    let summaryLabel = t("catScheduleAllShifts");
-    if (curMode === 'selected_shifts') {
-      const names = matchedShifts.map(sh => sh.name).filter(Boolean);
-      summaryLabel = names.length > 0
-        ? `${t("catScheduleSelectedShifts")}: ${names.join(", ")}${curHide ? ` (${t("menuScheduleHideLabel")})` : ""}`
-        : t("catScheduleSelectedShifts");
-    }
-
-    const schedStrip = document.createElement("div");
-    schedStrip.className = "menu-cat-schedule-strip";
-    schedStrip.innerHTML = `
-      <div class="menu-cat-schedule-strip-left">
-        ${clockSvg}
-        <span>${escapeHtml(t("catScheduleTitle"))}:</span>
-        <span style="padding:3px 9px; border-radius:9999px; font-size:12px; font-weight:800; background:${curMode === 'selected_shifts' ? '#eff6ff' : '#ecfdf5'}; color:${curMode === 'selected_shifts' ? '#1d4ed8' : '#047857'}; border:1px solid ${curMode === 'selected_shifts' ? '#bfdbfe' : '#a7f3d0'};">${escapeHtml(summaryLabel)}</span>
-      </div>
-      <button type="button" class="menu-cat-schedule-strip-btn" onclick="switchTab('menu-schedule')">${escapeHtml(t("catScheduleOpenCanvasBtn"))}</button>
-    `;
-    catalogCard.appendChild(schedStrip);
   }
 
   const itemsContainer = document.createElement("div");

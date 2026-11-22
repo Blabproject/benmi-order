@@ -243,11 +243,6 @@ body.is-menu-schedule-active .main-topbar { display: none !important; }
   width: 100%;
 }
 
-.ms-qr-btn {
-  min-height: 48px;
-  gap: 6px;
-}
-
 .ms-shift-qr-btn {
   min-height: 48px;
   width: 100%;

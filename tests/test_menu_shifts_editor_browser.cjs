@@ -92,7 +92,9 @@ for (const [locale, width] of [['vi', 768], ['zh-TW', 1024], ['vi', 390]]) {
     assert.equal(assignments.length, 1);
     assert.equal(assignments[0].categories[0].hideWhenUnavailable, true);
     assert.deepEqual(assignments[0].items.map(item => item.shiftIds), [['dinner', 'late']]);
-    await page.locator('.ms-manage-shifts-btn').click();
+    assert.equal(await page.locator('.ms-manage-shifts-btn').count(), 0);
+    assert.equal(await page.locator('.ms-actions .ms-hours-btn').count(), 0);
+    assert.equal(await page.locator('.ms-qr-btn').count(), 0);
     await page.locator('#btn-save-menu-shifts').waitFor();
     assert.equal(await page.locator('.ms-table-scroll').evaluate(el => el.inert), false);
     assert.equal(await page.locator('.ms-item-row').count(), 1);
