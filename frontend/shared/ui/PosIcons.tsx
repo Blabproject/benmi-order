@@ -224,6 +224,45 @@ export function AlertTriangleIcon({ size = 24, ...props }: IconProps & { size?: 
   );
 }
 
+/** Ban, hourglass, moon and bell-off icons from Lucide. */
+export function BanIcon({ size = 20, ...props }: IconProps & { size?: number }) {
+  return (
+    <StrokeIcon size={size} {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M4.929 4.929 19.07 19.071" />
+    </StrokeIcon>
+  );
+}
+
+export function HourglassIcon({ size = 20, ...props }: IconProps & { size?: number }) {
+  return (
+    <StrokeIcon size={size} {...props}>
+      <path d="M5 22h14M5 2h14" />
+      <path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" />
+      <path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" />
+    </StrokeIcon>
+  );
+}
+
+export function MoonIcon({ size = 20, ...props }: IconProps & { size?: number }) {
+  return (
+    <StrokeIcon size={size} {...props}>
+      <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" />
+    </StrokeIcon>
+  );
+}
+
+export function BellOffIcon({ size = 20, ...props }: IconProps & { size?: number }) {
+  return (
+    <StrokeIcon size={size} {...props}>
+      <path d="M10.268 21a2 2 0 0 0 3.464 0" />
+      <path d="M17 17H4a1 1 0 0 1-.74-1.673C4.59 13.956 6 12.499 6 8a6 6 0 0 1 .258-1.742" />
+      <path d="m2 2 20 20" />
+      <path d="M8.668 3.01A6 6 0 0 1 18 8c0 2.687.77 4.653 1.707 6.05" />
+    </StrokeIcon>
+  );
+}
+
 /** Right chevron icon (Lucide MIT). */
 export function ChevronRightIcon({ size = 16, ...props }: IconProps & { size?: number }) {
   return (

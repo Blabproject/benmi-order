@@ -9,7 +9,7 @@
 
   <script src="/js/order-code.js?v=20261109_order_code_v1"></script>
   <script src="js/orders-display.js?v=20261121_settings_react_v1"></script>
-  <link rel="stylesheet" href="css/orders.css?v=20261121_shell_detail_react_v1" />
+  <link rel="stylesheet" href="css/orders.css?v=20261123_live_station_tabs_v1" />
   <link rel="stylesheet" href="css/orders-stock.css?v=20261107_stock_drawer_v1" />
   <link rel="stylesheet" href="css/orders-menu.css?v=20261121_schedule_react_v1" />
     <script>
@@ -140,50 +140,8 @@
 
     <div class="content" id="view-live">
       <button type="button" id="payment-live-alert" class="payment-live-alert" onclick="switchTab('payments'); PaymentPOS.setView('attention')" hidden aria-live="polite"></button>
-      <!-- Dining Filter Bar (Tablet-first Segmented Control) -->
-      <div class="dining-filter-bar" id="dining-filter-bar">
-        <div class="dining-filter-group" role="tablist">
-          <button type="button" class="dining-filter-btn active" id="filter-btn-all" onclick="setDiningFilter('all')">
-            <span id="i18n-filter-all">全部</span>
-            <span class="filter-count-badge" id="filter-count-all">0</span>
-          </button>
-          <button type="button" class="dining-filter-btn" id="filter-btn-takeaway" onclick="setDiningFilter('takeaway')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
-              <path d="M3 6h18"></path>
-              <path d="M16 10a4 4 0 0 1-8 0"></path>
-            </svg>
-            <span id="i18n-filter-takeaway">外帶</span>
-            <span class="filter-count-badge" id="filter-count-takeaway">0</span>
-          </button>
-          <button type="button" class="dining-filter-btn" id="filter-btn-dine-in" onclick="setDiningFilter('dine_in')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"></path>
-              <path d="M15 2v10"></path>
-              <path d="M15 14v8"></path>
-              <path d="M6 2v20"></path>
-              <path d="M6 2a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3"></path>
-            </svg>
-            <span id="i18n-filter-dinein">內用</span>
-            <span class="filter-count-badge" id="filter-count-dinein">0</span>
-          </button>
-        </div>
-        <div class="dining-filter-stats" id="dining-filter-stats">
-          <span class="stat-pill takeaway" id="stat-pill-takeaway">外帶 0</span>
-          <span class="stat-pill dine-in" id="stat-pill-dinein">內用 0</span>
-        </div>
-      </div>
-
-      <div class="live-mobile-tabs" id="live-mobile-tabs" role="tablist" aria-label="訂單狀態" hidden>
-        <button type="button" class="live-mobile-tab active" id="live-mobile-tab-pending" role="tab" aria-controls="live-panel-pending" aria-selected="true" tabindex="0" onclick="setLiveMobileStation('pending')">
-          <span id="i18n-live-mobile-pending">待處理</span>
-          <span class="live-mobile-count" id="live-mobile-count-pending">0</span>
-        </button>
-        <button type="button" class="live-mobile-tab" id="live-mobile-tab-ready" role="tab" aria-controls="live-panel-ready" aria-selected="false" tabindex="-1" onclick="setLiveMobileStation('ready')">
-          <span id="i18n-live-mobile-ready">待取餐</span>
-          <span class="live-mobile-count" id="live-mobile-count-ready">0</span>
-        </button>
-      </div>
+      <div class="dining-filter-bar" id="dining-filter-bar"></div>
+      <div class="live-mobile-tabs" id="live-mobile-tabs" role="tablist" aria-label="訂單狀態" hidden></div>
 
       <div class="split live-split station-pending">
         <div class="live-panel" id="live-panel-pending">
@@ -1342,13 +1300,13 @@
 
   <!-- Benmi POS Modular Architecture Scripts -->
   <script src="js/menu-schedule.js?v=20261119_shift_management_v1"></script>
-  <script src="js/orders-i18n.js?v=20261121_shell_detail_react_v1"></script>
+  <script src="js/orders-i18n.js?v=20261122_live_shadcn_v1"></script>
   <script src="js/orders-core.js?v=20261121_shell_detail_react_v1"></script>
   <script src="js/orders-audio.js?v=20261114_deadcode_cleanup_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
   <script src="js/order-detail-view.js?v=20261119_print_options_v2"></script>
   <script src="js/printer-service.js?v=20261119_print_options_v2"></script>
-  <script src="js/orders-live.js?v=20261121_shell_detail_react_v1"></script>
+  <script src="js/orders-live.js?v=20261122_live_shadcn_v1"></script>
   <script src="js/orders-modals.js?v=20261121_shell_detail_react_v1"></script>
   <script src="js/qrcode.min.js?v=20261107_table_qr_v1"></script>
   <script src="js/store-notice-format.js?v=20261111_store_notice_v1"></script>

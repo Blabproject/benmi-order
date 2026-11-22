@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
 import type { HistoryOrderDto } from '@shared/contracts/api';
 import { Button } from '@shared/ui/button';
-import { AlertTriangleIcon, ClockIcon, CloseIcon } from '@shared/ui/PosIcons';
+import { AlertTriangleIcon, BanIcon, BellOffIcon, ClockIcon, CloseIcon, HourglassIcon, MoonIcon } from '@shared/ui/PosIcons';
 
 type MenuItem = { name: string; category: string };
 type StickerGroup = { title: string; options: string[] };
@@ -18,7 +18,12 @@ declare function printQuickModifierOption(text: string): Promise<void>;
 declare function confirmAction(type: 'CHANGE' | 'REJECT', reason: string, note?: string): Promise<void>;
 
 const presets = [5, 10, 15, 20, 30, 45];
-const reasons = ['今日已售完', '訂單過多', '已過營業時間', '取消並不回復客戶'] as const;
+const reasons = [
+  { value: '今日已售完', label: 'rejectR1', Icon: BanIcon },
+  { value: '訂單過多', label: 'rejectR2', Icon: HourglassIcon },
+  { value: '已過營業時間', label: 'rejectR3', Icon: MoonIcon },
+  { value: '取消並不回復客戶', label: 'rejectR4', Icon: BellOffIcon },
+] as const;
 
 function DialogContent({ kind, title, onClose, children, actions }: { kind: DialogKind; title: string; onClose: () => void; children: ReactNode; actions?: ReactNode }) {
   return <div className="modal-content">
@@ -120,7 +125,7 @@ function ChangeOrder({ order, base }: { order: HistoryOrderDto; base: Date }) {
 }
 
 function RejectOrder() {
-  const [reason, setReason] = useState<(typeof reasons)[number]>(reasons[0]);
+  const [reason, setReason] = useState<(typeof reasons)[number]['value']>(reasons[0].value);
   const [busy, setBusy] = useState(false);
   const submitting = useRef(false);
 
@@ -137,10 +142,10 @@ function RejectOrder() {
     <Button className="btn btn-ghost" id="btn-reject-cancel" onClick={closeModal}>{t('btnBack')}</Button>
   </>}>
     <div className="reject-reason-grid">
-      {reasons.map((value, index) => <Button key={value} data-val={value} className={`reject-card${value === reason ? ' active' : ''}`}
+      {reasons.map(({ value, label, Icon }) => <Button key={value} data-val={value} className={`reject-card${value === reason ? ' active' : ''}`}
         aria-pressed={value === reason} onClick={() => setReason(value)}>
-        {index === 1 || index === 2 ? <ClockIcon size={20} /> : <AlertTriangleIcon size={20} />}
-        <span className="reject-text"><span className="reject-title">{t(`rejectR${index + 1}Title`)}</span><span className="reject-sub">{t(`rejectR${index + 1}Sub`)}</span></span>
+        <Icon className="ps-shrink-0" />
+        <span className="reject-text"><span className="reject-title">{t(`${label}Title`)}</span><span className="reject-sub">{t(`${label}Sub`)}</span></span>
       </Button>)}
     </div>
   </DialogContent>;

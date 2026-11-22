@@ -95,6 +95,7 @@ test('Full POS page: create group, persist in D1, independent GET, reload, edit 
     await page.locator('#i18n-btn-start-shift').click();
     await page.locator('.menu-item-name-input').filter({ visible: true }).first().waitFor();
     assert.ok((await page.locator('.menu-item-name-input').evaluateAll(nodes => nodes.map(n => n.value))).includes(product.name));
+    await page.locator('#tab-live').click();
     const customer = await session.context.newPage();
     await customer.goto(`${pages.url}/?tenant_id=${tenant}`);
     await customer.getByText(product.name, { exact: true }).first().waitFor();
@@ -121,7 +122,6 @@ test('Full POS page: create group, persist in D1, independent GET, reload, edit 
     assert.equal(stored.total_amount, 100);
     assert.ok(stored.order_content.includes(product.name));
     assert.ok(stored.order_content.includes('QA portion note'));
-    await page.locator('#tab-live').click();
     const orderCard = page.locator('.tile', { hasText: OrderCode.format(order.displayKey) }).first();
     await orderCard.waitFor();
     await page.evaluate(() => { if (typeof dismissNewAlert === 'function') dismissNewAlert(); });
