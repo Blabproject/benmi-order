@@ -164,18 +164,32 @@
     .iso-phase-group {
       transition: opacity 0.35s ease, filter 0.35s ease;
     }
-    .iso-scene[data-active-step="1"] .iso-phase-2,
-    .iso-scene[data-active-step="1"] .iso-phase-3,
-    .iso-scene[data-active-step="2"] .iso-phase-1,
-    .iso-scene[data-active-step="2"] .iso-phase-3,
-    .iso-scene[data-active-step="3"] .iso-phase-1,
-    .iso-scene[data-active-step="3"] .iso-phase-2 {
-      opacity: 0.38;
+    .iso-scene[data-active-step="1"] .iso-pipe.iso-phase-2,
+    .iso-scene[data-active-step="1"] .iso-pipe.iso-phase-3,
+    .iso-scene[data-active-step="2"] .iso-pipe.iso-phase-1,
+    .iso-scene[data-active-step="2"] .iso-pipe.iso-phase-3,
+    .iso-scene[data-active-step="3"] .iso-pipe.iso-phase-1,
+    .iso-scene[data-active-step="3"] .iso-pipe.iso-phase-2 {
+      opacity: 0.42;
+    }
+    .iso-scene[data-active-step="1"] .iso-landmark.iso-phase-2,
+    .iso-scene[data-active-step="1"] .iso-landmark.iso-phase-3,
+    .iso-scene[data-active-step="2"] .iso-landmark.iso-phase-1,
+    .iso-scene[data-active-step="2"] .iso-landmark.iso-phase-3,
+    .iso-scene[data-active-step="3"] .iso-landmark.iso-phase-1,
+    .iso-scene[data-active-step="3"] .iso-landmark.iso-phase-2 {
+      opacity: 0.88;
     }
     .iso-scene[data-active-step="1"] .iso-phase-1,
     .iso-scene[data-active-step="2"] .iso-phase-2,
     .iso-scene[data-active-step="3"] .iso-phase-3 {
       opacity: 1;
+    }
+    .iso-floor-label {
+      paint-order: stroke;
+      stroke: #FFFFFF;
+      stroke-width: 3.5px;
+      stroke-linejoin: round;
     }
 
     .iso-badge-btn {
@@ -447,7 +461,7 @@
 
 
   <!-- ================= 3. HOW IT WORKS SECTION ================= -->
-  <section id="how-it-works" class="py-20 sm:py-24 bg-white border-t border-slate-100">
+  <section id="how-it-works" class="scroll-mt-24 py-20 sm:py-24 bg-white border-t border-slate-100">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
       <!-- Section Header -->
@@ -462,17 +476,17 @@
       </div>
 
       <!-- Interactive Isometric Workflow Stage (Light Theme) -->
-      <div id="iso-workflow-stage" class="iso-scene relative bg-gradient-to-b from-slate-50/90 via-white to-slate-50/70 rounded-3xl border border-slate-200/80 shadow-sm p-4 sm:p-6 lg:p-8 mb-8 sm:mb-10 overflow-hidden" data-active-step="1">
+      <div id="iso-workflow-stage" class="iso-scene relative -mx-2 sm:mx-0 bg-gradient-to-b from-slate-50/90 via-white to-slate-50/70 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-sm px-1.5 py-3 sm:p-6 lg:p-8 mb-8 sm:mb-10 overflow-hidden" data-active-step="1">
         <!-- Subtle Top Controls Bar -->
-        <div class="flex items-center justify-between gap-3 mb-2 sm:mb-0 sm:absolute sm:top-5 sm:left-6 sm:right-6 z-10 pointer-events-none">
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/90 border border-slate-200/80 text-xs font-semibold text-slate-600 shadow-xs pointer-events-auto">
+        <div class="flex items-center justify-between gap-2 px-2 sm:px-0 mb-1 sm:mb-0 sm:absolute sm:top-5 sm:left-6 sm:right-6 z-10 pointer-events-none">
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/95 border border-slate-200/80 text-[13px] sm:text-sm font-semibold text-slate-700 shadow-xs pointer-events-auto">
             <span class="w-2 h-2 rounded-full bg-lineGreen"></span>
             <span>點選步驟查看運作流程</span>
           </div>
           <button
             type="button"
             id="iso-motion-toggle"
-            class="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 shadow-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-lineGreen"
+            class="pointer-events-auto inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/95 hover:bg-slate-100 border border-slate-200 text-[13px] sm:text-sm font-semibold text-slate-700 shadow-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-lineGreen"
             aria-label="暫停動畫"
           >
             <svg id="iso-icon-pause" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -489,7 +503,7 @@
         <!-- Crisp Isometric SVG Illustration -->
         <div class="w-full max-w-4xl mx-auto">
           <svg
-            viewBox="55 55 775 465"
+            viewBox="60 56 760 466"
             class="w-full h-auto block select-none"
             role="img"
             aria-labelledby="blab-iso-title blab-iso-desc"
@@ -552,7 +566,7 @@
             <!-- ================================================================ -->
             <!-- PHASE 1 PIPES: 3 Order Channels -> Storefront (LINE Green)        -->
             <!-- ================================================================ -->
-            <g class="iso-phase-group iso-phase-1">
+            <g class="iso-phase-group iso-pipe iso-phase-1">
               <!-- Outer Track Base (Subtle Slate Border) -->
               <g fill="none" stroke="#CBD5E1" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
                 <!-- Branch 1A: Takeout -> Junction -->
@@ -587,7 +601,7 @@
             <!-- ================================================================ -->
             <!-- PHASE 2 PIPE: Storefront -> BLAB POS Cloud Engine (Amber Gold)    -->
             <!-- ================================================================ -->
-            <g class="iso-phase-group iso-phase-2">
+            <g class="iso-phase-group iso-pipe iso-phase-2">
               <path d="M 495 240 L 621 303" fill="none" stroke="#CBD5E1" stroke-width="10" stroke-linecap="round" />
               <path d="M 495 240 L 621 303" fill="none" stroke="#FEF3C7" stroke-width="6.5" stroke-linecap="round" />
               <path class="iso-flow-2" d="M 495 240 L 621 303" fill="none" stroke="#F59E0B" stroke-width="4.5" />
@@ -600,7 +614,7 @@
             <!-- ================================================================ -->
             <!-- PHASE 3 PIPE: BLAB POS -> LINE Customer Return Loop (Orange)      -->
             <!-- ================================================================ -->
-            <g class="iso-phase-group iso-phase-3">
+            <g class="iso-phase-group iso-pipe iso-phase-3">
               <path d="M 645 335 L 433 441" fill="none" stroke="#CBD5E1" stroke-width="10" stroke-linecap="round" />
               <path d="M 645 335 L 433 441" fill="none" stroke="#FFEDD5" stroke-width="6.5" stroke-linecap="round" />
               <path class="iso-flow-3" d="M 645 335 L 433 441" fill="none" stroke="#F97316" stroke-width="4.5" />
@@ -687,17 +701,17 @@
               <!-- Roof Signboard (BLAB 合作店家) -->
               <g>
                 <!-- Support Struts -->
-                <line x1="370" y1="130" x2="370" y2="112" stroke="#0F172A" stroke-width="2.5" />
-                <line x1="428" y1="159" x2="428" y2="141" stroke="#0F172A" stroke-width="2.5" />
+                <line x1="364" y1="127" x2="364" y2="108" stroke="#0F172A" stroke-width="2.6" />
+                <line x1="432" y1="161" x2="432" y2="142" stroke="#0F172A" stroke-width="2.6" />
                 <!-- Signboard Frame (Dark Slate for Crisp Contrast) -->
-                <polygon points="354,78 442,122 442,162 354,118" fill="#0F172A" stroke="#0F172A" stroke-width="2" stroke-linejoin="round" />
+                <polygon points="340,68 456,126 456,174 340,116" fill="#0F172A" stroke="#0F172A" stroke-width="2" stroke-linejoin="round" />
                 <!-- Signboard Side Thickness -->
-                <polygon points="442,122 448,119 448,159 442,162" fill="#334155" stroke="#0F172A" stroke-width="1.5" stroke-linejoin="round" />
-                <polygon points="354,78 360,75 448,119 442,122" fill="#475569" stroke="#0F172A" stroke-width="1.5" stroke-linejoin="round" />
+                <polygon points="456,126 462,123 462,171 456,174" fill="#334155" stroke="#0F172A" stroke-width="1.5" stroke-linejoin="round" />
+                <polygon points="340,68 346,65 462,123 456,126" fill="#475569" stroke="#0F172A" stroke-width="1.5" stroke-linejoin="round" />
                 <!-- Signboard Isometric Typography -->
-                <g transform="matrix(0.8944, 0.4472, 0, 1, 363, 98)">
-                  <text x="44" y="5" text-anchor="middle" fill="#4ADE80" font-family="'Outfit','Noto Sans TC',sans-serif" font-size="11.5" font-weight="800" letter-spacing="0.8">BLAB 合作店家</text>
-                  <text x="44" y="21" text-anchor="middle" fill="#FFFFFF" font-family="'Noto Sans TC',sans-serif" font-size="9.5" font-weight="600" letter-spacing="1">LINE 雲端接單</text>
+                <g transform="matrix(0.8944, 0.4472, 0, 1, 349, 91)">
+                  <text x="58" y="6" text-anchor="middle" fill="#4ADE80" font-family="'Outfit','Noto Sans TC',sans-serif" font-size="15.5" font-weight="800" letter-spacing="0.6">BLAB 合作店家</text>
+                  <text x="58" y="26" text-anchor="middle" fill="#FFFFFF" font-family="'Noto Sans TC',sans-serif" font-size="13" font-weight="700" letter-spacing="1.2">LINE 雲端接單</text>
                 </g>
               </g>
             </g>
@@ -705,7 +719,7 @@
             <!-- ================================================================ -->
             <!-- LANDMARK B: 3 INPUT CHANNEL PEDESTALS (Step 1)                    -->
             <!-- ================================================================ -->
-            <g class="iso-phase-group iso-phase-1">
+            <g class="iso-phase-group iso-landmark iso-phase-1">
               <!-- PEDESTAL 1A: 外帶預訂 (Takeout Phone / Pickup) -->
               <g id="iso-node-takeout">
                 <!-- Pedestal Shadow -->
@@ -733,8 +747,8 @@
                 </g>
 
                 <!-- Isometric Floor Label -->
-                <g transform="matrix(0.8944, 0.4472, -0.8944, 0.4472, 102, 372)">
-                  <text x="0" y="0" text-anchor="middle" fill="#059669" font-family="'Noto Sans TC',sans-serif" font-size="13.5" font-weight="800" letter-spacing="1.5">外帶預訂</text>
+                <g transform="matrix(0.8944, 0.4472, -0.8944, 0.4472, 98, 377)">
+                  <text class="iso-floor-label" x="0" y="0" text-anchor="middle" fill="#047857" font-family="'Noto Sans TC',sans-serif" font-size="18" font-weight="900" letter-spacing="1.6">外帶預訂</text>
                 </g>
               </g>
 
@@ -770,8 +784,8 @@
                 </g>
 
                 <!-- Isometric Floor Label -->
-                <g transform="matrix(0.8944, 0.4472, -0.8944, 0.4472, 222, 432)">
-                  <text x="0" y="0" text-anchor="middle" fill="#059669" font-family="'Noto Sans TC',sans-serif" font-size="13.5" font-weight="800" letter-spacing="1.5">內用掃碼</text>
+                <g transform="matrix(0.8944, 0.4472, -0.8944, 0.4472, 218, 437)">
+                  <text class="iso-floor-label" x="0" y="0" text-anchor="middle" fill="#047857" font-family="'Noto Sans TC',sans-serif" font-size="18" font-weight="900" letter-spacing="1.6">內用掃碼</text>
                 </g>
               </g>
 
@@ -797,15 +811,15 @@
                   <line x1="402" y1="463" x2="420" y2="454" stroke="#CBD5E1" stroke-width="2" stroke-linecap="round" />
                   <!-- Floating Mini LINE Notification Bubble -->
                   <g class="iso-float">
-                    <rect x="387" y="405" width="38" height="22" rx="7" fill="#06C755" stroke="#0F172A" stroke-width="1.5" />
-                    <polygon points="402,427 408,427 405,432" fill="#06C755" stroke="#0F172A" stroke-width="1.2" stroke-linejoin="round" />
-                    <text x="406" y="419.5" text-anchor="middle" fill="#FFFFFF" font-family="'Outfit',sans-serif" font-size="9.5" font-weight="800" letter-spacing="0.4">LINE</text>
+                    <rect x="382" y="399" width="48" height="26" rx="8" fill="#06C755" stroke="#0F172A" stroke-width="1.6" />
+                    <polygon points="402,425 410,425 406,431" fill="#06C755" stroke="#0F172A" stroke-width="1.3" stroke-linejoin="round" />
+                    <text x="406" y="416.5" text-anchor="middle" fill="#FFFFFF" font-family="'Outfit',sans-serif" font-size="12.5" font-weight="800" letter-spacing="0.5">LINE</text>
                   </g>
                 </g>
 
                 <!-- Isometric Floor Label -->
-                <g transform="matrix(0.8944, 0.4472, -0.8944, 0.4472, 362, 493)">
-                  <text x="0" y="0" text-anchor="middle" fill="#059669" font-family="'Noto Sans TC',sans-serif" font-size="13.5" font-weight="800" letter-spacing="1.2">LINE 點餐</text>
+                <g transform="matrix(0.8944, 0.4472, -0.8944, 0.4472, 360, 493)">
+                  <text class="iso-floor-label" x="0" y="0" text-anchor="middle" fill="#047857" font-family="'Noto Sans TC',sans-serif" font-size="18" font-weight="900" letter-spacing="1.4">LINE 點餐</text>
                 </g>
               </g>
             </g>
@@ -813,43 +827,43 @@
             <!-- ================================================================ -->
             <!-- LANDMARK C: BLAB POS CLOUD ENGINE CYLINDER (Step 2)               -->
             <!-- ================================================================ -->
-            <g class="iso-phase-group iso-phase-2" id="iso-node-pos">
+            <g class="iso-phase-group iso-landmark iso-phase-2" id="iso-node-pos">
               <!-- Raised Platform Shadow -->
-              <polygon points="685,286 772,330 685,374 598,330" fill="#E2E8F0" />
+              <polygon points="685,284 780,332 685,379 590,332" fill="#E2E8F0" />
               <!-- Raised Isometric Platform -->
-              <polygon points="685,275 765,315 685,355 605,315" fill="#FFFFFF" stroke="#0F172A" stroke-width="2" stroke-linejoin="round" />
-              <polygon points="605,315 685,355 685,367 605,327" fill="#F1F5F9" stroke="#0F172A" stroke-width="2" stroke-linejoin="round" />
-              <polygon points="685,355 765,315 765,327 685,367" fill="#CBD5E1" stroke="#0F172A" stroke-width="2" stroke-linejoin="round" />
+              <polygon points="685,272 773,316 685,360 597,316" fill="#FFFFFF" stroke="#0F172A" stroke-width="2" stroke-linejoin="round" />
+              <polygon points="597,316 685,360 685,372 597,328" fill="#F1F5F9" stroke="#0F172A" stroke-width="2" stroke-linejoin="round" />
+              <polygon points="685,360 773,316 773,328 685,372" fill="#CBD5E1" stroke="#0F172A" stroke-width="2" stroke-linejoin="round" />
 
               <!-- Cylinder Base Ring -->
-              <ellipse cx="685" cy="312" rx="52" ry="26" fill="#FEF3C7" stroke="#0F172A" stroke-width="1.8" />
+              <ellipse cx="685" cy="314" rx="60" ry="30" fill="#FEF3C7" stroke="#0F172A" stroke-width="1.8" />
 
               <!-- Cylinder Main Glowing Amber Energy Body -->
-              <path d="M 637 196 L 637 306 A 48 24 0 0 0 733 306 L 733 196 Z" fill="url(#posGoldBand)" stroke="#0F172A" stroke-width="2" stroke-linejoin="round" />
+              <path d="M 629 184 L 629 308 A 56 28 0 0 0 741 308 L 741 184 Z" fill="url(#posGoldBand)" stroke="#0F172A" stroke-width="2" stroke-linejoin="round" />
 
               <!-- Dark Telemetry Display Window wrapped on front of Cylinder -->
-              <path d="M 647 216 A 38 18 0 0 0 723 216 L 723 288 A 38 18 0 0 1 647 288 Z" fill="#0F172A" stroke="#0F172A" stroke-width="1.5" />
+              <path d="M 637 206 A 48 22 0 0 0 733 206 L 733 292 A 48 22 0 0 1 637 292 Z" fill="#0F172A" stroke="#0F172A" stroke-width="1.5" />
 
               <!-- Animated Equalizer / Real-time Order Bar Chart -->
-              <g transform="translate(662, 232)">
-                <rect class="iso-bar iso-bar-1" x="0"  y="6" width="6" height="24" rx="2" fill="#4ADE80" />
-                <rect class="iso-bar iso-bar-2" x="10" y="0" width="6" height="30" rx="2" fill="#FFFFFF" />
-                <rect class="iso-bar iso-bar-3" x="20" y="8" width="6" height="22" rx="2" fill="#FACC15" />
-                <rect class="iso-bar iso-bar-4" x="30" y="3" width="6" height="27" rx="2" fill="#FFFFFF" />
-                <rect class="iso-bar iso-bar-5" x="40" y="10" width="6" height="20" rx="2" fill="#4ADE80" />
+              <g transform="translate(657, 222)">
+                <rect class="iso-bar iso-bar-1" x="0"  y="6" width="7" height="24" rx="2" fill="#4ADE80" />
+                <rect class="iso-bar iso-bar-2" x="12" y="0" width="7" height="30" rx="2" fill="#FFFFFF" />
+                <rect class="iso-bar iso-bar-3" x="24" y="8" width="7" height="22" rx="2" fill="#FACC15" />
+                <rect class="iso-bar iso-bar-4" x="36" y="3" width="7" height="27" rx="2" fill="#FFFFFF" />
+                <rect class="iso-bar iso-bar-5" x="48" y="10" width="7" height="20" rx="2" fill="#4ADE80" />
               </g>
 
               <!-- Cylinder Screen Typography -->
-              <text x="685" y="276" text-anchor="middle" fill="#FACC15" font-family="'Outfit',sans-serif" font-size="11.5" font-weight="800" letter-spacing="0.8">BLAB POS</text>
-              <text x="685" y="290" text-anchor="middle" fill="#E2E8F0" font-family="'Noto Sans TC',sans-serif" font-size="9.5" font-weight="600" letter-spacing="1.2">雲端接單引擎</text>
+              <text x="685" y="274" text-anchor="middle" fill="#FDE047" font-family="'Outfit',sans-serif" font-size="15.5" font-weight="800" letter-spacing="0.6">BLAB POS</text>
+              <text x="685" y="294" text-anchor="middle" fill="#FFFFFF" font-family="'Noto Sans TC',sans-serif" font-size="13.5" font-weight="700" letter-spacing="1.1">雲端接單引擎</text>
 
               <!-- Cylinder Top Cap -->
-              <ellipse cx="685" cy="196" rx="48" ry="24" fill="url(#posCapGrad)" stroke="#0F172A" stroke-width="2" />
-              <ellipse cx="685" cy="196" rx="34" ry="17" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.5" />
-              <ellipse cx="685" cy="196" rx="18" ry="9" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.5" />
+              <ellipse cx="685" cy="184" rx="56" ry="28" fill="url(#posCapGrad)" stroke="#0F172A" stroke-width="2" />
+              <ellipse cx="685" cy="184" rx="40" ry="20" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.5" />
+              <ellipse cx="685" cy="184" rx="21" ry="10.5" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.5" />
               <!-- Pulsing Live Status Core -->
-              <ellipse class="iso-ping-ring" cx="685" cy="196" rx="14" ry="7" fill="none" stroke="#06C755" stroke-width="2" />
-              <ellipse cx="685" cy="196" rx="7" ry="3.5" fill="#06C755" />
+              <ellipse class="iso-ping-ring" cx="685" cy="184" rx="16" ry="8" fill="none" stroke="#06C755" stroke-width="2" />
+              <ellipse cx="685" cy="184" rx="8" ry="4" fill="#06C755" />
             </g>
 
             <!-- ================================================================ -->
@@ -857,23 +871,23 @@
             <!-- ================================================================ -->
             <!-- Badge 1 (Green) -->
             <g class="iso-badge-btn" data-badge-step="1" role="button" tabindex="0" aria-label="查看步驟一：多元管道整合點餐">
-              <polyline points="150,248 128,270 128,308" fill="none" stroke="#06C755" stroke-width="1.4" stroke-dasharray="3 3" />
-              <circle cx="150" cy="242" r="20" fill="#06C755" stroke="#FFFFFF" stroke-width="3" />
-              <text x="150" y="248" text-anchor="middle" fill="#FFFFFF" font-family="'Outfit',sans-serif" font-size="17" font-weight="800">1</text>
+              <polyline points="150,248 128,270 128,308" fill="none" stroke="#06C755" stroke-width="1.6" stroke-dasharray="3 3" />
+              <circle cx="150" cy="242" r="23" fill="#06C755" stroke="#FFFFFF" stroke-width="3.5" />
+              <text x="150" y="249" text-anchor="middle" fill="#FFFFFF" font-family="'Outfit',sans-serif" font-size="20" font-weight="900">1</text>
             </g>
 
             <!-- Badge 2 (Amber Gold) -->
             <g class="iso-badge-btn" data-badge-step="2" role="button" tabindex="0" aria-label="查看步驟二：Blab POS 雲端引擎處理">
-              <polyline points="776,162 802,175 802,248 742,278" fill="none" stroke="#F59E0B" stroke-width="1.4" stroke-dasharray="3 3" />
-              <circle cx="772" cy="158" r="20" fill="#F59E0B" stroke="#FFFFFF" stroke-width="3" />
-              <text x="772" y="164" text-anchor="middle" fill="#FFFFFF" font-family="'Outfit',sans-serif" font-size="17" font-weight="800">2</text>
+              <polyline points="776,154 804,168 804,244 745,274" fill="none" stroke="#F59E0B" stroke-width="1.6" stroke-dasharray="3 3" />
+              <circle cx="772" cy="148" r="23" fill="#F59E0B" stroke="#FFFFFF" stroke-width="3.5" />
+              <text x="772" y="155" text-anchor="middle" fill="#FFFFFF" font-family="'Outfit',sans-serif" font-size="20" font-weight="900">2</text>
             </g>
 
             <!-- Badge 3 (Coral Orange) -->
             <g class="iso-badge-btn" data-badge-step="3" role="button" tabindex="0" aria-label="查看步驟三：LINE 即時通知與熟客回購">
-              <polyline points="622,424 585,405 568,384" fill="none" stroke="#F97316" stroke-width="1.4" stroke-dasharray="3 3" />
-              <circle cx="628" cy="432" r="20" fill="#F97316" stroke="#FFFFFF" stroke-width="3" />
-              <text x="628" y="438" text-anchor="middle" fill="#FFFFFF" font-family="'Outfit',sans-serif" font-size="17" font-weight="800">3</text>
+              <polyline points="622,424 585,405 568,384" fill="none" stroke="#F97316" stroke-width="1.6" stroke-dasharray="3 3" />
+              <circle cx="628" cy="432" r="23" fill="#F97316" stroke="#FFFFFF" stroke-width="3.5" />
+              <text x="628" y="439" text-anchor="middle" fill="#FFFFFF" font-family="'Outfit',sans-serif" font-size="20" font-weight="900">3</text>
             </g>
           </svg>
         </div>
@@ -889,13 +903,13 @@
         >
           <div>
             <div class="flex items-center gap-3 mb-4">
-              <span class="w-9 h-9 rounded-full bg-lineGreen text-white font-display font-bold text-base flex items-center justify-center shadow-sm shrink-0">1</span>
-              <span class="text-xs font-bold tracking-wider uppercase text-emerald-700">多元入口整合</span>
+              <span class="w-10 h-10 rounded-full bg-lineGreen text-white font-display font-bold text-lg flex items-center justify-center shadow-sm shrink-0">1</span>
+              <span class="text-sm font-bold tracking-wider uppercase text-emerald-700">多元入口整合</span>
             </div>
-            <h3 class="text-lg font-bold text-slate-900 mb-2">
+            <h3 class="text-xl font-bold text-slate-900 mb-2.5 leading-snug">
               LINE、內用掃碼、外帶預訂一次整合
             </h3>
-            <p class="text-slate-600 text-sm leading-relaxed">
+            <p class="text-slate-600 text-[15px] sm:text-base leading-relaxed">
               免下載 APP，顧客無論從 LINE 官方帳號預訂、桌邊掃碼內用或外帶自取，所有訂單自動匯入同一套系統，告別漏單與聽錯單。
             </p>
           </div>
@@ -909,13 +923,13 @@
         >
           <div>
             <div class="flex items-center gap-3 mb-4">
-              <span class="w-9 h-9 rounded-full bg-amber-500 text-white font-display font-bold text-base flex items-center justify-center shadow-sm shrink-0">2</span>
-              <span class="text-xs font-bold tracking-wider uppercase text-amber-700">雲端即時接單</span>
+              <span class="w-10 h-10 rounded-full bg-amber-500 text-white font-display font-bold text-lg flex items-center justify-center shadow-sm shrink-0">2</span>
+              <span class="text-sm font-bold tracking-wider uppercase text-amber-700">雲端即時接單</span>
             </div>
-            <h3 class="text-lg font-bold text-slate-900 mb-2">
+            <h3 class="text-xl font-bold text-slate-900 mb-2.5 leading-snug">
               Blab POS 雲端引擎，秒級接單與印單
             </h3>
-            <p class="text-slate-600 text-sm leading-relaxed">
+            <p class="text-slate-600 text-[15px] sm:text-base leading-relaxed">
               櫃檯平板即時響鈴提醒並串接出單機自動列印，尖峰時段同步計算前方候餐單數，讓內外場作業井然有序。
             </p>
           </div>
@@ -929,13 +943,13 @@
         >
           <div>
             <div class="flex items-center gap-3 mb-4">
-              <span class="w-9 h-9 rounded-full bg-orange-500 text-white font-display font-bold text-base flex items-center justify-center shadow-sm shrink-0">3</span>
-              <span class="text-xs font-bold tracking-wider uppercase text-orange-700">自動化回購循環</span>
+              <span class="w-10 h-10 rounded-full bg-orange-500 text-white font-display font-bold text-lg flex items-center justify-center shadow-sm shrink-0">3</span>
+              <span class="text-sm font-bold tracking-wider uppercase text-orange-700">自動化回購循環</span>
             </div>
-            <h3 class="text-lg font-bold text-slate-900 mb-2">
+            <h3 class="text-xl font-bold text-slate-900 mb-2.5 leading-snug">
               LINE 即時推播取餐，自動累積熟客
             </h3>
-            <p class="text-slate-600 text-sm leading-relaxed">
+            <p class="text-slate-600 text-[15px] sm:text-base leading-relaxed">
               出餐自動傳送 LINE 取餐通知，顧客免久候拿了就走；同時將熟客留在店家專屬官方帳號，免平台抽成輕鬆經營回購。
             </p>
           </div>
