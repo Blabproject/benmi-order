@@ -1,6 +1,6 @@
-use printer_core::{
-    BluetoothDeviceInfo, PairedBluetoothDevicesResult, PrinterError, TestBluetoothConnectionResult,
-};
+use printer_core::BluetoothDeviceInfo;
+#[cfg(target_os = "macos")]
+use printer_core::{PairedBluetoothDevicesResult, PrinterError, TestBluetoothConnectionResult};
 
 pub const CUPS_PREFIX: &str = "cups:";
 
