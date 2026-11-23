@@ -4,19 +4,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Benmi 美食探索 | 多店家線上點餐平台</title>
-  <meta name="description" content="探索全台 Benmi 平台合作優質餐廳、越式法國麵包、台式小吃、點心炸物，支援地圖導航、GPS 距離計算與即時線上點餐。">
+  <title>Blab 美食探索 | 多店家線上點餐平台</title>
+  <meta name="description" content="探索全台 Blab 平台合作優質餐廳、越式法國麵包、台式小吃、點心炸物，支援地圖導航、GPS 距離計算與即時線上點餐。">
 
   <!-- Open Graph / Social Meta -->
-  <meta property="og:title" content="Benmi 美食探索 | 線上點餐與地圖導航">
+  <meta property="og:title" content="Blab 美食探索 | 線上點餐與地圖導航">
   <meta property="og:description" content="一站式探索附近美食店家，即時查看營業狀態與線上點餐。">
   <meta property="og:type" content="website">
 
   <!-- MapLibre GL JS Vector Map CSS -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
-
-  <!-- Marketplace Custom Styles -->
-  <link rel="stylesheet" href="/css/marketplace.css?v=20261007_dev_main_sync_v1">
 
   <script>
     // Seamless routing: If arriving with ?tenant= or ?tenant_id=, forward directly to store menu
@@ -32,165 +29,21 @@
 </head>
 
 <body>
-
-  <!-- 1. Sticky Glassmorphic Header -->
-  <header class="marketplace-header">
-    <div class="header-container">
-      
-      <!-- Brand Logo Section -->
-      <a href="/" class="brand-section">
-        <div class="brand-logo-icon">
-          <svg class="icon-svg" viewBox="0 0 24 24" style="width:22px; height:22px;">
-            <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"></path>
-            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-            <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"></path>
-            <path d="M2 7h20"></path>
-            <path d="M22 7v3a2 2 0 0 1-2 2v0a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12v0a2 2 0 0 1-2-2V7"></path>
-          </svg>
+  <div id="marketplace-root">
+    <main class="marketplace-main" data-view="list">
+      <section class="stores-panel" aria-label="Stores List">
+        <div class="stores-summary-bar">
+          <span class="stores-count-badge" id="storesCountBadge" aria-live="polite">載入店家資料中...</span>
         </div>
-        <div class="brand-info">
-          <h1 id="headerBrandTitle">Benmi 美食探索</h1>
-          <p id="headerBrandSubtitle">探索全台優質合作店家與線上點餐</p>
-        </div>
-      </a>
-
-      <!-- Search Input Box -->
-      <div class="search-wrapper">
-        <span class="search-icon-left">
-          <svg class="icon-svg" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-        </span>
-        <input type="text" id="marketplaceSearchInput" class="search-input-box" placeholder="搜尋店家名稱、地址、料理類別..." autocomplete="off">
-        <button type="button" id="searchClearBtn" class="search-clear-btn" aria-label="Clear search">
-          <svg class="icon-svg" viewBox="0 0 24 24" style="width:14px; height:14px;">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-
-      <!-- Action Buttons (GPS Locate & Language) -->
-      <div class="header-actions">
-        <button type="button" id="gpsLocateBtn" class="gps-locate-btn" title="尋找離我最近的店家">
-          <svg class="icon-svg" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
-          </svg>
-          <span class="gps-text">尋找附近</span>
-        </button>
-
-        <button type="button" id="langSwitchBtn" class="lang-switch-btn" title="切換語言 / Switch language">
-          <svg class="icon-svg" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="2" y1="12" x2="22" y2="12"></line>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-          </svg>
-          <span id="langSwitchText">繁體中文</span>
-        </button>
-      </div>
-
-    </div>
-  </header>
-
-  <!-- 2. Sticky Filter Bar -->
-  <nav class="marketplace-filters">
-    <div class="filter-container">
-      
-      <div class="filter-pills-row">
-        <!-- Region Filters -->
-        <button type="button" class="filter-chip active" data-filter-region="all">全部地區</button>
-        <button type="button" class="filter-chip" data-filter-region="tucheng">土城</button>
-        <button type="button" class="filter-chip" data-filter-region="xindian">新店</button>
-        <button type="button" class="filter-chip" data-filter-region="banqiao">板橋</button>
-        <button type="button" class="filter-chip" data-filter-region="xinzhuang">新莊</button>
-        <button type="button" class="filter-chip" data-filter-region="taichung">台中</button>
-
-        <div class="filter-divider"></div>
-
-        <!-- Cuisine Filters -->
-        <button type="button" class="filter-chip active" data-filter-cuisine="all">全部料理</button>
-        <button type="button" class="filter-chip" data-filter-cuisine="vietnamese">越式料理</button>
-        <button type="button" class="filter-chip" data-filter-cuisine="taiwanese">台式小吃</button>
-        <button type="button" class="filter-chip" data-filter-cuisine="snack">點心炸物</button>
-      </div>
-
-      <!-- Right Toggle Actions -->
-      <div style="display:flex; align-items:center; gap:14px; flex-shrink:0;">
-        <!-- Open Only Switch -->
-        <label class="toggle-switch-label" for="openOnlySwitch">
-          <input type="checkbox" id="openOnlySwitch" class="switch-input">
-          <span class="switch-slider"></span>
-          <span id="openOnlyLabel">僅顯示營業中</span>
-        </label>
-
-        <!-- View Mode Switcher (Mobile/Tablet Only) -->
-        <div class="view-mode-toggle">
-          <button type="button" class="view-mode-btn active" data-view-mode="list">
-            <svg class="icon-svg" viewBox="0 0 24 24" style="width:14px; height:14px;">
-              <line x1="8" y1="6" x2="21" y2="6"></line>
-              <line x1="8" y1="12" x2="21" y2="12"></line>
-              <line x1="8" y1="18" x2="21" y2="18"></line>
-              <line x1="3" y1="6" x2="3.01" y2="6"></line>
-              <line x1="3" y1="12" x2="3.01" y2="12"></line>
-              <line x1="3" y1="18" x2="3.01" y2="18"></line>
-            </svg>
-            <span>列表</span>
-          </button>
-          <button type="button" class="view-mode-btn" data-view-mode="map">
-            <svg class="icon-svg" viewBox="0 0 24 24" style="width:14px; height:14px;">
-              <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
-              <line x1="8" y1="2" x2="8" y2="18"></line>
-              <line x1="16" y1="6" x2="16" y2="22"></line>
-            </svg>
-            <span>地圖</span>
-          </button>
-        </div>
-      </div>
-
-    </div>
-  </nav>
-
-  <!-- 3. Dual-View Main Container (Split Screen on Desktop) -->
-  <main class="marketplace-main" data-view="list">
-    
-    <!-- Left Panel: Stores Feed -->
-    <section class="stores-panel" aria-label="Stores List">
-      <div class="stores-summary-bar">
-        <span class="stores-count-badge" id="storesCountBadge">共找到 <b>9</b> 家店家</span>
-      </div>
-      <div class="stores-grid" id="storesGrid">
-        <!-- Rendered dynamically by js/marketplace.js -->
-      </div>
-    </section>
-
-    <!-- Right Panel: Interactive Leaflet Map -->
-    <section class="map-panel" aria-label="Stores Map">
-      <div id="marketplaceMap"></div>
-      <button type="button" id="mapRecenterBtn" class="map-recenter-btn">
-        <svg class="icon-svg" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
-        </svg>
-        <span id="recenterMapText">重設地圖</span>
-      </button>
-    </section>
-
-  </main>
-
-  <!-- 4. Store Preview Modal Dialog -->
-  <div class="modal-backdrop" id="storePreviewModal" role="dialog" aria-modal="true">
-    <div class="store-modal-card" id="storeModalContent">
-      <!-- Injected dynamically by MarketplaceApp.openStoreModal() -->
-    </div>
+      </section>
+    </main>
   </div>
 
   <!-- MapLibre GL JS Vector Map CDN -->
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  
-  <!-- Marketplace Logic Script -->
-  <script src="/js/marketplace.js?v=20261007_dev_main_sync_v1"></script>
 
+  <!-- React + Vite Marketplace Entry -->
+  <script type="module" src="/frontend/apps/marketplace/main.tsx"></script>
 </body>
+
 </html>
