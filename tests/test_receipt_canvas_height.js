@@ -37,6 +37,15 @@ for (const width of [58, 80]) for (const kitchen of [false, true]) {
   }
 }
 console.log('Receipt canvas: short/long cashier and kitchen bills fit at 58/80 mm.');
+
+const dineInOrder = { key: 'POS1123-D002', diningOption: 'dine_in', tableNumber: '3桌', total: 150 };
+for (const [width, label] of [[58, '內用 3桌'], [80, '內用 桌號：3桌']]) {
+  canvases.length = 0;
+  window.PrinterService.drawReceiptToCanvas(dineInOrder, false, width);
+  assert(canvases[0].text.includes('1123-D002'), `Order code wrapped on ${width} mm paper`);
+  assert(canvases[0].text.includes(label), `Unexpected dine-in header on ${width} mm paper`);
+}
+
 const historical = window.PrinterService.parseOrderItems({ items: [
   { item_name: 'Tea', quantity: 2, unit_price: 35, selected_options: '[{"choice":"半糖"}]' },
   { name: 'Gift', quantity: 1, price: 0 }

@@ -1047,11 +1047,12 @@
     }
 
     drawReceiptToCanvas(order, isKitchen, paperWidth = 80) {
-      const width = Number(paperWidth) === 58 ? 384 : 576;
+      const isNarrow = Number(paperWidth) === 58;
+      const width = isNarrow ? 384 : 576;
       // Keep only a small top/bottom quiet zone. The cutter feed is handled
       // after the raster payload, so a large canvas padding here wastes paper
       // at the beginning of every receipt.
-      const padding = Number(paperWidth) === 58 ? 1 : 1;
+      const padding = 1;
       const available = width - padding * 2;
       const canvas = document.createElement('canvas');
       canvas.width = width;
@@ -1088,9 +1089,8 @@
       if (brand) row(brand, 51, '', 'normal', true);
       if (isKitchen) row('廚房出餐聯', 45, '', 'normal', true);
       divider();
-      const diningText = order.diningOption === 'dine_in'
-        ? '內用 ' + (order.tableNumber ? '桌號：' + order.tableNumber : '')
-        : '外帶自取';
+      const tableLabel = order.tableNumber ? ` ${isNarrow ? '' : '桌號：'}${order.tableNumber}` : '';
+      const diningText = order.diningOption === 'dine_in' ? '內用' + tableLabel : '外帶自取';
       row(OrderCode.format(order.displayKey || order.key), 36, diningText, 'bold', false, 32, 'bold');
       row('顧客：' + (order.customer || '顧客'), 29, '', 'normal');
       row('時間：' + (order.time || ''), 29, '', 'normal');
