@@ -45,6 +45,13 @@ test('orders CSS preserves 100vh fallbacks, classic media queries, and expanded 
 
   // Ensure label:has(input) is isolated from the :-webkit-any() touch-target rule.
   assert.doesNotMatch(compiled, /:-webkit-any\([^)]*label:has\(input\)[^)]*\)/);
+
+  // Ensure settings radio/checkbox dots use transform: scale(...) instead of Chrome 104+ standalone `scale`.
+  assert.doesNotMatch(compiled, /(?:^|[{;])\s*scale\s*:/, 'must not use standalone CSS scale property unsupported on WebView < 104');
+  assert.match(compiled, /input\[type=radio\]:?:before\{[^}]*transform:scale\(0\)/, 'radio :before must hide via transform:scale(0)');
+  assert.match(compiled, /input\[type=radio\]:checked:?:before\{[^}]*transform:scale\(1\)/, 'radio :checked:before must reveal via transform:scale(1)');
+  assert.match(compiled, /hours-day-checkbox:?:before\{[^}]*transform:scale\(0\)/, 'checkbox :before must hide via transform:scale(0)');
+  assert.match(compiled, /hours-day-checkbox:checked:?:before\{[^}]*transform:scale\(1\)/, 'checkbox :checked:before must reveal via transform:scale(1)');
 });
 
 test('Android MainActivity restores orientation before super.onCreate initializes WebView', () => {

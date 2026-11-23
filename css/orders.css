@@ -5880,13 +5880,13 @@ select.form-input:focus {
   background-color: #ffffff;
   -webkit-mask: var(--fnb-check-icon) no-repeat center / contain;
   mask: var(--fnb-check-icon) no-repeat center / contain;
-  scale: 0;
+  transform: scale(0);
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .settings-content-panel label:not(.ui-switch) input[type="checkbox"]:not([role="switch"])::before,
   .settings-content-panel .hours-day-checkbox::before {
-    transition: scale 140ms ease;
+    transition: transform 140ms ease;
   }
 }
 
@@ -5905,7 +5905,7 @@ select.form-input:focus {
 
 .settings-content-panel label:not(.ui-switch) input[type="checkbox"]:not([role="switch"]):checked::before,
 .settings-content-panel .hours-day-checkbox:checked::before {
-  scale: 1;
+  transform: scale(1);
 }
 
 .settings-content-panel label:not(.ui-switch) input[type="checkbox"]:not([role="switch"]):focus-visible,
@@ -5949,12 +5949,12 @@ select.form-input:focus {
   block-size: 10px;
   border-radius: 999px;
   background-color: var(--settings-green);
-  scale: 0;
+  transform: scale(0);
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .settings-content-panel label input[type="radio"]::before {
-    transition: scale 140ms ease;
+    transition: transform 140ms ease;
   }
 }
 
@@ -5970,7 +5970,7 @@ select.form-input:focus {
 }
 
 .settings-content-panel label input[type="radio"]:checked::before {
-  scale: 1;
+  transform: scale(1);
 }
 
 .settings-content-panel label input[type="radio"]:focus-visible {
