@@ -63,6 +63,7 @@ if (mount) {
   const root = createRoot(mount);
   const assignments = createAssignments(categories, shifts, translate);
   let loading = false, saving = false, initialized = false;
+  let initPromise: Promise<void> | null = null;
   let activeScreen: 'schedule' | 'qr' = 'schedule';
   let prefillShiftId: string | null = null;
   let channelsLoading = false;
@@ -282,48 +283,53 @@ if (mount) {
   const toggleItem = (id: string, item: string, shift: string, checked: boolean) => edit(() => assignments.toggleItem(id, item, shift, checked));
   const setOutside = (hidden: boolean) => edit(() => assignments.setOutside(hidden));
 
-  async function init() {
-    if (loading || writeInProgress() || assignments.dirty() || editor.dirty()) return;
+  function init() {
+    if (initPromise) return initPromise;
+    if (loading || writeInProgress() || assignments.dirty() || editor.dirty()) return Promise.resolve();
     initialized = true;
     loading = true;
     render();
-    try {
-      if (typeof loadMenuData === 'function' && (!categories().length || (typeof isMenuLoading !== 'undefined' && isMenuLoading))) {
-        await loadMenuData();
-      }
-      if (pos.__posFeaturesResolved && !hasMenuSchedule() && !hasDineIn()) {
-        assignments.clear();
-        if (typeof switchTab === 'function' && (typeof activeTab === 'undefined' || activeTab === 'menu-schedule')) switchTab('menu');
-        return;
-      }
-      if (!hasMenuSchedule() && hasDineIn()) {
-        activeScreen = 'qr';
-      }
-      assignments.reset();
-      if (hasMenuSchedule()) {
-        await editor.load({ quiet: true });
-      }
-      if (activeScreen === 'qr') {
-        if (hasMenuSchedule()) void reloadChannels();
-        void pos.loadRestaurantTablesSetting?.();
-      }
-      if (!shifts().length && typeof getTenantIdFromUrl === 'function') {
-        const response = await fetch(`${endpoint('/api/tenant/bootstrap')}&nocache=1`);
-        if (response.ok) {
-          const data = await response.json();
-          if (Array.isArray(data?.tenant?.operatingShifts)) pos.storeOperatingShifts = data.tenant.operatingShifts;
-          if (data?.tenant?.operatingHours) pos.storeOperatingHours = data.tenant.operatingHours;
-          if (Array.isArray(data?.tenant?.qrChannels)) pos.storeQrChannels = data.tenant.qrChannels;
-          if (data?.tenant?.dineInTableMode) pos.dineInTableMode = data.tenant.dineInTableMode;
-          editor.seedFallback();
+    initPromise = (async () => {
+      try {
+        if (typeof loadMenuData === 'function' && (!categories().length || (typeof isMenuLoading !== 'undefined' && isMenuLoading))) {
+          await loadMenuData();
         }
+        if (pos.__posFeaturesResolved && !hasMenuSchedule() && !hasDineIn()) {
+          assignments.clear();
+          if (typeof switchTab === 'function' && (typeof activeTab === 'undefined' || activeTab === 'menu-schedule')) switchTab('menu');
+          return;
+        }
+        if (!hasMenuSchedule() && hasDineIn()) {
+          activeScreen = 'qr';
+        }
+        assignments.reset();
+        if (hasMenuSchedule()) {
+          await editor.load({ quiet: true });
+        }
+        if (activeScreen === 'qr') {
+          if (hasMenuSchedule()) void reloadChannels();
+          void pos.loadRestaurantTablesSetting?.();
+        }
+        if (!shifts().length && typeof getTenantIdFromUrl === 'function') {
+          const response = await fetch(`${endpoint('/api/tenant/bootstrap')}&nocache=1`);
+          if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data?.tenant?.operatingShifts)) pos.storeOperatingShifts = data.tenant.operatingShifts;
+            if (data?.tenant?.operatingHours) pos.storeOperatingHours = data.tenant.operatingHours;
+            if (Array.isArray(data?.tenant?.qrChannels)) pos.storeQrChannels = data.tenant.qrChannels;
+            if (data?.tenant?.dineInTableMode) pos.dineInTableMode = data.tenant.dineInTableMode;
+            editor.seedFallback();
+          }
+        }
+      } catch (error) {
+        console.error('[MenuSchedule] Load failed', error);
+      } finally {
+        loading = false;
+        initPromise = null;
+        render();
       }
-    } catch (error) {
-      console.error('[MenuSchedule] Load failed', error);
-    } finally {
-      loading = false;
-      render();
-    }
+    })();
+    return initPromise;
   }
 
   async function save() {
@@ -391,4 +397,7 @@ if (mount) {
       render();
     }
   });
+  if ((typeof activeTab !== 'undefined' && activeTab === 'menu-schedule') || (pos as { activeTab?: string }).activeTab === 'menu-schedule') {
+    void init();
+  }
 }

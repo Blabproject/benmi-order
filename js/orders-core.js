@@ -245,6 +245,18 @@ window.setTenantLocaleConfig = setTenantLocaleConfig;
 window.getTenantSupportedLocales = getTenantSupportedLocales;
 window.getTenantAiTargetLocales = getTenantAiTargetLocales;
 
+function canOpenMenuScheduleWorkspace() {
+  if (typeof window.isMenuScheduleWorkspaceAvailable === "function") {
+    return window.isMenuScheduleWorkspaceAvailable();
+  }
+  const feats = Array.isArray(window.currentTenantFeatures) ? window.currentTenantFeatures : [];
+  return feats.includes("menu_schedule")
+    || feats.includes("dine_in")
+    || feats.includes("table_qr_ordering")
+    || Boolean(window.hasTableQrOrdering)
+    || Boolean(window.staffOrderingCapabilities?.tables_read);
+}
+
 function applyTenantBranding(tenant) {
   if (!tenant) return;
   window.posShellBranding = tenant;
@@ -276,8 +288,12 @@ function applyTenantBranding(tenant) {
   if (typeof window.syncMenuScheduleEntryButtonVisibility === "function") {
     window.syncMenuScheduleEntryButtonVisibility();
   }
-  if (typeof activeTab !== "undefined" && activeTab === "menu-schedule" && !(typeof window.isMenuScheduleWorkspaceAvailable === "function" ? window.isMenuScheduleWorkspaceAvailable() : (typeof window.isMenuScheduleFeatureEnabled === "function" && window.isMenuScheduleFeatureEnabled()))) {
-    switchTab("menu");
+  if (typeof activeTab !== "undefined" && activeTab === "menu-schedule") {
+    if (!canOpenMenuScheduleWorkspace()) {
+      switchTab("menu");
+    } else if (typeof window.renderMenuScheduleWorkspace === "function") {
+      window.renderMenuScheduleWorkspace();
+    }
   }
   if (tenant) {
     setTenantLocaleConfig(
@@ -536,6 +552,7 @@ var pendingNewOrders = [];
 var reviewingOrder = null;
 var currentOrderKey = null;
 var activeTab = getInitialTab();
+window.activeTab = activeTab;
 var newAlertSnoozeUntilMs = 0;
 var snoozedNewOrderKeys = new Set();
 var newAlertSnoozeTimerId = null;
@@ -1001,7 +1018,7 @@ function switchTab(tab) {
       return;
     }
   }
-  if (tab === "menu-schedule" && window.__posFeaturesResolved && !(typeof isMenuScheduleWorkspaceAvailable === "function" ? isMenuScheduleWorkspaceAvailable() : (typeof isMenuScheduleFeatureEnabled === "function" && isMenuScheduleFeatureEnabled()))) {
+  if (tab === "menu-schedule" && window.__posFeaturesResolved && !canOpenMenuScheduleWorkspace()) {
     tab = "menu";
   }
   if (activeTab === "menu" && tab !== "menu" && tab !== "menu-schedule" && typeof confirmLeaveMenu === "function" && !confirmLeaveMenu()) {
@@ -1025,6 +1042,7 @@ function switchTab(tab) {
   }
   if (activeTab === "menu-schedule" && tab !== "menu-schedule") window.discardMenuScheduleChanges?.();
   activeTab = tab;
+  window.activeTab = tab;
 
   // Persist active tab to sessionStorage and URL hash (without creating redundant history entries)
   try {

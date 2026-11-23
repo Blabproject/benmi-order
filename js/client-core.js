@@ -1171,7 +1171,7 @@ function applyPickupConfig() {
     const ch = window.currentQrChannel || null;
     const chPolicy = ch ? (ch.diningPolicy || 'customer_choice') : null;
     const storeAllowsDineIn = !(storeConfig && storeConfig.allowDineIn === false);
-    const hasDineInFeature = Boolean(storeConfig && Array.isArray(storeConfig.features) && storeConfig.features.includes('dine_in'));
+    const hasDineInFeature = Boolean(storeConfig && Array.isArray(storeConfig.features) && (storeConfig.features.includes('dine_in') || storeConfig.features.includes('table_qr_ordering')));
 
     if (window.isAppendMode || window.currentTableNumber) {
         window.currentDiningOption = 'dine_in';
@@ -1200,6 +1200,9 @@ function applyPickupConfig() {
             if (btnChkTakeaway) btnChkTakeaway.classList.toggle('active', cur === 'takeaway');
             if (btnChkDinein) btnChkDinein.classList.toggle('active', cur === 'dine_in');
         }
+    } else if (window.isStaffOrderMode && hasDineInFeature && storeAllowsDineIn) {
+        if (diningWrapper) diningWrapper.style.display = 'none';
+        if (checkoutDiningGroup) checkoutDiningGroup.style.display = 'none';
     } else {
         const isDineInAllowed = showLegacyDiningToggle && hasDineInFeature && storeAllowsDineIn;
         if (!isDineInAllowed) {

@@ -170,9 +170,10 @@ test('Staff Order iframe refreshes table occupancy after Live Order marks a tabl
     if (typeof fetchOrders === 'function') await fetchOrders();
   });
   await Promise.all([
-    page.waitForResponse(res => res.url().includes('/api/orders?') && res.request().method() === 'GET'),
+    page.waitForResponse(res => res.url().includes('/status') && res.request().method() === 'PATCH' && res.status() === 200),
     page.locator('#list-left .btn-action-ready').first().click()
   ]);
+  await page.locator('#list-right .btn-action-paid').first().waitFor();
   await Promise.all([
     page.waitForResponse(res => res.url().includes('/status') && res.request().method() === 'PATCH' && res.status() === 200),
     page.locator('#list-right .btn-action-paid').first().click()
