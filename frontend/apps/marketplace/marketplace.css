@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Benmi Multi-Tenant Marketplace & Map Discovery Stylesheet
+   Blab Multi-Tenant Marketplace & Map Discovery Stylesheet
    Design Philosophy: High-End Editorial Luxury, Warm Linen & Deep Obsidian,
    Precision Vector 3D Map, Commercial SVG Iconography
    ========================================================================== */
@@ -1563,5 +1563,164 @@ button {
 
   .stores-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+
+/* ==========================================================================
+   React Migration Enhancements: Native Modal Dialog, Skeletons & Utilities
+   ========================================================================== */
+.search-clear-btn--visible {
+  display: block;
+}
+
+.filter-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.empty-state-full {
+  grid-column: 1 / -1;
+}
+
+.empty-state-action {
+  margin: 0 auto;
+}
+
+.modal-status-meta {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-hours-content {
+  width: 100%;
+}
+
+.modal-delivery-text {
+  white-space: pre-line;
+}
+
+/* Native <dialog> modal overlay (keeps closed state hidden; only styles when [open]) */
+.store-preview-dialog {
+  margin: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  width: min(520px, calc(100vw - 40px));
+  max-width: 520px;
+  max-height: 90vh;
+  overflow: visible;
+}
+
+.store-preview-dialog[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.store-preview-dialog[open] .store-modal-card {
+  transform: translateY(0) scale(1);
+}
+
+.store-preview-dialog:modal {
+  overscroll-behavior: contain;
+}
+
+.store-preview-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+/* Loading skeleton cards (eliminates hardcoded count flash before API resolves) */
+.store-card-skeleton {
+  cursor: default;
+  pointer-events: none;
+}
+
+.store-card-skeleton:hover {
+  transform: none;
+  border-color: var(--border-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.skeleton-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.skeleton-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  flex-shrink: 0;
+}
+
+.skeleton-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeleton-line {
+  height: 12px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--bg-subtle) 25%, var(--bg-subtle-hover) 50%, var(--bg-subtle) 75%);
+  background-size: 200% 100%;
+  animation: marketplace-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-avatar {
+  background: linear-gradient(90deg, var(--bg-subtle) 25%, var(--bg-subtle-hover) 50%, var(--bg-subtle) 75%);
+  background-size: 200% 100%;
+  animation: marketplace-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-line-lg {
+  width: 68%;
+  height: 16px;
+}
+
+.skeleton-line-sm {
+  width: 42%;
+}
+
+.skeleton-line-md {
+  width: 55%;
+}
+
+.skeleton-line-full {
+  width: 90%;
+}
+
+@keyframes marketplace-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-line,
+  .skeleton-avatar {
+    animation: none;
   }
 }

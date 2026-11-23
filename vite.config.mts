@@ -13,7 +13,6 @@ const LEGACY_ROOT_FILES = [
   '_routes.json',
   '_build.json',
   'index.css',
-  'marketplace.html',
   'staff-order.html',
   'landing.html',
   'benmi_logo.png',
@@ -97,7 +96,8 @@ export default defineConfig({
         'pos-sandbox': path.resolve(rootDir, 'frontend/apps/pos/sandbox.html'),
         index: path.resolve(rootDir, 'index.html'),
         orders: path.resolve(rootDir, 'orders.html'),
-        'payment-result': path.resolve(rootDir, 'payment-result.html')
+        'payment-result': path.resolve(rootDir, 'payment-result.html'),
+        marketplace: path.resolve(rootDir, 'marketplace.html')
       }
     }
   }

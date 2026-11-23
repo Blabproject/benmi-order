@@ -69,6 +69,12 @@ test('Vite dist/ bundle coexists with legacy pages and serves POS React sandbox 
     Array.isArray(paymentResultEntry?.css) && paymentResultEntry.css.some(c => c.startsWith('assets/payment-result-')),
     JSON.stringify(paymentResultEntry)
   );
+  const marketplaceEntry = manifest['marketplace.html'];
+  assert.ok(marketplaceEntry?.file?.startsWith('assets/marketplace-'), JSON.stringify(manifest));
+  assert.ok(
+    Array.isArray(marketplaceEntry?.css) && marketplaceEntry.css.some(c => c.startsWith('assets/marketplace-')),
+    JSON.stringify(marketplaceEntry)
+  );
   assert.equal(fs.existsSync(path.join(distDir, entry.file)), true);
   assert.ok(entry.css?.[0]?.startsWith('assets/pos-sandbox-'));
   assert.equal(fs.existsSync(path.join(distDir, entry.css[0])), true);
@@ -153,6 +159,73 @@ test('Vite dist/ bundle coexists with legacy pages and serves POS React sandbox 
   });
   await page.waitForSelector('#payment-result[data-state]');
   await page.goto(`${baseUrl}/index.html?tenant=demo&env=dev`, { waitUntil: 'domcontentloaded' });
+
+  // Verify dist/marketplace.html uses Blab title, does not flash "9", and renders fetched tenants
+  let releaseMarketplaceApi;
+  const marketplaceApiPending = new Promise(resolve => { releaseMarketplaceApi = resolve; });
+  await page.route('**/api/marketplace/tenants*', async route => {
+    await marketplaceApiPending;
+    await route.fulfill({
+      json: {
+        success: true,
+        count: 2,
+        data: [
+          {
+            tenantId: 'demo-a',
+            brandName: 'Blab Store A',
+            brandSubtitle: null,
+            brandColor: '#059669',
+            logoUrl: null,
+            storeAddress: '新北市土城區學府路1號',
+            latitude: 24.985,
+            longitude: 121.448,
+            operatingHours: '10:00 - 20:00',
+            parsedHours: {},
+            cuisineType: 'vietnamese',
+            isOpen: true,
+            storeStatus: 'open',
+            deliveryPolicy: null,
+            allowDineIn: true,
+            allowScheduledPickup: true,
+            categoriesSummary: ['法國麵包'],
+            locale: 'zh-TW',
+            liffUrl: null,
+            orderUrl: 'https://blabfood.app/demo-a'
+          },
+          {
+            tenantId: 'demo-b',
+            brandName: 'Blab Store B',
+            brandSubtitle: null,
+            brandColor: '#d97706',
+            logoUrl: null,
+            storeAddress: '台中市南屯區公益路2號',
+            latitude: 24.15,
+            longitude: 120.64,
+            operatingHours: '11:00 - 21:00',
+            parsedHours: {},
+            cuisineType: 'taiwanese',
+            isOpen: false,
+            storeStatus: 'closed',
+            deliveryPolicy: null,
+            allowDineIn: false,
+            allowScheduledPickup: false,
+            categoriesSummary: [],
+            locale: 'zh-TW',
+            liffUrl: null,
+            orderUrl: 'https://blabfood.app/demo-b'
+          }
+        ]
+      }
+    });
+  });
+  await page.goto(`${baseUrl}/marketplace.html`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('#storesCountBadge');
+  assert.match(await page.title(), /^Blab/);
+  const loadingBadgeText = await page.locator('#storesCountBadge').innerText();
+  assert.equal(loadingBadgeText.includes('9'), false, `Unexpected "9" flash before API resolved: ${loadingBadgeText}`);
+  releaseMarketplaceApi();
+  await page.waitForFunction(() => document.getElementById('storesCountBadge')?.textContent?.includes('2'));
+  assert.equal(await page.locator('.store-card').count(), 2);
 
   assert.deepEqual(failedLocalRequests, [], `Broken local assets in dist/: ${failedLocalRequests.join(', ')}`);
   assert.deepEqual(pageErrors, [], `Browser runtime errors in dist/: ${pageErrors.join(' | ')}`);
