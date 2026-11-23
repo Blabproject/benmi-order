@@ -267,7 +267,7 @@ export function PrinterSettings() {
             <div style={{ fontWeight: "1000", fontSize: "var(--pos-text-body)", color: "#0f172a" }} id="i18n-printer-mode-title">列印出單模式</div>
             <div style={{ fontSize: "var(--pos-text-meta)", color: "var(--muted)", marginTop: "2px" }} id="i18n-printer-mode-sub">選擇新訂單進來時的列印行為</div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: "12px", marginTop: "4px" }}>
+          <div role="group" aria-labelledby="i18n-printer-mode-title" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: "12px", marginTop: "4px" }}>
             <label
               className="setting-mode-card"
               id="mode-card-print-auto"
@@ -287,6 +287,29 @@ export function PrinterSettings() {
                   style={{ fontSize: "var(--pos-text-meta)", color: "#4b5563", marginTop: "4px", lineHeight: "1.45" }}
                   id="i18n-print-mode-auto-desc"
                 >收到新訂單時先發出提示音，店員確認接單成功後，才自動列印明細與餐點貼紙。</div>
+              </div>
+            </label>
+            <label
+              className="setting-mode-card"
+              id="mode-card-print-auto-accept"
+              style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "16px", minHeight: "48px", borderRadius: "14px", border: "1.5px solid var(--border)", background: "#fff", cursor: "pointer" }}
+            >
+              <ChoiceInput
+                type="radio"
+                name="printer-mode-radio"
+                id="printer-mode-auto-accept"
+                value="auto-accept"
+                aria-labelledby="i18n-print-mode-auto-accept-title"
+                aria-describedby="i18n-print-mode-auto-accept-desc"
+                onChange={() => actions.onPrinterModeChange('auto-accept')}
+                style={{ marginTop: "2px" }}
+              />
+              <div>
+                <div style={{ fontWeight: "1000", fontSize: "var(--pos-text-body)", color: "#111827" }} id="i18n-print-mode-auto-accept-title">自動接單並列印</div>
+                <div
+                  style={{ fontSize: "var(--pos-text-meta)", color: "#4b5563", marginTop: "4px", lineHeight: "1.45" }}
+                  id="i18n-print-mode-auto-accept-desc"
+                >自動接受待確認的新訂單，接單成功後立即列印至已設定的印表機。</div>
               </div>
             </label>
             <label

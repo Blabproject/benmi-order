@@ -1392,7 +1392,34 @@ function formatContentHtml(order) {
 window.extractCustomizationsFromLines = extractCustomizationsFromLines;
 window.renderCustomizationsHtml = renderCustomizationsHtml;
 
-async function updateStatus(key, status, extra = {}, btn = null) {
+let autoAcceptingOrders = false;
+const attemptedAutoAcceptKeys = new Set();
+
+async function autoAcceptPendingOrders() {
+  if (autoAcceptingOrders || typeof PrinterService === "undefined" || !PrinterService.canAutoAcceptOrders()) return;
+  const candidates = pendingNewOrders.filter(order =>
+    order.source !== "staff" && !(order.is_modified || order.isModified) &&
+    (Number(order.round_count || order.roundCount) || 1) === 1);
+  let attempted = false;
+  autoAcceptingOrders = true;
+  try {
+    for (const { key, updatedAt } of candidates) {
+      if (!PrinterService.canAutoAcceptOrders()) break;
+      if (attemptedAutoAcceptKeys.has(key) || processingKeys.has(key) || localOverrides[key]) continue;
+      attemptedAutoAcceptKeys.add(key);
+      attempted = true;
+      await updateStatus(key, "ACCEPTED", { expectedUpdatedAt: updatedAt ?? null }, null, true);
+    }
+  } finally {
+    autoAcceptingOrders = false;
+    if (attempted) {
+      lastOrdersETag = "";
+      void fetchOrders().catch(console.error);
+    }
+  }
+}
+
+async function updateStatus(key, status, extra = {}, btn = null, autoAccept = false) {
   if (!key || processingKeys.has(key)) return false;
   processingKeys.add(key);
   const controller = new AbortController();
@@ -1406,10 +1433,12 @@ async function updateStatus(key, status, extra = {}, btn = null) {
 
   try {
     const order = latestOrders.find(o=>o.key===key);
+    if (autoAccept && (order?.status !== "NEW" || (order.updatedAt ?? null) !== extra.expectedUpdatedAt)) return false;
     const staff = order?.source === 'staff';
     const savedToken = (typeof sessionStorage !== 'undefined') ? sessionStorage.getItem('staff_session_token_' + getTenantIdFromUrl()) : null;
     const token = staff ? null : savedToken;
-    const endpoint = staff ? `/api/staff/orders/${encodeURIComponent(key)}/status` : '/api/update';
+    const endpoint = staff ? `/api/staff/orders/${encodeURIComponent(key)}/status`
+      : autoAccept ? '/api/orders/auto-accept' : '/api/update';
     const response = await fetch(`${WORKER_BASE}${endpoint}?tenant_id=${getTenantIdFromUrl()}`, {
       signal: controller.signal,
       method: staff ? 'PATCH' : 'POST',
@@ -1422,17 +1451,26 @@ async function updateStatus(key, status, extra = {}, btn = null) {
       alert(t('staffStatusConflict'));
       return false;
     }
+    if (response.status === 409 && autoAccept) return false;
     if (!response.ok) throw new Error(`update failed: ${response.status}`);
+
+    const acceptingCustomerOrder = status === "ACCEPTED" && !staff;
+    const acceptedNow = acceptingCustomerOrder ? (await response.json())?.acceptedNow : false;
+    if (autoAccept && acceptedNow !== true) throw new Error("Auto-accept was not confirmed");
+    if (acceptingCustomerOrder && acceptedNow === false) {
+      void fetchOrders().catch(console.error);
+      return true;
+    }
 
     // Apply local override immediately for responsiveness
     localOverrides[key] = { status, time: Date.now() };
     renderAll();
 
-    if (status === "ACCEPTED" && order && !staff && typeof PrinterService !== "undefined") {
+    if (acceptingCustomerOrder && order && typeof PrinterService !== "undefined") {
       try {
         // The server has committed acceptance. Printing has its own queue and must
         // never retain the status lock, even if an older native bridge hangs.
-        void Promise.resolve(PrinterService.handleAcceptedOrder({ ...order, status })).catch(printError => {
+        void Promise.resolve(PrinterService.handleAcceptedOrder({ ...order, status }, autoAccept)).catch(printError => {
           console.error('[Orders] Auto-print after acceptance failed:', printError);
         });
       } catch (printError) {
@@ -1442,10 +1480,14 @@ async function updateStatus(key, status, extra = {}, btn = null) {
     }
 
     // Keep in sync with server
-    void fetchOrders().catch(console.error);
+    if (!autoAccept) void fetchOrders().catch(console.error);
     return true;
   } catch (e) {
     console.error(e);
+    if (autoAccept) {
+      if (typeof showToast === "function") showToast(t(e.name === "AbortError" ? "orderStatusUncertain" : "autoAcceptFailed"), "warning");
+      return false;
+    }
     if (e.name === 'AbortError') {
       // A lost response does not prove the write failed. Refresh, never replay
       // the mutation or print automatically on the basis of a timeout.

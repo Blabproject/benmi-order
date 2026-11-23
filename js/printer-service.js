@@ -9,6 +9,7 @@
 
   const DEFAULT_SETTINGS = {
     autoPrintNewOrders: false,
+    autoAcceptNewOrders: false,
     cashier: {
       enabled: true,
       interface_type: 'network', // 'network' | 'bluetooth'
@@ -163,6 +164,7 @@
           const parsed = JSON.parse(raw);
           return {
             autoPrintNewOrders: parsed.autoPrintNewOrders ?? DEFAULT_SETTINGS.autoPrintNewOrders,
+            autoAcceptNewOrders: parsed.autoAcceptNewOrders === true,
             cashier: { ...DEFAULT_SETTINGS.cashier, ...(parsed.cashier || {}), protocol: 'esc_pos' },
             kitchen: { ...DEFAULT_SETTINGS.kitchen, ...(parsed.kitchen || {}), protocol: 'tspl' }
           };
@@ -232,6 +234,12 @@
         bill: this.isStationConfigured('cashier', settings.cashier),
         stickers: this.isStationConfigured('kitchen', settings.kitchen)
       };
+    }
+
+    canAutoAcceptOrders() {
+      const settings = this.getSettings();
+      return settings.autoPrintNewOrders && settings.autoAcceptNewOrders &&
+        (this.isStationConfigured('cashier', settings.cashier) || this.isStationConfigured('kitchen', settings.kitchen));
     }
 
     canPrintFullOrder() {
@@ -459,8 +467,8 @@
       }
     }
 
-    async handleAcceptedOrder(order) {
-      if (!this.getSettings().autoPrintNewOrders) return;
+    async handleAcceptedOrder(order, autoAccepted = false) {
+      if (!autoAccepted && !this.getSettings().autoPrintNewOrders) return;
       if (!order?.key || order.source === 'staff' || (order.status || '').toUpperCase() !== 'ACCEPTED') return;
 
       const key = order.key;

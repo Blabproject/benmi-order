@@ -1215,6 +1215,7 @@ async function fetchOrders() {
     if (response.status === 304) {
       // Even on 304, re-check snooze expiration for new alert
       if (typeof updateNewAlert === "function") updateNewAlert();
+      if (typeof autoAcceptPendingOrders === "function") void autoAcceptPendingOrders().catch(console.error);
       return;
     }
     if (!response.ok) throw new Error(`fetch failed: ${response.status}`);
@@ -1315,6 +1316,7 @@ async function fetchOrders() {
     if (typeof updateNewAlert === "function") updateNewAlert();
 
     renderAll();
+    if (typeof autoAcceptPendingOrders === "function") void autoAcceptPendingOrders().catch(console.error);
   } catch (e) {
     if (e.name === "AbortError") {
       console.warn("[Orders] fetchOrders timed out after 8s, releasing mutex for next cycle.");

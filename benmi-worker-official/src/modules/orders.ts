@@ -1045,9 +1045,14 @@ export async function updateOrder(
   request: Request,
   env: Env,
   ctx?: ExecutionContext,
-  tenantCtx?: TenantContext | null
+  tenantCtx?: TenantContext | null,
+  autoAccept = false
 ): Promise<Response> {
   const data: any = await request.json();
+  if (autoAccept && (data.status !== "ACCEPTED" ||
+      (typeof data.expectedUpdatedAt !== "string" && data.expectedUpdatedAt !== null))) {
+    return json({ code: "INVALID_AUTO_ACCEPT" }, 400);
+  }
   const orderRow = await env.DB.prepare(
     "SELECT * FROM orders WHERE key = ? AND tenant_id = ?"
   ).bind(await resolveOrderKey(env, tenantCtx?.tenantId || getTenantId(request), data.key), tenantCtx?.tenantId || getTenantId(request)).first<any>();
@@ -1096,12 +1101,23 @@ export async function updateOrder(
 
   // Employee 接單
   if (incoming === "ACCEPTED") {
+    if (autoAccept && order.status !== "NEW") return json({ code: "ORDER_STATUS_CONFLICT" }, 409);
     if (order.status === "ACCEPTED" || order.status === "DONE" || order.status === "PICKED_UP") {
-      await saveOrder(env, order, tenantId); // Sync DB
-      return json({ success: true });
+      return json({ success: true, acceptedNow: false });
     }
-    order.status = "ACCEPTED";
-    await saveOrder(env, order, tenantId);
+    // Only the terminal that changes the row may auto-print. Compare the
+    // polled snapshot for automatic acceptance so a newer edit wins.
+    const initialOrder = autoAccept
+      ? "AND updated_at IS ? AND COALESCE(round_count, 1) = 1 AND COALESCE(is_modified, 0) = 0"
+      : "";
+    const updated = await env.DB.prepare(
+      `UPDATE orders SET status = 'ACCEPTED', reason = COALESCE(?, reason), note = COALESCE(?, note),
+         updated_at = strftime('%Y-%m-%d %H:%M:%f', 'now')
+       WHERE tenant_id = ? AND key = ? AND status IS ? ${initialOrder}`
+    ).bind(autoAccept || data.reason === undefined ? null : order.reason || "",
+      autoAccept || data.note === undefined ? null : order.note || "", tenantId, order.key, orderRow.status,
+      ...(autoAccept ? [data.expectedUpdatedAt] : [])).run();
+    if (!updated.meta.changes) return json({ code: "ORDER_STATUS_CONFLICT" }, 409);
 
     if (order.userId) {
       try {
@@ -1110,7 +1126,7 @@ export async function updateOrder(
         ).bind(tenantId, order.userId, order.key).run();
       } catch { }
     }
-    return json({ success: true });
+    return json({ success: true, acceptedNow: true });
   }
 
   // Employee 準備好了
@@ -1401,6 +1417,7 @@ function mapOrderRows(results: any[]): Order[] {
       time: row.pickup_time || "",
       content: row.order_content || "",
       status: row.status || "NEW",
+      updatedAt: row.updated_at,
       createdAt: parsedCreatedAt,
       userId: row.user_id || undefined,
       total: Number(row.total_amount) || 0,
@@ -1455,7 +1472,7 @@ export async function getOrders(request: Request, env: Env): Promise<Response> {
     const startOfTodayUTC = new Date(new Date(`${todayTwStr}T00:00:00+08:00`).getTime()).toISOString().replace("T", " ").replace(/\.\d+Z$/, "");
 
     const { results } = await env.DB.prepare(
-      `SELECT key, order_id, display_key, business_date, legacy_key, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, table_id, source, revision, round_count, last_appended_at, created_at, is_modified
+      `SELECT key, order_id, display_key, business_date, legacy_key, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, table_id, source, revision, round_count, last_appended_at, created_at, updated_at, is_modified
        FROM orders 
        WHERE tenant_id = ? AND status <> 'PENDING_PAYMENT'
          AND (status IN ('NEW', 'ACCEPTED', 'WAITING_CUSTOMER_CHANGE', 'WAITING_CUSTOMER_REJECT', 'DONE') 

@@ -567,6 +567,8 @@ const I18N = {
     printModeSub: "選擇新訂單進來時的列印行為",
     printModeAutoTitle: "確認後自動列印",
     printModeAutoDesc: "收到新訂單時先發出提示音，店員確認接單成功後，才自動列印明細與餐點貼紙。",
+    printModeAutoAcceptTitle: "自動接單並列印",
+    printModeAutoAcceptDesc: "自動接受待確認的新訂單，接單成功後立即列印至已設定的印表機。",
     printModeManualTitle: "手動列印模式 (Manual-print)",
     printModeManualDesc: "店員須在螢幕點選 [整單全印] 機器才會出單。適合需要先核對確認訂單的門市。",
     // 3 Print Levels
@@ -588,6 +590,7 @@ const I18N = {
     printingInProgress: "正在出單列印中，請稍候...",
     printerBusyQueued: "⏳ 已加入列印排程，將依序出單...",
     orderStatusUncertain: "尚未收到更新結果，正在重新同步訂單。請確認最新狀態後再操作。",
+    autoAcceptFailed: "自動接單失敗。請確認訂單狀態後，在訂單列表處理。",
     printReportOrder: "訂單 {code} · 列印狀態",
     printStationBill: "收銀明細",
     printStationStickers: "餐點貼紙",
@@ -632,9 +635,10 @@ const I18N = {
     btnViewPrinterGuide: "查看完整指南",
     btnCloseGuide: "我知道了",
     printerGuideStripTitle: "需要了解自動出單、雙機搭配或 3 段式列印技巧？",
-    printerGuideModeTitle: "1. 列印出單模式說明 (Auto vs. Manual)",
+    printerGuideModeTitle: "1. 列印出單模式",
     printerGuideModeAutoTitle: "確認後自動列印",
     printerGuideModeAutoDesc: "客人送出訂單後，系統先發出提示音。店員檢查內容並確認接單成功後，才自動列印「1 張收銀明細」與「全部餐點貼紙」。店員自行建立的訂單，送出即視為確認。",
+    printerGuideModeAutoAcceptDesc: "啟用並設定至少一台印表機後，系統會自動接受並列印待確認的新訂單。加點或已修改的訂單仍由店員確認。",
     printerGuideModeManualTitle: "手動列印模式 (Manual-print)",
     printerGuideModeManualDesc: "收到新單時僅發出通知音，店員需點進訂單詳細頁確認餐點內容後，點選 [整單全印] 才會出單。適合需先確認庫存或客製化說明的門市。",
     printerGuideLevelsTitle: "2. 訂單詳細頁 3 段式列印控制",
@@ -2405,6 +2409,8 @@ const I18N = {
     printModeSub: "Tùy chỉnh hành vi in khi hệ thống tiếp nhận đơn hàng mới",
     printModeAutoTitle: "Tự động in sau khi xác nhận",
     printModeAutoDesc: "Đơn mới chỉ phát chuông thông báo. Sau khi nhân viên xác nhận nhận đơn thành công, hệ thống mới tự động in hóa đơn và tem món.",
+    printModeAutoAcceptTitle: "Tự nhận và in ngay",
+    printModeAutoAcceptDesc: "POS tự nhận đơn mới đang chờ duyệt và in ngay trên các máy in đã cấu hình.",
     printModeManualTitle: "Chế độ In thủ công (Manual-print)",
     printModeManualDesc: "Nhân viên phải bấm nút [ IN CẢ ĐƠN ] trên màn hình thì máy mới in. Thích hợp cho quán muốn kiểm tra lại đơn trước khi nhận.",
     // 3 Print Levels
@@ -2426,6 +2432,7 @@ const I18N = {
     printingInProgress: "Đang truyền lệnh in, vui lòng chờ...",
     printerBusyQueued: "⏳ Đã thêm vào hàng đợi in, sẽ in lần lượt...",
     orderStatusUncertain: "Chưa nhận được kết quả cập nhật. Đang đồng bộ lại đơn; hãy kiểm tra trạng thái mới trước khi thao tác tiếp.",
+    autoAcceptFailed: "Tự nhận đơn thất bại. Hãy kiểm tra trạng thái và xử lý đơn trong danh sách.",
     printReportOrder: "Đơn {code} · Trạng thái in",
     printStationBill: "Hóa đơn thu ngân",
     printStationStickers: "Tem món",
@@ -2470,9 +2477,10 @@ const I18N = {
     btnViewPrinterGuide: "Xem hướng dẫn",
     btnCloseGuide: "Đã hiểu",
     printerGuideStripTitle: "Tìm hiểu chế độ in tự động, phối hợp 2 máy in hoặc mẹo in 3 cấp độ?",
-    printerGuideModeTitle: "1. Các chế độ in đơn (Auto-print vs. Manual-print)",
+    printerGuideModeTitle: "1. Các chế độ in đơn",
     printerGuideModeAutoTitle: "Tự động in sau khi xác nhận",
     printerGuideModeAutoDesc: "Khi khách gửi đơn, hệ thống chỉ phát chuông thông báo. Nhân viên kiểm tra nội dung và xác nhận nhận đơn thành công thì hệ thống mới tự động in 1 hóa đơn thu ngân và toàn bộ tem món. Với đơn do nhân viên tạo, gửi đơn được xem là xác nhận.",
+    printerGuideModeAutoAcceptDesc: "Khi có ít nhất một máy in đã bật và cấu hình, POS tự nhận và in các đơn mới đang chờ duyệt. Đơn gọi thêm món hoặc đã chỉnh sửa vẫn do nhân viên xác nhận.",
     printerGuideModeManualTitle: "Chế độ In thủ công (Manual-print)",
     printerGuideModeManualDesc: "Khi có đơn mới hệ thống chỉ báo chuông. Nhân viên bấm mở đơn kiểm tra rồi nhấn [IN CẢ ĐƠN] máy mới in. Phù hợp quán cần kiểm tra lại món hoặc xác nhận với khách trước khi làm.",
     printerGuideLevelsTitle: "2. Thao tác in 3 cấp độ trong chi tiết đơn hàng",
@@ -3718,6 +3726,10 @@ function applyLanguageToDOM() {
   if (prnAutoTitle) prnAutoTitle.innerText = dict.printModeAutoTitle;
   const prnAutoDesc = document.getElementById("i18n-print-mode-auto-desc");
   if (prnAutoDesc) prnAutoDesc.innerText = dict.printModeAutoDesc;
+  const prnAutoAcceptTitle = document.getElementById("i18n-print-mode-auto-accept-title");
+  if (prnAutoAcceptTitle) prnAutoAcceptTitle.innerText = dict.printModeAutoAcceptTitle;
+  const prnAutoAcceptDesc = document.getElementById("i18n-print-mode-auto-accept-desc");
+  if (prnAutoAcceptDesc) prnAutoAcceptDesc.innerText = dict.printModeAutoAcceptDesc;
   const prnManualTitle = document.getElementById("i18n-print-mode-manual-title");
   if (prnManualTitle) prnManualTitle.innerText = dict.printModeManualTitle;
   const prnManualDesc = document.getElementById("i18n-print-mode-manual-desc");
@@ -3734,6 +3746,10 @@ function applyLanguageToDOM() {
   if (gModeAutoT) gModeAutoT.innerText = dict.printerGuideModeAutoTitle;
   const gModeAutoD = document.getElementById("i18n-printer-guide-mode-auto-desc");
   if (gModeAutoD) gModeAutoD.innerText = dict.printerGuideModeAutoDesc;
+  const gModeAutoAcceptT = document.getElementById("i18n-printer-guide-mode-auto-accept-title");
+  if (gModeAutoAcceptT) gModeAutoAcceptT.innerText = dict.printModeAutoAcceptTitle;
+  const gModeAutoAcceptD = document.getElementById("i18n-printer-guide-mode-auto-accept-desc");
+  if (gModeAutoAcceptD) gModeAutoAcceptD.innerText = dict.printerGuideModeAutoAcceptDesc;
   const gModeManualT = document.getElementById("i18n-printer-guide-mode-manual-title");
   if (gModeManualT) gModeManualT.innerText = dict.printerGuideModeManualTitle;
   const gModeManualD = document.getElementById("i18n-printer-guide-mode-manual-desc");

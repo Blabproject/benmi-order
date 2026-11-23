@@ -1396,16 +1396,16 @@ function onPrinterInterfaceChange(station, shouldRefreshBt = true) {
 }
 
 function onPrinterModeChange(mode) {
-  const isAuto = mode === 'auto';
-  updatePrintModeCardStyles(isAuto);
-  savePOSPrinterSettings(true);
+  updatePrintModeCardStyles(mode);
+  if (savePOSPrinterSettings(true) && mode === 'auto-accept') {
+    void autoAcceptPendingOrders().catch(console.error);
+  }
 }
 
-function updatePrintModeCardStyles(isAuto) {
-  const cardAuto = document.getElementById("mode-card-print-auto");
-  const cardManual = document.getElementById("mode-card-print-manual");
-  applyOptionCardStyle(cardAuto, isAuto);
-  applyOptionCardStyle(cardManual, !isAuto);
+function updatePrintModeCardStyles(selectedMode) {
+  document.querySelectorAll('input[name="printer-mode-radio"]').forEach(radio => {
+    applyOptionCardStyle(radio.closest('.setting-mode-card'), radio.value === selectedMode);
+  });
 }
 
 function updatePrintActionAvailability() {
@@ -1543,14 +1543,11 @@ function loadPOSPrinterSettings() {
   if (typeof PrinterService === 'undefined') return;
   const settings = PrinterService.getSettings();
 
-  const isAuto = !!settings.autoPrintNewOrders;
-  const radioAuto = document.getElementById("printer-mode-auto");
-  const radioManual = document.getElementById("printer-mode-manual");
-  if (radioAuto && radioManual) {
-    radioAuto.checked = isAuto;
-    radioManual.checked = !isAuto;
-    updatePrintModeCardStyles(isAuto);
-  }
+  const mode = (settings.autoPrintNewOrders && (settings.autoAcceptNewOrders ? 'auto-accept' : 'auto')) || 'manual';
+  document.querySelectorAll('input[name="printer-mode-radio"]').forEach(radio => {
+    radio.checked = radio.value === mode;
+  });
+  updatePrintModeCardStyles(mode);
 
   // Cashier
   const cashEnabled = document.getElementById("printer-cashier-enabled");
@@ -1646,8 +1643,7 @@ function loadPOSPrinterSettings() {
 function savePOSPrinterSettings(silent = false) {
   if (typeof PrinterService === 'undefined') return;
 
-  const radioAuto = document.getElementById("printer-mode-auto");
-  const autoPrintEnabled = radioAuto ? radioAuto.checked : false;
+  const mode = document.querySelector('input[name="printer-mode-radio"]:checked')?.value;
 
   // Cashier
   const cashEnabled = document.getElementById("printer-cashier-enabled");
@@ -1692,7 +1688,8 @@ function savePOSPrinterSettings(silent = false) {
   const kitDevName = kitBtOpt?.dataset?.name || "";
 
   const newSettings = {
-    autoPrintNewOrders: autoPrintEnabled,
+    autoPrintNewOrders: mode === 'auto' || mode === 'auto-accept',
+    autoAcceptNewOrders: mode === 'auto-accept',
     cashier: {
       enabled: cashEnabled ? cashEnabled.checked : true,
       protocol: 'esc_pos',

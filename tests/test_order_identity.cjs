@@ -98,6 +98,34 @@ async function check(name, fn) { await fn(); passed++; console.log(`PASS ${name}
    assert.equal((await DB.prepare('SELECT count(*) n FROM orders').first()).n,3);
    assert.equal((await DB.prepare("SELECT total_amount FROM orders WHERE legacy_key='B0914-T007'").first()).total_amount,100);
  });
+ await check('auto-accept claims the polled order once and preserves its contents', async () => {
+   const key = crypto.randomUUID();
+   await orders.saveOrder(env, { key, status: 'NEW', customer: 'Fixture', total: 50,
+     time: '12:00', content: 'Original', note: 'Keep this note' }, 'a');
+   const readOrder = () => DB.prepare('SELECT * FROM orders WHERE key = ?').bind(key).first();
+   const original = await readOrder();
+   const accept = (expectedUpdatedAt, id = 'a') => orders.updateOrder(
+     request('/api/orders/auto-accept', { key, status: 'ACCEPTED', expectedUpdatedAt }, id),
+     env, undefined, tenant(id), true);
+   assert.equal((await accept(original.updated_at, 'b')).status, 404);
+   assert.equal((await accept('stale snapshot')).status, 409);
+   await DB.prepare('UPDATE orders SET round_count = 2 WHERE key = ?').bind(key).run();
+   assert.equal((await accept(original.updated_at)).status, 409);
+   await DB.prepare('UPDATE orders SET round_count = 1, is_modified = 1 WHERE key = ?').bind(key).run();
+   assert.equal((await accept(original.updated_at)).status, 409);
+   await DB.prepare('UPDATE orders SET is_modified = 0 WHERE key = ?').bind(key).run();
+   const results = await Promise.all([accept(original.updated_at), accept(original.updated_at)]);
+   assert.deepEqual(results.map(response => response.status).sort(), [200, 409]);
+   assert.deepEqual(await results.find(response => response.ok).json(), { success: true, acceptedNow: true });
+   const { updated_at, status, ...unchanged } = await readOrder();
+   assert.equal(status, 'ACCEPTED');
+   assert.notEqual(updated_at, original.updated_at);
+   assert.deepEqual({ ...unchanged, status: original.status, updated_at: original.updated_at }, original);
+   const manual = await orders.updateOrder(request('/api/update', { key, status: 'ACCEPTED' }),
+     env, undefined, tenant('a'));
+   assert.deepEqual(await manual.json(), { success: true, acceptedNow: false });
+   await DB.prepare('DELETE FROM orders WHERE key = ?').bind(key).run();
+ });
  let created;
  await check('create persists UUID and display separately, items keep compatibility key', async()=>{
    const result=await orders.createOrder(request('/api/create',{uuid:'request-a',total:50,time:'12:00',items:[{name:'Item',quantity:1,price:50}]}),env,undefined,tenant('a'));

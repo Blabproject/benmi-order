@@ -7,13 +7,18 @@ const core = fs.readFileSync('js/orders-core.js', 'utf8');
 const live = fs.readFileSync('js/orders-live.js', 'utf8');
 const printer = fs.readFileSync('js/printer-service.js', 'utf8');
 const refresh = core.slice(core.indexOf('async function fetchOrders()'), core.indexOf('\nfunction renderAll()'));
-const update = live.slice(live.indexOf('async function updateStatus('), live.indexOf('async function reviewAccept('));
+const update = live.slice(live.indexOf('let autoAcceptingOrders'), live.indexOf('async function reviewAccept('));
 
-function fixture({ autoPrint = true, responseStatus = 200, beforeAccept = async () => {} } = {}) {
+function fixture({
+  autoPrint = true, autoAccept = false, configured = true, responseStatus = 200,
+  beforeAccept = async () => {}, orderFields = {}
+} = {}) {
   const storage = new Map();
   const jobs = [];
   const alerts = [];
-  let order = { key: 'customer-order', status: 'NEW', source: 'line', total: 100, content: 'Item' };
+  const writes = [];
+  let order = { key: 'customer-order', status: 'NEW', source: 'line', total: 100,
+    content: 'Item', updatedAt: '2026-11-23 12:00:00', ...orderFields };
   let confirmed = false;
   const context = {
     window: { location: { search: '?tenant=print-test' } },
@@ -24,15 +29,18 @@ function fixture({ autoPrint = true, responseStatus = 200, beforeAccept = async 
     WORKER_BASE: 'https://example.invalid', getTenantIdFromUrl: () => 'print-test',
     lastOrdersETag: '', latestOrders: [], knownOrderKeys: new Set(), knownOrderRounds: new Map(),
     knownOrderModified: new Set(), unacknowledgedAppends: new Map(), isFirstLoad: true,
+    pendingNewOrders: [],
     processingKeys: new Set(), localOverrides: {}, sortByPickupTimeAsc: () => 0,
     renderAll() {}, t: key => key, alert: message => alerts.push(message),
-    fetch: async (_url, request) => {
+    fetch: async (url, request) => {
       if (request.method === 'POST') {
+        const body = JSON.parse(request.body);
+        writes.push({ path: new URL(url).pathname, body });
         await beforeAccept();
         if (responseStatus !== 200) return { ok: false, status: responseStatus };
-        order = { ...order, status: JSON.parse(request.body).status };
+        order = { ...order, status: body.status };
         confirmed = order.status === 'ACCEPTED';
-        return { ok: true, status: 200 };
+        return Response.json({ success: true, acceptedNow: confirmed });
       }
       return { ok: true, status: 200, headers: { get: () => null }, json: async () => [{ ...order }] };
     }
@@ -40,10 +48,11 @@ function fixture({ autoPrint = true, responseStatus = 200, beforeAccept = async 
   vm.createContext(context);
   vm.runInContext(printer, context);
   const service = context.PrinterService = context.window.PrinterService;
-  service.saveSettings({ autoPrintNewOrders: autoPrint });
+  service.saveSettings({ autoPrintNewOrders: autoPrint, autoAcceptNewOrders: autoAccept,
+    cashier: { enabled: configured }, kitchen: { enabled: configured } });
   service.printDualStation = async ticket => { jobs.push({ key: ticket.key, status: ticket.status, confirmed }); return {success:true}; };
   vm.runInContext(`let isFetchingOrders = false;\n${refresh}\n${update}`, context);
-  return { context, service, jobs, alerts };
+  return { context, service, jobs, alerts, writes };
 }
 
 test('polling new customer orders does not print or consume their print marker', async () => {
@@ -71,6 +80,46 @@ test('customer printing waits for successful staff confirmation and does not rep
   await context.fetchOrders();
   await context.updateStatus('customer-order', 'ACCEPTED');
   assert.equal(jobs.length, 1);
+});
+
+test('auto-accept claims a pending order once and prints only after confirmation', async () => {
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const { context, jobs, writes } = fixture({ autoAccept: true, beforeAccept: () => gate });
+  await context.fetchOrders();
+  await context.fetchOrders();
+  assert.deepEqual(writes, [{ path: '/api/orders/auto-accept', body: {
+    key: 'customer-order', status: 'ACCEPTED', expectedUpdatedAt: '2026-11-23 12:00:00'
+  } }]);
+  assert.deepEqual(jobs, []);
+  release();
+  await new Promise(setImmediate);
+  await context.fetchOrders();
+  assert.deepEqual(jobs, [{ key: 'customer-order', status: 'ACCEPTED', confirmed: true }]);
+  assert.equal(writes.length, 1);
+  assert.equal(context.latestOrders[0].status, 'ACCEPTED');
+});
+
+test('a lost auto-accept claim is left to the other device without replay or printing', async () => {
+  const { context, jobs, writes, alerts } = fixture({ autoAccept: true, responseStatus: 409 });
+  await context.fetchOrders();
+  await new Promise(setImmediate);
+  await context.fetchOrders();
+  assert.equal(writes.length, 1);
+  assert.deepEqual(jobs, []);
+  assert.deepEqual(alerts, []);
+  assert.equal(context.localOverrides['customer-order'], undefined);
+});
+
+test('auto-accept leaves later rounds and modified orders for review and requires a configured printer', async () => {
+  for (const mode of [
+    { configured: false }, { autoPrint: false }, { orderFields: { is_modified: 1 } },
+    { orderFields: { roundCount: 2 } }, { orderFields: { status: 'WAITING_CUSTOMER_CHANGE' } }
+  ]) {
+    const { context, writes } = fixture({ autoAccept: true, ...mode });
+    await context.fetchOrders();
+    assert.equal(writes.length, 0);
+  }
 });
 
 test('failed confirmation, rejection and manual mode do not auto-print', async () => {

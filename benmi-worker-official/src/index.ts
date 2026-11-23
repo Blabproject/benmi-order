@@ -91,6 +91,7 @@ export default {
       if (request.method === "POST" && (path === "/api/orders/modify" || path === "/api/modify")) return modifyOrder(request, env, ctx, tenantCtx);
       if (request.method === "POST" && path === "/api/create") return createOrder(request, env, ctx, tenantCtx);
       if (request.method === "POST" && (path === "/api/orders/append" || path === "/api/append")) return appendOrder(request, env, ctx, tenantCtx);
+      if (request.method === "POST" && path === "/api/orders/auto-accept") return updateOrder(request, env, ctx, tenantCtx, true);
       if (request.method === "POST" && path === "/api/update") return updateOrder(request, env, ctx, tenantCtx);
       if (request.method === "GET" && path === "/api/orders/waiting-count") return getWaitingCount(request, env);
       if (request.method === "GET" && path === "/api/orders") return getOrders(request, env);
