@@ -22,18 +22,20 @@ export async function getTableStatus(
   const isTableActive = table ? (table.is_active === 1) : true;
   const tableId = table?.id || null;
 
-  // 2. Query for active open order on this table
+  // 2. Query for active open order ONLY when the table exists and is active in Table Management
   // Active statuses: NEW, ACCEPTED, COOKING, READY, PREPARING, CONFIRMED
   // Finalized / closed statuses: PAID, REJECTED, PICKED_UP, EXPIRED, FORCE_REJECT
-  const activeOrder = await env.DB.prepare(`
-    SELECT key, order_id, display_key, status, total_amount, round_count, detail_revision, customer_name, created_at
-    FROM orders
-    WHERE tenant_id = ?
-      AND (table_id = ? OR table_number = ?)
-      AND status NOT IN ('PAID', 'REJECTED', 'PICKED_UP', 'EXPIRED', 'FORCE_REJECT')
-    ORDER BY created_at DESC
-    LIMIT 1
-  `).bind(tenantId, tableId || '__none__', tableLabel).first<any>();
+  const activeOrder = (table && isTableActive)
+    ? await env.DB.prepare(`
+        SELECT key, order_id, display_key, status, total_amount, round_count, detail_revision, customer_name, created_at
+        FROM orders
+        WHERE tenant_id = ?
+          AND (table_id = ? OR table_number = ?)
+          AND status NOT IN ('PAID', 'REJECTED', 'PICKED_UP', 'EXPIRED', 'FORCE_REJECT')
+        ORDER BY created_at DESC
+        LIMIT 1
+      `).bind(tenantId, tableId || '__none__', tableLabel).first<any>()
+    : null;
 
   return json({
     ok: true,

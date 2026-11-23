@@ -1147,21 +1147,36 @@ test('Frontend Tag banner renders clean Tag label without table subtitle for ?ch
   const checkoutCode = fs.readFileSync(path.resolve(__dirname, '../js/client-checkout.js'), 'utf8');
 
   const clearFnCode = extractTopLevelFunctionSource(checkoutCode, 'clearTableQrModeState');
+  const nonTableFnCode = extractTopLevelFunctionSource(checkoutCode, 'hasNonTableQrEntryParams');
+  const initAppendFnCode = extractTopLevelFunctionSource(checkoutCode, 'initAppendModeIfPresent');
   const initTableFnCode = extractTopLevelFunctionSource(checkoutCode, 'initTableQrModeIfPresent');
   const renderBannerFnCode = extractTopLevelFunctionSource(coreCode, 'renderQrChannelBanner');
+  const applyPickupFnCode = extractTopLevelFunctionSource(coreCode, 'applyPickupConfig');
+  const setDiningFnCode = extractTopLevelFunctionSource(coreCode, 'setCustomerDiningOption');
 
-  async function runScenario({ search, cachedTable, tableStatusResponse, initialQrChannel, qrChannels }) {
+  async function runScenario({ search, cachedTable, cachedAppendParent, cachedAppendTable, tableStatusResponse, initialQrChannel, qrChannels, shifts, selectedShiftId }) {
     const dom = new JSDOM(html, {
       url: `https://order.blabfood.app/${search}`,
       runScripts: 'outside-only'
     });
     const w = dom.window;
     if (cachedTable) w.sessionStorage.setItem('benmi_table_number', cachedTable);
+    if (cachedAppendParent) w.sessionStorage.setItem('benmi_append_parent', cachedAppendParent);
+    if (cachedAppendTable) w.sessionStorage.setItem('benmi_append_table', cachedAppendTable);
 
     const diningOptionsPicked = [];
     w.WORKER_BASE = 'https://benmi-worker-official.thuanmnc.workers.dev';
-    w.storeConfig = { qrChannels: qrChannels || [], i18n: { enabled: true } };
+    w.storeConfig = {
+      allowDineIn: true,
+      allowScheduledPickup: false,
+      dineInTableMode: 'optional',
+      features: ['dine_in', 'menu_schedule'],
+      qrChannels: qrChannels || [],
+      operatingShifts: shifts || [],
+      i18n: { enabled: true }
+    };
     w.currentQrChannel = initialQrChannel || null;
+    w.selectedMenuCollectionId = selectedShiftId || null;
     w.currentTableNumber = null;
     w.isAppendMode = false;
     w.parentOrderKey = null;
@@ -1169,16 +1184,22 @@ test('Frontend Tag banner renders clean Tag label without table subtitle for ?ch
     w.appendTableNumber = null;
     w.getTenantIdFromUrl = () => 'zhenbaochufang';
     w.getUrlParamsWithLiffState = () => new w.URLSearchParams(w.location.search);
+    w.getSelectedMenuCollectionShift = () => (w.storeConfig.operatingShifts || []).find(s => s.id === w.selectedMenuCollectionId) || null;
+    w.getTaiwanDate = () => new Date('2026-11-23T12:00:00Z');
+    w.formatTaiwanDateTime = () => ({ dateStr: '2026-11-23', timeStr: '20:00', fullStr: '2026-11-23 20:00' });
+    w.updateAsapTimeDisplay = () => {};
+    w.checkStoreStatus = () => {};
     w.setCustomerDiningOption = opt => { diningOptionsPicked.push(opt); w.__lastDiningOption = opt; };
     w.applyPickupConfig = () => { w.renderQrChannelBanner(); };
     w.fetch = async () => ({ ok: true, json: async () => tableStatusResponse });
     w._coT = (_k, _p, fb) => fb;
 
-    w.eval(`${i18nCode}\n${renderBannerFnCode}\n${clearFnCode}\n${initTableFnCode}`);
+    w.eval(`${i18nCode}\n${renderBannerFnCode}\n${nonTableFnCode}\n${clearFnCode}\n${initAppendFnCode}\n${initTableFnCode}`);
     w.setClientLocale('en', { skipMenuRerender: true, skipOrderStatusSync: true });
     w.renderQrChannelBanner();
+    w.initAppendModeIfPresent();
     await w.initTableQrModeIfPresent();
-    return { w, doc: w.document, diningOptionsPicked };
+    return { w, doc: w.document, diningOptionsPicked, realApplyPickup: `${applyPickupFnCode}\n${setDiningFnCode}` };
   }
 
   // Case 1: ?ch=ch_supper with stale cached benmi_table_number='宵夜' clears table mode and shows Tag: 宵夜
@@ -1237,4 +1258,129 @@ test('Frontend Tag banner renders clean Tag label without table subtitle for ?ch
   assert.equal(case3.doc.getElementById('table-order-banner').style.display, 'flex');
   assert.equal(case3.doc.getElementById('table-order-banner-label').innerText || case3.doc.getElementById('table-order-banner-label').textContent, '6桌');
   assert.equal(case3.doc.getElementById('qr-channel-banner').style.display, 'none');
+
+  // Case 4: customer_choice QR channel (?ch=ch_in_store) with stale sessionStorage append/table state
+  // NEVER enters append mode (#append-mode-banner hidden), AND shows BOTH top & checkout Takeaway/Dine-in switchers.
+  const case4 = await runScenario({
+    search: '?tenant_id=zhenbaochufang&ch=ch_in_store&collection=shift_zb_late&lang=en',
+    cachedTable: '內用',
+    cachedAppendParent: 'ZBCF1123-D002',
+    cachedAppendTable: '內用',
+    tableStatusResponse: { ok: true, table: { id: 'tbl_off', exists: true, is_active: false, label: '內用' }, active_order: null },
+    initialQrChannel: { id: 'ch_instore', code: 'ch_in_store', label: '店内點餐', diningPolicy: 'customer_choice', isActive: true },
+    qrChannels: [{ id: 'ch_instore', code: 'ch_in_store', label: '店内點餐', diningPolicy: 'customer_choice', isActive: true }],
+    shifts: [{ id: 'shift_zb_late', name: '宵夜時段', diningPolicy: 'inherit', isActive: true }],
+    selectedShiftId: 'shift_zb_late'
+  });
+  assert.equal(case4.w.isAppendMode, false);
+  assert.equal(case4.w.sessionStorage.getItem('benmi_append_parent'), null);
+  assert.equal(case4.w.sessionStorage.getItem('benmi_table_number'), null);
+  assert.equal(case4.doc.getElementById('append-mode-banner').style.display, 'none');
+  assert.equal(case4.doc.getElementById('table-order-banner').style.display, 'none');
+  // Execute real applyPickupConfig + setCustomerDiningOption to verify top dining switcher is visible and interactive
+  case4.w.eval(case4.realApplyPickup);
+  case4.w.applyPickupConfig();
+  assert.equal(case4.doc.getElementById('dining-option-wrapper').style.display, 'block');
+  assert.equal(case4.doc.getElementById('checkout-dining-option-group').style.display, 'block');
+  case4.w.setCustomerDiningOption('dine_in');
+  assert.equal(case4.w.currentDiningOption, 'dine_in');
+  assert.equal(case4.doc.getElementById('btn-dining-dinein').classList.contains('active'), true);
+  assert.equal(case4.doc.getElementById('checkout-btn-dinein').classList.contains('active'), true);
+
+  // Case 5: Set Menu QR (?collection=shift_zb_late without ?ch=) clears stale append/table state
+  // and exposes dining switcher when shift diningPolicy === 'both'.
+  const case5 = await runScenario({
+    search: '?tenant_id=zhenbaochufang&collection=shift_zb_late&lang=en',
+    cachedTable: '內用',
+    cachedAppendParent: 'ZBCF1123-D002',
+    cachedAppendTable: '內用',
+    tableStatusResponse: { ok: true, table: { exists: false, is_active: false, label: '' }, active_order: null },
+    initialQrChannel: null,
+    qrChannels: [],
+    shifts: [{ id: 'shift_zb_late', name: '宵夜時段', diningPolicy: 'both', isActive: true }],
+    selectedShiftId: 'shift_zb_late'
+  });
+  assert.equal(case5.w.isAppendMode, false);
+  assert.equal(case5.doc.getElementById('append-mode-banner').style.display, 'none');
+  case5.w.eval(case5.realApplyPickup);
+  case5.w.applyPickupConfig();
+  assert.equal(case5.doc.getElementById('dining-option-wrapper').style.display, 'block');
+  assert.equal(case5.doc.getElementById('checkout-dining-option-group').style.display, 'block');
+
+  // Case 6: Dead ?table=內用 (is_active: false) with no matching channel clears table/append lock cleanly
+  const case6 = await runScenario({
+    search: '?tenant_id=zhenbaochufang&table=%E5%85%A7%E7%94%A8&lang=en',
+    cachedTable: null,
+    tableStatusResponse: { ok: true, table: { id: 'tbl_off', exists: true, is_active: false, label: '內用' }, active_order: null },
+    initialQrChannel: null,
+    qrChannels: [{ id: 'ch_instore', code: 'ch_in_store', label: '店内點餐', diningPolicy: 'customer_choice', isActive: true }]
+  });
+  assert.equal(case6.w.isAppendMode, false);
+  assert.equal(case6.w.currentTableNumber, null);
+  assert.equal(case6.doc.getElementById('table-order-banner').style.display, 'none');
+  assert.equal(case6.doc.getElementById('append-mode-banner').style.display, 'none');
+});
+
+test('Worker getTableStatus and LINE receipt restrict append mode to active Table Management orders only', async () => {
+  const { getTableStatus } = require('../benmi-worker-official/src/modules/tables.ts');
+  const { buildOrderFlexMessage } = require('../benmi-worker-official/src/modules/line/templates/order-receipt.ts');
+  const db = createFullMigratedDb();
+  seedZhenbaochufang(db);
+  const env = createEnvForDb(db);
+
+  db.prepare(`
+    INSERT INTO restaurant_tables (id, tenant_id, label, sort_order, is_active)
+    VALUES
+      ('tbl_off_in', 'zhenbaochufang', '內用', 1, 0),
+      ('tbl_on_6', 'zhenbaochufang', '6桌', 2, 1)
+  `).run();
+
+  db.prepare(`
+    INSERT INTO orders (key, order_id, display_key, business_date, tenant_id, user_id, customer_name, pickup_time, status, total_amount, order_content, dining_option, table_number, table_id)
+    VALUES
+      ('ZBCF1123-D002', 'uuid-d002', 'ZBCF1123-D002', '2026-11-23', 'zhenbaochufang', 'U1', 'Guest', '20:00', 'ACCEPTED', 45, '肉燥飯 x1', 'dine_in', '內用', 'tbl_off_in'),
+      ('ZBCF1123-D009', 'uuid-d009', 'ZBCF1123-D009', '2026-11-23', 'zhenbaochufang', 'U1', 'Guest', '20:00', 'ACCEPTED', 75, '炒飯 x1', 'dine_in', '6桌', 'tbl_on_6')
+  `).run();
+
+  // Deactivated table '內用' must NOT return active_order
+  const offRes = await getTableStatus(new Request('https://example.test/api/table/status?tenant_id=zhenbaochufang&table=%E5%85%A7%E7%94%A8'), env);
+  const offJson = await offRes.json();
+  assert.equal(offJson.table.exists, true);
+  assert.equal(offJson.table.is_active, false);
+  assert.equal(offJson.active_order, null);
+
+  // Active table '6桌' DOES return active_order
+  const onRes = await getTableStatus(new Request('https://example.test/api/table/status?tenant_id=zhenbaochufang&table=6%E6%A1%8C'), env);
+  const onJson = await onRes.json();
+  assert.equal(onJson.table.exists, true);
+  assert.equal(onJson.table.is_active, true);
+  assert.equal(onJson.active_order.key, 'ZBCF1123-D009');
+
+  // LINE receipt for QR channel dine-in order must NOT include mode=append button; table dine-in retains it
+  const channelDineFlex = JSON.stringify(buildOrderFlexMessage({
+    key: 'ZBCF1123-D010',
+    displayKey: 'ZBCF1123-D010',
+    status: 'NEW',
+    diningOption: 'dine_in',
+    tableNumber: '6桌',
+    channelId: 'ch_zhenbaochufang_76625b55',
+    channelLabel: '店内點餐',
+    total: 75,
+    content: '炒飯 x1'
+  }));
+  assert.ok(!channelDineFlex.includes('mode=append'));
+
+  const tableDineFlex = JSON.stringify(buildOrderFlexMessage({
+    key: 'ZBCF1123-D009',
+    displayKey: 'ZBCF1123-D009',
+    status: 'NEW',
+    diningOption: 'dine_in',
+    tableNumber: '6桌',
+    channelId: null,
+    total: 75,
+    content: '炒飯 x1'
+  }));
+  assert.ok(tableDineFlex.includes('mode=append'));
+
+  db.close();
 });

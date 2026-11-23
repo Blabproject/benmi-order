@@ -246,7 +246,8 @@ export function buildOrderFlexMessage(
         const buttons: any[] = [];
         const langSuffix = isBilingual ? `&lang=${encodeURIComponent(normalizedCustLocale)}` : "";
 
-        if (isDineIn) {
+        const allowLineAppendButton = isDineIn && !order.channelId && !(order.shiftId && !tableNum);
+        if (allowLineAppendButton) {
           const appendUrl = `${liffBaseUrl}?tenant_id=${encodeURIComponent(tenantId)}&parent_order_key=${encodeURIComponent(order.key)}&parent_display_key=${encodeURIComponent(order.displayKey || order.key)}&table_number=${encodeURIComponent(tableNum)}&mode=append${langSuffix}`;
           buttons.push({
             type: "button",
@@ -392,7 +393,7 @@ export function buildProgressFlexMessage(order: Order, queueAheadCount: number, 
         const tableNum = order.tableNumber || "";
         const buttons: any[] = [];
 
-        if (isDineIn && (order.status === "NEW" || order.status === "ACCEPTED" || order.status === "DONE")) {
+        if (isDineIn && !order.channelId && !(order.shiftId && !tableNum) && (order.status === "NEW" || order.status === "ACCEPTED" || order.status === "DONE")) {
           const appendUrl = `${liffBaseUrl}?tenant_id=${encodeURIComponent(tenantId)}&parent_order_key=${encodeURIComponent(order.key)}&parent_display_key=${encodeURIComponent(order.displayKey || order.key)}&table_number=${encodeURIComponent(tableNum)}&mode=append`;
           buttons.push({
             type: "button",

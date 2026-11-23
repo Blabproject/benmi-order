@@ -392,22 +392,48 @@ function getUrlParamsWithLiffState() {
     return merged;
 }
 
+function hasNonTableQrEntryParams(urlParams) {
+    return Boolean((
+        urlParams.get('ch') ||
+        urlParams.get('channel') ||
+        urlParams.get('tag') ||
+        urlParams.get('collection') ||
+        urlParams.get('shift') ||
+        urlParams.get('shift_id') ||
+        ''
+    ).trim());
+}
+
 function initAppendModeIfPresent() {
     const urlParams = getUrlParamsWithLiffState();
-    let parentOrderKey = urlParams.get('parent_order_key');
-    let paramTableNumber = urlParams.get('table_number') || urlParams.get('table');
+    const explicitUrlTable = (urlParams.get('table_number') || urlParams.get('table') || '').trim();
+    const explicitParentOrderKey = (urlParams.get('parent_order_key') || '').trim();
+    const hasNonTableQr = hasNonTableQrEntryParams(urlParams);
     let mode = urlParams.get('mode');
 
-    // Check sessionStorage fallback if page reloaded
-    if (!parentOrderKey) {
+    // Append mode ("gọi thêm món") applies ONLY to physical Table QRs (?table=...),
+    // never to Set Menu / QR Channel / Tag links or leftover sessionStorage without ?table=.
+    if (hasNonTableQr && !explicitUrlTable) {
+        clearTableQrModeState({ clearUiLocks: false });
+        return;
+    }
+
+    let parentOrderKey = explicitParentOrderKey;
+    let paramTableNumber = explicitUrlTable;
+
+    // Session reload fallback applies only when a Table QR (?table=...) is active in URL
+    if (!parentOrderKey && explicitUrlTable) {
         try {
-            parentOrderKey = sessionStorage.getItem('benmi_append_parent');
-            paramTableNumber = sessionStorage.getItem('benmi_append_table') || paramTableNumber;
-            if (parentOrderKey) mode = 'append';
+            const savedParent = sessionStorage.getItem('benmi_append_parent');
+            const savedTable = (sessionStorage.getItem('benmi_append_table') || '').trim();
+            if (savedParent && (!savedTable || savedTable === explicitUrlTable)) {
+                parentOrderKey = savedParent;
+                mode = 'append';
+            }
         } catch (e) {}
     }
 
-    if (parentOrderKey && (mode === 'append' || mode === 'add')) {
+    if (parentOrderKey && paramTableNumber && (mode === 'append' || mode === 'add')) {
         window.isAppendMode = true;
         window.parentOrderKey = parentOrderKey;
         window.parentOrderDisplayKey = urlParams.get('parent_display_key') || (parentOrderKey.length === 36 ? '' : parentOrderKey);
@@ -476,6 +502,10 @@ function clearTableQrModeState({ clearUiLocks = true } = {}) {
     if (tableBanner) tableBanner.style.display = 'none';
     const appendBanner = document.getElementById('append-mode-banner');
     if (appendBanner) appendBanner.style.display = 'none';
+    const submitBtn = document.getElementById('btn-submit');
+    if (submitBtn && !window.isEditOrderMode) {
+        submitBtn.innerText = _coT('btn_submit_order', null, '確認下單');
+    }
 
     if (clearUiLocks) {
         const tableInput = document.getElementById('dinein-table-number');
@@ -493,7 +523,7 @@ function clearTableQrModeState({ clearUiLocks = true } = {}) {
 async function initTableQrModeIfPresent() {
     const urlParams = getUrlParamsWithLiffState();
     const explicitUrlTable = (urlParams.get('table') || urlParams.get('table_number') || '').trim();
-    const hasExplicitQrChannel = Boolean((urlParams.get('ch') || urlParams.get('channel') || urlParams.get('tag') || '').trim());
+    const hasExplicitQrChannel = hasNonTableQrEntryParams(urlParams);
 
     let paramTable = explicitUrlTable;
     if (!paramTable && !hasExplicitQrChannel) {
@@ -535,8 +565,8 @@ async function initTableQrModeIfPresent() {
         tableInput.readOnly = true;
     }
 
-    // If append mode is already explicitly activated, do not duplicate
-    if (window.isAppendMode && window.parentOrderKey) {
+    // Always verify table status when ?table= is explicitly present so deactivated tables cannot remain locked in append mode.
+    if (window.isAppendMode && window.parentOrderKey && !explicitUrlTable) {
         return;
     }
 
@@ -585,8 +615,14 @@ async function initTableQrModeIfPresent() {
                     }
                     return;
                 }
+                // Deactivated table without a matching channel: clear stale table/append lock and return to normal menu
+                clearTableQrModeState({ clearUiLocks: true });
+                if (typeof applyPickupConfig === 'function') {
+                    applyPickupConfig();
+                }
+                return;
             }
-            if (data.ok && data.active_order) {
+            if (data.ok && data.active_order && data.table?.exists && data.table?.is_active !== false) {
                 // Table has active order -> seamlessly activate append mode!
                 window.isAppendMode = true;
                 window.parentOrderKey = data.active_order.key;
@@ -643,6 +679,10 @@ function cancelAppendMode() {
 
     const bannerEl = document.getElementById('append-mode-banner');
     if (bannerEl) bannerEl.style.display = 'none';
+    const submitBtn = document.getElementById('btn-submit');
+    if (submitBtn && !window.isEditOrderMode) {
+        submitBtn.innerText = _coT('btn_submit_order', null, '確認下單');
+    }
 
     if (window.currentTableNumber) {
         const tableBanner = document.getElementById('table-order-banner');
