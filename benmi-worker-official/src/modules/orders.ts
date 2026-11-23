@@ -416,7 +416,14 @@ export async function createOrder(
   const cleanTime = String(data.time || data.pickupTime || data.pickup_time || "").replace(/\s*\([^)]*\)/g, '').trim();
   const rawRequestedDining = data.dining_option || data.diningOption;
   const attribution = await resolveOrderQrChannelAndShiftPolicy(env.DB, tenantId, data);
-  const resolvedDining = resolveEffectiveOrderDiningOption(rawRequestedDining, attribution, {
+  const effectiveRequestedDining =
+    attribution.migratedFromInactiveTable &&
+    (attribution.channelDiningPolicy === 'takeaway' ||
+      (attribution.channelDiningPolicy === 'customer_choice' && attribution.diningPolicy === 'takeaway_only')) &&
+    rawRequestedDining === 'dine_in'
+      ? null
+      : rawRequestedDining;
+  const resolvedDining = resolveEffectiveOrderDiningOption(effectiveRequestedDining, attribution, {
     allowDineInFeature: !tenantCtx || tenantHasFeature(tenantCtx, 'dine_in'),
     allowDineInSetting: tenantCtx?.allowDineIn !== false,
   });
@@ -448,7 +455,7 @@ export async function createOrder(
     }
   }
 
-  const tableNumber = data.table_number || data.tableNumber || null;
+  const tableNumber = diningOption === 'dine_in' ? (data.table_number || data.tableNumber || null) : null;
   const userId = data.userId;
   const parentOrderKey = data.parent_order_key || data.parentOrderKey || null;
   const rawItems: OrderItemInput[] = Array.isArray(data.items) ? data.items : [];

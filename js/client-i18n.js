@@ -355,7 +355,7 @@
             collection_takeaway_only_hint: '此時段僅供外帶自取',
             collection_scheduled_hint: '此時段供應時間為 {window}，已自動切換為預約時段',
             collection_preview_hint: '此時段供應時間為 {window}（目前僅供瀏覽）',
-            qr_channel_banner_prefix: '專屬點餐通道：'
+            qr_channel_banner_prefix: 'Tag：'
         },
 
         'en': {
@@ -686,7 +686,7 @@
             collection_takeaway_only_hint: 'Takeaway only during this menu period',
             collection_scheduled_hint: 'Served {window}. Switched to scheduled pickup.',
             collection_preview_hint: 'Served {window} (preview only)',
-            qr_channel_banner_prefix: 'Group Order Channel: '
+            qr_channel_banner_prefix: 'Tag: '
         },
 
         'vi': {
@@ -1017,7 +1017,7 @@
             collection_takeaway_only_hint: 'Khung giờ này chỉ phục vụ mang đi',
             collection_scheduled_hint: 'Thực đơn phục vụ lúc {window}. Đã chuyển sang hẹn giờ lấy.',
             collection_preview_hint: 'Thực đơn phục vụ lúc {window} (chỉ xem trước)',
-            qr_channel_banner_prefix: 'Kênh đặt món riêng: '
+            qr_channel_banner_prefix: 'Tag: '
         }
     };
 

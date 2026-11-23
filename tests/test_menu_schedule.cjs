@@ -1042,3 +1042,199 @@ test('QR channel diningPolicy, shift precedence, orders30d count, and partial PU
 
   db.close();
 });
+
+function extractTopLevelFunctionSource(source, fnName) {
+  const acorn = require('acorn');
+  const ast = acorn.parse(source, { ecmaVersion: 'latest', sourceType: 'script' });
+  const node = ast.body.find(n => n.type === 'FunctionDeclaration' && n.id && n.id.name === fnName);
+  assert.ok(node, `Could not find ${fnName} in source`);
+  return source.slice(node.start, node.end);
+}
+
+test('Inactive physical table migrated to takeaway QR channel resolves cleanly and leaves active tables dine_in', async () => {
+  const { qrChannels } = require('../benmi-worker-official/src/modules/menu-shifts.ts');
+  const db = createFullMigratedDb();
+  seedZhenbaochufang(db);
+  const env = createEnvForDb(db);
+
+  // Grant dine_in for test fixture so both active table dine_in and migrated takeaway channel can be verified
+  db.prepare(`
+    UPDATE tenant_config
+    SET features = '["reports","dine_in","table_qr_ordering","menu_schedule"]',
+        allow_dine_in = 1
+    WHERE tenant_id = 'zhenbaochufang'
+  `).run();
+
+  db.prepare(`
+    INSERT INTO restaurant_tables (id, tenant_id, label, sort_order, is_active)
+    VALUES
+      ('tbl_supper_off', 'zhenbaochufang', '宵夜', 1, 0),
+      ('tbl_active_6', 'zhenbaochufang', '6桌', 2, 1)
+  `).run();
+
+  const chUrl = 'https://example.test/api/menu/qr-channels?tenant_id=zhenbaochufang';
+  const postChRes = await qrChannels(new Request(chUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code: 'supper_tag', label: '宵夜', diningPolicy: 'takeaway' })
+  }), env);
+  assert.equal(postChRes.status, 200);
+  const { channel: chSupper } = await postChRes.json();
+
+  const baseItem = [{
+    itemId: 'zb_d_01',
+    category: 'fried-rice',
+    itemName: '肉絲蛋炒飯 230g',
+    quantity: 1,
+    price: 75,
+    subtotal: 75,
+    bundleSelections: { portions: [{ groups: [{ groupId: 'mg_zb_addon_items', items: [] }] }] }
+  }];
+
+  // 1. Legacy cached ?table=宵夜 payload (dining_option: 'dine_in', table_number: '宵夜', no channel_id)
+  // seamlessly converts to takeaway + attaches channel_id/channel_label + nulls table_number.
+  const migratedRes = await createOrder(new Request('https://example.test/api/create?tenant_id=zhenbaochufang', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: 'U_supper_legacy',
+      customer: 'Supper Guest',
+      dining_option: 'dine_in',
+      table_number: '宵夜',
+      time: '2026-11-23 22:15',
+      total: 75,
+      items: baseItem
+    })
+  }), env);
+  assert.equal(migratedRes.status, 200);
+  const migratedBody = await migratedRes.json();
+  const migratedRow = db.prepare('SELECT dining_option, table_number, channel_id, channel_label FROM orders WHERE key = ?').get(migratedBody.key);
+  assert.equal(migratedRow.dining_option, 'takeaway');
+  assert.equal(migratedRow.table_number, null);
+  assert.equal(migratedRow.channel_id, chSupper.id);
+  assert.equal(migratedRow.channel_label, '宵夜');
+
+  // 2. Active physical table '6桌' preserves dine_in + table_number without channel attribution.
+  const tableRes = await createOrder(new Request('https://example.test/api/create?tenant_id=zhenbaochufang', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: 'U_table_6',
+      customer: 'DineIn Guest',
+      dining_option: 'dine_in',
+      table_number: '6桌',
+      time: '2026-11-23 18:15',
+      total: 75,
+      items: baseItem
+    })
+  }), env);
+  assert.equal(tableRes.status, 200);
+  const tableBody = await tableRes.json();
+  const tableRow = db.prepare('SELECT dining_option, table_number, channel_id, channel_label FROM orders WHERE key = ?').get(tableBody.key);
+  assert.equal(tableRow.dining_option, 'dine_in');
+  assert.equal(tableRow.table_number, '6桌');
+  assert.equal(tableRow.channel_id, null);
+  assert.equal(tableRow.channel_label, null);
+
+  db.close();
+});
+
+test('Frontend Tag banner renders clean Tag label without table subtitle for ?ch= and migrated inactive ?table=', async () => {
+  const { JSDOM } = require('jsdom');
+  const html = fs.readFileSync(path.resolve(__dirname, '../index.html'), 'utf8');
+  const i18nCode = fs.readFileSync(path.resolve(__dirname, '../js/client-i18n.js'), 'utf8');
+  const coreCode = fs.readFileSync(path.resolve(__dirname, '../js/client-core.js'), 'utf8');
+  const checkoutCode = fs.readFileSync(path.resolve(__dirname, '../js/client-checkout.js'), 'utf8');
+
+  const clearFnCode = extractTopLevelFunctionSource(checkoutCode, 'clearTableQrModeState');
+  const initTableFnCode = extractTopLevelFunctionSource(checkoutCode, 'initTableQrModeIfPresent');
+  const renderBannerFnCode = extractTopLevelFunctionSource(coreCode, 'renderQrChannelBanner');
+
+  async function runScenario({ search, cachedTable, tableStatusResponse, initialQrChannel, qrChannels }) {
+    const dom = new JSDOM(html, {
+      url: `https://order.blabfood.app/${search}`,
+      runScripts: 'outside-only'
+    });
+    const w = dom.window;
+    if (cachedTable) w.sessionStorage.setItem('benmi_table_number', cachedTable);
+
+    const diningOptionsPicked = [];
+    w.WORKER_BASE = 'https://benmi-worker-official.thuanmnc.workers.dev';
+    w.storeConfig = { qrChannels: qrChannels || [], i18n: { enabled: true } };
+    w.currentQrChannel = initialQrChannel || null;
+    w.currentTableNumber = null;
+    w.isAppendMode = false;
+    w.parentOrderKey = null;
+    w.parentOrderDisplayKey = null;
+    w.appendTableNumber = null;
+    w.getTenantIdFromUrl = () => 'zhenbaochufang';
+    w.getUrlParamsWithLiffState = () => new w.URLSearchParams(w.location.search);
+    w.setCustomerDiningOption = opt => { diningOptionsPicked.push(opt); w.__lastDiningOption = opt; };
+    w.applyPickupConfig = () => { w.renderQrChannelBanner(); };
+    w.fetch = async () => ({ ok: true, json: async () => tableStatusResponse });
+    w._coT = (_k, _p, fb) => fb;
+
+    w.eval(`${i18nCode}\n${renderBannerFnCode}\n${clearFnCode}\n${initTableFnCode}`);
+    w.setClientLocale('en', { skipMenuRerender: true, skipOrderStatusSync: true });
+    w.renderQrChannelBanner();
+    await w.initTableQrModeIfPresent();
+    return { w, doc: w.document, diningOptionsPicked };
+  }
+
+  // Case 1: ?ch=ch_supper with stale cached benmi_table_number='宵夜' clears table mode and shows Tag: 宵夜
+  const case1 = await runScenario({
+    search: '?tenant_id=zhenbaochufang&ch=ch_supper&lang=en',
+    cachedTable: '宵夜',
+    tableStatusResponse: { ok: true, table: { exists: false, is_active: true, label: '' }, active_order: null },
+    initialQrChannel: { id: 'ch_supper', code: 'supper_tag', label: '宵夜', diningPolicy: 'takeaway', isActive: true },
+    qrChannels: [{ id: 'ch_supper', code: 'supper_tag', label: '宵夜', diningPolicy: 'takeaway', isActive: true }]
+  });
+  assert.equal(case1.w.sessionStorage.getItem('benmi_table_number'), null);
+  assert.equal(case1.w.currentTableNumber, null);
+  assert.equal(case1.doc.getElementById('table-order-banner').style.display, 'none');
+  const chBanner1 = case1.doc.getElementById('qr-channel-banner');
+  assert.equal(chBanner1.style.display, 'flex');
+  assert.match(chBanner1.textContent.replace(/\s+/g, ' ').trim(), /^Tag: 宵夜$/);
+  assert.ok(!chBanner1.textContent.includes('Table QR ordering'));
+  assert.ok(!chBanner1.textContent.includes('served directly to your table'));
+
+  // Verify zh-TW and vi translations on #qr-channel-banner
+  case1.w.setClientLocale('vi', { skipMenuRerender: true, skipOrderStatusSync: true });
+  case1.w.renderQrChannelBanner();
+  assert.match(chBanner1.textContent.replace(/\s+/g, ' ').trim(), /^Tag: 宵夜$/);
+  case1.w.setClientLocale('zh-TW', { skipMenuRerender: true, skipOrderStatusSync: true });
+  case1.w.renderQrChannelBanner();
+  assert.match(chBanner1.textContent.replace(/\s+/g, ' ').trim(), /^Tag：宵夜$/);
+
+  // Case 2: Legacy printed ?table=宵夜 where physical table is deactivated (is_active=false)
+  // migrates to active '宵夜' takeaway QR channel cleanly
+  const case2 = await runScenario({
+    search: '?tenant_id=zhenbaochufang&table=%E5%AE%B5%E5%A4%9C&lang=en',
+    cachedTable: null,
+    tableStatusResponse: { ok: true, table: { id: 'tbl_supper_off', exists: true, is_active: false, label: '宵夜' }, active_order: null },
+    initialQrChannel: null,
+    qrChannels: [{ id: 'ch_supper', code: 'supper_tag', label: '宵夜', diningPolicy: 'takeaway', isActive: true }]
+  });
+  assert.equal(case2.w.sessionStorage.getItem('benmi_table_number'), null);
+  assert.equal(case2.w.currentTableNumber, null);
+  assert.equal(case2.w.currentQrChannel.id, 'ch_supper');
+  assert.equal(case2.w.__lastDiningOption, 'takeaway');
+  assert.equal(case2.doc.getElementById('table-order-banner').style.display, 'none');
+  const chBanner2 = case2.doc.getElementById('qr-channel-banner');
+  assert.equal(chBanner2.style.display, 'flex');
+  assert.match(chBanner2.textContent.replace(/\s+/g, ' ').trim(), /^Tag: 宵夜$/);
+
+  // Case 3: Active dine-in table ?table=6桌 preserves #table-order-banner and dine_in
+  const case3 = await runScenario({
+    search: '?tenant_id=zhenbaochufang&table=6%E6%A1%8C&lang=en',
+    cachedTable: null,
+    tableStatusResponse: { ok: true, table: { id: 'tbl_active_6', exists: true, is_active: true, label: '6桌' }, active_order: null },
+    initialQrChannel: null,
+    qrChannels: []
+  });
+  assert.equal(case3.w.currentTableNumber, '6桌');
+  assert.equal(case3.w.__lastDiningOption, 'dine_in');
+  assert.equal(case3.doc.getElementById('table-order-banner').style.display, 'flex');
+  assert.equal(case3.doc.getElementById('table-order-banner-label').innerText || case3.doc.getElementById('table-order-banner-label').textContent, '6桌');
+  assert.equal(case3.doc.getElementById('qr-channel-banner').style.display, 'none');
+});

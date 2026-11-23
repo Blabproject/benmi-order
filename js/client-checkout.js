@@ -459,15 +459,59 @@ function initAppendModeIfPresent() {
     }
 }
 
+function clearTableQrModeState({ clearUiLocks = true } = {}) {
+    window.currentTableNumber = null;
+    window.isAppendMode = false;
+    window.parentOrderKey = null;
+    window.parentOrderDisplayKey = null;
+    window.appendTableNumber = null;
+    try {
+        sessionStorage.removeItem('benmi_table_number');
+        sessionStorage.removeItem('benmi_append_parent');
+        sessionStorage.removeItem('benmi_append_display');
+        sessionStorage.removeItem('benmi_append_table');
+    } catch (e) {}
+
+    const tableBanner = document.getElementById('table-order-banner');
+    if (tableBanner) tableBanner.style.display = 'none';
+    const appendBanner = document.getElementById('append-mode-banner');
+    if (appendBanner) appendBanner.style.display = 'none';
+
+    if (clearUiLocks) {
+        const tableInput = document.getElementById('dinein-table-number');
+        if (tableInput) {
+            if (tableInput.readOnly) tableInput.value = '';
+            tableInput.readOnly = false;
+        }
+        const toggleWrapper = document.getElementById('dining-option-wrapper');
+        if (toggleWrapper) toggleWrapper.style.display = '';
+        const checkoutToggleGroup = document.getElementById('checkout-dining-option-group');
+        if (checkoutToggleGroup) checkoutToggleGroup.style.display = '';
+    }
+}
+
 async function initTableQrModeIfPresent() {
     const urlParams = getUrlParamsWithLiffState();
-    let paramTable = urlParams.get('table') || urlParams.get('table_number');
-    if (!paramTable) {
+    const explicitUrlTable = (urlParams.get('table') || urlParams.get('table_number') || '').trim();
+    const hasExplicitQrChannel = Boolean((urlParams.get('ch') || urlParams.get('channel') || urlParams.get('tag') || '').trim());
+
+    let paramTable = explicitUrlTable;
+    if (!paramTable && !hasExplicitQrChannel) {
         try {
-            paramTable = sessionStorage.getItem('benmi_table_number');
+            paramTable = (sessionStorage.getItem('benmi_table_number') || '').trim();
         } catch (e) {}
     }
-    if (!paramTable) return;
+    if (!paramTable) {
+        if (hasExplicitQrChannel) {
+            clearTableQrModeState({ clearUiLocks: false });
+            const tableInput = document.getElementById('dinein-table-number');
+            if (tableInput) {
+                if (tableInput.readOnly) tableInput.value = '';
+                tableInput.readOnly = false;
+            }
+        }
+        return;
+    }
 
     paramTable = paramTable.trim();
     window.currentTableNumber = paramTable;
@@ -504,6 +548,44 @@ async function initTableQrModeIfPresent() {
         const res = await fetch(`${workerUrl}/api/table/status?tenant_id=${encodeURIComponent(tenantId)}&table=${encodeURIComponent(paramTable)}&_t=${Date.now()}`);
         if (res.ok) {
             const data = await res.json();
+            if (data.ok && data.table && data.table.exists && data.table.is_active === false) {
+                let cfg = typeof storeConfig !== 'undefined' ? storeConfig : (typeof window !== 'undefined' ? window.storeConfig : null);
+                if ((!cfg || !Array.isArray(cfg.qrChannels)) && typeof window !== 'undefined' && window.menuPromise && typeof window.menuPromise.then === 'function') {
+                    try { await window.menuPromise; } catch (e) {}
+                    cfg = typeof storeConfig !== 'undefined' ? storeConfig : window.storeConfig;
+                }
+                const activeChannels = Array.isArray(cfg?.qrChannels)
+                    ? cfg.qrChannels.filter(ch => ch && ch.isActive !== false)
+                    : [];
+                const normalizedTable = paramTable.trim().toLowerCase();
+                const matchedChannel = activeChannels.find(ch =>
+                    String(ch.label || '').trim().toLowerCase() === normalizedTable ||
+                    String(ch.code || '').trim().toLowerCase() === normalizedTable
+                );
+                if (matchedChannel) {
+                    clearTableQrModeState({ clearUiLocks: true });
+
+                    window.currentQrChannel = matchedChannel;
+                    const hasExplicitShift = Boolean(urlParams.get('collection') || urlParams.get('shift') || urlParams.get('shift_id'));
+                    if (!hasExplicitShift && matchedChannel.defaultShiftId) {
+                        if (typeof setCustomerMenuCollection === 'function') {
+                            setCustomerMenuCollection(matchedChannel.defaultShiftId);
+                        } else {
+                            window.selectedMenuCollectionId = matchedChannel.defaultShiftId;
+                        }
+                    }
+                    if (matchedChannel.diningPolicy === 'takeaway' && typeof setCustomerDiningOption === 'function') {
+                        setCustomerDiningOption('takeaway');
+                    }
+                    if (typeof applyPickupConfig === 'function') {
+                        applyPickupConfig();
+                    }
+                    if (typeof renderQrChannelBanner === 'function') {
+                        renderQrChannelBanner();
+                    }
+                    return;
+                }
+            }
             if (data.ok && data.active_order) {
                 // Table has active order -> seamlessly activate append mode!
                 window.isAppendMode = true;

@@ -1455,16 +1455,22 @@ async function updateStatus(key, status, extra = {}, btn = null, autoAccept = fa
     if (!response.ok) throw new Error(`update failed: ${response.status}`);
 
     const acceptingCustomerOrder = status === "ACCEPTED" && !staff;
-    const acceptedNow = acceptingCustomerOrder ? (await response.json())?.acceptedNow : false;
+    const responseData = (acceptingCustomerOrder || staff) && typeof response.json === "function"
+      ? await response.json().catch(() => null)
+      : null;
+    const acceptedNow = acceptingCustomerOrder ? responseData?.acceptedNow : false;
     if (autoAccept && acceptedNow !== true) throw new Error("Auto-accept was not confirmed");
     if (acceptingCustomerOrder && acceptedNow === false) {
       void fetchOrders().catch(console.error);
       return true;
     }
 
-    // Apply local override immediately for responsiveness
+    // Apply local override (and advance staff revision) immediately so rapid consecutive transitions stay in sync
+    if (staff && order && typeof responseData?.revision === "number") {
+      order.revision = responseData.revision;
+      order.status = status;
+    }
     localOverrides[key] = { status, time: Date.now() };
-    renderAll();
 
     if (acceptingCustomerOrder && order && typeof PrinterService !== "undefined") {
       try {

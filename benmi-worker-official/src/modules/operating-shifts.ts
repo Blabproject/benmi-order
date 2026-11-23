@@ -740,7 +740,15 @@ export interface OrderAttributionPolicyResult {
   channelDiningPolicy: QrChannelDiningPolicy | null;
   shiftId: string | null;
   diningPolicy: ShiftDiningPolicy;
+  migratedFromInactiveTable?: boolean;
 }
+
+type QrChannelAttributionRow = {
+  id: string;
+  label: string;
+  default_shift_id: string | null;
+  dining_policy?: string;
+};
 
 export async function resolveOrderQrChannelAndShiftPolicy(
   db: D1Database | undefined | null,
@@ -752,6 +760,7 @@ export async function resolveOrderQrChannelAndShiftPolicy(
   let channelDiningPolicy: QrChannelDiningPolicy | null = null;
   let shiftId: string | null = null;
   let diningPolicy: ShiftDiningPolicy = 'inherit';
+  let migratedFromInactiveTable = false;
 
   if (!db) return { channelId, channelLabel, channelDiningPolicy, shiftId, diningPolicy };
 
@@ -761,15 +770,40 @@ export async function resolveOrderQrChannelAndShiftPolicy(
     : (typeof input.channelCode === 'string' ? input.channelCode.trim() : '');
   const rawChLabel = typeof input.channel_label === 'string' ? input.channel_label.trim()
     : (typeof input.channelLabel === 'string' ? input.channelLabel.trim() : '');
+  const rawTable = typeof input.table_number === 'string' ? input.table_number.trim()
+    : (typeof input.tableNumber === 'string' ? input.tableNumber.trim() : '');
 
-  if ((rawChId || rawChCode) && await hasDbTable(db, 'tenant_qr_channels')) {
+  if (await hasDbTable(db, 'tenant_qr_channels')) {
     const hasChPolicy = await hasDbColumn(db, 'tenant_qr_channels', 'dining_policy');
     const selectCols = `id, label, default_shift_id${hasChPolicy ? ', dining_policy' : ''}`;
-    const row = rawChId
-      ? await db.prepare(`SELECT ${selectCols} FROM tenant_qr_channels WHERE tenant_id = ? AND id = ? AND is_active = 1 LIMIT 1`)
-          .bind(tenantId, rawChId).first<{ id: string; label: string; default_shift_id: string | null; dining_policy?: string }>()
-      : await db.prepare(`SELECT ${selectCols} FROM tenant_qr_channels WHERE tenant_id = ? AND code = ? AND is_active = 1 LIMIT 1`)
-          .bind(tenantId, rawChCode).first<{ id: string; label: string; default_shift_id: string | null; dining_policy?: string }>();
+    let row: QrChannelAttributionRow | null = null;
+
+    if (rawChId || rawChCode) {
+      row = rawChId
+        ? await db.prepare(`SELECT ${selectCols} FROM tenant_qr_channels WHERE tenant_id = ? AND id = ? AND is_active = 1 LIMIT 1`)
+            .bind(tenantId, rawChId).first<QrChannelAttributionRow>()
+        : await db.prepare(`SELECT ${selectCols} FROM tenant_qr_channels WHERE tenant_id = ? AND code = ? AND is_active = 1 LIMIT 1`)
+            .bind(tenantId, rawChCode).first<QrChannelAttributionRow>();
+    } else if (rawTable && await hasDbTable(db, 'restaurant_tables')) {
+      // Legacy printed ?table= QR links whose physical table was deactivated (is_active = 0)
+      // and migrated to an active QR channel with matching label/code resolve to that channel.
+      const tableState = await db.prepare(
+        `SELECT MAX(is_active) AS max_active FROM restaurant_tables WHERE tenant_id = ? AND label = ?`
+      ).bind(tenantId, rawTable).first<{ max_active: number | null }>();
+      if (tableState && tableState.max_active === 0) {
+        row = await db.prepare(
+          `SELECT ${selectCols}
+           FROM tenant_qr_channels
+           WHERE tenant_id = ? AND is_active = 1 AND (label = ? OR code = ?)
+           ORDER BY CASE WHEN label = ? THEN 0 ELSE 1 END, sort_order ASC, rowid ASC
+           LIMIT 1`
+        ).bind(tenantId, rawTable, rawTable, rawTable).first<QrChannelAttributionRow>();
+        if (row) {
+          migratedFromInactiveTable = true;
+        }
+      }
+    }
+
     if (row) {
       channelId = row.id;
       channelLabel = row.label;
@@ -798,7 +832,14 @@ export async function resolveOrderQrChannelAndShiftPolicy(
     }
   }
 
-  return { channelId, channelLabel, channelDiningPolicy, shiftId, diningPolicy };
+  return {
+    channelId,
+    channelLabel,
+    channelDiningPolicy,
+    shiftId,
+    diningPolicy,
+    ...(migratedFromInactiveTable ? { migratedFromInactiveTable: true } : {}),
+  };
 }
 
 export function resolveEffectiveOrderDiningOption(
