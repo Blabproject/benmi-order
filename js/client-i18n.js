@@ -1160,11 +1160,6 @@
             chosen = explicitUrlLang;
         }
 
-        var channelLocale = global.currentQrChannel && normalizeLocale(global.currentQrChannel.defaultLocale);
-        if (!chosen && channelLocale && (supported.indexOf(channelLocale) !== -1 || SUPPORTED_LOCALES.indexOf(channelLocale) !== -1)) {
-            chosen = channelLocale;
-        }
-
         var tenantId = resolveTenantId(activeTenant);
         if (!chosen) {
             try {
@@ -1393,9 +1388,7 @@
         var enabled = isI18nActiveForTenant(activeTenant);
         var supported = resolveSupportedLocales(activeTenant);
         var explicitUrlLang = readExplicitUrlLang();
-        var channelLocale = global.currentQrChannel && normalizeLocale(global.currentQrChannel.defaultLocale);
-        var forcedLocale = explicitUrlLang || channelLocale;
-        if (forcedLocale && supported.indexOf(forcedLocale) === -1) {
+        if (explicitUrlLang && supported.indexOf(explicitUrlLang) === -1) {
             supported = SUPPORTED_LOCALES.slice();
         }
 

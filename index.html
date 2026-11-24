@@ -6,13 +6,13 @@
     <link rel="stylesheet" href="/css/staff-order.css?v=20261122_staff_shadcn_v1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title id="page-title" data-i18n="page_default_title">線上點餐</title>
-    <link rel="preload" href="/index.css?v=20261123_tag_banner_v1" as="style">
+    <link rel="preload" href="/index.css?v=20261124_uber_header_v1" as="style">
     <link rel="preload" href="/js/store-notice-format.js?v=20261111_store_notice_v1" as="script">
     <link rel="preload" href="/js/menu-schedule.js?v=20261121_collection_qr_v1" as="script">
-    <link rel="preload" href="/js/client-i18n.js?v=20261123_tag_banner_v1" as="script">
-    <link rel="preload" href="/js/client-core.js?v=20261123_tag_banner_v2" as="script">
+    <link rel="preload" href="/js/client-i18n.js?v=20261124_uber_header_v1" as="script">
+    <link rel="preload" href="/js/client-core.js?v=20261124_uber_header_v1" as="script">
     <link rel="preload" href="/js/client-menu.js?v=20261123_prod_release_v1" as="script">
-    <link rel="stylesheet" href="/index.css?v=20261123_tag_banner_v1">
+    <link rel="stylesheet" href="/index.css?v=20261124_uber_header_v1">
     <style>html.tenant-resolution-failed body > :not(#tenant-resolution-error) { display: none !important; }</style>
     <script>
         try {
@@ -344,6 +344,55 @@
                 </div>
             </div>
         </div>
+        <div class="store-header-tags">
+            <!-- QR Attribution Channel Pill (Tags / Channels / Special Links) -->
+            <div id="qr-channel-banner" class="qr-channel-banner" style="display: none;">
+                <svg class="qr-channel-banner-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                </svg>
+                <span class="qr-channel-banner-text">
+                    <span data-i18n="qr_channel_banner_prefix">Tag：</span><strong id="qr-channel-banner-label"></strong>
+                </span>
+            </div>
+            <!-- Compact Uber-Style Dining Mode Switcher / Locked Pill (Corner of Store Header) -->
+            <div id="dining-option-wrapper" class="dining-option-wrapper" style="display: none;">
+                <div class="dining-segmented-control" role="tablist" data-i18n-aria-label="dining_method_label" aria-label="用餐方式">
+                    <button type="button" class="dining-seg-btn active" id="btn-dining-takeaway" role="tab"
+                        aria-selected="true" onclick="setCustomerDiningOption('takeaway')">
+                        <svg class="dining-seg-svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                            <path d="M3 6h18"></path>
+                            <path d="M16 10a4 4 0 0 1-8 0"></path>
+                        </svg>
+                        <svg class="dining-seg-lock-svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="m4.9 4.9 14.2 14.2"></path>
+                        </svg>
+                        <span class="dining-seg-text" data-i18n="dining_takeaway">外帶自取</span>
+                    </button>
+                    <button type="button" class="dining-seg-btn" id="btn-dining-dinein" role="tab" aria-selected="false"
+                        onclick="setCustomerDiningOption('dine_in')">
+                        <svg class="dining-seg-svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"></path>
+                            <path d="M15 2v10"></path>
+                            <path d="M15 14v8"></path>
+                            <path d="M6 2v20"></path>
+                            <path d="M6 2a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3"></path>
+                        </svg>
+                        <svg class="dining-seg-lock-svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="m4.9 4.9 14.2 14.2"></path>
+                        </svg>
+                        <span class="dining-seg-text" data-i18n="dining_dinein">店內用餐</span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
     <script>
         (function () {
@@ -521,19 +570,6 @@
             </div>
         </div>
 
-        <!-- QR Attribution Channel Banner (Tags / Channels / Takeaway Special Links) -->
-        <div id="qr-channel-banner" class="qr-channel-banner" style="display: none;">
-            <div class="qr-channel-banner-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                </svg>
-            </div>
-            <div class="qr-channel-banner-text">
-                <span data-i18n="qr_channel_banner_prefix">Tag：</span><strong id="qr-channel-banner-label" style="font-weight: 1000; color: #15803d;"></strong>
-            </div>
-        </div>
-
         <!-- Sold Out Edit Order Mode Banner -->
         <div id="edit-order-mode-banner" class="edit-order-mode-banner" style="display: none;">
             <div
@@ -587,35 +623,6 @@
                     現場訂單較多，新訂單取餐時間預計延長 1 小時，感謝您的體諒！</div>
             </div>
         </div>
-
-        <!-- Dining Option Switcher (Uber Eats style Segmented Control) -->
-        <div id="dining-option-wrapper" class="dining-option-wrapper" style="display: none;">
-            <div class="dining-segmented-control" role="tablist">
-                <button type="button" class="dining-seg-btn active" id="btn-dining-takeaway" role="tab"
-                    aria-selected="true" onclick="setCustomerDiningOption('takeaway')">
-                    <svg class="dining-seg-svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
-                        <path d="M3 6h18"></path>
-                        <path d="M16 10a4 4 0 0 1-8 0"></path>
-                    </svg>
-                    <span class="dining-seg-text" data-i18n="dining_takeaway">外帶自取</span>
-                </button>
-                <button type="button" class="dining-seg-btn" id="btn-dining-dinein" role="tab" aria-selected="false"
-                    onclick="setCustomerDiningOption('dine_in')">
-                    <svg class="dining-seg-svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"></path>
-                        <path d="M15 2v10"></path>
-                        <path d="M15 14v8"></path>
-                        <path d="M6 2v20"></path>
-                        <path d="M6 2a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3"></path>
-                    </svg>
-                    <span class="dining-seg-text" data-i18n="dining_dinein">店內用餐</span>
-                </button>
-            </div>
-        </div>
-
 
         <!-- Menu Collection Switcher (Shifts / Set Menus) -->
         <div id="collection-switcher-wrapper" class="collection-switcher-wrapper" style="display: none;">
@@ -1112,8 +1119,8 @@
     <script src="/js/menu-schedule.js?v=20261121_collection_qr_v1"></script>
     <script src="/js/client-pricing-wasm.js?v=20261116_menu_schedule_v1"></script>
     <script src="/js/store-notice-format.js?v=20261111_store_notice_v1"></script>
-    <script src="/js/client-i18n.js?v=20261123_tag_banner_v1"></script>
-    <script src="/js/client-core.js?v=20261123_tag_banner_v2"></script>
+    <script src="/js/client-i18n.js?v=20261124_uber_header_v1"></script>
+    <script src="/js/client-core.js?v=20261124_uber_header_v1"></script>
     <script src="/js/client-menu.js?v=20261123_prod_release_v1"></script>
     <script src="/js/client-customizations.js?v=20261118_multi_portion_copy_v1"></script>
     <script src="/js/client-bundle.js?v=20261114_multilingual_v2"></script>

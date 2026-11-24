@@ -2589,13 +2589,6 @@ function openCollectionQrModal(initialShiftId = "") {
     shiftSel.value = initialShiftId ? String(initialShiftId) : "";
   }
 
-  const langSel = document.getElementById("qr-col-lang-select");
-  if (langSel) {
-    const autoOpt = langSel.querySelector('option[value=""]');
-    if (autoOpt) autoOpt.textContent = t("collectionQrLangAuto") || "依顧客裝置語言";
-    langSel.value = "";
-  }
-
   populateCollectionQrChannelOptions("");
   refreshCollectionQrPreview();
   modal.style.display = "flex";
@@ -2603,10 +2596,8 @@ function openCollectionQrModal(initialShiftId = "") {
 
 function refreshCollectionQrPreview() {
   const shiftSel = document.getElementById("qr-col-shift-select");
-  const langSel = document.getElementById("qr-col-lang-select");
   const chSel = document.getElementById("qr-col-channel-select");
   const shiftId = shiftSel ? shiftSel.value : "";
-  const lang = langSel ? langSel.value : "";
   const channelCode = chSel ? chSel.value : "";
 
   const shifts = Array.isArray(window.storeOperatingShifts)
@@ -2615,16 +2606,14 @@ function refreshCollectionQrPreview() {
   const selectedShift = shifts.find(s => String(s.id) === String(shiftId));
   const channels = Array.isArray(window.storeQrChannels) ? window.storeQrChannels : [];
   const selectedChannel = channels.find(c => c.code === channelCode);
-  const langNames = { "zh-TW": "繁體中文", en: "English", vi: "Tiếng Việt" };
 
   const storeName = window.currentTenantBrandName || "BLAB Store";
   const parts = [];
   if (selectedShift && selectedShift.name) parts.push(selectedShift.name);
   if (selectedChannel && selectedChannel.label) parts.push(selectedChannel.label);
-  if (lang && langNames[lang]) parts.push(langNames[lang]);
   const displayLabel = parts.length > 0 ? parts.join(" · ") : (t("collectionQrAllShiftsOption") || storeName);
 
-  const qrUrl = generateCollectionQrUrl({ shiftId, channelCode, lang });
+  const qrUrl = generateCollectionQrUrl({ shiftId, channelCode });
   const badgeTitle = t("collectionQrBadgeTitle") || "專屬點餐碼 / Menu QR";
   activeQrModalTable = {
     id: "collection_qr",
@@ -2632,7 +2621,7 @@ function refreshCollectionQrPreview() {
     customQrUrl: qrUrl,
     badgeSubtitle: badgeTitle,
     badgePrefix: t("collectionQrBadgePrefix") || "專屬菜單",
-    fileSlug: [shiftId || "menu", channelCode, lang].filter(Boolean).join("_")
+    fileSlug: [shiftId || "menu", channelCode].filter(Boolean).join("_")
   };
   window.activeQrModalTable = activeQrModalTable;
 
@@ -2662,9 +2651,7 @@ async function createQuickQrChannel() {
   try {
     const tenantId = (typeof getTenantIdFromUrl === "function" && getTenantIdFromUrl()) || "";
     const shiftSel = document.getElementById("qr-col-shift-select");
-    const langSel = document.getElementById("qr-col-lang-select");
     const shiftId = shiftSel && shiftSel.value ? shiftSel.value : null;
-    const lang = langSel && langSel.value ? langSel.value : null;
     const asciiSlug = label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 24);
     const code = asciiSlug || `ch_${Date.now().toString(36)}`;
 
@@ -2675,14 +2662,14 @@ async function createQuickQrChannel() {
         label,
         code,
         defaultShiftId: shiftId,
-        defaultLocale: lang
+        defaultLocale: null
       })
     });
     const resData = await res.json().catch(() => ({}));
     if (!res.ok) {
       throw new Error(resData.error || `HTTP ${res.status}`);
     }
-    const createdChannel = resData.channel || { code, label, defaultShiftId: shiftId, defaultLocale: lang, isActive: true };
+    const createdChannel = resData.channel || { code, label, defaultShiftId: shiftId, defaultLocale: null, isActive: true };
     if (Array.isArray(resData.qrChannels)) {
       window.storeQrChannels = resData.qrChannels;
     } else {
@@ -2718,13 +2705,10 @@ function buildChannelQrDescriptor(channel, shifts) {
     : null;
   const orderTypeLabel = getChannelDiningPolicyLabel(channel.diningPolicy);
   const menuModeLabel = matchedShift ? matchedShift.name : (t("qrMenuModeAuto") || "依營業時段自動切換");
-  const langNames = { "zh-TW": "繁體中文", en: "English", vi: "Tiếng Việt" };
-  const langLabel = channel.defaultLocale && langNames[channel.defaultLocale] ? langNames[channel.defaultLocale] : "";
-  const subtitleParts = [orderTypeLabel, menuModeLabel, langLabel].filter(Boolean);
+  const subtitleParts = [orderTypeLabel, menuModeLabel].filter(Boolean);
   const qrUrl = generateCollectionQrUrl({
     shiftId: channel.defaultShiftId || "",
-    channelCode: channel.code || "",
-    lang: channel.defaultLocale || ""
+    channelCode: channel.code || ""
   });
   return {
     id: channel.id || "collection_qr",

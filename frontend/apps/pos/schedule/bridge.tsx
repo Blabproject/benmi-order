@@ -146,7 +146,7 @@ if (mount) {
         ...(draft.code ? { code: draft.code } : {}),
         diningPolicy: draft.diningPolicy,
         defaultShiftId: draft.defaultShiftId || null,
-        defaultLocale: draft.defaultLocale || null,
+        defaultLocale: null,
         isActive: draft.isActive,
       }),
     });

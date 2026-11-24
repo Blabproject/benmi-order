@@ -38,7 +38,8 @@ body {
 }
 
 .store-header-top,
-.store-details {
+.store-details,
+.store-header-tags {
     max-width: 600px;
     margin-left: auto;
     margin-right: auto;
@@ -394,13 +395,7 @@ html.is-edit-order-loading #cart-summary {
     gap: 6px;
 }
 
-/* Dining Option Switcher (Uber Eats Style - Mobile First) */
-.dining-option-wrapper {
-    background: #ffffff;
-    padding: 10px 16px;
-    border-bottom: 1px solid #e2e8f0;
-}
-
+/* Dining Option Switcher (Checkout Full Control + Header Corner Uber Capsule) */
 .dining-segmented-control {
     display: flex;
     background: #f1f5f9;
@@ -433,12 +428,17 @@ html.is-edit-order-loading #cart-summary {
 }
 
 .dining-seg-btn .dining-seg-icon,
-.dining-seg-btn .dining-seg-svg {
+.dining-seg-btn .dining-seg-svg,
+.dining-seg-btn .dining-seg-lock-svg {
     font-size: 18px;
     width: 18px;
     height: 18px;
     flex-shrink: 0;
     line-height: 1;
+}
+
+.dining-seg-lock-svg {
+    display: none;
 }
 
 .dining-seg-btn:active {
@@ -450,7 +450,6 @@ html.is-edit-order-loading #cart-summary {
     font-weight: 800;
 }
 
-#btn-dining-dinein.active,
 #checkout-btn-dinein.active {
     color: #ffffff;
     background: #7c3aed;
@@ -458,7 +457,6 @@ html.is-edit-order-loading #cart-summary {
     box-shadow: 0 3px 10px rgba(124, 58, 237, 0.3), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-#btn-dining-takeaway.active,
 #checkout-btn-takeaway.active {
     color: #ffffff;
     background: var(--primary, #059669);
@@ -466,44 +464,133 @@ html.is-edit-order-loading #cart-summary {
     box-shadow: 0 3px 10px rgba(0, 185, 0, 0.28), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-/* QR Attribution Channel Banner */
+/* Header Corner Bar: Tag pill + Uber-style Dining Mode Capsule */
+.store-header-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    row-gap: 0;
+    column-gap: 8px;
+}
+
+.dining-option-wrapper {
+    margin-inline-start: auto;
+    margin-block-start: 6px;
+    max-inline-size: 100%;
+}
+
+.dining-option-wrapper .dining-segmented-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    max-inline-size: 100%;
+    margin: 0;
+    padding: 3px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    border: 1px solid #cbd5e1;
+}
+
+.dining-option-wrapper .dining-seg-btn {
+    flex: 0 0 auto;
+    min-height: 32px;
+    padding: 5px 11px;
+    gap: 5px;
+    border: 0;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #475569;
+    white-space: nowrap;
+}
+
+.dining-option-wrapper .dining-seg-svg,
+.dining-option-wrapper .dining-seg-lock-svg {
+    width: 14px;
+    height: 14px;
+}
+
+.dining-option-wrapper .dining-seg-btn.active {
+    background: #ffffff;
+    color: #0f172a;
+    font-weight: 800;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14);
+}
+
+.dining-option-wrapper #btn-dining-takeaway.active .dining-seg-svg {
+    color: #059669;
+}
+
+.dining-option-wrapper #btn-dining-dinein.active .dining-seg-svg {
+    color: #7c3aed;
+}
+
+.dining-option-wrapper .dining-segmented-control.is-locked .dining-seg-btn:active {
+    transform: none;
+}
+
+.dining-option-wrapper .dining-seg-btn.is-locked-active {
+    cursor: default;
+}
+
+.dining-option-wrapper .dining-seg-btn.is-locked-out {
+    color: #94a3b8;
+    opacity: 0.72;
+    cursor: not-allowed;
+}
+
+.dining-option-wrapper .dining-seg-btn.is-locked-out .dining-seg-svg {
+    display: none;
+}
+
+.dining-option-wrapper .dining-seg-btn.is-locked-out .dining-seg-lock-svg {
+    display: block;
+}
+
+@media (pointer: coarse) {
+    .dining-option-wrapper .dining-seg-btn {
+        min-height: 36px;
+    }
+}
+
 .qr-channel-banner {
-    max-width: 600px;
-    width: calc(100% - 28px);
-    margin: 14px auto 16px;
-    padding: 12px 16px;
-    border-radius: 14px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 6px;
+    inline-size: fit-content;
+    max-inline-size: 100%;
+    min-block-size: 28px;
+    margin-block-start: 6px;
+    padding: 4px 11px;
+    border-radius: 999px;
     box-sizing: border-box;
-    background: #f0fdf4;
-    color: #166534;
-    box-shadow: 0 2px 10px rgba(22, 101, 52, 0.08);
-    border: 1.5px solid #bbf7d0;
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
 }
 
 .qr-channel-banner-icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    background: #dcfce7;
-    color: #15803d;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
     flex-shrink: 0;
-    border: 1px solid #bbf7d0;
+    color: #059669;
 }
 
 .qr-channel-banner-text {
-    flex: 1;
-    min-width: 0;
-    font-weight: 900;
-    font-size: 15px;
-    color: #166534;
-    letter-spacing: 0.2px;
-    line-height: 1.35;
+    min-inline-size: 0;
+    font-weight: 600;
+    font-size: 13px;
+    color: #065f46;
+    letter-spacing: 0.1px;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.qr-channel-banner-text strong {
+    font-weight: 800;
+    color: #047857;
 }
 
 /* Menu Collection Switcher (Mobile-First, Clean Minimalist Segmented Control) */
@@ -562,6 +649,24 @@ html.is-edit-order-loading #cart-summary {
     border-color: var(--primary, #059669);
     color: #ffffff;
     box-shadow: 0 3px 10px rgba(0, 185, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.collection-segmented-control.is-locked {
+    inline-size: fit-content;
+    max-inline-size: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.collection-seg-btn.is-locked {
+    cursor: default;
+    min-height: 40px;
+    padding: 6px 16px;
+}
+
+.collection-seg-btn.is-locked:active {
+    transform: none;
 }
 
 .collection-seg-title {
@@ -2145,16 +2250,12 @@ input[type="checkbox"] {
     }
 
     .store-header-top,
-    .store-details {
+    .store-details,
+    .store-header-tags {
         max-width: 1160px;
     }
 
-    .dining-option-wrapper {
-        display: flex;
-        justify-content: center;
-    }
-
-    .dining-segmented-control {
+    #checkout-dining-option-group .dining-segmented-control {
         max-width: 480px;
     }
 

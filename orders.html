@@ -458,21 +458,10 @@
       </div>
       <div class="modal-body" style="padding: 4px 0;">
         <div id="collection-qr-controls" style="display: none; margin-bottom: 14px; text-align: left; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px;">
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
-            <label style="display: flex; flex-direction: column; gap: 4px;">
-              <span id="qr-col-shift-label" style="font-size: 12px; font-weight: 700; color: #475569;">菜單集合 / 時段</span>
-              <select id="qr-col-shift-select" onchange="refreshCollectionQrPreview()" style="min-height: 48px; padding: 8px 10px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 14px; font-weight: 600;"></select>
-            </label>
-            <label style="display: flex; flex-direction: column; gap: 4px;">
-              <span id="qr-col-lang-label" style="font-size: 12px; font-weight: 700; color: #475569;">預設語言</span>
-              <select id="qr-col-lang-select" onchange="refreshCollectionQrPreview()" style="min-height: 48px; padding: 8px 10px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 14px; font-weight: 600;">
-                <option value="">依顧客裝置語言</option>
-                <option value="zh-TW">繁體中文</option>
-                <option value="en">English</option>
-                <option value="vi">Tiếng Việt</option>
-              </select>
-            </label>
-          </div>
+          <label style="display: flex; flex-direction: column; gap: 4px;">
+            <span id="qr-col-shift-label" style="font-size: 12px; font-weight: 700; color: #475569;">菜單集合 / 時段</span>
+            <select id="qr-col-shift-select" onchange="refreshCollectionQrPreview()" style="min-height: 48px; padding: 8px 10px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 14px; font-weight: 600;"></select>
+          </label>
           <label style="display: flex; flex-direction: column; gap: 4px; margin-top: 10px;">
             <span id="qr-col-channel-label" style="font-size: 12px; font-weight: 700; color: #475569;">客群 / 歸因渠道</span>
             <select id="qr-col-channel-select" onchange="refreshCollectionQrPreview()" style="min-height: 48px; padding: 8px 10px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 14px; font-weight: 600;"></select>
@@ -1333,7 +1322,7 @@
   <script src="js/orders-modals.js?v=20261121_shell_detail_react_v1"></script>
   <script src="js/qrcode.min.js?v=20261107_table_qr_v1"></script>
   <script src="js/store-notice-format.js?v=20261111_store_notice_v1"></script>
-  <script src="js/orders-settings.js?v=20261123_prod_release_v1"></script>
+  <script src="js/orders-settings.js?v=20261124_qr_no_default_lang_v1"></script>
   <script src="js/orders-orientation.js?v=20261122_desktop_pos_v1"></script>
   <script src="js/orders-menu-model.js?v=20261117_menu_schedule_v4"></script>
   <script src="js/orders-menu.js?v=20261122_tables_in_qr_v1"></script>

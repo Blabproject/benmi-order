@@ -1150,7 +1150,11 @@ test('Frontend Tag banner renders clean Tag label without table subtitle for ?ch
   const nonTableFnCode = extractTopLevelFunctionSource(checkoutCode, 'hasNonTableQrEntryParams');
   const initAppendFnCode = extractTopLevelFunctionSource(checkoutCode, 'initAppendModeIfPresent');
   const initTableFnCode = extractTopLevelFunctionSource(checkoutCode, 'initTableQrModeIfPresent');
+  const getClientParamsFnCode = extractTopLevelFunctionSource(coreCode, 'getClientUrlParams');
+  const resolveQrFnCode = extractTopLevelFunctionSource(coreCode, 'resolveQrChannelAndInitialCollection');
   const renderBannerFnCode = extractTopLevelFunctionSource(coreCode, 'renderQrChannelBanner');
+  const renderCollectionFnCode = extractTopLevelFunctionSource(coreCode, 'renderMenuCollectionSwitcher');
+  const setCollectionFnCode = extractTopLevelFunctionSource(coreCode, 'setCustomerMenuCollection');
   const applyPickupFnCode = extractTopLevelFunctionSource(coreCode, 'applyPickupConfig');
   const setDiningFnCode = extractTopLevelFunctionSource(coreCode, 'setCustomerDiningOption');
 
@@ -1185,6 +1189,8 @@ test('Frontend Tag banner renders clean Tag label without table subtitle for ?ch
     w.getTenantIdFromUrl = () => 'zhenbaochufang';
     w.getUrlParamsWithLiffState = () => new w.URLSearchParams(w.location.search);
     w.getSelectedMenuCollectionShift = () => (w.storeConfig.operatingShifts || []).find(s => s.id === w.selectedMenuCollectionId) || null;
+    w.formatCollectionWindowSummary = () => '21:00–22:30';
+    w.escapeHtml = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     w.getTaiwanDate = () => new Date('2026-11-23T12:00:00Z');
     w.formatTaiwanDateTime = () => ({ dateStr: '2026-11-23', timeStr: '20:00', fullStr: '2026-11-23 20:00' });
     w.updateAsapTimeDisplay = () => {};
@@ -1194,7 +1200,7 @@ test('Frontend Tag banner renders clean Tag label without table subtitle for ?ch
     w.fetch = async () => ({ ok: true, json: async () => tableStatusResponse });
     w._coT = (_k, _p, fb) => fb;
 
-    w.eval(`${i18nCode}\n${renderBannerFnCode}\n${nonTableFnCode}\n${clearFnCode}\n${initAppendFnCode}\n${initTableFnCode}`);
+    w.eval(`${i18nCode}\n${getClientParamsFnCode}\n${resolveQrFnCode}\n${renderBannerFnCode}\n${renderCollectionFnCode}\n${setCollectionFnCode}\n${nonTableFnCode}\n${clearFnCode}\n${initAppendFnCode}\n${initTableFnCode}`);
     w.setClientLocale('en', { skipMenuRerender: true, skipOrderStatusSync: true });
     w.renderQrChannelBanner();
     w.initAppendModeIfPresent();
@@ -1319,6 +1325,76 @@ test('Frontend Tag banner renders clean Tag label without table subtitle for ?ch
   assert.equal(case6.w.currentTableNumber, null);
   assert.equal(case6.doc.getElementById('table-order-banner').style.display, 'none');
   assert.equal(case6.doc.getElementById('append-mode-banner').style.display, 'none');
+
+  // Case 7: Locked takeaway QR channel with fixed defaultShiftId locks top corner dining toggle,
+  // hides checkout toggle, locks collection switcher to only that shift, and ignores channel.defaultLocale
+  const case7 = await runScenario({
+    search: '?tenant_id=zhenbaochufang&ch=ch_supper',
+    cachedTable: null,
+    tableStatusResponse: { ok: true, table: { exists: false, is_active: true, label: '' }, active_order: null },
+    initialQrChannel: {
+      id: 'ch_supper',
+      code: 'ch_supper',
+      label: '宵夜',
+      diningPolicy: 'takeaway',
+      defaultShiftId: 'shift_zb_late',
+      defaultLocale: 'vi',
+      isActive: true
+    },
+    qrChannels: [{
+      id: 'ch_supper',
+      code: 'ch_supper',
+      label: '宵夜',
+      diningPolicy: 'takeaway',
+      defaultShiftId: 'shift_zb_late',
+      defaultLocale: 'vi',
+      isActive: true
+    }],
+    shifts: [
+      { id: 'shift_zb_lunch', name: '午餐時段', displayMode: 'switcher', diningPolicy: 'inherit', isActive: true, windows: [] },
+      { id: 'shift_zb_late', name: '宵夜時段', displayMode: 'switcher', diningPolicy: 'inherit', isActive: true, windows: [] }
+    ],
+    selectedShiftId: 'shift_zb_late'
+  });
+  case7.w.eval(case7.realApplyPickup);
+  case7.w.resolveQrChannelAndInitialCollection(case7.w.storeConfig);
+  const resolvedLocale = case7.w.initClientLocale(case7.w.storeConfig);
+  assert.notEqual(resolvedLocale, 'vi', 'defaultLocale on QR channel must be ignored');
+  case7.w.applyPickupConfig();
+  assert.equal(case7.doc.getElementById('dining-option-wrapper').style.display, 'block');
+  assert.equal(case7.doc.getElementById('checkout-dining-option-group').style.display, 'none');
+  assert.equal(case7.doc.getElementById('btn-dining-takeaway').classList.contains('active'), true);
+  assert.equal(case7.doc.getElementById('btn-dining-takeaway').getAttribute('aria-disabled'), 'true');
+  assert.equal(case7.doc.getElementById('btn-dining-dinein').classList.contains('is-locked-out'), true);
+  assert.equal(case7.doc.getElementById('btn-dining-dinein').getAttribute('aria-disabled'), 'true');
+  case7.w.setCustomerDiningOption('dine_in');
+  assert.equal(case7.w.currentDiningOption, 'takeaway');
+  const colBtns = [...case7.doc.querySelectorAll('#collection-switcher-bar .collection-seg-btn')];
+  assert.equal(colBtns.length, 1);
+  assert.equal(colBtns[0].dataset.collectionId, 'shift_zb_late');
+  assert.equal(colBtns[0].getAttribute('aria-disabled'), 'true');
+  case7.w.setCustomerMenuCollection('');
+  assert.equal(case7.w.selectedMenuCollectionId, 'shift_zb_late');
+
+  // Case 8: Auto-by-time QR channel (defaultShiftId: null) keeps All Menus + switcher tabs unlocked
+  const case8 = await runScenario({
+    search: '?tenant_id=zhenbaochufang&ch=ch_auto&lang=zh-TW',
+    cachedTable: null,
+    tableStatusResponse: { ok: true, table: { exists: false, is_active: true, label: '' }, active_order: null },
+    initialQrChannel: { id: 'ch_auto', code: 'ch_auto', label: '外帶', diningPolicy: 'customer_choice', defaultShiftId: null, isActive: true },
+    qrChannels: [{ id: 'ch_auto', code: 'ch_auto', label: '外帶', diningPolicy: 'customer_choice', defaultShiftId: null, isActive: true }],
+    shifts: [
+      { id: 'shift_zb_lunch', name: '午餐時段', displayMode: 'switcher', diningPolicy: 'inherit', isActive: true, windows: [] },
+      { id: 'shift_zb_late', name: '宵夜時段', displayMode: 'switcher', diningPolicy: 'inherit', isActive: true, windows: [] }
+    ]
+  });
+  case8.w.eval(case8.realApplyPickup);
+  case8.w.resolveQrChannelAndInitialCollection(case8.w.storeConfig);
+  case8.w.applyPickupConfig();
+  const autoColBtns = [...case8.doc.querySelectorAll('#collection-switcher-bar .collection-seg-btn')];
+  assert.equal(autoColBtns.length, 3);
+  assert.equal(autoColBtns[0].dataset.collectionId, '');
+  assert.equal(case8.doc.getElementById('btn-dining-dinein').getAttribute('aria-disabled'), null);
 });
 
 test('Worker getTableStatus and LINE receipt restrict append mode to active Table Management orders only', async () => {

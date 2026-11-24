@@ -44,12 +44,6 @@ const ORDER_TYPE_OPTIONS: { value: QrChannelDiningPolicy; labelKey: string; help
   { value: 'customer_choice', labelKey: 'qrOrderTypeChoice', helpKey: 'qrOrderTypeHelpChoice' },
 ];
 
-const LOCALE_LABELS: Record<string, string> = {
-  'zh-TW': '繁體中文',
-  en: 'English',
-  vi: 'Tiếng Việt',
-};
-
 function QrCodeSvg({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -137,10 +131,10 @@ export function QrChannelsPanel(props: QrChannelsPanelProps) {
       code: channel.code,
       diningPolicy: hasDineIn ? (channel.diningPolicy || 'customer_choice') : 'takeaway',
       defaultShiftId: channel.defaultShiftId || '',
-      defaultLocale: channel.defaultLocale || '',
+      defaultLocale: '',
       isActive: channel.isActive !== false,
     });
-    setAdvancedOpen(Boolean(channel.defaultShiftId || channel.defaultLocale));
+    setAdvancedOpen(Boolean(channel.defaultShiftId));
     setErrorMsg('');
     setEditorOpen(true);
   }
@@ -528,23 +522,6 @@ export function QrChannelsPanel(props: QrChannelsPanelProps) {
                   </label>
 
                   <label className="qr-field">
-                    <span className="qr-field-label">{t('qrFormLocaleField')}</span>
-                    <NativeSelect
-                      className="qr-select"
-                      value={draft.defaultLocale}
-                      onChange={event => {
-                        const value = event.currentTarget.value;
-                        setDraft(prev => ({ ...prev, defaultLocale: value }));
-                      }}
-                    >
-                      <option value="">{t('collectionQrLangAuto')}</option>
-                      <option value="zh-TW">繁體中文</option>
-                      <option value="en">English</option>
-                      <option value="vi">Tiếng Việt</option>
-                    </NativeSelect>
-                  </label>
-
-                  <label className="qr-field">
                     <span className="qr-field-label">{t('qrFormCodeField')}</span>
                     <Input
                       type="text"
@@ -617,8 +594,7 @@ export function QrChannelsPanel(props: QrChannelsPanelProps) {
                 ? shifts.find(s => String(s.id) === String(ch.defaultShiftId))
                 : null;
               const menuText = matchedShift ? matchedShift.name : t('qrMenuModeAuto');
-              const localeText = ch.defaultLocale && LOCALE_LABELS[ch.defaultLocale] ? LOCALE_LABELS[ch.defaultLocale] : '';
-              const metaLine = [orderTypeLabel(ch.diningPolicy), menuText, localeText].filter(Boolean).join(' · ');
+              const metaLine = [orderTypeLabel(ch.diningPolicy), menuText].filter(Boolean).join(' · ');
 
               return (
                 <div key={ch.id} className={`qr-channel-row ${!ch.isActive ? 'is-disabled' : ''}`}>

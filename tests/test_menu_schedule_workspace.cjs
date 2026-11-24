@@ -389,6 +389,9 @@ test('Screen 2 QR & Entrypoints supports channel creation with diningPolicy, tog
   // Open inline add card, pick 'Tại chỗ', enter label, and save
   const addBtn = [...d.querySelectorAll('.qr-header-btn')].find(b => b.textContent.includes('Thêm mã QR'));
   await click(addBtn);
+  const advToggle = d.querySelector('.qr-advanced-toggle');
+  await click(advToggle);
+  assert.equal([...d.querySelectorAll('.qr-field-label')].some(el => el.textContent.includes('Ngôn ngữ mặc định')), false);
   const nameInput = d.querySelector('.qr-editor-card .qr-input');
   const setVal = Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype, 'value').set;
   setVal.call(nameInput, 'Khoa Marketing');

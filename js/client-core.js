@@ -617,15 +617,31 @@ function resolveQrChannelAndInitialCollection(tenant) {
     }
 
     const shifts = Array.isArray(tenant.operatingShifts) ? tenant.operatingShifts : [];
-    if (!window.__collectionUrlResolvedOnce) {
-        const targetColId = rawCol || (resolvedChannel && resolvedChannel.defaultShiftId) || '';
+    const channelFixedShift = (resolvedChannel && resolvedChannel.defaultShiftId)
+        ? shifts.find(s => s && s.isActive !== false && s.id === resolvedChannel.defaultShiftId) || null
+        : null;
+    if (channelFixedShift) {
+        window.lockedMenuCollectionId = channelFixedShift.id;
+        window.selectedMenuCollectionId = channelFixedShift.id;
+        window.__collectionUrlResolvedOnce = true;
+    } else if (!window.__collectionUrlResolvedOnce) {
+        const targetColId = rawCol || '';
         if (targetColId) {
             const matchedShift = shifts.find(s => s && s.isActive !== false && s.id === targetColId);
             if (matchedShift) {
                 window.selectedMenuCollectionId = matchedShift.id;
+                window.lockedMenuCollectionId = (!resolvedChannel && matchedShift.displayMode === 'qr_only')
+                    ? matchedShift.id
+                    : null;
                 window.__collectionUrlResolvedOnce = true;
+            } else {
+                window.lockedMenuCollectionId = null;
             }
+        } else {
+            window.lockedMenuCollectionId = null;
         }
+    } else if (resolvedChannel && !resolvedChannel.defaultShiftId) {
+        window.lockedMenuCollectionId = null;
     }
     window.__qrChannelResolvedOnce = true;
 }
@@ -639,10 +655,13 @@ function renderQrChannelBanner() {
     const ch = window.currentQrChannel;
     if (!ch || !ch.label || window.isStaffOrderMode || window.isAppendMode || window.currentTableNumber) {
         banner.style.display = 'none';
+        banner.removeAttribute('title');
         return;
     }
     const localizedLabel = typeof locText === 'function' ? locText(ch, 'label', ch.label) : ch.label;
-    labelEl.textContent = localizedLabel || ch.label;
+    const displayLabel = localizedLabel || ch.label;
+    labelEl.textContent = displayLabel;
+    banner.title = displayLabel;
     banner.style.display = 'flex';
 }
 window.renderQrChannelBanner = renderQrChannelBanner;
@@ -743,11 +762,25 @@ function renderMenuCollectionSwitcher() {
         ? storeConfig.operatingShifts
         : (Array.isArray(window.bootstrapData?.tenant?.operatingShifts) ? window.bootstrapData.tenant.operatingShifts : []);
 
+    const ch = window.currentQrChannel || null;
+    const lockedShift = (ch && ch.defaultShiftId
+        ? shifts.find(s => s && s.isActive !== false && s.id === ch.defaultShiftId)
+        : null) || (window.lockedMenuCollectionId
+        ? shifts.find(s => s && s.isActive !== false && s.id === window.lockedMenuCollectionId)
+        : null);
+    const isCollectionLocked = Boolean(lockedShift);
+    if (lockedShift) {
+        window.selectedMenuCollectionId = lockedShift.id;
+        window.lockedMenuCollectionId = lockedShift.id;
+    }
+
     const activeId = window.selectedMenuCollectionId || '';
-    const visibleShifts = shifts.filter(s =>
-        s && s.isActive !== false &&
-        ((s.displayMode !== 'schedule_only' && s.displayMode !== 'qr_only') || s.id === activeId)
-    );
+    const visibleShifts = isCollectionLocked
+        ? [lockedShift]
+        : shifts.filter(s =>
+            s && s.isActive !== false &&
+            ((s.displayMode !== 'schedule_only' && s.displayMode !== 'qr_only') || s.id === activeId)
+        );
 
     if (!hasMenuSchedule || visibleShifts.length === 0 || window.isStaffOrderMode || window.isEditOrderMode) {
         wrapper.style.display = 'none';
@@ -760,18 +793,24 @@ function renderMenuCollectionSwitcher() {
     const allLabel = tFn('collection_all_label', null, '全部菜單');
     const allSub = tFn('collection_all_sub', null, '依目前時段');
 
-    let html = `<button type="button" class="collection-seg-btn ${!activeId ? 'active' : ''}" data-collection-id="" role="tab" aria-selected="${!activeId}" onclick="setCustomerMenuCollection('')">
+    bar.className = isCollectionLocked ? 'collection-segmented-control is-locked' : 'collection-segmented-control';
+    let html = isCollectionLocked
+        ? ''
+        : `<button type="button" class="collection-seg-btn ${!activeId ? 'active' : ''}" data-collection-id="" role="tab" aria-selected="${!activeId}" onclick="setCustomerMenuCollection('')">
         <span class="collection-seg-title">${escapeHtml(allLabel)}</span>
         <span class="collection-seg-time">${escapeHtml(allSub)}</span>
     </button>`;
 
     for (const shift of visibleShifts) {
-        const isActive = activeId === shift.id;
+        const isActive = isCollectionLocked || activeId === shift.id;
         const localizedName = (typeof MenuSchedule !== 'undefined' && typeof MenuSchedule.getLocalizedShiftName === 'function')
             ? MenuSchedule.getLocalizedShiftName(shift, locale)
             : shift.name;
         const winSummary = formatCollectionWindowSummary(shift);
-        html += `<button type="button" class="collection-seg-btn ${isActive ? 'active' : ''}" data-collection-id="${escapeHtml(shift.id)}" role="tab" aria-selected="${isActive}" onclick="setCustomerMenuCollection('${escapeHtml(shift.id)}')">
+        const lockedAttrs = isCollectionLocked
+            ? ' aria-disabled="true"'
+            : ` onclick="setCustomerMenuCollection('${escapeHtml(shift.id)}')"`;
+        html += `<button type="button" class="collection-seg-btn ${isActive ? 'active' : ''} ${isCollectionLocked ? 'is-locked' : ''}" data-collection-id="${escapeHtml(shift.id)}" role="tab" aria-selected="${isActive}"${lockedAttrs}>
             <span class="collection-seg-title">${escapeHtml(localizedName)}</span>
             ${winSummary ? `<span class="collection-seg-time">${escapeHtml(winSummary)}</span>` : ''}
         </button>`;
@@ -813,6 +852,11 @@ window.renderMenuCollectionSwitcher = renderMenuCollectionSwitcher;
 
 function setCustomerMenuCollection(shiftId) {
     const nextId = shiftId ? String(shiftId).trim() : '';
+    const chLockedShiftId = window.currentQrChannel?.defaultShiftId ? String(window.currentQrChannel.defaultShiftId) : '';
+    const lockedId = window.lockedMenuCollectionId ? String(window.lockedMenuCollectionId) : chLockedShiftId;
+    if (lockedId && nextId !== lockedId) {
+        return;
+    }
     window.selectedMenuCollectionId = nextId || null;
     window.isPickupTimeManuallyChanged = false;
 
@@ -837,6 +881,9 @@ window.setCustomerMenuCollection = setCustomerMenuCollection;
 
 function setCustomerDiningOption(opt) {
     if (opt !== 'takeaway' && opt !== 'dine_in') return;
+    if (window.diningOptionLocked && opt !== window.diningOptionLocked && !window.currentTableNumber && !window.isAppendMode && !window.isEditOrderMode) {
+        return;
+    }
     window.currentDiningOption = opt;
 
     // Sync top segmented switcher
@@ -1173,19 +1220,33 @@ function applyPickupConfig() {
     const storeAllowsDineIn = !(storeConfig && storeConfig.allowDineIn === false);
     const hasDineInFeature = Boolean(storeConfig && Array.isArray(storeConfig.features) && (storeConfig.features.includes('dine_in') || storeConfig.features.includes('table_qr_ordering')));
 
-    const syncCustomerChoiceButtons = (choiceOpt, showTop, showCheckout) => {
-        if (diningWrapper) diningWrapper.style.display = showTop ? 'block' : 'none';
-        if (checkoutDiningGroup) checkoutDiningGroup.style.display = showCheckout ? 'block' : 'none';
+    const syncCustomerChoiceButtons = (choiceOpt, showTop, showCheckout, lockedMode = null) => {
+        window.diningOptionLocked = lockedMode || null;
+        const blockToggleUi = Boolean(window.isStaffOrderMode || window.isEditOrderMode);
+        if (diningWrapper) diningWrapper.style.display = (showTop && !blockToggleUi) ? 'block' : 'none';
+        if (checkoutDiningGroup) checkoutDiningGroup.style.display = (showCheckout && !blockToggleUi) ? 'block' : 'none';
+        const topControl = diningWrapper ? diningWrapper.querySelector('.dining-segmented-control') : null;
+        if (topControl) {
+            topControl.classList.toggle('is-locked', Boolean(lockedMode));
+        }
         const btnTopTakeaway = document.getElementById('btn-dining-takeaway');
         const btnTopDinein = document.getElementById('btn-dining-dinein');
-        if (btnTopTakeaway) {
-            btnTopTakeaway.classList.toggle('active', choiceOpt === 'takeaway');
-            btnTopTakeaway.setAttribute('aria-selected', choiceOpt === 'takeaway');
-        }
-        if (btnTopDinein) {
-            btnTopDinein.classList.toggle('active', choiceOpt === 'dine_in');
-            btnTopDinein.setAttribute('aria-selected', choiceOpt === 'dine_in');
-        }
+        const syncTopBtn = (btn, mode) => {
+            if (!btn) return;
+            const isActive = choiceOpt === mode;
+            const isLocked = Boolean(lockedMode);
+            btn.classList.toggle('active', isActive);
+            btn.classList.toggle('is-locked-active', isLocked && isActive);
+            btn.classList.toggle('is-locked-out', isLocked && !isActive);
+            btn.setAttribute('aria-selected', String(isActive));
+            if (isLocked) {
+                btn.setAttribute('aria-disabled', 'true');
+            } else {
+                btn.removeAttribute('aria-disabled');
+            }
+        };
+        syncTopBtn(btnTopTakeaway, 'takeaway');
+        syncTopBtn(btnTopDinein, 'dine_in');
         const btnChkTakeaway = document.getElementById('checkout-btn-takeaway');
         const btnChkDinein = document.getElementById('checkout-btn-dinein');
         if (btnChkTakeaway) btnChkTakeaway.classList.toggle('active', choiceOpt === 'takeaway');
@@ -1196,40 +1257,39 @@ function applyPickupConfig() {
         (chPolicy === 'customer_choice' || (!chPolicy && selectedShift?.diningPolicy === 'both')) &&
         storeAllowsDineIn;
 
+    const showLockedCorner = Boolean(
+        hasDineInFeature && storeAllowsDineIn &&
+        (ch || selectedShift?.diningPolicy === 'takeaway_only' || selectedShift?.diningPolicy === 'dine_in_only')
+    );
+
     if (window.isAppendMode || window.currentTableNumber) {
         window.currentDiningOption = 'dine_in';
-        if (diningWrapper) diningWrapper.style.display = 'none';
-        if (checkoutDiningGroup) checkoutDiningGroup.style.display = 'none';
+        syncCustomerChoiceButtons('dine_in', false, false, 'dine_in');
     } else if (selectedShift && selectedShift.diningPolicy === 'takeaway_only') {
         window.currentDiningOption = 'takeaway';
-        if (diningWrapper) diningWrapper.style.display = 'none';
-        if (checkoutDiningGroup) checkoutDiningGroup.style.display = 'none';
-    } else if (chPolicy === 'takeaway') {
+        syncCustomerChoiceButtons('takeaway', showLockedCorner, false, 'takeaway');
+    } else if (chPolicy === 'takeaway' || (ch && !storeAllowsDineIn)) {
         window.currentDiningOption = 'takeaway';
-        if (diningWrapper) diningWrapper.style.display = 'none';
-        if (checkoutDiningGroup) checkoutDiningGroup.style.display = 'none';
+        syncCustomerChoiceButtons('takeaway', showLockedCorner, false, 'takeaway');
     } else if ((selectedShift && selectedShift.diningPolicy === 'dine_in_only' && storeAllowsDineIn) || (chPolicy === 'dine_in' && storeAllowsDineIn)) {
         window.currentDiningOption = 'dine_in';
-        if (diningWrapper) diningWrapper.style.display = 'none';
-        if (checkoutDiningGroup) checkoutDiningGroup.style.display = 'none';
+        syncCustomerChoiceButtons('dine_in', showLockedCorner || chPolicy === 'dine_in', false, 'dine_in');
     } else if (allowCollectionOrChannelChoice) {
         const cur = window.currentDiningOption === 'dine_in' ? 'dine_in' : 'takeaway';
         window.currentDiningOption = cur;
-        syncCustomerChoiceButtons(cur, true, true);
+        syncCustomerChoiceButtons(cur, true, true, null);
     } else if (window.isStaffOrderMode && hasDineInFeature && storeAllowsDineIn) {
-        if (diningWrapper) diningWrapper.style.display = 'none';
-        if (checkoutDiningGroup) checkoutDiningGroup.style.display = 'none';
+        syncCustomerChoiceButtons(window.currentDiningOption === 'dine_in' ? 'dine_in' : 'takeaway', false, false, null);
     } else {
         const isDineInAllowed = showLegacyDiningToggle && hasDineInFeature && storeAllowsDineIn;
         if (!isDineInAllowed) {
             if (!selectedShift || selectedShift.diningPolicy !== 'dine_in_only' || !hasDineInFeature || !storeAllowsDineIn) {
                 window.currentDiningOption = 'takeaway';
             }
-            if (diningWrapper) diningWrapper.style.display = 'none';
-            if (checkoutDiningGroup) checkoutDiningGroup.style.display = 'none';
+            syncCustomerChoiceButtons(window.currentDiningOption === 'dine_in' ? 'dine_in' : 'takeaway', false, false, null);
         } else {
             const cur = window.currentDiningOption === 'dine_in' ? 'dine_in' : 'takeaway';
-            syncCustomerChoiceButtons(cur, true, true);
+            syncCustomerChoiceButtons(cur, true, true, null);
         }
     }
 
