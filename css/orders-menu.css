@@ -2064,7 +2064,7 @@ body.ug-open { overflow: hidden; }
 .ug-drawer h3,.ug-workspace h3 { font-size: calc(17px * var(--menu-font-scale)); margin: 0 0 16px; }
 .ug-drawer button,.ug-workspace button { min-height: 48px; min-width: 48px; border: 0; background: transparent; color: #167565; cursor: pointer; padding: 10px 12px; font: inherit; font-weight: 600; border-radius: 8px; }
 .ug-drawer button:hover,.ug-row:hover { background: #f5f8f7; }
-.ug-drawer button:focus-visible,.ug-drawer input:focus-visible,.ug-drawer select:focus-visible,.ug-drawer summary:focus-visible { outline: 3px solid #4fa995; outline-offset: 2px; }
+.ug-drawer button:focus-visible,.ug-drawer input:focus-visible,.ug-drawer textarea:focus-visible,.ug-drawer select:focus-visible,.ug-drawer summary:focus-visible { outline: 3px solid #4fa995; outline-offset: 2px; }
 .ug-body { padding: 12px 28px 32px; overflow-y: auto; flex: 1; overscroll-behavior: contain; }
 .ug-body section { margin-bottom: 32px; }
 .ug-drawer footer { padding: 12px 28px max(16px,env(safe-area-inset-bottom)); border-top: 1px solid #e7e9ec; flex-shrink: 0; background: #fff; }
@@ -2077,7 +2077,8 @@ body.ug-open { overflow: hidden; }
 .ug-rule-error[hidden] { display: none; }
 .ug-stepper input[aria-invalid="true"] { border-color: #b42332; }
 .ug-field { display: flex; flex-direction: column; gap: 7px; margin: 0 0 18px; font-size: var(--menu-font-base); color: #59626a; }
-.ug-field input,.ug-field select,.ug-search,.ug-filter { border: 1px solid #dce1e5; border-radius: 8px; min-height: 52px; padding: 12px; font: inherit; color: #20262d; background: white; width: 100%; box-sizing: border-box; }
+.ug-field input,.ug-field textarea,.ug-field select,.ug-search,.ug-filter { border: 1px solid #dce1e5; border-radius: 8px; min-height: 52px; padding: 12px; font: inherit; color: #20262d; background: white; width: 100%; box-sizing: border-box; }
+.ug-field textarea { min-height: 76px; resize: vertical; line-height: 1.45; }
 .ug-search,.ug-filter { margin-bottom: 14px; }
 .ug-scope-selector { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; box-sizing: border-box; }
 .ug-drawer .ug-scope-card { display: flex; flex-direction: column; align-items: flex-start; text-align: start; gap: 4px; padding: 12px 14px; min-height: 68px; border: 1.5px solid #dce1e5; border-radius: 10px; background: #ffffff; color: #20262d; cursor: pointer; transition: border-color .15s, background-color .15s, box-shadow .15s; box-sizing: border-box; width: 100%; }

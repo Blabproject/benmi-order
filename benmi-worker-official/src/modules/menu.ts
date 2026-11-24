@@ -643,9 +643,10 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
   // Anchor the guard before reading ranks and IDs used to construct the write batch.
   const unifiedCatalog = unifiedMenuEnabled(env) ? await loadOptionCatalog(env, tenantId) : null;
   const hasMenuSchedule = await hasTenantMenuScheduleFeature(env.DB, tenantId, null);
-  const [hasCatI18nCol, hasItemI18nCol, hasCatAvailCol, hasCatHideCol, hasItemAvailCol, rawHasCatShiftsTbl, rawHasItemShiftsTbl] = await Promise.all([
+  const [hasCatI18nCol, hasItemI18nCol, hasItemDescCol, hasCatAvailCol, hasCatHideCol, hasItemAvailCol, rawHasCatShiftsTbl, rawHasItemShiftsTbl] = await Promise.all([
     hasTableColumn(env.DB, "menu_categories", "i18n_json"),
     hasTableColumn(env.DB, "menu_items", "i18n_json"),
+    hasTableColumn(env.DB, "menu_items", "description"),
     hasTableColumn(env.DB, "menu_categories", "availability_mode"),
     hasTableColumn(env.DB, "menu_categories", "hide_when_unavailable"),
     hasTableColumn(env.DB, "menu_items", "availability_mode"),
@@ -664,7 +665,7 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
   ).bind(tenantId).all();
 
   const { results: existingItems } = await env.DB.prepare(
-    `SELECT id, category_id, name${hasItemI18nCol ? ", i18n_json" : ""}${hasItemAvailCol ? ", availability_mode" : ""} FROM menu_items WHERE tenant_id = ?`
+    `SELECT id, category_id, name${hasItemI18nCol ? ", i18n_json" : ""}${hasItemDescCol ? ", description" : ""}${hasItemAvailCol ? ", availability_mode" : ""} FROM menu_items WHERE tenant_id = ?`
   ).bind(tenantId).all();
 
   const existingCatI18nMap = new Map<string, string>(
@@ -678,6 +679,9 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
   );
   const existingItemI18nMap = new Map<string, string>(
     (existingItems || []).map((row: any) => [String(row.id), String(row.i18n_json || "{}")])
+  );
+  const existingItemDescMap = new Map<string, string | null>(
+    (existingItems || []).map((row: any) => [String(row.id), row.description ? String(row.description) : null])
   );
   const existingItemAvailMap = new Map<string, string>(
     (existingItems || []).map((row: any) => [String(row.id), String(row.availability_mode || "inherit")])
@@ -1082,10 +1086,17 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
         if (!itemId) {
           itemId = `${tenantId}_${slug}_${itemName}`;
         }
+        const itemDescRaw = (itemVal && typeof itemVal === "object" && itemVal.description !== undefined)
+          ? itemVal.description
+          : undefined;
+        const itemDescription = itemDescRaw !== undefined
+          ? (String(itemDescRaw ?? "").trim() || null)
+          : (existingItemDescMap.get(itemId) ?? null);
+
         activeItemIds.push(itemId);
         if (unifiedCatalog) {
           const old = unifiedCatalog.products.find(p=>p.id===itemId);
-          unifiedCatalog.products = unifiedCatalog.products.filter(p=>p.id!==itemId).concat({...old,id:itemId,tenant_id:tenantId,category_id:catId,name:itemName,price});
+          unifiedCatalog.products = unifiedCatalog.products.filter(p=>p.id!==itemId).concat({...old,id:itemId,tenant_id:tenantId,category_id:catId,name:itemName,price,description:itemDescription});
         }
 
         const explicitItemSort = (itemVal && (itemVal.sort_order !== undefined || itemVal.sortOrder !== undefined))
@@ -1107,8 +1118,8 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
 
         statements.push(
           env.DB.prepare(
-            `INSERT INTO menu_items (id, tenant_id, category_id, name, price, badge_text, is_recommended, sort_order, item_type${hasItemI18nCol ? ", i18n_json" : ""}${hasItemAvailCol ? ", availability_mode" : ""})
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?${hasItemI18nCol ? ", ?" : ""}${hasItemAvailCol ? ", ?" : ""})
+            `INSERT INTO menu_items (id, tenant_id, category_id, name, price, badge_text, is_recommended, sort_order, item_type${hasItemI18nCol ? ", i18n_json" : ""}${hasItemDescCol ? ", description" : ""}${hasItemAvailCol ? ", availability_mode" : ""})
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?${hasItemI18nCol ? ", ?" : ""}${hasItemDescCol ? ", ?" : ""}${hasItemAvailCol ? ", ?" : ""})
              ON CONFLICT(id) DO UPDATE SET 
                category_id = excluded.category_id,
                name = excluded.name,
@@ -1116,11 +1127,12 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
                badge_text = excluded.badge_text, 
                is_recommended = excluded.is_recommended, 
                sort_order = excluded.sort_order,
-               item_type = excluded.item_type${hasItemI18nCol ? ",\n               i18n_json = excluded.i18n_json" : ""}${hasItemAvailCol ? ",\n               availability_mode = excluded.availability_mode" : ""}
+               item_type = excluded.item_type${hasItemI18nCol ? ",\n               i18n_json = excluded.i18n_json" : ""}${hasItemDescCol ? ",\n               description = excluded.description" : ""}${hasItemAvailCol ? ",\n               availability_mode = excluded.availability_mode" : ""}
              WHERE menu_items.tenant_id = excluded.tenant_id`
           ).bind(
             itemId, tenantId, catId, itemName, price, badgeText, isRec, explicitItemSort, itemType,
             ...(hasItemI18nCol ? [itemI18nJson] : []),
+            ...(hasItemDescCol ? [itemDescription] : []),
             ...(hasItemAvailCol ? [itemAvailMode] : [])
           )
         );

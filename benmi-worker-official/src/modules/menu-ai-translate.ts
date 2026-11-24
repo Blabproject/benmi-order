@@ -834,7 +834,14 @@ export async function handleMenuAiTranslate(
           ? entries.filter((entry) => {
               if (!entry.existingI18n) return true;
               const reqFields =
-                entry.type === "option_group" ? ["title"] : ["name"];
+                entry.type === "option_group"
+                  ? ["title"]
+                  : [
+                      "name",
+                      ...(entry.short_name ? ["short_name"] : []),
+                      ...(entry.description ? ["description"] : []),
+                      ...(entry.badge_text ? ["badge_text"] : []),
+                    ];
               return needsTranslation(
                 entry.existingI18n,
                 group.locales,

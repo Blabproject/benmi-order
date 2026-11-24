@@ -98,6 +98,10 @@ function ItemDetailForm({ category, name, create, bundle, tag }: FormView & { ta
               </div>
             </div>
             <div className="item-detail-section" style={{ paddingTop: "16px", borderTop: "1px solid #f1f5f9" }}>
+              <label className="item-detail-label" id="i18n-item-description-title" htmlFor="item-detail-description-input">{t('itemDescriptionTitle')}</label>
+              <textarea id="item-detail-description-input" className="item-detail-input item-detail-textarea" rows={2} placeholder={t('itemDescriptionPlaceholder')} />
+            </div>
+            <div className="item-detail-section" style={{ paddingTop: "16px", borderTop: "1px solid #f1f5f9" }}>
               <label className="item-detail-label" id="i18n-item-badge-title" htmlFor="item-detail-badge-input">{t('itemBadgeTitle')}</label>
               <div className="item-detail-badge-input-wrap">
                 <input type="text" id="item-detail-badge-input" className="item-detail-input" placeholder={t('itemBadgePlaceholder')} style={{ height: "44px" }} />
@@ -126,6 +130,10 @@ function ItemDetailForm({ category, name, create, bundle, tag }: FormView & { ta
                     <label className="item-detail-label" id="i18n-item-en-badge-label" htmlFor="item-detail-i18n-en-badge">{t('itemI18nEnBadge')}</label>
                     <input type="text" id="item-detail-i18n-en-badge" className="item-detail-input" autoComplete="off" style={{ height: "48px" }} />
                   </div>
+                  <div data-i18n-locale="en" style={{ gridColumn: "1 / -1" }}>
+                    <label className="item-detail-label" id="i18n-item-en-description-label" htmlFor="item-detail-i18n-en-description">{t('itemI18nEnDescription')}</label>
+                    <textarea id="item-detail-i18n-en-description" className="item-detail-input item-detail-textarea" rows={2} autoComplete="off" />
+                  </div>
                   <div data-i18n-locale="vi">
                     <label className="item-detail-label" id="i18n-item-vi-name-label" htmlFor="item-detail-i18n-vi-name">{t('itemI18nViName')}</label>
                     <input type="text" id="item-detail-i18n-vi-name" className="item-detail-input" autoComplete="off" style={{ height: "48px" }} />
@@ -133,6 +141,10 @@ function ItemDetailForm({ category, name, create, bundle, tag }: FormView & { ta
                   <div data-i18n-locale="vi">
                     <label className="item-detail-label" id="i18n-item-vi-badge-label" htmlFor="item-detail-i18n-vi-badge">{t('itemI18nViBadge')}</label>
                     <input type="text" id="item-detail-i18n-vi-badge" className="item-detail-input" autoComplete="off" style={{ height: "48px" }} />
+                  </div>
+                  <div data-i18n-locale="vi" style={{ gridColumn: "1 / -1" }}>
+                    <label className="item-detail-label" id="i18n-item-vi-description-label" htmlFor="item-detail-i18n-vi-description">{t('itemI18nViDescription')}</label>
+                    <textarea id="item-detail-i18n-vi-description" className="item-detail-input item-detail-textarea" rows={2} autoComplete="off" />
                   </div>
                 </div>
               </div>

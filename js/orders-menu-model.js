@@ -47,6 +47,11 @@
             res[k] = v ? String(v).trim() : '';
             continue;
           }
+          if (k === 'description') {
+            const trimmedDesc = v ? String(v).trim() : '';
+            if (trimmedDesc) res[k] = trimmedDesc;
+            continue;
+          }
           if (k === 'bundleRule' && (!v || !v.groups || v.groups.length === 0)) {
             res[k] = null;
             continue;
@@ -210,6 +215,10 @@
             item_type: item.itemType || (item.bundleRule && item.bundleRule.groups && item.bundleRule.groups.length > 0 ? 'bundle' : 'standard'),
             sort_order: item.sortOrder !== undefined ? item.sortOrder : (item.sort_order !== undefined ? item.sort_order : (itemIdx + 1))
           };
+          if (item.description !== undefined) {
+            const trimmedDesc = String(item.description || '').trim();
+            serializedItem.description = trimmedDesc || null;
+          }
           if (item.i18n && typeof item.i18n === 'object' && Object.keys(item.i18n).length > 0) {
             serializedItem.i18n = item.i18n;
           }

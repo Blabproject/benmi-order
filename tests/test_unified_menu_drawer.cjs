@@ -672,6 +672,42 @@ test('new option group flow has 2 steps: step 1 picks scope, step 2 fills detail
   assert.equal(zhApp.get('[data-action="back"]').textContent, '返回');
 });
 
+test('product drawer exposes description field, dirties on edit, and saves/clears description', async () => {
+  const app = await setup();
+  app.catalog().products[0].description = 'Mô tả cũ';
+  await app.context.UnifiedMenu.load();
+  app.context.currentMenuData[0].items[0].description = 'Mô tả cũ';
+
+  app.context.UnifiedMenu.product(0, 0);
+  const descField = app.get('[data-field="description"]');
+  assert.equal(descField.tagName, 'TEXTAREA');
+  assert.equal(descField.value, 'Mô tả cũ');
+
+  // Closing unchanged stays clean
+  await app.click('close');
+  assert.equal(app.drawer().hidden, true);
+  assert.equal(app.posts.length, 0);
+
+  // Editing description dirties and saves
+  app.context.UnifiedMenu.product(0, 0);
+  app.input('description', 'Thịt nướng, đồ chua, rau thơm');
+  await app.click('close');
+  assert.equal(app.get('.ug-confirmation').hidden, false);
+  await app.click('continue');
+
+  await app.click('save');
+  assert.equal(app.posts.length, 1);
+  assert.equal(app.posts[0].description, 'Thịt nướng, đồ chua, rau thơm');
+  assert.equal(app.context.currentMenuData[0].items[0].description, 'Thịt nướng, đồ chua, rau thơm');
+
+  // Clearing description saves empty string (backend stores null)
+  app.context.UnifiedMenu.product(0, 0);
+  app.input('description', '');
+  await app.click('save');
+  assert.equal(app.posts.length, 2);
+  assert.equal(app.posts[1].description, '');
+});
+
 
 
 

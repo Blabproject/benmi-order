@@ -18,6 +18,7 @@ import {
   resolveSaveErrorKey,
   sortProductLinks,
   sortedUniqueIds,
+  type MenuI18nLocalePatchDto,
   type MenuI18nMapDto,
   type OptionCatalogDto,
   type OptionCatalogGroupDto,
@@ -116,6 +117,7 @@ function makeProductDraft(
     isNew?: boolean;
     name?: string;
     price?: number;
+    description?: string;
     categoryId?: string;
     badgeText?: string;
     isRecommended?: boolean;
@@ -141,6 +143,7 @@ function makeProductDraft(
     isNew: override?.isNew ?? false,
     name: override?.name ?? (product.name || ''),
     price: Number(override?.price ?? product.price ?? 0),
+    description: override?.description ?? (product.description || ''),
     categoryId: override?.categoryId ?? (product.category_id || ''),
     badgeText: override?.badgeText ?? (product.badge_text || ''),
     isRecommended: override?.isRecommended ?? Boolean(product.is_recommended),
@@ -485,6 +488,7 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
         name?: string;
         originalName?: string;
         price?: number;
+        description?: string | null;
         badgeText?: string;
         isRecommended?: boolean;
         menuRevision?: number;
@@ -506,6 +510,7 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
         id: localRecord.id || `${tenant}_prod_${makeTempId('opt')}`,
         name: localRecord.name || '',
         price: Number(localRecord.price ?? 0),
+        description: localRecord.description ?? null,
         category_id: resolvedCategoryId,
         badge_text: localRecord.badgeText || '',
         is_recommended: Boolean(localRecord.isRecommended),
@@ -521,6 +526,10 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
           isNew: !prod,
           name: localRecord.name || '',
           price: Number(localRecord.price ?? 0),
+          description:
+            localRecord.description !== undefined && localRecord.description !== null
+              ? String(localRecord.description)
+              : (prod?.description || ''),
           categoryId: resolvedCategoryId,
           badgeText: localRecord.badgeText || '',
           isRecommended: Boolean(localRecord.isRecommended),
@@ -851,16 +860,42 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
     subKey?: string
   ): MenuI18nMapDto {
     const next: MenuI18nMapDto = cloneValue(target || {});
-    const patch = { ...(next[loc] || {}) };
+    const patch: MenuI18nLocalePatchDto = { ...(next[loc] || {}) };
     if (prop === 'sub_options' && subKey) {
       const subs = { ...(patch.sub_options || {}) };
-      subs[subKey] = value;
-      patch.sub_options = subs;
+      if (value === '') delete subs[subKey];
+      else subs[subKey] = value;
+      if (Object.keys(subs).length > 0) patch.sub_options = subs;
+      else delete patch.sub_options;
+    } else if (value === '') {
+      delete patch[prop];
     } else {
       patch[prop] = value;
     }
-    next[loc] = patch;
-    return cleanI18n(next);
+    if (Object.keys(patch).length > 0) next[loc] = patch;
+    else delete next[loc];
+    return next;
+  }
+
+  function mergeTranslatedI18n(
+    existing: MenuI18nMapDto | undefined,
+    incoming: MenuI18nMapDto | undefined
+  ): MenuI18nMapDto {
+    const merged: MenuI18nMapDto = cloneValue(existing || {});
+    for (const [loc, patch] of Object.entries(incoming || {})) {
+      if (!patch || typeof patch !== 'object' || Array.isArray(patch)) continue;
+      const prevPatch = merged[loc] || {};
+      const nextSubOptions =
+        prevPatch.sub_options || patch.sub_options
+          ? { ...(prevPatch.sub_options || {}), ...(patch.sub_options || {}) }
+          : undefined;
+      merged[loc] = {
+        ...prevPatch,
+        ...patch,
+        ...(nextSubOptions ? { sub_options: nextSubOptions } : {}),
+      };
+    }
+    return cleanI18n(merged);
   }
 
   function setField(field: string, value: string | number | boolean, subKey?: string) {
@@ -871,6 +906,7 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
       if (next.route.page === 'product') {
         const d = next.draft as ProductDraft;
         if (field === 'name') d.name = String(value);
+        else if (field === 'description') d.description = String(value);
         else if (field === 'categoryId') d.categoryId = String(value);
         else if (field === 'price') {
           const parsed = Number(value);
@@ -1346,6 +1382,9 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
         const next = cloneValue(prev);
         const g = next.draft as OptionGroupDraft;
         const opt = cloneValue((prev.route as Extract<OptionDrawerRoute, { page: 'option' }>).option);
+        if (opt.i18n !== undefined) {
+          opt.i18n = cleanI18n(opt.i18n);
+        }
         const idx = g.options.findIndex((o) => o.id === opt.id);
         if (idx >= 0) g.options[idx] = opt;
         else g.options.push(opt);
@@ -1932,26 +1971,44 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
     try {
       if (drawer.route.page === 'product') {
         const d = drawer.draft as ProductDraft;
-        const res = await doFetch(`${base}/api/menu/ai-translate`, {
-          method: 'POST',
-          headers: bridge.getAuthHeaders(true),
-          body: JSON.stringify({
-            tenant,
-            targetLocales,
-            item: { name: d.name, badge_text: d.badgeText },
-          }),
-        });
+        const entryId = d.id || `draft_${Date.now()}`;
+        const res = await doFetch(
+          `${base}/api/menu/ai-translate?tenant_id=${encodeURIComponent(tenant)}`,
+          {
+            method: 'POST',
+            headers: bridge.getAuthHeaders(true),
+            body: JSON.stringify({
+              tenant_id: tenant,
+              applyToDatabase: false,
+              targetLocales,
+              entries: [
+                {
+                  type: 'item',
+                  id: entryId,
+                  name: d.name,
+                  badge_text: d.badgeText,
+                  description: d.description,
+                },
+              ],
+            }),
+          }
+        );
         const json = (await res.json().catch(() => ({}))) as {
           error?: string;
-          translations?: MenuI18nMapDto;
+          byId?: Record<string, MenuI18nMapDto>;
+          translations?: Record<string, MenuI18nMapDto> | MenuI18nMapDto;
         };
-        if (!res.ok || !json.translations) {
+        const translated =
+          json.byId?.[entryId] ||
+          (json.translations as Record<string, MenuI18nMapDto> | undefined)?.[`item:${entryId}`] ||
+          (json.translations as MenuI18nMapDto | undefined);
+        if (!res.ok || !translated) {
           throw new Error(json.error || translatePos(locale, 'ugAiTranslateError'));
         }
         updateDrawer((prev) => {
           const next = cloneValue(prev);
           const pd = next.draft as ProductDraft;
-          pd.i18n = cleanI18n({ ...(pd.i18n || {}), ...json.translations });
+          pd.i18n = mergeTranslatedI18n(pd.i18n, translated);
           next.aiBusy = false;
           return next;
         });
@@ -1960,26 +2017,42 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
 
       if (drawer.route.page === 'group') {
         const g = drawer.draft as OptionGroupDraft;
-        const res = await doFetch(`${base}/api/menu/ai-translate`, {
-          method: 'POST',
-          headers: bridge.getAuthHeaders(true),
-          body: JSON.stringify({
-            tenant,
-            targetLocales,
-            group: { name: g.name },
-          }),
-        });
+        const entryId = g.id || `draft_grp_${Date.now()}`;
+        const res = await doFetch(
+          `${base}/api/menu/ai-translate?tenant_id=${encodeURIComponent(tenant)}`,
+          {
+            method: 'POST',
+            headers: bridge.getAuthHeaders(true),
+            body: JSON.stringify({
+              tenant_id: tenant,
+              applyToDatabase: false,
+              targetLocales,
+              entries: [
+                {
+                  type: 'option_group',
+                  id: entryId,
+                  name: g.name,
+                },
+              ],
+            }),
+          }
+        );
         const json = (await res.json().catch(() => ({}))) as {
           error?: string;
-          translations?: MenuI18nMapDto;
+          byId?: Record<string, MenuI18nMapDto>;
+          translations?: Record<string, MenuI18nMapDto> | MenuI18nMapDto;
         };
-        if (!res.ok || !json.translations) {
+        const translated =
+          json.byId?.[entryId] ||
+          (json.translations as Record<string, MenuI18nMapDto> | undefined)?.[`option_group:${entryId}`] ||
+          (json.translations as MenuI18nMapDto | undefined);
+        if (!res.ok || !translated) {
           throw new Error(json.error || translatePos(locale, 'ugAiTranslateError'));
         }
         updateDrawer((prev) => {
           const next = cloneValue(prev);
           const gd = next.draft as OptionGroupDraft;
-          gd.i18n = cleanI18n({ ...(gd.i18n || {}), ...json.translations });
+          gd.i18n = mergeTranslatedI18n(gd.i18n, translated);
           next.aiBusy = false;
           return next;
         });
@@ -1988,30 +2061,48 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
 
       if (drawer.route.page === 'option') {
         const opt = drawer.route.option;
+        const entryId = opt.id || `draft_opt_${Date.now()}`;
         const subNames = (opt.subOptions || [])
           .map((s) => (typeof s === 'string' ? s : s.productId ? '' : s.name))
           .filter(Boolean);
-        const res = await doFetch(`${base}/api/menu/ai-translate`, {
-          method: 'POST',
-          headers: bridge.getAuthHeaders(true),
-          body: JSON.stringify({
-            tenant,
-            targetLocales,
-            option: { name: opt.name, sub_options: subNames },
-          }),
-        });
+        const res = await doFetch(
+          `${base}/api/menu/ai-translate?tenant_id=${encodeURIComponent(tenant)}`,
+          {
+            method: 'POST',
+            headers: bridge.getAuthHeaders(true),
+            body: JSON.stringify({
+              tenant_id: tenant,
+              applyToDatabase: false,
+              targetLocales,
+              entries: [
+                {
+                  type: 'option',
+                  id: entryId,
+                  name: opt.name,
+                  description: opt.description || undefined,
+                  sub_options: subNames,
+                },
+              ],
+            }),
+          }
+        );
         const json = (await res.json().catch(() => ({}))) as {
           error?: string;
-          translations?: MenuI18nMapDto;
+          byId?: Record<string, MenuI18nMapDto>;
+          translations?: Record<string, MenuI18nMapDto> | MenuI18nMapDto;
         };
-        if (!res.ok || !json.translations) {
+        const translated =
+          json.byId?.[entryId] ||
+          (json.translations as Record<string, MenuI18nMapDto> | undefined)?.[`option:${entryId}`] ||
+          (json.translations as MenuI18nMapDto | undefined);
+        if (!res.ok || !translated) {
           throw new Error(json.error || translatePos(locale, 'ugAiTranslateError'));
         }
         updateDrawer((prev) => {
           if (prev.route.page !== 'option') return { ...prev, aiBusy: false };
           const next = cloneValue(prev);
           const nextOpt = (next.route as Extract<OptionDrawerRoute, { page: 'option' }>).option;
-          nextOpt.i18n = cleanI18n({ ...(nextOpt.i18n || {}), ...json.translations });
+          nextOpt.i18n = mergeTranslatedI18n(nextOpt.i18n, translated);
           next.aiBusy = false;
           return next;
         });

@@ -9229,6 +9229,14 @@ body.bundle-wizard-open > :not(#bundle-wizard):not(#imageModal):not(script) { vi
   box-shadow: 0 0 0 3px rgba(0, 185, 0, 0.12);
 }
 
+.item-detail-textarea {
+  height: auto;
+  min-height: 74px;
+  padding: 10px 12px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
 .item-detail-fields-row {
   display: flex;
   gap: 12px;

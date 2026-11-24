@@ -10,6 +10,7 @@ import {
 
 export interface MenuI18nLocalePatchDto {
   name?: string;
+  description?: string;
   badge_text?: string;
   sub_options?: Record<string, string>;
   [key: string]: unknown;
@@ -22,6 +23,7 @@ export interface OptionCatalogProductDto {
   category_id: string;
   name: string;
   price: number;
+  description?: string | null;
   sku?: string | null;
   badge_text?: string | null;
   is_recommended?: boolean | number;
@@ -142,6 +144,7 @@ export interface ProductDraft {
   isNew?: boolean;
   name: string;
   price: number;
+  description: string;
   categoryId: string;
   badgeText: string;
   isRecommended: boolean;
@@ -545,6 +548,7 @@ export function entitySnapshot(
     return stableStringify({
       name: String(d.name || '').trim(),
       price: Number(d.price),
+      description: String(d.description || '').trim(),
       categoryId: d.categoryId,
       badgeText: d.badgeText || '',
       isRecommended: Boolean(d.isRecommended),
@@ -751,6 +755,7 @@ export function rebaseMenuSnapshots({
           name: p.name,
           originalName: p.name,
           price: p.price,
+          description: p.description || '',
           badgeText: p.badge_text || '',
           isRecommended: Boolean(p.is_recommended),
           imageKey: p.image_key || null,

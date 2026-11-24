@@ -281,21 +281,38 @@ export function PosOptionGroupsDrawer({
       step?: string;
       subKey?: string;
       spanText?: string;
+      placeholder?: string;
+      multiline?: boolean;
+      rows?: number;
     }
   ) => (
     <label className="ug-field">
       <span>{opts?.spanText ?? tr(labelKey)}</span>
-      <input
-        id={opts?.id}
-        data-field={key}
-        data-sub-key={opts?.subKey}
-        type={opts?.type ?? 'text'}
-        min={opts?.min}
-        step={opts?.step}
-        value={value}
-        onInput={(e) => store.setField(key, e.currentTarget.value, opts?.subKey)}
-        onChange={(e) => store.setField(key, e.currentTarget.value, opts?.subKey)}
-      />
+      {opts?.multiline ? (
+        <textarea
+          id={opts?.id}
+          data-field={key}
+          data-sub-key={opts?.subKey}
+          rows={opts?.rows ?? 2}
+          placeholder={opts?.placeholder}
+          value={value}
+          onInput={(e) => store.setField(key, e.currentTarget.value, opts?.subKey)}
+          onChange={(e) => store.setField(key, e.currentTarget.value, opts?.subKey)}
+        />
+      ) : (
+        <input
+          id={opts?.id}
+          data-field={key}
+          data-sub-key={opts?.subKey}
+          type={opts?.type ?? 'text'}
+          min={opts?.min}
+          step={opts?.step}
+          placeholder={opts?.placeholder}
+          value={value}
+          onInput={(e) => store.setField(key, e.currentTarget.value, opts?.subKey)}
+          onChange={(e) => store.setField(key, e.currentTarget.value, opts?.subKey)}
+        />
+      )}
     </label>
   );
 
@@ -566,6 +583,7 @@ export function PosOptionGroupsDrawer({
     prefix: 'i18n' | 'option.i18n';
     i18nMap: MenuI18nMapDto | undefined;
     includeBadge: boolean;
+    includeDescription?: boolean;
     aiAction: 'ai-translate-entity' | 'ai-translate-option';
     subOptions?: Array<string | OptionCatalogSubOptionDto>;
     hideNameInput?: boolean;
@@ -607,11 +625,23 @@ export function PosOptionGroupsDrawer({
           {showEn && !opts.hideNameInput
             ? renderField(`${opts.prefix}.en.name`, 'ugI18nEnName', en.name || '')
             : null}
+          {showEn && opts.includeDescription
+            ? renderField(`${opts.prefix}.en.description`, 'ugI18nEnDescription', en.description || '', {
+                multiline: true,
+                rows: 2,
+              })
+            : null}
           {showEn && opts.includeBadge
             ? renderField(`${opts.prefix}.en.badge_text`, 'ugI18nEnBadge', en.badge_text || '')
             : null}
           {showVi && !opts.hideNameInput
             ? renderField(`${opts.prefix}.vi.name`, 'ugI18nViName', vi.name || '')
+            : null}
+          {showVi && opts.includeDescription
+            ? renderField(`${opts.prefix}.vi.description`, 'ugI18nViDescription', vi.description || '', {
+                multiline: true,
+                rows: 2,
+              })
             : null}
           {showVi && opts.includeBadge
             ? renderField(`${opts.prefix}.vi.badge_text`, 'ugI18nViBadge', vi.badge_text || '')
@@ -995,11 +1025,17 @@ export function PosOptionGroupsDrawer({
             step: '0.01',
           })}
           {renderField('badgeText', 'ugBadge', draft.badgeText)}
+          {renderField('description', 'ugItemDescription', draft.description, {
+            multiline: true,
+            rows: 2,
+            placeholder: tr('ugItemDescriptionPlaceholder'),
+          })}
 
           {renderI18nSection({
             prefix: 'i18n',
             i18nMap: draft.i18n,
             includeBadge: true,
+            includeDescription: true,
             aiAction: 'ai-translate-entity',
           })}
 

@@ -818,6 +818,31 @@ test('Customer LIFF VM live locale switching translates UI, menu, and sub_option
   assert.equal(structured[0].name, '雞胸肉');
   assert.equal(sandbox._coCustomerLocale(), 'vi');
 
+  // Item card renders editable description, prioritizes merchant description over legacy translations, and localizes i18n description
+  const cardItem = {
+    id: 'item_desc_01',
+    name: '燒肉',
+    price: 80,
+    description: '豬五花、特製醬汁',
+    i18n: {
+      en: { name: 'Roast Pork', description: 'Pork belly with house sauce' },
+      vi: { name: 'Thịt quay', description: 'Thịt ba chỉ sốt đặc biệt' },
+    },
+  };
+  sandbox.bootstrapData.translations = { '燒肉': 'Legacy hardcoded fallback' };
+  sandbox.setClientLocale('zh-TW');
+  const zhCard = sandbox.createDynamicItemCard('cat_demo_meat', cardItem, bootstrap.catalog[0]);
+  assert.ok(zhCard.innerHTML.includes('豬五花、特製醬汁'));
+  assert.ok(!zhCard.innerHTML.includes('Legacy hardcoded fallback'));
+
+  sandbox.setClientLocale('en');
+  const enCard = sandbox.createDynamicItemCard('cat_demo_meat', cardItem, bootstrap.catalog[0]);
+  assert.ok(enCard.innerHTML.includes('Pork belly with house sauce'));
+
+  sandbox.setClientLocale('vi');
+  const viCard = sandbox.createDynamicItemCard('cat_demo_meat', cardItem, bootstrap.catalog[0]);
+  assert.ok(viCard.innerHTML.includes('Thịt ba chỉ sốt đặc biệt'));
+
   // Legacy tenant stays locked to primary locale & switcher remains hidden (unless ?lang= overrides)
   const legacyVm = createLiffVm({ search: '?tenant_id=benmi', navigatorLanguage: 'en-US' });
   const legacyTenant = {

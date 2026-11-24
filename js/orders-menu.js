@@ -414,6 +414,7 @@ async function fetchMenuData() {
             id: it.id || null,
             name: it.name,
             price: it.price,
+            description: it.description || '',
             isOos: it.isOutOfStock,
             outOfStockUntil: it.outOfStockUntil || it.out_of_stock_until || null,
             badgeText: it.badgeText || (it.badge || ''),
@@ -5204,8 +5205,10 @@ function populateItemDetailI18nInputs(i18n) {
   }
   const fields = {
     'item-detail-i18n-en-name': i18n?.en?.name || '',
+    'item-detail-i18n-en-description': i18n?.en?.description || '',
     'item-detail-i18n-en-badge': i18n?.en?.badge_text || '',
     'item-detail-i18n-vi-name': i18n?.vi?.name || '',
+    'item-detail-i18n-vi-description': i18n?.vi?.description || '',
     'item-detail-i18n-vi-badge': i18n?.vi?.badge_text || '',
   };
   for (const [id, val] of Object.entries(fields)) {
@@ -5219,18 +5222,21 @@ function readItemDetailI18nInputs(existingI18n) {
   if (!enNameEl) return existingI18n;
   const targets = getActiveMenuTargetLocales();
   const enName = enNameEl.value.trim();
+  const enDesc = document.getElementById('item-detail-i18n-en-description')?.value.trim() || '';
   const enBadge = document.getElementById('item-detail-i18n-en-badge')?.value.trim() || '';
   const viName = document.getElementById('item-detail-i18n-vi-name')?.value.trim() || '';
+  const viDesc = document.getElementById('item-detail-i18n-vi-description')?.value.trim() || '';
   const viBadge = document.getElementById('item-detail-i18n-vi-badge')?.value.trim() || '';
   const next = existingI18n ? JSON.parse(JSON.stringify(existingI18n)) : {};
-  const applyLocale = (loc, name, badge) => {
+  const applyLocale = (loc, name, desc, badge) => {
     const entry = { ...(next[loc] || {}) };
     if (name) entry.name = name; else delete entry.name;
+    if (desc) entry.description = desc; else delete entry.description;
     if (badge) entry.badge_text = badge; else delete entry.badge_text;
     if (Object.keys(entry).length > 0) next[loc] = entry; else delete next[loc];
   };
-  if (targets.includes('en')) applyLocale('en', enName, enBadge);
-  if (targets.includes('vi')) applyLocale('vi', viName, viBadge);
+  if (targets.includes('en')) applyLocale('en', enName, enDesc, enBadge);
+  if (targets.includes('vi')) applyLocale('vi', viName, viDesc, viBadge);
   if (Object.keys(next).length === 0) return existingI18n ? {} : undefined;
   return next;
 }
@@ -5242,12 +5248,16 @@ function autoCommitItemDetailFields() {
 
   const nameInput = document.getElementById("item-detail-name-input");
   const priceInput = document.getElementById("item-detail-price-input");
+  const descInput = document.getElementById("item-detail-description-input");
   const badgeInput = document.getElementById("item-detail-badge-input");
 
   if (nameInput && nameInput.value.trim()) item.name = nameInput.value.trim();
   if (priceInput && priceInput.value !== "") {
     const p = parseFloat(priceInput.value);
     if (!isNaN(p)) item.price = p;
+  }
+  if (descInput) {
+    item.description = descInput.value.trim();
   }
   if (badgeInput) {
     const bVal = badgeInput.value.trim();
@@ -5273,6 +5283,7 @@ function showItemDetailForm(cat, item) {
   });
   const nameInput = document.getElementById("item-detail-name-input");
   const priceInput = document.getElementById("item-detail-price-input");
+  const descInput = document.getElementById("item-detail-description-input");
   const badgeInput = document.getElementById("item-detail-badge-input");
   const photoName = document.getElementById("item-detail-photo-item-name");
   if (photoName) photoName.innerText = name;
@@ -5281,6 +5292,7 @@ function showItemDetailForm(cat, item) {
     nameInput.oninput = () => { if (photoName) photoName.innerText = nameInput.value.trim(); };
   }
   if (priceInput) priceInput.value = item?.price ?? "";
+  if (descInput) descInput.value = item?.description || "";
   if (badgeInput) {
     badgeInput.value = item?.badgeText || "";
     badgeInput.oninput = () => renderQuickTags(badgeInput.value);
@@ -5382,10 +5394,12 @@ function saveItemDetailModal() {
 
   const nameInput = document.getElementById("item-detail-name-input");
   const priceInput = document.getElementById("item-detail-price-input");
+  const descInput = document.getElementById("item-detail-description-input");
   const badgeInput = document.getElementById("item-detail-badge-input");
 
   const nameVal = nameInput ? nameInput.value.trim() : "";
   const priceVal = priceInput && priceInput.value !== "" ? parseFloat(priceInput.value) : 0;
+  const descVal = descInput ? descInput.value.trim() : "";
   const badgeVal = badgeInput ? badgeInput.value.trim() : "";
   const isRec = Boolean(cat.items?.[activeItemDetailItemIdx]?.isRecommended);
 
@@ -5405,6 +5419,7 @@ function saveItemDetailModal() {
     const newItem = {
       name: nameVal,
       price: isNaN(priceVal) ? 0 : priceVal,
+      description: descVal,
       badgeText: badgeVal,
       isRecommended: isRec,
       isOos: false,
@@ -5428,6 +5443,7 @@ function saveItemDetailModal() {
     if (item) {
       item.name = nameVal;
       item.price = isNaN(priceVal) ? 0 : priceVal;
+      item.description = descVal;
       item.badgeText = badgeVal;
       item.isRecommended = isRec;
       const nextI18n = readItemDetailI18nInputs(item.i18n);
@@ -5461,10 +5477,12 @@ function transitionToSubEditor(type) {
 
   const nameInput = document.getElementById("item-detail-name-input");
   const priceInput = document.getElementById("item-detail-price-input");
+  const descInput = document.getElementById("item-detail-description-input");
   const badgeInput = document.getElementById("item-detail-badge-input");
 
   const nameVal = nameInput ? nameInput.value.trim() : "";
   const priceVal = priceInput && priceInput.value !== "" ? parseFloat(priceInput.value) : 0;
+  const descVal = descInput ? descInput.value.trim() : "";
   const badgeVal = badgeInput ? badgeInput.value.trim() : "";
   const isRec = Boolean(cat.items?.[activeItemDetailItemIdx]?.isRecommended);
 
@@ -5478,6 +5496,7 @@ function transitionToSubEditor(type) {
     const newItem = {
       name: nameVal,
       price: isNaN(priceVal) ? 0 : priceVal,
+      description: descVal,
       badgeText: badgeVal,
       isRecommended: isRec,
       isOos: false,
@@ -5541,11 +5560,13 @@ function setAiTranslateButtonLoading(btn, isLoading, detailsEl) {
 
 async function translateItemDetailWithAI() {
   const nameInput = document.getElementById("item-detail-name-input");
+  const descInput = document.getElementById("item-detail-description-input");
   const badgeInput = document.getElementById("item-detail-badge-input");
   const aiBtn = document.getElementById("btn-item-detail-ai-translate");
   const aiBtnLabel = document.getElementById("i18n-btn-item-ai-translate");
   const details = document.getElementById("item-detail-i18n-details");
   const nameVal = nameInput ? nameInput.value.trim() : "";
+  const descVal = descInput ? descInput.value.trim() : "";
   const badgeVal = badgeInput ? badgeInput.value.trim() : "";
 
   if (!nameVal) {
@@ -5583,6 +5604,7 @@ async function translateItemDetailWithAI() {
               type: "item",
               id: entryId,
               name: nameVal,
+              description: descVal,
               badge_text: badgeVal
             }
           ]
@@ -5594,15 +5616,19 @@ async function translateItemDetailWithAI() {
     if (session !== itemDetailSession) return;
     const tr = data.byId?.[entryId] || data.translations?.[`item:${entryId}`] || {};
     const enNameEl = document.getElementById("item-detail-i18n-en-name");
+    const enDescEl = document.getElementById("item-detail-i18n-en-description");
     const enBadgeEl = document.getElementById("item-detail-i18n-en-badge");
     const viNameEl = document.getElementById("item-detail-i18n-vi-name");
+    const viDescEl = document.getElementById("item-detail-i18n-vi-description");
     const viBadgeEl = document.getElementById("item-detail-i18n-vi-badge");
     if (targetLocales.includes("en")) {
       if (enNameEl && tr.en?.name) enNameEl.value = tr.en.name;
+      if (enDescEl && tr.en?.description) enDescEl.value = tr.en.description;
       if (enBadgeEl && tr.en?.badge_text) enBadgeEl.value = tr.en.badge_text;
     }
     if (targetLocales.includes("vi")) {
       if (viNameEl && tr.vi?.name) viNameEl.value = tr.vi.name;
+      if (viDescEl && tr.vi?.description) viDescEl.value = tr.vi.description;
       if (viBadgeEl && tr.vi?.badge_text) viBadgeEl.value = tr.vi.badge_text;
     }
     if (details) details.open = true;

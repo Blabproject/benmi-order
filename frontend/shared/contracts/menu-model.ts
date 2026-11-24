@@ -83,6 +83,7 @@ export interface MenuItemDraft {
   id?: string | null;
   name: string;
   price: number | null;
+  description?: string | null;
   isOos?: boolean;
   outOfStockUntil?: string | null;
   badgeText?: string;
@@ -121,6 +122,7 @@ export interface BootstrapMenuItemDto {
   id?: string | null;
   name: string;
   price: number | null;
+  description?: string | null;
   isOutOfStock?: boolean;
   outOfStockUntil?: string | null;
   out_of_stock_until?: string | null;
@@ -272,6 +274,7 @@ export interface SerializedCustomizationsSectionPayload {
 export interface SerializedMenuItemPayload {
   id: string | null | undefined;
   price: number | null;
+  description?: string | null;
   badge_text: string | null;
   is_recommended: number;
   item_type: string;
@@ -375,6 +378,11 @@ export function canonicalMenuSnapshot(data: unknown): string {
         }
         if (k === 'badgeText') {
           res[k] = v ? String(v).trim() : '';
+          continue;
+        }
+        if (k === 'description') {
+          const trimmedDesc = v ? String(v).trim() : '';
+          if (trimmedDesc) res[k] = trimmedDesc;
           continue;
         }
         if (k === 'bundleRule') {
@@ -481,6 +489,7 @@ export function normalizeBootstrapMenuCategories(
         id: it.id || null,
         name: it.name,
         price: it.price,
+        description: it.description || '',
         isOos: Boolean(it.isOutOfStock),
         outOfStockUntil: it.outOfStockUntil || it.out_of_stock_until || null,
         badgeText: it.badgeText || it.badge || '',
@@ -868,6 +877,10 @@ export function serializeMenuData(
               ? item.sort_order
               : itemIdx + 1
       };
+      if (item.description !== undefined) {
+        const trimmedDesc = String(item.description || '').trim();
+        serializedItem.description = trimmedDesc || null;
+      }
       const rawAvailMode = item.availabilityMode ?? item.availability_mode;
       serializedItem.availability_mode =
         rawAvailMode === 'all_shifts' || rawAvailMode === 'selected_shifts'

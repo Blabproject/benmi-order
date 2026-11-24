@@ -160,6 +160,14 @@ async function setup({ included = false, source = false, lang = 'vi' } = {}) {
           price: payload.price,
           category_id: payload.categoryId,
           badge_text: payload.badgeText,
+          description:
+            payload.description !== undefined
+              ? String(payload.description ?? '').trim() || null
+              : next.products[index].description,
+          i18n:
+            payload.i18n !== undefined
+              ? payload.i18n
+              : next.products[index].i18n,
           is_recommended: payload.isRecommended,
           image_key: payload.imageKey ? payload.imageKey : null,
           menu_revision: Number(payload.revision || 0) + 1,

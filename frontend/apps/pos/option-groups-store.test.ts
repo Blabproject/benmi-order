@@ -238,4 +238,75 @@ describe('createOptionGroupsStore', () => {
     const grpSave = JSON.parse(calls.find((c) => c.url.includes('/api/menu/option-group?'))?.body || '{}');
     expect(grpSave.options.map((o: { id: string }) => o.id)).toEqual(['o_purple', 'o_white']);
   });
+
+  it('edits, AI-translates, and saves product description and i18n descriptions', async () => {
+    const catalog = makeCatalog();
+    catalog.products[0]!.description = 'Thịt nướng, pate';
+    const calls: Array<{ url: string; body?: string }> = [];
+
+    const fetcher = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const href = String(url);
+      calls.push({ url: href, body: typeof init?.body === 'string' ? init.body : undefined });
+      if (href.includes('/api/menu/options')) {
+        return new Response(JSON.stringify(catalog), { status: 200 });
+      }
+      if (href.includes('/api/menu/ai-translate')) {
+        const parsed = JSON.parse(String(init?.body || '{}')) as {
+          entries?: Array<{ id: string; description?: string }>;
+        };
+        const entryId = parsed.entries?.[0]?.id || 'p1';
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            byId: {
+              [entryId]: {
+                en: { name: 'Baguette', description: 'Grilled pork, pate, herbs' },
+              },
+            },
+          }),
+          { status: 200 }
+        );
+      }
+      if (href.includes('/api/menu/product?')) {
+        const body = JSON.parse(String(init?.body || '{}')) as {
+          description?: string;
+          i18n?: Record<string, { description?: string }>;
+        };
+        catalog.products[0]!.description = body.description ?? null;
+        catalog.products[0]!.i18n = body.i18n;
+        return new Response(JSON.stringify({ success: true, id: 'p1', catalog }), { status: 200 });
+      }
+      return new Response('{}', { status: 404 });
+    });
+
+    const { store } = makeBridge(fetcher);
+    await store.openProduct('p1', 'product');
+    expect((store.getSnapshot().drawer?.draft as { description: string }).description).toBe('Thịt nướng, pate');
+
+    store.setField('description', 'Thịt nướng, pate, rau thơm');
+    expect(await store.translateWithAi()).toBe(true);
+
+    // Preserves trailing spaces/newlines during controlled typing, then trims cleanly on save
+    store.setField('i18n.en.description', 'Grilled pork, ');
+    expect((store.getSnapshot().drawer?.draft as { i18n?: { en?: { description?: string } } }).i18n?.en?.description).toBe(
+      'Grilled pork, '
+    );
+    store.setField('i18n.en.description', 'Grilled pork,\npate, herbs  ');
+
+    const translateCall = calls.find((c) => c.url.includes('/api/menu/ai-translate'));
+    expect(translateCall?.url).toContain('tenant_id=benmi');
+    const translateBody = JSON.parse(translateCall?.body || '{}') as {
+      entries: Array<{ type: string; description?: string }>;
+    };
+    expect(translateBody.entries[0]?.type).toBe('item');
+    expect(translateBody.entries[0]?.description).toBe('Thịt nướng, pate, rau thơm');
+
+    expect(await store.save()).toBe(true);
+    const saveBody = JSON.parse(calls.find((c) => c.url.includes('/api/menu/product?'))?.body || '{}') as {
+      description?: string;
+      i18n?: Record<string, { description?: string }>;
+    };
+    expect(saveBody.description).toBe('Thịt nướng, pate, rau thơm');
+    expect(saveBody.i18n?.en?.description).toBe('Grilled pork,\npate, herbs');
+  });
 });

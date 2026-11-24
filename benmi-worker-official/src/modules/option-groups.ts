@@ -693,6 +693,10 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 			const productI18n = (raw.i18n !== undefined || raw.i18n_json !== undefined)
 				? parseI18nJson(raw.i18n ?? raw.i18n_json)
 				: parseI18nJson(previous?.i18n ?? previous?.i18n_json);
+			const productDescription =
+				raw.description !== undefined
+					? (String(raw.description ?? '').trim() || null)
+					: (previous?.description ?? null);
 			const maxCategorySort = catalog.products
 				.filter((p) => p.category_id === raw.categoryId)
 				.reduce((max, p) => Math.max(max, Number(p.sort_order ?? 0)), 0);
@@ -707,6 +711,7 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 				name: String(raw.name).trim(),
 				price: Number(raw.price),
 				badge_text: String(raw.badgeText || ''),
+				description: productDescription,
 				is_recommended: raw.isRecommended ? 1 : 0,
 				image_key: typeof raw.imageKey === 'string' ? (raw.imageKey.trim() || null) : (previous?.image_key ?? null),
 				sort_order: productSortOrder,
@@ -764,8 +769,9 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 			const oldLinkByGroupId = new Map(oldProductLinks.map((l) => [String(l.groupId), l]));
 			catalog.links = catalog.links.filter((l) => l.itemId !== id).concat(links);
 			validateOptionGraph(catalog);
-			const [hasItemI18nCol, hasItemAvailCol, hasItemShiftsTbl] = await Promise.all([
+			const [hasItemI18nCol, hasItemDescCol, hasItemAvailCol, hasItemShiftsTbl] = await Promise.all([
 				hasTableColumn(env.DB, 'menu_items', 'i18n_json'),
+				hasTableColumn(env.DB, 'menu_items', 'description'),
 				hasTableColumn(env.DB, 'menu_items', 'availability_mode'),
 				hasDbTable(env.DB, 'menu_item_shifts'),
 			]);
@@ -776,7 +782,7 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 					: (previous?.availability_mode || 'inherit');
 			statements.push(
 				env.DB.prepare(
-					`INSERT INTO menu_items (id,tenant_id,category_id,name,price,badge_text,is_recommended,menu_revision,sort_order,image_key${hasItemI18nCol ? ',i18n_json' : ''}${hasItemAvailCol ? ',availability_mode' : ''}) VALUES (?,?,?,?,?,?,?,?,?,?${hasItemI18nCol ? ',?' : ''}${hasItemAvailCol ? ',?' : ''}) ON CONFLICT(id) DO UPDATE SET category_id=excluded.category_id,name=excluded.name,price=excluded.price,badge_text=excluded.badge_text,is_recommended=excluded.is_recommended,menu_revision=excluded.menu_revision,image_key=excluded.image_key${hasItemI18nCol ? ',i18n_json=excluded.i18n_json' : ''}${hasItemAvailCol ? ',availability_mode=excluded.availability_mode' : ''},updated_at=datetime('now')`,
+					`INSERT INTO menu_items (id,tenant_id,category_id,name,price,badge_text,is_recommended,menu_revision,sort_order,image_key${hasItemI18nCol ? ',i18n_json' : ''}${hasItemDescCol ? ',description' : ''}${hasItemAvailCol ? ',availability_mode' : ''}) VALUES (?,?,?,?,?,?,?,?,?,?${hasItemI18nCol ? ',?' : ''}${hasItemDescCol ? ',?' : ''}${hasItemAvailCol ? ',?' : ''}) ON CONFLICT(id) DO UPDATE SET category_id=excluded.category_id,name=excluded.name,price=excluded.price,badge_text=excluded.badge_text,is_recommended=excluded.is_recommended,menu_revision=excluded.menu_revision,image_key=excluded.image_key${hasItemI18nCol ? ',i18n_json=excluded.i18n_json' : ''}${hasItemDescCol ? ',description=excluded.description' : ''}${hasItemAvailCol ? ',availability_mode=excluded.availability_mode' : ''},updated_at=datetime('now')`,
 				).bind(
 					id,
 					tenantId,
@@ -789,6 +795,7 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 					productSortOrder,
 					product.image_key,
 					...(hasItemI18nCol ? [product.i18n_json] : []),
+					...(hasItemDescCol ? [productDescription] : []),
 					...(hasItemAvailCol ? [itemAvailabilityMode] : []),
 				),
 			);

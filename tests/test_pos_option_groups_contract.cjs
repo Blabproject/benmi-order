@@ -222,5 +222,38 @@ test("POS simulated DOM / SQLite contract: User opens combo group in POS, adds c
     "New custom option must be eligible in combo bundle rule"
   );
 
+  // 10. User edits a product's description in POS, saves to D1, then clears it to null
+  const firstProduct = updatedCatalog.products[0];
+  app.context.currentMenuData = [
+    {
+      id: firstProduct.category_id,
+      databaseId: firstProduct.category_id,
+      items: [
+        {
+          id: firstProduct.id,
+          name: firstProduct.name,
+          price: firstProduct.price,
+          description: firstProduct.description || "",
+          menuRevision: firstProduct.menu_revision,
+        },
+      ],
+    },
+  ];
+  await app.context.UnifiedMenu.product(0, 0);
+  app.input("description", "Thịt heo nướng mật ong, rau thơm");
+  await app.click("save");
+
+  const afterDescSave = await app.f.api.loadOptionCatalog(app.f.env, app.tenantId);
+  const savedProd = afterDescSave.products.find((p) => p.id === firstProduct.id);
+  assert.equal(savedProd.description, "Thịt heo nướng mật ong, rau thơm");
+
+  await app.context.UnifiedMenu.product(firstProduct.id, "product");
+  app.input("description", "");
+  await app.click("save");
+
+  const afterDescClear = await app.f.api.loadOptionCatalog(app.f.env, app.tenantId);
+  const clearedProd = afterDescClear.products.find((p) => p.id === firstProduct.id);
+  assert.equal(clearedProd.description, null);
+
   app.f.db.close();
 });

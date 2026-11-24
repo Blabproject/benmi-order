@@ -650,8 +650,8 @@ function createDynamicItemCard(catSlug, item, catObj) {
         : '';
 
     const localizedDesc = typeof locText === 'function' ? locText(item, 'description', '') : '';
-    const trans = localizedDesc || (bData?.translations && bData.translations[item.name]) || item.description || '';
-    const transHTML = trans ? `<div style="font-size: 13px; color: #9ca3af; margin-top: 2px;">${_cmEsc(trans)}</div>` : '';
+    const trans = localizedDesc || item.description || (bData?.translations && bData.translations[item.name]) || '';
+    const transHTML = trans ? `<div style="font-size: 13px; color: #9ca3af; margin-top: 2px; line-height: 1.4; white-space: pre-line;">${_cmEsc(trans)}</div>` : '';
 
     const safeItemName = item.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     const safeCatSlug = catSlug.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
