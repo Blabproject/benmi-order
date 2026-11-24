@@ -1,5 +1,6 @@
 import type { HistoryOrderDto } from '@shared/contracts/api';
 import {
+  extractOrderChannelLabel,
   formatOrderTotal,
   resolveDateExpanded,
   type HistoryDateGroup,
@@ -34,6 +35,7 @@ import {
   ModifyIcon,
   ReceiptIcon,
   SearchIcon,
+  TagIcon,
   TakeawayIcon
 } from '@shared/ui/PosIcons';
 
@@ -326,6 +328,7 @@ export function PosHistoryPanel({
                       const customerName = order.customer || order.customer_name || t('defaultCustomer');
                       const statusBadge = resolveOrderStatusBadge(order.status, locale);
                       const diningBadge = resolveOrderDiningBadge(order, locale);
+                      const channelLabel = extractOrderChannelLabel(order);
                       const paymentBadge = resolveOrderPaymentBadge(order, locale);
                       const itemsSummary = formatPosShortItems(order, resolveOptionLabel);
                       const totalFormatted = formatOrderTotal(order);
@@ -356,6 +359,17 @@ export function PosHistoryPanel({
                                 {diningBadge.isDineIn ? <DineInIcon /> : <TakeawayIcon />}
                                 <span>{diningBadge.label}</span>
                               </Badge>
+                              {channelLabel ? (
+                                <Badge
+                                  variant="outline"
+                                  data-testid="history-order-channel-tag"
+                                  title={channelLabel}
+                                  className="ps-max-w-[140px] ps-border-sky-200 ps-bg-sky-50 ps-px-1.5 ps-py-0.5 ps-text-[length:var(--pos-text-meta)] ps-text-sky-700"
+                                >
+                                  <TagIcon size={12} className="ps-shrink-0" />
+                                  <span className="ps-truncate">{channelLabel}</span>
+                                </Badge>
+                              ) : null}
                               {diningBadge.isDineIn && diningBadge.roundCount > 1 ? (
                                 <Badge
                                   variant="purple"

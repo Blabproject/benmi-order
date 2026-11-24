@@ -56,6 +56,14 @@ export function extractOrderTableNumber(order: Pick<HistoryOrderDto, 'tableNumbe
   return String(order.tableNumber || order.table_number || '').trim();
 }
 
+/** Extracts QR attribution channel / tag label from structured or snake_case fields. */
+export function extractOrderChannelLabel(
+  order: Pick<HistoryOrderDto, 'channelLabel' | 'channel_label'> | null | undefined
+): string {
+  if (!order) return '';
+  return String(order.channelLabel || order.channel_label || '').trim();
+}
+
 /** Determines whether an order is dine-in matching legacy orders-history precedence. */
 export function isOrderDineIn(order: HistoryOrderDto | null | undefined): boolean {
   if (!order) return false;
@@ -123,6 +131,11 @@ export function matchesHistorySearch(
 
   const table = extractOrderTableNumber(order).toLowerCase();
   if (table && (table === q || table === qNoHash || table.includes(q))) return true;
+
+  const channelLabel = extractOrderChannelLabel(order).toLowerCase();
+  if (channelLabel && (channelLabel.includes(q) || removeVietnameseDiacritics(channelLabel).includes(qClean))) {
+    return true;
+  }
 
   const phone = String(order.phone || order.phoneNumber || '').toLowerCase();
   if (phone && phone.includes(q)) return true;

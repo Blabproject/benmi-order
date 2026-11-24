@@ -1449,6 +1449,12 @@ function mapOrderRows(results: any[]): Order[] {
       diningOption: (row.dining_option as any) || 'takeaway',
       tableNumber: row.table_number || undefined,
       tableId: row.table_id || null, table_id: row.table_id || null, source: row.source, revision: Number(row.revision) || 0,
+      channelId: row.channel_id || null,
+      channel_id: row.channel_id || null,
+      channelLabel: row.channel_label || null,
+      channel_label: row.channel_label || null,
+      shiftId: row.shift_id || null,
+      shift_id: row.shift_id || null,
       roundCount: Number(row.round_count) || 1,
       round_count: Number(row.round_count) || 1,
       lastAppendedAt: parsedLastAppendedAt || row.last_appended_at || null,
@@ -1457,6 +1463,11 @@ function mapOrderRows(results: any[]): Order[] {
       isModified: Number(row.is_modified) === 1
     };
   });
+}
+
+async function getOrderAttributionColumnsSql(db: D1Database): Promise<string> {
+  const hasAttrCols = await hasDbColumn(db, 'orders', 'channel_id');
+  return hasAttrCols ? ', channel_id, channel_label, shift_id' : '';
 }
 
 export async function getOrders(request: Request, env: Env): Promise<Response> {
@@ -1474,7 +1485,7 @@ export async function getOrders(request: Request, env: Env): Promise<Response> {
     const lastKey = verRow?.key || "empty";
     const lastStatus = verRow?.status || "none";
     const lastRound = verRow?.round_count || 1;
-    const currentVersion = `detail1_items_${lastUpdated}_${lastKey}_${lastStatus}_${lastRound}_${verRow?.detail_revision || 0}`;
+    const currentVersion = `detail2_ch_items_${lastUpdated}_${lastKey}_${lastStatus}_${lastRound}_${verRow?.detail_revision || 0}`;
 
     // 2. Client gửi Header "If-None-Match" -> So sánh với D1 version
     const clientETag = request.headers.get("if-none-match")?.replace(/^W\//, '').replace(/"/g, '');
@@ -1494,8 +1505,9 @@ export async function getOrders(request: Request, env: Env): Promise<Response> {
     const todayTwStr = `${nowTw.getUTCFullYear()}-${String(nowTw.getUTCMonth() + 1).padStart(2, "0")}-${String(nowTw.getUTCDate()).padStart(2, "0")}`;
     const startOfTodayUTC = new Date(new Date(`${todayTwStr}T00:00:00+08:00`).getTime()).toISOString().replace("T", " ").replace(/\.\d+Z$/, "");
 
+    const attrColsSql = await getOrderAttributionColumnsSql(env.DB);
     const { results } = await env.DB.prepare(
-      `SELECT key, order_id, display_key, business_date, legacy_key, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, table_id, source, revision, round_count, last_appended_at, created_at, updated_at, is_modified
+      `SELECT key, order_id, display_key, business_date, legacy_key, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, table_id${attrColsSql}, source, revision, round_count, last_appended_at, created_at, updated_at, is_modified
        FROM orders 
        WHERE tenant_id = ? AND status <> 'PENDING_PAYMENT'
          AND (status IN ('NEW', 'ACCEPTED', 'WAITING_CUSTOMER_CHANGE', 'WAITING_CUSTOMER_REJECT', 'DONE') 
@@ -1556,8 +1568,9 @@ export async function getOrdersByDate(request: Request, env: Env): Promise<Respo
   }
 
   try {
+    const attrColsSql = await getOrderAttributionColumnsSql(env.DB);
     const { results } = await env.DB.prepare(
-      `SELECT key, order_id, display_key, business_date, legacy_key, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, table_id, source, revision, round_count, last_appended_at, created_at
+      `SELECT key, order_id, display_key, business_date, legacy_key, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, table_id${attrColsSql}, source, revision, round_count, last_appended_at, created_at
        FROM orders 
        WHERE tenant_id = ? 
          AND status IN ('PICKED_UP', 'REJECTED', 'PAID')
@@ -1581,8 +1594,9 @@ export async function getHistoryAll(request: Request, env: Env): Promise<Respons
   if (!env.DB) return json([]);
 
   try {
+    const attrColsSql = await getOrderAttributionColumnsSql(env.DB);
     const { results } = await env.DB.prepare(
-      `SELECT key, order_id, display_key, business_date, legacy_key, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, table_id, source, revision, round_count, last_appended_at, created_at
+      `SELECT key, order_id, display_key, business_date, legacy_key, customer_name, pickup_time, status, total_amount, order_content, reason, note, dining_option, table_number, table_id${attrColsSql}, source, revision, round_count, last_appended_at, created_at
        FROM orders 
        WHERE tenant_id = ? 
          AND status IN ('PICKED_UP', 'REJECTED', 'PAID')
@@ -1736,6 +1750,12 @@ export async function getOrderQueueAhead(env: Env, tenantId: string, orderKey: s
       diningOption: (row.dining_option as any) || 'takeaway',
       tableNumber: row.table_number || undefined,
       tableId: row.table_id || null, table_id: row.table_id || null, source: row.source, revision: Number(row.revision) || 0,
+      channelId: row.channel_id || null,
+      channel_id: row.channel_id || null,
+      channelLabel: row.channel_label || null,
+      channel_label: row.channel_label || null,
+      shiftId: row.shift_id || null,
+      shift_id: row.shift_id || null,
       roundCount: Number(row.round_count) || 1,
       round_count: Number(row.round_count) || 1,
       lastAppendedAt: row.last_appended_at || null,

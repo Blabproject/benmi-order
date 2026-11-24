@@ -2,9 +2,10 @@ import { useRef, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
 import type { HistoryOrderDto } from '@shared/contracts/api';
+import { extractOrderChannelLabel } from '@shared/contracts/history-model';
 import { Button } from '@shared/ui/button';
 import { OrderDetailItems, prepareOrderItems } from './OrderDetailItems';
-import { ClockIcon, CloseIcon, ModifyIcon, ReceiptIcon } from '@shared/ui/PosIcons';
+import { ClockIcon, CloseIcon, ModifyIcon, ReceiptIcon, TagIcon } from '@shared/ui/PosIcons';
 
 interface PrintItem { name?: string; price?: string | number; unitPrice?: string | number; quantity?: number }
 type ActionVariant = 'primary' | 'change' | 'danger' | 'blue';
@@ -150,6 +151,7 @@ function DetailActions({ status, dineIn }: { status: string; dineIn: boolean }) 
 function OrderDetail({ order, etaOrder, detail }: { order: HistoryOrderDto; etaOrder: HistoryOrderDto; detail: ReturnType<typeof readDetail> }) {
   const dineIn = isOrderDineIn(order);
   const table = getOrderTableNumber(order);
+  const channelLabel = extractOrderChannelLabel(order);
   const appended = (Number(order.round_count || order.roundCount) || 1) > 1 || Boolean(order.lastAppendedAt || order.last_appended_at);
   const customer = order.customer?.trim();
   const name = customer || t('defaultCustomer');
@@ -211,6 +213,12 @@ function OrderDetail({ order, etaOrder, detail }: { order: HistoryOrderDto; etaO
             <div className="customer-card-info">
               <span className="customer-card-name" id="review-customer">{customer || '-'}</span>
               <span className="customer-card-sub" id="review-customer-sub">{dining}{order.phone ? ` · ${order.phone}` : ''}</span>
+              {channelLabel && (
+                <span className="order-detail-channel-badge" id="review-channel-badge" title={channelLabel}>
+                  <TagIcon size={12} />
+                  <span>Tag: {channelLabel}</span>
+                </span>
+              )}
             </div>
           </div>
           <DetailActions key={order.key} status={order.status} dineIn={dineIn} />

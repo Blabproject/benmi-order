@@ -1115,6 +1115,19 @@ body.is-staff-order-active .page-main-title {
   border: 1px solid #ddd6fe;
 }
 
+.tile-badge.badge-channel-tag {
+  background: #f0f9ff;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+  max-width: 140px;
+}
+
+.tile-badge.badge-channel-tag .tile-badge-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tile-badge.badge-append {
   background: #fff7ed;
   color: #c2410c;
@@ -2489,6 +2502,28 @@ html.is-web-platform .store-activation-modal:not(.force-show) {
   font-size: var(--pos-text-meta);
   color: #64748b;
   font-weight: 500;
+}
+
+.order-detail-channel-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  max-width: 100%;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--pos-text-meta);
+  font-weight: 700;
+  background: #f0f9ff;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.order-detail-channel-badge > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .customer-card-pills {

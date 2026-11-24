@@ -3,6 +3,7 @@ import type { HistoryOrderDto } from './api';
 import {
   buildHistoryGroups,
   buildOrderItemsSummary,
+  extractOrderChannelLabel,
   formatOrderSubmissionTime,
   formatOrderTotal,
   formatPickupTimeDisplay,
@@ -54,6 +55,18 @@ describe('history-model domain parity', () => {
     expect(matchesHistorySearch(dineInOrder, '5')).toBe(true);
     expect(matchesHistorySearch(dineInOrder, 'hanh ngo')).toBe(true);
     expect(matchesHistorySearch(dineInOrder, 'không khớp')).toBe(false);
+
+    const supperOrder: HistoryOrderDto = {
+      ...dineInOrder,
+      key: 'ZBCF1124-T003',
+      diningOption: 'takeaway',
+      tableNumber: null,
+      channelId: 'ch_zhenbaochufang_d62ee89e',
+      channelLabel: '宵夜 · Ăn đêm'
+    };
+    expect(extractOrderChannelLabel(supperOrder)).toBe('宵夜 · Ăn đêm');
+    expect(matchesHistorySearch(supperOrder, '宵夜')).toBe(true);
+    expect(matchesHistorySearch(supperOrder, 'an dem')).toBe(true);
   });
 
   it('groups orders by Taiwan UTC+8 date descending and computes daily sums', () => {

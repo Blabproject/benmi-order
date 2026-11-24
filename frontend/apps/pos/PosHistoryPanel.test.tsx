@@ -108,4 +108,69 @@ describe('PosHistoryPanel integrated POS component', () => {
     expect(container.querySelector('#i18n-hist-filter-dinein')).toHaveTextContent('Tại bàn');
     expect(container.querySelector('#i18n-hist-filter-takeaway')).toHaveTextContent('Mang về');
   });
+
+  it('renders QR channel Tag badge on history cards and allows filtering by tag', () => {
+    const store = createHistoryBridgeStore({
+      initialLocale: 'vi',
+      initialDineInSupported: true,
+      expandMode: 'all',
+      nowMs: SANDBOX_REFERENCE_NOW_MS
+    });
+    const taggedOrders = [
+      {
+        ...DEFAULT_SANDBOX_ORDERS[0]!,
+        key: 'ZBCF1124-T003',
+        displayKey: 'ZBCF1124-T003',
+        diningOption: 'takeaway',
+        tableNumber: null,
+        channelId: 'ch_zhenbaochufang_d62ee89e',
+        channelLabel: '宵夜'
+      },
+      ...DEFAULT_SANDBOX_ORDERS.slice(1)
+    ];
+    store.renderHistory(taggedOrders, true);
+
+    const renderWithSnapshot = () => {
+      const snap = store.getSnapshot();
+      return (
+        <PosHistoryPanel
+          orders={snap.orders}
+          groups={snap.groups}
+          filteredCount={snap.filteredCount}
+          locale={snap.locale}
+          loading={snap.loading}
+          searchQuery={snap.searchQuery}
+          filterType={snap.filterType}
+          dineInSupported={snap.dineInSupported}
+          expandedKeys={snap.expandedKeys}
+          isFiltering={snap.isFiltering}
+          isAllExpanded={snap.isAllExpanded}
+          nowMs={snap.nowMs}
+          onSearchChange={value => {
+            store.setSearchQuery(value);
+            rerender(renderWithSnapshot());
+          }}
+          onClearSearch={() => {
+            store.clearSearch();
+            rerender(renderWithSnapshot());
+          }}
+          onFilterChange={() => {}}
+          onClearAllFilters={() => {}}
+          onToggleDate={() => {}}
+          onToggleAll={() => {}}
+          onSelectOrder={() => {}}
+          onOpenSupport={() => {}}
+        />
+      );
+    };
+
+    const { container, rerender } = render(renderWithSnapshot());
+    const tagBadge = container.querySelector('[data-testid="history-order-channel-tag"]');
+    expect(tagBadge).not.toBeNull();
+    expect(tagBadge).toHaveTextContent('宵夜');
+
+    const searchInput = container.querySelector('#history-search-input') as HTMLInputElement;
+    fireEvent.change(searchInput, { target: { value: '宵夜' } });
+    expect(container.querySelector('#history-total-summary-badge')).toHaveTextContent('1 / 3 đơn');
+  });
 });

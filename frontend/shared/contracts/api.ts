@@ -126,6 +126,12 @@ export interface HistoryOrderDto {
   table_number?: string | null;
   tableId?: string | null;
   table_id?: string | null;
+  channelId?: string | null;
+  channel_id?: string | null;
+  channelLabel?: string | null;
+  channel_label?: string | null;
+  shiftId?: string | null;
+  shift_id?: string | null;
   source?: 'legacy' | 'staff' | string;
   revision?: number;
   roundCount?: number;

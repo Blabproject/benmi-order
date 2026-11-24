@@ -1,8 +1,9 @@
 import { flushSync } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
 import type { HistoryOrderDto } from '@shared/contracts/api';
+import { extractOrderChannelLabel } from '@shared/contracts/history-model';
 import { resolveOrderPaymentBadge } from '@shared/contracts/order-formatters';
-import { ClockIcon, DineInIcon, EyeIcon, InboxIcon, ModifyIcon, ReceiptIcon, TakeawayIcon } from '@shared/ui/PosIcons';
+import { ClockIcon, DineInIcon, EyeIcon, InboxIcon, ModifyIcon, ReceiptIcon, TagIcon, TakeawayIcon } from '@shared/ui/PosIcons';
 import { Badge } from '@shared/ui/badge';
 import { Button } from '@shared/ui/button';
 import { Card } from '@shared/ui/card';
@@ -128,6 +129,7 @@ function OrderTile({ order, station, dineIn }: { order: HistoryOrderDto; station
   const locale = pos.currentLang === 'vi' ? 'vi' : 'zh-TW';
   const table = getOrderTableNumber(order);
   const tableLabel = table ? ` · ${locale === 'vi' ? 'Bàn' : '桌號'} ${table}` : '';
+  const channelLabel = extractOrderChannelLabel(order);
   const isElapsed = isOrderElapsedMode(order);
   const eta = isElapsed ? formatSubmissionElapsedTime(order) : formatEta(order.time);
   const rounds = Number(order.round_count || order.roundCount) || 1;
@@ -165,6 +167,11 @@ function OrderTile({ order, station, dineIn }: { order: HistoryOrderDto; station
         {dineIn
           ? <Badge variant="purple" shape="rounded" className="tile-badge badge-dine-in"><DineInIcon size={12} />{t('badgeDineIn')}{tableLabel}</Badge>
           : <Badge variant="success" shape="rounded" className="tile-badge badge-takeaway"><TakeawayIcon size={12} />{t('badgeTakeaway')}</Badge>}
+        {channelLabel && (
+          <Badge variant="outline" shape="rounded" className="tile-badge badge-channel-tag" data-testid="live-order-channel-tag" title={channelLabel}>
+            <TagIcon size={12} /><span className="tile-badge-label">{channelLabel}</span>
+          </Badge>
+        )}
         {dineIn && rounds > 1 && <Badge variant="amber" shape="rounded" className="tile-badge badge-append">{t('badgeAppendRound', { n: rounds })}</Badge>}
       </div>
       <div className="tile-meta-row">

@@ -37,6 +37,16 @@ export function SearchIcon({ size = 15, ...props }: IconProps & { size?: number 
   );
 }
 
+/** Tag / QR channel attribution icon (Lucide MIT). */
+export function TagIcon({ size = 12, ...props }: IconProps & { size?: number }) {
+  return (
+    <StrokeIcon size={size} {...props}>
+      <path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z" />
+      <line x1="7" y1="7" x2="7.01" y2="7" />
+    </StrokeIcon>
+  );
+}
+
 /** Close/clear icon (Lucide MIT). */
 export function CloseIcon({ size = 14, ...props }: IconProps & { size?: number }) {
   return (

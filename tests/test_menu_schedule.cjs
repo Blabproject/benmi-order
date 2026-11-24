@@ -1384,3 +1384,37 @@ test('Worker getTableStatus and LINE receipt restrict append mode to active Tabl
 
   db.close();
 });
+
+test('Worker getOrders and getHistoryAll return channelId, channelLabel, and shiftId for POS Tag display', async () => {
+  const { getOrders, getHistoryAll } = require('../benmi-worker-official/src/modules/orders.ts');
+  const db = createFullMigratedDb();
+  seedZhenbaochufang(db);
+  const env = createEnvForDb(db);
+
+  db.prepare(`
+    INSERT INTO orders (key, order_id, display_key, business_date, tenant_id, user_id, customer_name, pickup_time, status, total_amount, order_content, dining_option, table_number, channel_id, channel_label, shift_id)
+    VALUES
+      ('ZBCF1124-T010', 'uuid-t010', 'ZBCF1124-T010', '2026-11-24', 'zhenbaochufang', 'U1', 'Live Guest', '21:30', 'NEW', 65, '肉燥飯 x1', 'takeaway', NULL, 'ch_zhenbaochufang_d62ee89e', '宵夜', 'shift_zb_late'),
+      ('ZBCF1124-T011', 'uuid-t011', 'ZBCF1124-T011', '2026-11-24', 'zhenbaochufang', 'U2', 'Hist Guest', '21:40', 'PICKED_UP', 65, '肉燥飯 x1', 'takeaway', NULL, 'ch_zhenbaochufang_d62ee89e', '宵夜', 'shift_zb_late')
+  `).run();
+
+  const liveRes = await getOrders(new Request('https://example.test/api/orders?tenant_id=zhenbaochufang'), env);
+  assert.equal(liveRes.status, 200);
+  const liveOrders = await liveRes.json();
+  const liveSupper = liveOrders.find(o => o.key === 'ZBCF1124-T010');
+  assert.ok(liveSupper, 'Live order must be returned by getOrders');
+  assert.equal(liveSupper.channelId, 'ch_zhenbaochufang_d62ee89e');
+  assert.equal(liveSupper.channelLabel, '宵夜');
+  assert.equal(liveSupper.shiftId, 'shift_zb_late');
+
+  const histRes = await getHistoryAll(new Request('https://example.test/api/orders/history-all?tenant_id=zhenbaochufang'), env);
+  assert.equal(histRes.status, 200);
+  const histOrders = await histRes.json();
+  const histSupper = histOrders.find(o => o.key === 'ZBCF1124-T011');
+  assert.ok(histSupper, 'Picked-up order must be returned by getHistoryAll');
+  assert.equal(histSupper.channelId, 'ch_zhenbaochufang_d62ee89e');
+  assert.equal(histSupper.channelLabel, '宵夜');
+  assert.equal(histSupper.shiftId, 'shift_zb_late');
+
+  db.close();
+});
