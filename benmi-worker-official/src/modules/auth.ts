@@ -2,7 +2,8 @@ import { Env } from '../types/env';
 import { json } from '../utils/http';
 import { getTenantId } from './menu';
 import { resolveTenantContext } from './tenant';
-import { TenantContext } from '../types/tenant';
+import { TenantContext, tenantHasFeature } from '../types/tenant';
+import { generateBearerToken, sha256Hex } from '../utils/session-token';
 import { createTenantRepository } from '../repositories';
 
 export const DEFAULT_PASSWORD = "12345678";
@@ -12,9 +13,48 @@ export async function getStoredPassword(env: Env, tenantId: string, tenantCtx?: 
   return repo.getStorePassword(tenantId, tenantCtx?.defaultPassword || DEFAULT_PASSWORD);
 }
 
+const posDeliveryTokenHash = (token: string) => sha256Hex('pos-delivery:' + token);
+
+async function pairDeliveryDevice(env: Env, tenant: TenantContext, password: string): Promise<{
+  deliverySession?: string;
+  deliveryPairingNeedsCustomPin?: true;
+}> {
+  if (!env.DB) return {};
+  const tenantId = tenant.tenantId;
+  try {
+    const hasDelivery = tenantHasFeature(tenant, 'delivery') ||
+      !!await env.DB.prepare("SELECT 1 FROM orders WHERE tenant_id=? AND dining_option='delivery' LIMIT 1").bind(tenantId).first();
+    if (!hasDelivery) return {};
+    if (password === DEFAULT_PASSWORD) return { deliveryPairingNeedsCustomPin: true };
+
+    const token = generateBearerToken();
+    await env.DB.prepare(`INSERT INTO staff_sessions (token_hash, tenant_id, pin_hash, expires_at, created_at)
+      VALUES (?, ?, ?, datetime('now', '+1 year'), datetime('now'))`)
+      .bind(await posDeliveryTokenHash(token), tenantId, await sha256Hex(password)).run();
+    return { deliverySession: token };
+  } catch (error) {
+    console.warn('[POS] Could not pair delivery device', { tenantId, error });
+    return {};
+  }
+}
+
+export async function canReadDeliveryDetails(request: Request, env: Env, tenant: TenantContext): Promise<boolean> {
+  const token = request.headers.get('Authorization')?.match(/^Bearer ([a-f0-9]{64})$/)?.[1];
+  if (!token || !env.DB) return false;
+  const tenantId = tenant.tenantId;
+  // The scoped digest cannot be used for payment or other staff actions.
+  const session = await env.DB.prepare(`SELECT pin_hash FROM staff_sessions
+    WHERE token_hash=? AND tenant_id=? AND revoked_at IS NULL AND datetime(expires_at)>datetime('now')`)
+    .bind(await posDeliveryTokenHash(token), tenantId).first<{ pin_hash: string }>();
+  if (!session) return false;
+  const password = await getStoredPassword(env, tenantId, tenant);
+  return password !== DEFAULT_PASSWORD && session.pin_hash === await sha256Hex(password);
+}
+
 export async function handleAuth(request: Request, env: Env, url?: URL, tenantCtx?: TenantContext | null): Promise<Response> {
   const reqUrl = url || new URL(request.url);
   let password: string | null = null;
+  let pairDevice = false;
   let tenantId = reqUrl.searchParams.get("tenant_id") || reqUrl.searchParams.get("tenant") || tenantCtx?.tenantId || getTenantId(request);
 
   if (request.method === "GET") {
@@ -22,6 +62,7 @@ export async function handleAuth(request: Request, env: Env, url?: URL, tenantCt
   } else {
     const body: any = await request.json().catch(() => ({}));
     password = body.password;
+    pairDevice = body.pairDevice === true;
     if (body.tenant_id) tenantId = body.tenant_id;
   }
   if (!password) return json({ ok: false, error: "no_password", message: "請提供管理 PIN 碼" }, 400);
@@ -41,11 +82,13 @@ export async function handleAuth(request: Request, env: Env, url?: URL, tenantCt
     return json({ ok: false, error: "invalid_password", message: "管理 PIN 碼錯誤" }, 401);
   }
 
+  const pairing = pairDevice ? await pairDeliveryDevice(env, tenantCtx, stored) : {};
   return json({
     ok: true,
     tenant_id: tenantCtx.tenantId,
-    brand_name: tenantCtx.brandName
-  });
+    brand_name: tenantCtx.brandName,
+    ...pairing
+  }, 200, { 'Cache-Control': 'no-store' });
 }
 
 export async function handleAuthChange(request: Request, env: Env, tenantCtx?: TenantContext | null): Promise<Response> {
@@ -94,7 +137,9 @@ export async function handleAuthChange(request: Request, env: Env, tenantCtx?: T
     }
   }
 
-  return json({ ok: true });
+  const pairDevice = 'pairDevice' in body && body.pairDevice === true;
+  const pairing = pairDevice ? await pairDeliveryDevice(env, tenantCtx, newPassword) : {};
+  return json({ ok: true, ...pairing }, 200, { 'Cache-Control': 'no-store' });
 }
 
 export async function handleCreateTempLink(request: Request, env: Env, tenantCtx?: TenantContext | null): Promise<Response> {

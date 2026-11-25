@@ -2162,14 +2162,17 @@ async function submitStorePinChange(event) {
   let resultField = null;
   let saved = false;
   try {
+    const pairDeliveryDevice = window.currentTenantFeatures?.includes("delivery") === true;
     const response = await fetch(`${WORKER_BASE}/api/auth/change?tenant_id=${encodeURIComponent(tenantId)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ current: currentInput.value, newPassword: newInput.value, tenant_id: tenantId })
+      body: JSON.stringify({ current: currentInput.value, newPassword: newInput.value, tenant_id: tenantId,
+        ...(pairDeliveryDevice ? { pairDevice: true } : {}) })
     });
     const data = await response.json().catch(() => ({}));
     saved = response.ok && data.ok === true;
     if (saved) {
+      savePosDeliverySession(tenantId, data.deliverySession);
       try { sessionStorage.removeItem("staff_session_token_" + tenantId); } catch (e) {}
     } else if (response.status === 401) {
       resultKey = "pinWrongCurrent";
@@ -2232,6 +2235,7 @@ async function promptUnlinkStoreDevice() {
     const data = await res.json().catch(() => ({ ok: false }));
 
     if (data && data.ok) {
+      savePosDeliverySession(currentTenant, null);
       if (typeof localStorage !== "undefined") {
         localStorage.removeItem("pos_device_tenant_id");
         localStorage.removeItem("tenant_branding_" + currentTenant);

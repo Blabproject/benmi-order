@@ -1,8 +1,10 @@
 import { Env } from '../types/env';
 import { json } from '../utils/http';
 import { resolveTenantContext } from './tenant';
-import { TenantContext, resolveTenantOrderPrefix, tenantHasDineInPackage, tenantHasFeature } from '../types/tenant';
-import { DEFAULT_PASSWORD, getStoredPassword } from './auth';
+import { TenantContext, resolveTenantOrderPrefix, tenantHasDineInPackage } from '../types/tenant';
+import { canReadDeliveryDetails, DEFAULT_PASSWORD, getStoredPassword } from './auth';
+import { generateBearerToken, sha256Hex } from '../utils/session-token';
+export { generateBearerToken, sha256Hex } from '../utils/session-token';
 import { parseDeliveryDetails } from './order-delivery';
 import { getNextDailyOrderSeq } from './orders';
 import { resolveOrderKey } from './order-identity';
@@ -14,18 +16,6 @@ import { tenantIsDeleted } from '../utils/tenant-lifecycle';
 // ==========================================
 // 1. HELPERS & CRYPTO UTILITIES
 // ==========================================
-
-export async function sha256Hex(text: string): Promise<string> {
-  const msgUint8 = new TextEncoder().encode(text);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-export function generateBearerToken(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(32));
-  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-}
 
 /**
  * Directly queries D1 to verify if staff_ordering_enabled is turned on for this tenant.
@@ -113,9 +103,11 @@ async function dispatchStaffRoute(
 
   if (request.method === 'GET' && path === '/api/staff/delivery-details') {
     const headers = { 'Cache-Control': 'no-store' };
-    if (!await verifyStaffSession(request, env, tenantId)) return json({ error: 'SESSION_REQUIRED' }, 401, headers);
-    if (await getStoredPassword(env, tenantId, tenantCtx) === DEFAULT_PASSWORD) {
-      return json({ error: 'DELIVERY_PIN_CHANGE_REQUIRED' }, 409, headers);
+    const allowed = await canReadDeliveryDetails(request, env, tenantCtx) ||
+      (!!await verifyStaffSession(request, env, tenantId) &&
+        await getStoredPassword(env, tenantId, tenantCtx) !== DEFAULT_PASSWORD);
+    if (!allowed) {
+      return json({ error: 'SESSION_REQUIRED' }, 401, headers);
     }
     const key = url.searchParams.get('key') || '';
     const row = await env.DB.prepare(
@@ -152,9 +144,7 @@ async function dispatchStaffRoute(
 
   // --- 2. POST /api/staff/session (Login via POS PIN) ---
   if (request.method === "POST" && path === "/api/staff/session") {
-    const canSignIn = access.capabilities.session || tenantHasFeature(tenantCtx, 'delivery') ||
-      !!await env.DB?.prepare("SELECT 1 FROM orders WHERE tenant_id=? AND dining_option='delivery' LIMIT 1").bind(tenantId).first();
-    if (!canSignIn) {
+    if (!access.capabilities.session) {
       return json({ ok: false, error: "FEATURE_DISABLED", message: "門市尚未啟用桌邊點餐功能 / Quán chưa kích hoạt tính năng nhận đơn tại bàn" }, 403);
     }
 

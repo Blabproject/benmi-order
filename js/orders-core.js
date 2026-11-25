@@ -138,6 +138,18 @@ if (typeof document !== "undefined" && typeof document.addEventListener === "fun
   document.addEventListener("DOMContentLoaded", syncPlatformClasses);
 }
 
+function posDeliverySessionKey(tenantId) {
+  return "pos_delivery_session:" + WORKER_BASE + ":" + tenantId;
+}
+
+function savePosDeliverySession(tenantId, token) {
+  try {
+    const key = posDeliverySessionKey(tenantId);
+    if (token) localStorage.setItem(key, token);
+    else localStorage.removeItem(key);
+  } catch (e) {}
+}
+
 function getTenantIdFromUrl() {
   const params = new URLSearchParams(window.location.search);
   const fromUrl = params.get("tenant") || params.get("tenant_id");

@@ -19,6 +19,10 @@ if (typeof window !== "undefined" && !window.__orderModalEscRegistered) {
   window.__orderModalEscRegistered = true;
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" || e.key === "Esc") {
+      if (document.getElementById("storeActivationModal")?.dataset.deliveryPairing === "true") {
+        if (!document.getElementById("btn-submit-activation")?.disabled) closeStoreActivationModal();
+        return;
+      }
       const alertEl = document.getElementById("new-alert");
       if (alertEl && alertEl.style.display === "flex") {
         dismissNewAlert();
@@ -348,7 +352,7 @@ function closeBundleGuideModal() {
 }
 window.closeBundleGuideModal = closeBundleGuideModal;
 
-function showStoreActivationModal(force = false) {
+function showStoreActivationModal(force = false, forDeliveryDetails = false) {
   // Hotfix: Never display login/store activation modal when running in a standard web browser (not app)
   if (!force && typeof isNativeAppPlatform === "function" && !isNativeAppPlatform()) {
     return;
@@ -360,6 +364,11 @@ function showStoreActivationModal(force = false) {
   }
   // If already displayed, do not re-initialize or steal focus from active inputs
   if (modal.style.display === "flex") return;
+  if (forDeliveryDetails) {
+    modal.dataset.deliveryPairing = "true";
+    const cancel = document.getElementById("btn-cancel-delivery-pairing");
+    if (cancel) cancel.textContent = t("btnCancel");
+  }
   showModalFromTop(modal);
 
   const inpTenant = document.getElementById("activation-tenant-id");
@@ -388,6 +397,9 @@ function closeStoreActivationModal() {
   if (modal) {
     modal.style.display = "none";
     modal.classList.remove("force-show");
+    delete modal.dataset.deliveryPairing;
+    const pin = document.getElementById("activation-pin");
+    if (pin) pin.value = "";
   }
 }
 
@@ -397,6 +409,7 @@ async function submitStoreActivation(e) {
   const inpTenant = document.getElementById("activation-tenant-id");
   const inpPin = document.getElementById("activation-pin");
   const btnSubmit = document.getElementById("btn-submit-activation");
+  const btnCancel = document.getElementById("btn-cancel-delivery-pairing");
   const btnText = document.getElementById("i18n-btn-submit-activation-text");
   const errDiv = document.getElementById("activation-error-msg");
 
@@ -413,6 +426,7 @@ async function submitStoreActivation(e) {
 
   // Loading state
   if (btnSubmit) btnSubmit.disabled = true;
+  if (btnCancel) btnCancel.disabled = true;
   if (btnText) btnText.innerText = (typeof t === "function" && t("btnVerifying")) || "正在驗證中...";
   if (errDiv) {
     errDiv.style.display = "none";
@@ -421,10 +435,23 @@ async function submitStoreActivation(e) {
 
   try {
     const workerUrl = typeof WORKER_BASE !== "undefined" ? WORKER_BASE : "https://benmi-worker-official.thuanmnc.workers.dev";
-    const res = await fetch(`${workerUrl}/api/auth?pw=${encodeURIComponent(pin)}&tenant_id=${encodeURIComponent(tenantId)}`);
+    const res = await fetch(workerUrl + "/api/auth?tenant_id=" + encodeURIComponent(tenantId), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: pin, pairDevice: true })
+    });
     const data = await res.json().catch(() => ({ ok: false }));
 
     if (res.ok && data && data.ok) {
+      const deliveryPairing = document.getElementById("storeActivationModal")?.dataset.deliveryPairing === "true";
+      if (deliveryPairing && !data.deliverySession) {
+        if (errDiv) {
+          errDiv.innerText = t(data.deliveryPairingNeedsCustomPin ? "deliveryPairingDefaultPin" : "deliveryDetailsError");
+          errDiv.style.display = "block";
+        }
+        return;
+      }
+      savePosDeliverySession(tenantId, data.deliverySession);
       if (typeof localStorage !== "undefined") {
         localStorage.setItem("pos_device_tenant_id", tenantId);
         try {
@@ -464,6 +491,7 @@ async function submitStoreActivation(e) {
     }
   } finally {
     if (btnSubmit) btnSubmit.disabled = false;
+    if (btnCancel) btnCancel.disabled = false;
     if (btnText) btnText.innerText = (typeof t === "function" && t("btnSubmitActivation")) || "啟用終端並開始接單";
   }
 }

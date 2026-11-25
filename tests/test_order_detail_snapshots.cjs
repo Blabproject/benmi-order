@@ -6,7 +6,8 @@ require.extensions['.ts'] = (module, file) => module._compile(ts.transpileModule
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true }
 }).outputText, file);
 const { fixture: menuFixture } = require('./helpers/option-groups.cjs');
-const { handleStaffRoute, sha256Hex } = require('../benmi-worker-official/src/modules/staff.ts');
+const { handleStaffRoute, verifyStaffSession } = require('../benmi-worker-official/src/modules/staff.ts');
+const { handleAuth } = require('../benmi-worker-official/src/modules/auth.ts');
 const { getOrders } = require('../benmi-worker-official/src/modules/orders.ts');
 const { writeDetailedOrder } = require('../benmi-worker-official/src/modules/order-detail-write.ts');
 const { readDetail, attachOrderDetails, DetailView } = require('../benmi-worker-official/src/modules/order-detail.ts');
@@ -116,9 +117,8 @@ test('delivery is tenant-gated, stored privately and preserved on retry and item
   assert.equal(privateResponse.status, 401);
   assert.equal(privateResponse.headers.get('Cache-Control'), 'no-store');
   assert.doesNotMatch(await privateResponse.text(), /Test Recipient|Example Street/);
-  const token = 'synthetic-staff-session-token';
   const pin = '462731';
-  f.db.exec(`CREATE TABLE staff_sessions (token_hash TEXT, tenant_id TEXT, pin_hash TEXT, expires_at TEXT, revoked_at TEXT);
+  f.db.exec(`CREATE TABLE staff_sessions (token_hash TEXT, tenant_id TEXT, pin_hash TEXT, expires_at TEXT, revoked_at TEXT, created_at TEXT);
     ALTER TABLE orders ADD COLUMN legacy_key TEXT;
     ALTER TABLE orders ADD COLUMN source TEXT;
     ALTER TABLE orders ADD COLUMN revision INTEGER;
@@ -129,15 +129,30 @@ test('delivery is tenant-gated, stored privately and preserved on retry and item
       key === passwordKey ? pin : null,
   };
   const staffTenant = { ...tenant, defaultPassword: pin };
-  f.db.prepare("INSERT INTO staff_sessions VALUES (?,?,?,datetime('now','+1 hour'),NULL)")
-    .run(await sha256Hex(token), 'a', await sha256Hex(pin));
+  const defaultTenant = { ...tenant, tenantId: 'b', defaultPassword: '12345678' };
+  const defaultPair = await handleAuth(new Request('https://example.test/api/auth?tenant_id=b', {
+    method: 'POST', body: JSON.stringify({ password: '12345678', pairDevice: true }),
+  }), f.env, undefined, defaultTenant);
+  assert.equal(defaultPair.status, 200);
+  assert.deepEqual(await defaultPair.json(), { ok: true, tenant_id: 'b', deliveryPairingNeedsCustomPin: true });
+  const pairRequest = new Request('https://example.test/api/auth?tenant_id=a', {
+    method: 'POST', body: JSON.stringify({ password: pin, pairDevice: true }),
+  });
+  const paired = await handleAuth(pairRequest, f.env, undefined, staffTenant);
+  assert.equal(paired.status, 200);
+  assert.equal(paired.headers.get('Cache-Control'), 'no-store');
+  const { deliverySession: token } = await paired.json();
+  assert.match(token, /^[a-f0-9]{64}$/);
   const headers = { Authorization: 'Bearer ' + token };
+  assert.equal(await verifyStaffSession(new Request(privateUrl, { headers }), f.env, 'a'), null);
   const staffResponse = await handleStaffRoute(new Request(privateUrl, { headers }), f.env, '/api/staff/delivery-details', staffTenant);
   assert.equal(staffResponse.status, 200);
   assert.deepEqual((await staffResponse.json()).details, original);
   const crossTenantResponse = await handleStaffRoute(new Request(privateUrl.replace('tenant_id=a', 'tenant_id=b'), { headers }),
     f.env, '/api/staff/delivery-details', { ...staffTenant, tenantId: 'b' });
   assert.equal(crossTenantResponse.status, 401);
+  f.db.exec("UPDATE staff_sessions SET revoked_at=datetime('now') WHERE tenant_id='a'");
+  assert.equal((await handleStaffRoute(new Request(privateUrl, { headers }), f.env, '/api/staff/delivery-details', staffTenant)).status, 401);
 
   const liveResponse = await getOrders(new Request('https://example.test/api/orders?tenant_id=a'), f.env);
   assert.equal(liveResponse.status, 200);
