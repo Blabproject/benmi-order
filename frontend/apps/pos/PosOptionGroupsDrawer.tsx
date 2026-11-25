@@ -1031,6 +1031,13 @@ export function PosOptionGroupsDrawer({
             placeholder: tr('ugItemDescriptionPlaceholder'),
           })}
 
+          <div className="ug-list">
+            {renderToggle('staffOnly', 'ugStaffOnly', Boolean(draft.staffOnly), {
+              dataKey: 'staffOnly',
+              textKey: 'ugStaffOnlyHelp',
+            })}
+          </div>
+
           {renderI18nSection({
             prefix: 'i18n',
             i18nMap: draft.i18n,

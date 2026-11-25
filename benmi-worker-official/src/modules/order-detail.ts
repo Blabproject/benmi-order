@@ -26,9 +26,35 @@ const selectionIdentity = (groups: any[]) => groups.map(g => ({ groupId: g.group
 }));
 const sameSelections = (a: any[], b: any[]) => JSON.stringify(selectionIdentity(a)) === JSON.stringify(selectionIdentity(b));
 
+function assertNoStaffOnlySelections(catalog: OptionCatalog, groups: any[] | undefined): void {
+  if (!Array.isArray(groups)) return;
+  for (const sel of groups) {
+    const grpId = sel?.groupId || sel?.group_id;
+    const grp = catalog.groups.find(g => g.id === grpId || g.metadata?.legacyGroupId === grpId);
+    const grpOpts = grp ? groupOptions(catalog, grp) : [];
+    for (const s of sel?.items || []) {
+      const optId = s?.optionId || s?.itemId;
+      const opt = grpOpts.find(o => o.id === optId || (o.productId && o.productId === s?.itemId));
+      const linkedId = opt?.productId || s?.itemId;
+      const linkedProd = linkedId ? catalog.products.find(p => p.id === linkedId) : null;
+      if (opt?.staffOnly || linkedProd?.staff_only || linkedProd?.staffOnly) fail('PRODUCT_UNAVAILABLE');
+      if (Array.isArray(s?.subOptions)) {
+        for (const sub of s.subOptions) {
+          const subPid = typeof sub === 'object' && sub ? (sub.productId || sub.itemId) : null;
+          const subProd = subPid ? catalog.products.find(p => p.id === subPid) : null;
+          if (subProd?.staff_only || subProd?.staffOnly) fail('PRODUCT_UNAVAILABLE');
+        }
+      }
+      if (Array.isArray(s?.groups) && s.groups.length > 0) {
+        assertNoStaffOnlySelections(catalog, s.groups);
+      }
+    }
+  }
+}
+
 /** Same catalog validation for every write. Inputs never supply sale labels/prices. */
 export async function buildDetailRound(env: Env, tenant: string, input: any, roundNumber: number,
-  previous?: DetailRound, features?: string[]): Promise<DetailRound> {
+  previous?: DetailRound, features?: string[], options?: { allowStaffOnly?: boolean }): Promise<DetailRound> {
   const catalog = await loadOptionCatalog(env, tenant);
   if (!Array.isArray(input.items) || !input.items.length || input.items.length > 200) fail('EMPTY_OR_TOO_MANY_ITEMS');
   const unchangedLine = (i: any) => {
@@ -37,6 +63,21 @@ export async function buildDetailRound(env: Env, tenant: string, input: any, rou
     return old && old.quantity === i.quantity && portions.length === old.portions.length &&
       portions.every((p: any, index: number) => sameSelections(p.groups || [], old.portions[index].groups)) ? old : undefined;
   };
+  if (!options?.allowStaffOnly) {
+    for (const i of input.items) {
+      if (unchangedLine(i)) continue;
+      const product = catalog.products.find(p => p.id === (i.itemId || i.item_id));
+      if (product?.staff_only || product?.staffOnly) fail('PRODUCT_UNAVAILABLE');
+      if (Array.isArray(i.bundleSelections?.portions)) {
+        for (const portion of i.bundleSelections.portions) {
+          assertNoStaffOnlySelections(catalog, portion?.groups);
+        }
+      }
+    }
+    if (!previous || (input.orderSelections !== undefined && !sameSelections(Array.isArray(input.orderSelections) ? input.orderSelections : [], previous.groups))) {
+      assertNoStaffOnlySelections(catalog, input.orderSelections);
+    }
+  }
   const itemsToCheckSchedule = input.items.filter((i: any) => !unchangedLine(i));
   if (itemsToCheckSchedule.length > 0 && await hasTenantMenuScheduleFeature(env.DB, tenant, features)) {
     const scheduleCheck = validateCatalogScheduleForItems(catalog, itemsToCheckSchedule, input.time);

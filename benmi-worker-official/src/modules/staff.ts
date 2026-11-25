@@ -457,7 +457,7 @@ async function handleStaffOrderWrite(request: Request, env: Env, path: string, t
     if (row && !current) snapshot.rounds.push({roundNumber:Number(row.round_count)||1,createdAt:row.created_at,
       note:'',groups:[],items:[],discount:0,total:row.total_amount,legacyContent:row.order_content});
     const roundNumber = Math.max(0,...snapshot.rounds.map(r=>r.roundNumber))+1;
-    const round = await buildDetailRound(env,tenant,body,roundNumber);
+    const round = await buildDetailRound(env,tenant,body,roundNumber,undefined,undefined,{allowStaffOnly:true});
     snapshot.rounds.push(round);
     snapshot.total = Math.round(snapshot.rounds.reduce((sum,r)=>sum+r.total,0)*100)/100;
     const detailRevision = Number(row?.detail_revision || 0)+1;

@@ -241,6 +241,7 @@ function renderDynamicCatalog({ resetOrderOptions = false, stockOnly = false } =
         if (colId && allItems.length === 0 && !isEntityInSelectedCollection(cat, null, colId)) continue;
 
         const visibleItems = collectionItems.filter(item => {
+            if (!window.isStaffOrderMode && (item.staffOnly || item.staff_only)) return false;
             const itemAvail = getItemScheduleState(cat, item);
             return itemAvail.available || !itemAvail.hidden || previewMode;
         });
@@ -752,10 +753,15 @@ function updateDynamicStockAndPrices() {
         const collectionItems = colId
             ? allItems.filter(item => isEntityInSelectedCollection(cat, item, colId))
             : allItems;
+        const isHiddenItem = (item) => {
+            if (item.staffOnly || item.staff_only) return true;
+            const availability = getItemScheduleState(cat, item);
+            return !availability.available && availability.hidden && !previewMode;
+        };
         const shouldHideCat = (allItems.length > 0 && collectionItems.length === 0) ||
             (allItems.length === 0 && colId && !isEntityInSelectedCollection(cat, null, colId)) ||
             (collectionItems.length > 0
-                ? collectionItems.every(item => { const availability = getItemScheduleState(cat, item); return !availability.available && availability.hidden && !previewMode; })
+                ? collectionItems.every(isHiddenItem)
                 : (!catAvail.available && catAvail.hidden && !previewMode));
         if ((shouldHideCat && catSecEl) || (!shouldHideCat && !catSecEl && collectionItems.length > 0)) {
             needsStructureRerender = true;
@@ -765,7 +771,7 @@ function updateDynamicStockAndPrices() {
             const itemAvail = getItemScheduleState(cat, item);
             const card = document.getElementById(`item-${cat.slug}-${item.name}`);
             const inCollection = isEntityInSelectedCollection(cat, item, colId);
-            const shouldHideItem = !inCollection || (!itemAvail.available && itemAvail.hidden && !previewMode);
+            const shouldHideItem = !inCollection || isHiddenItem(item);
             if ((shouldHideItem && card) || (!shouldHideItem && !card && !shouldHideCat)) {
                 needsStructureRerender = true;
                 return;

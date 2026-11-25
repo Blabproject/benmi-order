@@ -115,6 +115,15 @@ function ItemDetailForm({ category, name, create, bundle, tag }: FormView & { ta
                 })}
               </div>
             </div>
+            <div className="item-detail-section item-detail-toggle-section" style={{ paddingTop: "16px", borderTop: "1px solid #f1f5f9" }}>
+              <label className="item-detail-toggle-row" htmlFor="item-detail-staff-only-input">
+                <span className="item-detail-toggle-copy">
+                  <span className="item-detail-toggle-title" id="i18n-item-staff-only-label">{t('itemStaffOnlyLabel')}</span>
+                  <span className="item-detail-toggle-desc" id="i18n-item-staff-only-desc">{t('itemStaffOnlyDesc')}</span>
+                </span>
+                <input type="checkbox" id="item-detail-staff-only-input" className="item-detail-toggle-checkbox" />
+              </label>
+            </div>
             <details className="item-i18n-details" id="item-detail-i18n-details" style={{ marginTop: "16px" }}>
               <summary id="i18n-item-i18n-section-title" className="ps-min-h-12"></summary>
               <div className="item-i18n-box">

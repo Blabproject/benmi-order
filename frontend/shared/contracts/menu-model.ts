@@ -88,6 +88,7 @@ export interface MenuItemDraft {
   outOfStockUntil?: string | null;
   badgeText?: string;
   isRecommended?: boolean;
+  staffOnly?: boolean;
   bundleRule?: BundleRuleDto | null;
   itemType?: 'standard' | 'bundle' | string;
   modifierGroups?: ItemModifierGroupDraft[];
@@ -129,6 +130,8 @@ export interface BootstrapMenuItemDto {
   badgeText?: string;
   badge?: string;
   isRecommended?: boolean;
+  staffOnly?: boolean;
+  staff_only?: boolean | number;
   bundleRule?: BundleRuleDto | null;
   itemType?: string;
   availabilityMode?: string;
@@ -277,6 +280,7 @@ export interface SerializedMenuItemPayload {
   description?: string | null;
   badge_text: string | null;
   is_recommended: number;
+  staff_only?: number;
   item_type: string;
   sort_order: number;
   availability_mode?: string;
@@ -383,6 +387,10 @@ export function canonicalMenuSnapshot(data: unknown): string {
         if (k === 'description') {
           const trimmedDesc = v ? String(v).trim() : '';
           if (trimmedDesc) res[k] = trimmedDesc;
+          continue;
+        }
+        if (k === 'staffOnly') {
+          if (v) res[k] = true;
           continue;
         }
         if (k === 'bundleRule') {
@@ -494,6 +502,7 @@ export function normalizeBootstrapMenuCategories(
         outOfStockUntil: it.outOfStockUntil || it.out_of_stock_until || null,
         badgeText: it.badgeText || it.badge || '',
         isRecommended: Boolean(it.isRecommended),
+        staffOnly: Boolean(it.staffOnly ?? it.staff_only),
         bundleRule: it.bundleRule || null,
         itemType: it.itemType || 'standard',
         availabilityMode: it.availabilityMode || it.availability_mode || 'inherit',
@@ -865,6 +874,7 @@ export function serializeMenuData(
         price: item.price,
         badge_text: item.badgeText || null,
         is_recommended: item.isRecommended ? 1 : 0,
+        staff_only: item.staffOnly ? 1 : 0,
         item_type:
           item.itemType ||
           (item.bundleRule && item.bundleRule.groups && item.bundleRule.groups.length > 0

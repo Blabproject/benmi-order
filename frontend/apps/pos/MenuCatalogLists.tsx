@@ -37,6 +37,7 @@ interface ProductRow {
   name: string;
   price?: number | null;
   isOos?: boolean;
+  staffOnly?: boolean;
   badge: string;
   bundleCount?: number;
   modifierCount: number;
@@ -123,7 +124,7 @@ function ProductList(props: ProductListProps) {
   if (!rows.length) return <div className="menu-category-empty"><p>{t('menuEmptyCategory')}</p></div>;
 
   return rows.map((product, index) => {
-    const { name, price, isOos, badge, bundleCount, modifierCount } = product;
+    const { name, price, isOos, staffOnly, badge, bundleCount, modifierCount } = product;
     const bundle = bundleCount !== undefined;
     const status = t(isOos ? 'stockStatusOutOfStock' : 'stockStatusInStock');
     const modifierText = modifierCount ? `${modifierCount} ${t('customItemModifiers')}`
@@ -146,6 +147,7 @@ function ProductList(props: ProductListProps) {
           </div>
           <div className="menu-item-meta-col">
             {bundle && <span className="menu-combo-badge">{t('bundleBadge')}</span>}
+            {staffOnly && <span className="menu-item-staff-only-badge">{t('staffOnlyBadge')}</span>}
             {badge && <span className="menu-item-quick-badge">{badge}</span>}
             <span className={`item-mod-pill ${modifierCount ? 'custom-mods' : inheritedCount ? 'inherited-mods' : 'empty-mods'}`} title={modifierText}>
               {modifierCount > 0 && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>}

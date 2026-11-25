@@ -1,0 +1,1 @@
+ALTER TABLE menu_items ADD COLUMN staff_only INTEGER NOT NULL DEFAULT 0;

@@ -82,9 +82,10 @@ export async function getMenu(request: Request, env: Env): Promise<Response> {
   try {
     // 2. Cache Miss: Truy vấn từ D1 Database
     // Sử dụng batch queries để giảm thiểu số vòng kết nối mạng
+    const hasStaffOnlyCol = await hasTableColumn(env.DB, "menu_items", "staff_only");
     const [categoriesRes, itemsRes] = await env.DB.batch([
       env.DB.prepare("SELECT id, name, short_name, slug FROM menu_categories WHERE tenant_id = ? AND COALESCE(category_type, 'catalog') = 'catalog' ORDER BY sort_order ASC").bind(tenantId),
-      env.DB.prepare("SELECT id, category_id, name, price, description, out_of_stock_until FROM menu_items WHERE tenant_id = ? ORDER BY sort_order ASC").bind(tenantId)
+      env.DB.prepare(`SELECT id, category_id, name, price, description, out_of_stock_until${hasStaffOnlyCol ? ", COALESCE(staff_only, 0) AS staff_only" : ""} FROM menu_items WHERE tenant_id = ? ORDER BY sort_order ASC`).bind(tenantId)
     ]);
 
     const categories = categoriesRes.results as Array<{ id: string; name: string; short_name: string | null; slug: string }>;
@@ -95,6 +96,7 @@ export async function getMenu(request: Request, env: Env): Promise<Response> {
       price: number;
       description: string | null;
       out_of_stock_until: string | null;
+      staff_only?: number;
     }>;
 
     // Nếu không có dữ liệu nào trong D1 cho Tenant này, trả về DEFAULT_MENU cho benmi, còn tenant khác trả về menu rỗng
@@ -128,6 +130,7 @@ export async function getMenu(request: Request, env: Env): Promise<Response> {
 
     // Phân bổ món ăn vào các danh mục và xác định món hết hàng
     for (const item of items) {
+      if (item.staff_only) continue;
       const categorySlug = catMap.get(item.category_id);
       if (!categorySlug) continue;
 
@@ -643,13 +646,14 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
   // Anchor the guard before reading ranks and IDs used to construct the write batch.
   const unifiedCatalog = unifiedMenuEnabled(env) ? await loadOptionCatalog(env, tenantId) : null;
   const hasMenuSchedule = await hasTenantMenuScheduleFeature(env.DB, tenantId, null);
-  const [hasCatI18nCol, hasItemI18nCol, hasItemDescCol, hasCatAvailCol, hasCatHideCol, hasItemAvailCol, rawHasCatShiftsTbl, rawHasItemShiftsTbl] = await Promise.all([
+  const [hasCatI18nCol, hasItemI18nCol, hasItemDescCol, hasCatAvailCol, hasCatHideCol, hasItemAvailCol, hasItemStaffOnlyCol, rawHasCatShiftsTbl, rawHasItemShiftsTbl] = await Promise.all([
     hasTableColumn(env.DB, "menu_categories", "i18n_json"),
     hasTableColumn(env.DB, "menu_items", "i18n_json"),
     hasTableColumn(env.DB, "menu_items", "description"),
     hasTableColumn(env.DB, "menu_categories", "availability_mode"),
     hasTableColumn(env.DB, "menu_categories", "hide_when_unavailable"),
     hasTableColumn(env.DB, "menu_items", "availability_mode"),
+    hasTableColumn(env.DB, "menu_items", "staff_only"),
     hasDbTable(env.DB, "menu_category_shifts"),
     hasDbTable(env.DB, "menu_item_shifts"),
   ]);
@@ -665,7 +669,7 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
   ).bind(tenantId).all();
 
   const { results: existingItems } = await env.DB.prepare(
-    `SELECT id, category_id, name${hasItemI18nCol ? ", i18n_json" : ""}${hasItemDescCol ? ", description" : ""}${hasItemAvailCol ? ", availability_mode" : ""} FROM menu_items WHERE tenant_id = ?`
+    `SELECT id, category_id, name${hasItemI18nCol ? ", i18n_json" : ""}${hasItemDescCol ? ", description" : ""}${hasItemAvailCol ? ", availability_mode" : ""}${hasItemStaffOnlyCol ? ", COALESCE(staff_only, 0) AS staff_only" : ""} FROM menu_items WHERE tenant_id = ?`
   ).bind(tenantId).all();
 
   const existingCatI18nMap = new Map<string, string>(
@@ -685,6 +689,9 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
   );
   const existingItemAvailMap = new Map<string, string>(
     (existingItems || []).map((row: any) => [String(row.id), String(row.availability_mode || "inherit")])
+  );
+  const existingItemStaffOnlyMap = new Map<string, number>(
+    (existingItems || []).map((row: any) => [String(row.id), row.staff_only ? 1 : 0])
   );
 
   const { results: existingCustomizations } = await env.DB.prepare(
@@ -1093,10 +1100,17 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
           ? (String(itemDescRaw ?? "").trim() || null)
           : (existingItemDescMap.get(itemId) ?? null);
 
+        const itemStaffOnlyRaw = (itemVal && typeof itemVal === "object")
+          ? (itemVal.staff_only ?? itemVal.staffOnly)
+          : undefined;
+        const itemStaffOnly = itemStaffOnlyRaw !== undefined
+          ? (itemStaffOnlyRaw ? 1 : 0)
+          : (existingItemStaffOnlyMap.get(itemId) || 0);
+
         activeItemIds.push(itemId);
         if (unifiedCatalog) {
           const old = unifiedCatalog.products.find(p=>p.id===itemId);
-          unifiedCatalog.products = unifiedCatalog.products.filter(p=>p.id!==itemId).concat({...old,id:itemId,tenant_id:tenantId,category_id:catId,name:itemName,price,description:itemDescription});
+          unifiedCatalog.products = unifiedCatalog.products.filter(p=>p.id!==itemId).concat({...old,id:itemId,tenant_id:tenantId,category_id:catId,name:itemName,price,description:itemDescription,staff_only:itemStaffOnly,staffOnly:Boolean(itemStaffOnly)});
         }
 
         const explicitItemSort = (itemVal && (itemVal.sort_order !== undefined || itemVal.sortOrder !== undefined))
@@ -1118,8 +1132,8 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
 
         statements.push(
           env.DB.prepare(
-            `INSERT INTO menu_items (id, tenant_id, category_id, name, price, badge_text, is_recommended, sort_order, item_type${hasItemI18nCol ? ", i18n_json" : ""}${hasItemDescCol ? ", description" : ""}${hasItemAvailCol ? ", availability_mode" : ""})
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?${hasItemI18nCol ? ", ?" : ""}${hasItemDescCol ? ", ?" : ""}${hasItemAvailCol ? ", ?" : ""})
+            `INSERT INTO menu_items (id, tenant_id, category_id, name, price, badge_text, is_recommended, sort_order, item_type${hasItemI18nCol ? ", i18n_json" : ""}${hasItemDescCol ? ", description" : ""}${hasItemAvailCol ? ", availability_mode" : ""}${hasItemStaffOnlyCol ? ", staff_only" : ""})
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?${hasItemI18nCol ? ", ?" : ""}${hasItemDescCol ? ", ?" : ""}${hasItemAvailCol ? ", ?" : ""}${hasItemStaffOnlyCol ? ", ?" : ""})
              ON CONFLICT(id) DO UPDATE SET 
                category_id = excluded.category_id,
                name = excluded.name,
@@ -1127,13 +1141,14 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
                badge_text = excluded.badge_text, 
                is_recommended = excluded.is_recommended, 
                sort_order = excluded.sort_order,
-               item_type = excluded.item_type${hasItemI18nCol ? ",\n               i18n_json = excluded.i18n_json" : ""}${hasItemDescCol ? ",\n               description = excluded.description" : ""}${hasItemAvailCol ? ",\n               availability_mode = excluded.availability_mode" : ""}
+               item_type = excluded.item_type${hasItemI18nCol ? ",\n               i18n_json = excluded.i18n_json" : ""}${hasItemDescCol ? ",\n               description = excluded.description" : ""}${hasItemAvailCol ? ",\n               availability_mode = excluded.availability_mode" : ""}${hasItemStaffOnlyCol ? ",\n               staff_only = excluded.staff_only" : ""}
              WHERE menu_items.tenant_id = excluded.tenant_id`
           ).bind(
             itemId, tenantId, catId, itemName, price, badgeText, isRec, explicitItemSort, itemType,
             ...(hasItemI18nCol ? [itemI18nJson] : []),
             ...(hasItemDescCol ? [itemDescription] : []),
-            ...(hasItemAvailCol ? [itemAvailMode] : [])
+            ...(hasItemAvailCol ? [itemAvailMode] : []),
+            ...(hasItemStaffOnlyCol ? [itemStaffOnly] : [])
           )
         );
 

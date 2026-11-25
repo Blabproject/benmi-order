@@ -73,7 +73,10 @@
       : typeof sub === "object"
         ? sub.name || ""
         : String(sub || "");
-  const options = (g) => g.eligibleItems || g.options || [];
+  const options = (g) => {
+    const list = g.eligibleItems || g.options || [];
+    return window.isStaffOrderMode ? list : list.filter((o) => !(o?.staffOnly || o?.staff_only));
+  };
   const minimum = (g) =>
     g.included
       ? options(g).reduce((n, o) => n + Number(o.quantity || 1), 0)

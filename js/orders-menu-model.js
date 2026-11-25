@@ -52,6 +52,10 @@
             if (trimmedDesc) res[k] = trimmedDesc;
             continue;
           }
+          if (k === 'staffOnly') {
+            if (v) res[k] = true;
+            continue;
+          }
           if (k === 'bundleRule' && (!v || !v.groups || v.groups.length === 0)) {
             res[k] = null;
             continue;
@@ -212,6 +216,7 @@
             price: item.price,
             badge_text: item.badgeText || null,
             is_recommended: item.isRecommended ? 1 : 0,
+            staff_only: item.staffOnly ? 1 : 0,
             item_type: item.itemType || (item.bundleRule && item.bundleRule.groups && item.bundleRule.groups.length > 0 ? 'bundle' : 'standard'),
             sort_order: item.sortOrder !== undefined ? item.sortOrder : (item.sort_order !== undefined ? item.sort_order : (itemIdx + 1))
           };

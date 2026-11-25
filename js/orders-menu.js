@@ -419,6 +419,7 @@ async function fetchMenuData() {
             outOfStockUntil: it.outOfStockUntil || it.out_of_stock_until || null,
             badgeText: it.badgeText || (it.badge || ''),
             isRecommended: it.isRecommended || false,
+            staffOnly: Boolean(it.staffOnly ?? it.staff_only),
             bundleRule: it.bundleRule || null,
             itemType: it.itemType || 'standard',
             availabilityMode: it.availabilityMode || it.availability_mode || 'inherit',
@@ -1876,6 +1877,7 @@ function renderMenuCategoryEditor(index) {
         name: item.name,
         price: item.price,
         isOos: item.isOos,
+        staffOnly: Boolean(item.staffOnly || item.staff_only),
         badge: String(item.badgeText || '').trim(),
         bundleCount: cat.type === 'catalog' && bundle ? item.bundleRule?.groups?.length || 0 : undefined,
         modifierCount: window.UnifiedMenu?.enabled ? window.UnifiedMenu.groupCount(item.id) : item.modifierGroups?.length || 0,
@@ -5250,6 +5252,7 @@ function autoCommitItemDetailFields() {
   const priceInput = document.getElementById("item-detail-price-input");
   const descInput = document.getElementById("item-detail-description-input");
   const badgeInput = document.getElementById("item-detail-badge-input");
+  const staffOnlyInput = document.getElementById("item-detail-staff-only-input");
 
   if (nameInput && nameInput.value.trim()) item.name = nameInput.value.trim();
   if (priceInput && priceInput.value !== "") {
@@ -5262,6 +5265,9 @@ function autoCommitItemDetailFields() {
   if (badgeInput) {
     const bVal = badgeInput.value.trim();
     item.badgeText = bVal;
+  }
+  if (staffOnlyInput) {
+    item.staffOnly = Boolean(staffOnlyInput.checked);
   }
   const nextI18n = readItemDetailI18nInputs(item.i18n);
   if (nextI18n !== undefined) item.i18n = nextI18n;
@@ -5285,6 +5291,7 @@ function showItemDetailForm(cat, item) {
   const priceInput = document.getElementById("item-detail-price-input");
   const descInput = document.getElementById("item-detail-description-input");
   const badgeInput = document.getElementById("item-detail-badge-input");
+  const staffOnlyInput = document.getElementById("item-detail-staff-only-input");
   const photoName = document.getElementById("item-detail-photo-item-name");
   if (photoName) photoName.innerText = name;
   if (nameInput) {
@@ -5297,6 +5304,9 @@ function showItemDetailForm(cat, item) {
     badgeInput.value = item?.badgeText || "";
     badgeInput.oninput = () => renderQuickTags(badgeInput.value);
     renderQuickTags(badgeInput.value);
+  }
+  if (staffOnlyInput) {
+    staffOnlyInput.checked = Boolean(item?.staffOnly || item?.staff_only);
   }
 
   const preview = document.getElementById("item-detail-img-preview");
@@ -5396,12 +5406,14 @@ function saveItemDetailModal() {
   const priceInput = document.getElementById("item-detail-price-input");
   const descInput = document.getElementById("item-detail-description-input");
   const badgeInput = document.getElementById("item-detail-badge-input");
+  const staffOnlyInput = document.getElementById("item-detail-staff-only-input");
 
   const nameVal = nameInput ? nameInput.value.trim() : "";
   const priceVal = priceInput && priceInput.value !== "" ? parseFloat(priceInput.value) : 0;
   const descVal = descInput ? descInput.value.trim() : "";
   const badgeVal = badgeInput ? badgeInput.value.trim() : "";
   const isRec = Boolean(cat.items?.[activeItemDetailItemIdx]?.isRecommended);
+  const isStaffOnly = Boolean(staffOnlyInput?.checked);
 
   if (!nameVal) {
     alert(t("enterItemName") || (currentLang === 'vi' ? "Vui lòng nhập tên món" : "請輸入餐點名稱"));
@@ -5422,6 +5434,7 @@ function saveItemDetailModal() {
       description: descVal,
       badgeText: badgeVal,
       isRecommended: isRec,
+      staffOnly: isStaffOnly,
       isOos: false,
       bundleRule: null,
       itemType: "standard",
@@ -5446,6 +5459,7 @@ function saveItemDetailModal() {
       item.description = descVal;
       item.badgeText = badgeVal;
       item.isRecommended = isRec;
+      item.staffOnly = isStaffOnly;
       const nextI18n = readItemDetailI18nInputs(item.i18n);
       if (nextI18n !== undefined) item.i18n = nextI18n;
       else delete item.i18n;
@@ -5479,12 +5493,14 @@ function transitionToSubEditor(type) {
   const priceInput = document.getElementById("item-detail-price-input");
   const descInput = document.getElementById("item-detail-description-input");
   const badgeInput = document.getElementById("item-detail-badge-input");
+  const staffOnlyInput = document.getElementById("item-detail-staff-only-input");
 
   const nameVal = nameInput ? nameInput.value.trim() : "";
   const priceVal = priceInput && priceInput.value !== "" ? parseFloat(priceInput.value) : 0;
   const descVal = descInput ? descInput.value.trim() : "";
   const badgeVal = badgeInput ? badgeInput.value.trim() : "";
   const isRec = Boolean(cat.items?.[activeItemDetailItemIdx]?.isRecommended);
+  const isStaffOnly = Boolean(staffOnlyInput?.checked);
 
   if (isItemDetailCreateMode || activeItemDetailItemIdx === null) {
     if (!nameVal) {
@@ -5499,6 +5515,7 @@ function transitionToSubEditor(type) {
       description: descVal,
       badgeText: badgeVal,
       isRecommended: isRec,
+      staffOnly: isStaffOnly,
       isOos: false,
       bundleRule: null,
       itemType: "standard",

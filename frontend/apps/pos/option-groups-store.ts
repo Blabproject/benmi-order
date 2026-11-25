@@ -121,6 +121,7 @@ function makeProductDraft(
     categoryId?: string;
     badgeText?: string;
     isRecommended?: boolean;
+    staffOnly?: boolean;
     revision?: number;
     i18n?: MenuI18nMapDto;
     imageKey?: string | null;
@@ -147,6 +148,7 @@ function makeProductDraft(
     categoryId: override?.categoryId ?? (product.category_id || ''),
     badgeText: override?.badgeText ?? (product.badge_text || ''),
     isRecommended: override?.isRecommended ?? Boolean(product.is_recommended),
+    staffOnly: override?.staffOnly ?? Boolean(product.staff_only),
     revision: Number(override?.revision ?? product.menu_revision ?? 1),
     i18n: cleanI18n(override?.i18n ?? product.i18n),
     links,
@@ -491,6 +493,7 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
         description?: string | null;
         badgeText?: string;
         isRecommended?: boolean;
+        staffOnly?: boolean;
         menuRevision?: number;
         imageKey?: string | null;
         i18n?: MenuI18nMapDto;
@@ -514,6 +517,7 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
         category_id: resolvedCategoryId,
         badge_text: localRecord.badgeText || '',
         is_recommended: Boolean(localRecord.isRecommended),
+        staff_only: Boolean(localRecord.staffOnly),
         menu_revision: Number(localRecord.menuRevision ?? 1),
         image_key: localRecord.imageKey ?? null,
         i18n: localRecord.i18n || {},
@@ -533,6 +537,7 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
           categoryId: resolvedCategoryId,
           badgeText: localRecord.badgeText || '',
           isRecommended: Boolean(localRecord.isRecommended),
+          staffOnly: prod ? Boolean(prod.staff_only) : Boolean(localRecord.staffOnly),
           revision: Number(prod?.menu_revision ?? localRecord.menuRevision ?? 1),
           i18n: cleanI18n(localRecord.i18n || prod?.i18n),
           imageKey:
@@ -915,6 +920,8 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
           d.badgeText = String(value);
         } else if (field === 'isRecommended') {
           d.isRecommended = Boolean(value);
+        } else if (field === 'staffOnly') {
+          d.staffOnly = Boolean(value);
         } else if (field.startsWith('i18n.')) {
           const parts = field.split('.');
           const loc = parts[1];

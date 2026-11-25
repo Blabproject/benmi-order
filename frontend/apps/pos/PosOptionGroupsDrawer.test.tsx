@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { OptionCatalogDto } from '@shared/contracts/option-groups-model';
 import { PosOptionGroupsDrawer } from './PosOptionGroupsDrawer';
@@ -92,5 +92,61 @@ describe('PosOptionGroupsDrawer', () => {
     expect((document.querySelector('.ug-footer') as HTMLElement | null)?.hidden).toBe(true);
     fireEvent.click(document.querySelector('[data-action="select-new-scope"][data-scope="item"]')!);
     expect((document.querySelector('.ug-footer') as HTMLElement | null)?.hidden).toBe(false);
+  });
+
+  it('toggles staffOnly in product drawer, marks dirty, and sends staffOnly on save', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('/api/menu/product')) {
+        const body = JSON.parse(String(init?.body || '{}'));
+        return new Response(
+          JSON.stringify({
+            success: true,
+            id: 'p1',
+            catalog: {
+              ...CATALOG,
+              products: CATALOG.products.map((p) =>
+                p.id === 'p1' ? { ...p, staff_only: body.staffOnly ? 1 : 0, menu_revision: 2 } : p
+              ),
+            },
+          }),
+          { status: 200 }
+        );
+      }
+      return new Response(JSON.stringify(CATALOG), { status: 200 });
+    });
+
+    const store = createOptionGroupsStore({
+      getLocale: () => 'vi',
+      getTenantId: () => 'benmi',
+      getWorkerBase: () => 'https://worker.test',
+      getCurrentMenuData: () => [],
+      getSavedMenuSnapshot: () => '[]',
+      setMenuSnapshots: vi.fn(),
+      getAuthHeaders: () => ({ 'Content-Type': 'application/json' }),
+      fetchImpl: fetchMock,
+    });
+
+    await store.openProduct('p1');
+    render(<Harness store={store} />);
+
+    const toggle = document.querySelector<HTMLInputElement>('[data-field="staffOnly"]')!;
+    expect(toggle).toBeTruthy();
+    expect(toggle.checked).toBe(false);
+
+    fireEvent.click(toggle);
+    expect(toggle.checked).toBe(true);
+    expect(store.getSnapshot().drawer?.draft.staffOnly).toBe(true);
+
+    let saved = false;
+    await act(async () => {
+      saved = await store.save();
+    });
+    expect(saved).toBe(true);
+
+    const productSaveCall = fetchMock.mock.calls.find(([url]) => String(url).includes('/api/menu/product'));
+    expect(productSaveCall).toBeTruthy();
+    const sentPayload = JSON.parse(String(productSaveCall![1]?.body || '{}'));
+    expect(sentPayload.staffOnly).toBe(true);
   });
 });

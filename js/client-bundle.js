@@ -273,7 +273,7 @@ function renderBundleCategoryTabs(group) {
     const catMap = new Map();
     catMap.set('all', { id: 'all', name: bT('bundle_cat_all', null, '全部') });
 
-    (group.eligibleItems || []).forEach(it => {
+    (group.eligibleItems || []).filter(it => window.isStaffOrderMode || !(it.staffOnly || it.staff_only)).forEach(it => {
         if (it.categoryId && bData?.catalog) {
             const cat = bData.catalog.find(c => c.id === it.categoryId || c.slug === it.categoryId);
             if (cat && !catMap.has(cat.id || cat.slug)) {
@@ -350,7 +350,7 @@ function renderBundleItemsList() {
     const maxAllowed = group.maxQuantity ?? group.maxSelections ?? group.requiredCount ?? 6;
     const oosTagText = bT('sold_out', null, '已售完');
 
-    let filteredItems = group.eligibleItems || [];
+    let filteredItems = (group.eligibleItems || []).filter(it => window.isStaffOrderMode || !(it.staffOnly || it.staff_only));
     if (activeBundleCatTab !== 'all') {
         filteredItems = filteredItems.filter(it => it.categoryId === activeBundleCatTab || (bData?.catalog?.find(c => (c.id === it.categoryId || c.slug === it.categoryId) && (c.id === activeBundleCatTab || c.slug === activeBundleCatTab))));
     }
@@ -496,7 +496,7 @@ function updateBundleModalState() {
         }
 
         if (wasmPortionTotal == null) {
-            (group.eligibleItems || []).forEach(it => {
+            (group.eligibleItems || []).filter(it => window.isStaffOrderMode || !(it.staffOnly || it.staff_only)).forEach(it => {
                 const q = selMap[it.id] || 0;
                 if (q > 0 && it.surcharge > 0) {
                     bundleSurcharges += q * it.surcharge;

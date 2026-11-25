@@ -144,6 +144,32 @@ export function extractAllOrderSearchNames(rawItems: OrderItemInput[]): string[]
   return Array.from(new Set(names.filter(Boolean)));
 }
 
+async function findStaffOnlyOrderItemNames(
+  db: D1Database | undefined,
+  tenantId: string,
+  rawItems: OrderItemInput[]
+): Promise<string[]> {
+  if (!db || !rawItems.length) return [];
+  const rawNames = extractAllOrderSearchNames(rawItems);
+  if (!rawNames.length) return [];
+  if (!(await hasDbColumn(db, 'menu_items', 'staff_only'))) return [];
+  const cleanNames = rawNames.map(n => n.replace(/\s+(L|S|M)$/i, '').replace(/^\[[^\]]+\]\s*/, '').trim());
+  const allSearchNames = Array.from(new Set([...rawNames, ...cleanNames]));
+  const placeholders = allSearchNames.map(() => '?').join(',');
+  try {
+    const res = await db.prepare(
+      `SELECT name FROM menu_items
+       WHERE tenant_id = ?
+         AND (name IN (${placeholders}) OR id IN (${placeholders}))
+         AND COALESCE(staff_only, 0) = 1`
+    ).bind(tenantId, ...allSearchNames, ...allSearchNames).all<{ name: string }>();
+    return Array.from(new Set((res.results || []).map(r => r.name)));
+  } catch (err) {
+    console.warn('[orders] Staff-only check warning:', err);
+    return [];
+  }
+}
+
 export async function validateOrderBundles(
   env: Env,
   tenantId: string,
@@ -490,6 +516,14 @@ export async function createOrder(
         console.warn(`[createOrder] Stock check warning:`, stockCheckErr);
       }
     }
+    const staffOnlyNames = await findStaffOnlyOrderItemNames(env.DB, tenantId, rawItems);
+    if (staffOnlyNames.length > 0) {
+      return json({
+        error: `抱歉，您選購的餐點【${staffOnlyNames.join('、')}】目前未開放線上點餐，請重新選擇！`,
+        code: "ITEMS_OUT_OF_STOCK",
+        outOfStockItems: staffOnlyNames
+      }, 400);
+    }
   }
 
   // 1.0b Kiểm tra khung giờ phục vụ theo ca (Time-Based Menu Schedule - gated by 'menu_schedule' package)
@@ -803,6 +837,14 @@ export async function executeAppendOrderInternal(
       } catch (stockCheckErr) {
         console.warn(`[appendOrder] Stock check warning:`, stockCheckErr);
       }
+    }
+    const staffOnlyNames = await findStaffOnlyOrderItemNames(env.DB, tenantId, rawItems);
+    if (staffOnlyNames.length > 0) {
+      return json({
+        error: `抱歉，您加點的餐點【${staffOnlyNames.join('、')}】目前未開放線上點餐，請重新選擇！`,
+        code: "ITEMS_OUT_OF_STOCK",
+        outOfStockItems: staffOnlyNames
+      }, 400);
     }
   }
 
@@ -1992,6 +2034,14 @@ export async function modifyOrder(
       } catch (stockCheckErr) {
         console.warn(`[modifyOrder] Stock check warning:`, stockCheckErr);
       }
+    }
+    const staffOnlyNames = await findStaffOnlyOrderItemNames(env.DB, tenantId, rawItems);
+    if (staffOnlyNames.length > 0) {
+      return json({
+        error: `抱歉，您選擇的餐點【${staffOnlyNames.join('、')}】目前未開放線上點餐，請更換其他品項！`,
+        code: "ITEMS_OUT_OF_STOCK",
+        outOfStockItems: staffOnlyNames
+      }, 400);
     }
 
     // 2. Validate combo bundle selections

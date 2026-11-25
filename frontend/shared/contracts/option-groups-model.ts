@@ -30,6 +30,7 @@ export interface OptionCatalogProductDto {
   image_key?: string | null;
   is_out_of_stock?: boolean | number;
   out_of_stock_until?: string | null;
+  staff_only?: boolean | number;
   menu_revision?: number;
   i18n?: MenuI18nMapDto;
   [key: string]: unknown;
@@ -148,6 +149,7 @@ export interface ProductDraft {
   categoryId: string;
   badgeText: string;
   isRecommended: boolean;
+  staffOnly?: boolean;
   revision: number;
   i18n: MenuI18nMapDto;
   links: OptionCatalogLinkDto[];
@@ -552,6 +554,7 @@ export function entitySnapshot(
       categoryId: d.categoryId,
       badgeText: d.badgeText || '',
       isRecommended: Boolean(d.isRecommended),
+      staffOnly: Boolean(d.staffOnly),
       imageKey: d.imageKey,
       imageDraft: d.imageDraft || null,
       i18n: cleanI18n(d.i18n),
@@ -758,6 +761,7 @@ export function rebaseMenuSnapshots({
           description: p.description || '',
           badgeText: p.badge_text || '',
           isRecommended: Boolean(p.is_recommended),
+          staffOnly: Boolean(p.staff_only),
           imageKey: p.image_key || null,
           imageUrl: p.image_key ? (old?.imageUrl as string | null | undefined) : null,
           itemType: 'standard',

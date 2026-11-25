@@ -193,6 +193,7 @@ export interface BootstrapBundleGroup {
     price: number;
     surcharge: number;
     isOutOfStock: boolean;
+    staffOnly?: boolean;
     categoryId?: string;
     allowCustomization?: boolean;
     appliedModifiers?: string[];
@@ -278,6 +279,7 @@ export interface BootstrapResponse {
       description: string | null;
       imageUrl: string | null;
       isOutOfStock: boolean;
+      staffOnly?: boolean;
       isRecommended: boolean;
       badgeText?: string | null;
       badge?: string | null;
@@ -654,6 +656,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
           hasCatAvailCol,
           hasCatHideCol,
           hasItemAvailCol,
+          hasItemStaffOnlyCol,
           loadedShifts,
           loadedShiftLinks,
           loadedQrChannels,
@@ -667,6 +670,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
           hasTableColumn(env.DB, 'menu_categories', 'availability_mode'),
           hasTableColumn(env.DB, 'menu_categories', 'hide_when_unavailable'),
           hasTableColumn(env.DB, 'menu_items', 'availability_mode'),
+          hasTableColumn(env.DB, 'menu_items', 'staff_only'),
           hasMenuScheduleFeature ? loadTenantOperatingShifts(env.DB, tenantId) : Promise.resolve([]),
           hasMenuScheduleFeature ? loadCategoryAndItemShiftLinks(env.DB, tenantId) : Promise.resolve({ categoryShiftIds: new Map(), itemShiftIds: new Map() }),
           loadTenantQrChannels(env.DB, tenantId),
@@ -714,7 +718,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
                     COALESCE(badge_text, '') AS badge_text,
                     COALESCE(is_recommended, 0) AS is_recommended,
                     max_per_order,
-                    COALESCE(item_type, 'standard') AS item_type${hasItemI18nCol ? ', i18n_json' : ''}${hasItemAvailCol ? ', availability_mode' : ''}
+                    COALESCE(item_type, 'standard') AS item_type${hasItemI18nCol ? ', i18n_json' : ''}${hasItemAvailCol ? ', availability_mode' : ''}${hasItemStaffOnlyCol ? ', COALESCE(staff_only, 0) AS staff_only' : ''}
              FROM menu_items 
              WHERE tenant_id = ? 
              ORDER BY sort_order ASC, rowid ASC`
@@ -987,6 +991,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
               price: it.price,
               surcharge: Number(group.type === 'fixed' ? (group.items || []).find((x: any) => x.itemId === it.id)?.surcharge || 0 : group.surcharges?.[it.id] || 0),
               isOutOfStock: Boolean(it.out_of_stock_until && new Date(it.out_of_stock_until) > now),
+              staffOnly: Boolean(it.staff_only),
               categoryId: it.category_id,
               allowCustomization: appliedModifiers.length > 0 || modGroups.length > 0,
               appliedModifiers,
@@ -1114,6 +1119,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
         description: item.description || null,
         imageUrl: imageUrl,
         isOutOfStock: isOos,
+        staffOnly: Boolean(item.staff_only),
         isRecommended: isRec,
         badgeText: badge,
         badge: badge,
@@ -1308,6 +1314,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
         }
         (item as any).modifierGroups = [];
         (item as any).unifiedOptions = true;
+        (item as any).staffOnly = Boolean(product?.staff_only ?? item.staffOnly);
         (item as any).bundleRule = projectOptionRule(options, item.id!);
       }
       for (const customization of customizations) {

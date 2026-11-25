@@ -97,6 +97,7 @@ export type MenuOption = {
 	quantity: number;
 	isDefault: boolean;
 	isOutOfStock: boolean;
+	staffOnly?: boolean;
 	outOfStockUntil: string | null;
 	subOptions: any[];
 	eligibilityRules: any[];
@@ -270,6 +271,7 @@ export async function loadOptionCatalog(env: Env, tenantId: string): Promise<Opt
 		revision: Number((results[6].results[0] as Row)?.revision || 0),
 		products: products.map((p) => ({
 			...p,
+			staffOnly: Boolean(p.staff_only),
 			availabilityMode: p.availability_mode || 'inherit',
 			shiftIds: shiftLinks.itemShiftIds.get(String(p.id)) || [],
 		})),
@@ -351,6 +353,7 @@ export function groupOptions(catalog: OptionCatalog, group: OptionGroup): MenuOp
 					? `/api/image?tenant_id=${encodeURIComponent(product.tenant_id)}&name=${encodeURIComponent(product.image_key)}`
 					: null,
 			isOutOfStock: o.isOutOfStock || Boolean(o.productId && (!product || oos(product))),
+			staffOnly: Boolean(product?.staff_only),
 		};
 	});
 }
@@ -703,6 +706,10 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 			const productSortOrder = previous?.sort_order !== undefined && previous?.sort_order !== null
 				? Number(previous.sort_order)
 				: maxCategorySort + 1;
+			const productStaffOnly =
+				raw.staffOnly !== undefined || raw.staff_only !== undefined
+					? (raw.staffOnly || raw.staff_only ? 1 : 0)
+					: (previous?.staff_only ? 1 : 0);
 			const product = {
 				...previous,
 				id,
@@ -713,6 +720,8 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 				badge_text: String(raw.badgeText || ''),
 				description: productDescription,
 				is_recommended: raw.isRecommended ? 1 : 0,
+				staff_only: productStaffOnly,
+				staffOnly: Boolean(productStaffOnly),
 				image_key: typeof raw.imageKey === 'string' ? (raw.imageKey.trim() || null) : (previous?.image_key ?? null),
 				sort_order: productSortOrder,
 				i18n: productI18n,
@@ -769,10 +778,11 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 			const oldLinkByGroupId = new Map(oldProductLinks.map((l) => [String(l.groupId), l]));
 			catalog.links = catalog.links.filter((l) => l.itemId !== id).concat(links);
 			validateOptionGraph(catalog);
-			const [hasItemI18nCol, hasItemDescCol, hasItemAvailCol, hasItemShiftsTbl] = await Promise.all([
+			const [hasItemI18nCol, hasItemDescCol, hasItemAvailCol, hasItemStaffOnlyCol, hasItemShiftsTbl] = await Promise.all([
 				hasTableColumn(env.DB, 'menu_items', 'i18n_json'),
 				hasTableColumn(env.DB, 'menu_items', 'description'),
 				hasTableColumn(env.DB, 'menu_items', 'availability_mode'),
+				hasTableColumn(env.DB, 'menu_items', 'staff_only'),
 				hasDbTable(env.DB, 'menu_item_shifts'),
 			]);
 			const rawItemAvailMode = raw.availabilityMode ?? raw.availability_mode;
@@ -782,7 +792,7 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 					: (previous?.availability_mode || 'inherit');
 			statements.push(
 				env.DB.prepare(
-					`INSERT INTO menu_items (id,tenant_id,category_id,name,price,badge_text,is_recommended,menu_revision,sort_order,image_key${hasItemI18nCol ? ',i18n_json' : ''}${hasItemDescCol ? ',description' : ''}${hasItemAvailCol ? ',availability_mode' : ''}) VALUES (?,?,?,?,?,?,?,?,?,?${hasItemI18nCol ? ',?' : ''}${hasItemDescCol ? ',?' : ''}${hasItemAvailCol ? ',?' : ''}) ON CONFLICT(id) DO UPDATE SET category_id=excluded.category_id,name=excluded.name,price=excluded.price,badge_text=excluded.badge_text,is_recommended=excluded.is_recommended,menu_revision=excluded.menu_revision,image_key=excluded.image_key${hasItemI18nCol ? ',i18n_json=excluded.i18n_json' : ''}${hasItemDescCol ? ',description=excluded.description' : ''}${hasItemAvailCol ? ',availability_mode=excluded.availability_mode' : ''},updated_at=datetime('now')`,
+					`INSERT INTO menu_items (id,tenant_id,category_id,name,price,badge_text,is_recommended,menu_revision,sort_order,image_key${hasItemI18nCol ? ',i18n_json' : ''}${hasItemDescCol ? ',description' : ''}${hasItemAvailCol ? ',availability_mode' : ''}${hasItemStaffOnlyCol ? ',staff_only' : ''}) VALUES (?,?,?,?,?,?,?,?,?,?${hasItemI18nCol ? ',?' : ''}${hasItemDescCol ? ',?' : ''}${hasItemAvailCol ? ',?' : ''}${hasItemStaffOnlyCol ? ',?' : ''}) ON CONFLICT(id) DO UPDATE SET category_id=excluded.category_id,name=excluded.name,price=excluded.price,badge_text=excluded.badge_text,is_recommended=excluded.is_recommended,menu_revision=excluded.menu_revision,image_key=excluded.image_key${hasItemI18nCol ? ',i18n_json=excluded.i18n_json' : ''}${hasItemDescCol ? ',description=excluded.description' : ''}${hasItemAvailCol ? ',availability_mode=excluded.availability_mode' : ''}${hasItemStaffOnlyCol ? ',staff_only=excluded.staff_only' : ''},updated_at=datetime('now')`,
 				).bind(
 					id,
 					tenantId,
@@ -797,6 +807,7 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 					...(hasItemI18nCol ? [product.i18n_json] : []),
 					...(hasItemDescCol ? [productDescription] : []),
 					...(hasItemAvailCol ? [itemAvailabilityMode] : []),
+					...(hasItemStaffOnlyCol ? [productStaffOnly] : []),
 				),
 			);
 			if (hasItemShiftsTbl && Array.isArray(raw.shiftIds ?? raw.shift_ids)) {
