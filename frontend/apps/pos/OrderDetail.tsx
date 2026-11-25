@@ -180,7 +180,8 @@ function OrderDetail({ order, etaOrder, detail }: { order: HistoryOrderDto; etaO
     <div className="order-detail-grid">
       <div className="order-detail-main-col">
         <div className="order-detail-meta-bar"><span className="order-detail-items-count" id="review-items-count">{t('tileItemCount', { count: detail.itemCount })}</span></div>
-        <OrderDetailItems orderKey={order.key} data={detail.items} />
+        <OrderDetailItems orderKey={order.key} data={detail.items} noteAfterItems={delivery} />
+        {delivery && <OrderDeliveryDetails key={order.key} orderKey={order.key} />}
         <div className="order-detail-totals-block">
           {detail.discount > 0 && <>
             <div className="order-detail-total-row subtotal-row" id="review-subtotal-row">
@@ -225,7 +226,6 @@ function OrderDetail({ order, etaOrder, detail }: { order: HistoryOrderDto; etaO
           </div>
           <DetailActions key={order.key} status={order.status} dineIn={dineIn} />
         </div>
-        {delivery && <OrderDeliveryDetails key={order.key} orderKey={order.key} />}
         <div className="modal-print-toolbar">
           <div className="printer-reports" data-printer-reports="current" role="status" aria-live="polite" />
           <div className="print-toolbar-header"><PrintIcon size={14} /><span>{t('printToolsLabel')}</span></div>

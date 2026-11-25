@@ -167,7 +167,7 @@ function FlavorCard({ flavors, note }: { flavors: LegacyReview['flavorData']; no
   </div>;
 }
 
-export function LegacyOrderItems({ data }: { data: LegacyReview }) {
+export function LegacyOrderItems({ data, noteAfterItems }: { data: LegacyReview; noteAfterItems: boolean }) {
   const { raw, messageOnly, orderKey, items, customerChanges, flavorData, noteText } = data;
   if (messageOnly) return <div className="review-content-raw">{raw}</div>;
   const lines = items.length ? [] : raw.split('\n').map(line => line.trimEnd()).filter(line => line.trim() && !isOrderMetadataText(line));
@@ -187,7 +187,7 @@ export function LegacyOrderItems({ data }: { data: LegacyReview }) {
       <div className="customer-change-header"><ModifyIcon /><span>{t('customerChangeTitle')}</span></div>
       <div className="customer-change-body">{customerChanges.map((line, index) => <div className="customer-change-line" key={index}>{line}</div>)}</div>
     </div>}
-    <FlavorCard flavors={flavorData} note={noteText} />
+    <FlavorCard flavors={flavorData} note={noteAfterItems ? '' : noteText} />
     {rounds.size > 0 ? [...rounds.entries()].sort(([a], [b]) => roundNumber(b) - roundNumber(a)).map(([title, entries], index) => {
       const latest = rounds.size > 1 && index === 0;
       return <div className={`round-section-block${latest ? ' round-section-latest' : ''}`} key={title}>
@@ -202,5 +202,6 @@ export function LegacyOrderItems({ data }: { data: LegacyReview }) {
     </div> : <div className="review-items-list-raw">
       {lines.map((line, index) => <div className={/^[-•↳－]/.test(line.trimStart()) ? 'review-raw-sub' : 'review-raw-item'} key={index}>{line}</div>)}
     </div>}
+    {noteAfterItems && <FlavorCard flavors={null} note={noteText} />}
   </div>;
 }

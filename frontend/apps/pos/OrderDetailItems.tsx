@@ -76,7 +76,7 @@ function OrderLine({ line, orderKey, index, stickerIndex }: { line: DetailLine; 
   </div>;
 }
 
-function OrderRounds({ orderKey, snapshot }: { orderKey: string; snapshot: OrderDetailSnapshot }) {
+function OrderRounds({ orderKey, snapshot, noteAfterItems }: { orderKey: string; snapshot: OrderDetailSnapshot; noteAfterItems: boolean }) {
   let index = 0;
   let stickerIndex = 0;
   const rounds = snapshot.rounds.map(round => ({
@@ -89,21 +89,23 @@ function OrderRounds({ orderKey, snapshot }: { orderKey: string; snapshot: Order
   }));
   return <>{rounds.reverse().map(({ round, lines }) => {
     const choices = OrderDetailView.choices(round.groups);
+    const note = round.note?.trim() && <Note text={round.note} label="detailRoundNote" />;
     return <section className="round-section-block" key={round.roundNumber}>
       {rounds.length > 1 && <div className="round-section-header">{t('detailRound', { n: round.roundNumber })}</div>}
       {round.legacyContent !== undefined ? <>
         <div>{t('detailLegacy')}</div>
         <div className="review-content-raw" style={{ whiteSpace: 'pre-wrap' }}>{round.legacyContent}</div>
       </> : <>
-        {(choices.length > 0 || round.note?.trim()) && <div className="flavor-custom-card">
+        {(choices.length > 0 || (!noteAfterItems && note)) && <div className="flavor-custom-card">
           <div className="flavor-chips-grid">
             {choices.map((choice, position) => <span className="flavor-chip" key={position}>
               <span className="flavor-label">{choice.label}:</span><strong className="flavor-val">{choice.value}</strong>
             </span>)}
           </div>
-          <Note text={round.note} label="detailRoundNote" />
+          {!noteAfterItems && note}
         </div>}
         {lines.map(entry => <OrderLine key={entry.index} orderKey={orderKey} {...entry} />)}
+        {noteAfterItems && note && <div className="flavor-custom-card">{note}</div>}
       </>}
     </section>;
   })}</>;
@@ -114,9 +116,9 @@ export function prepareOrderItems(order: HistoryOrderDto) {
   return { legacy: prepareLegacyOrderItems(order) };
 }
 
-export const OrderDetailItems = memo(function OrderDetailItems({ orderKey, data }: { orderKey: string; data: ReturnType<typeof prepareOrderItems> }) {
+export const OrderDetailItems = memo(function OrderDetailItems({ orderKey, data, noteAfterItems }: { orderKey: string; data: ReturnType<typeof prepareOrderItems>; noteAfterItems: boolean }) {
   if (data.snapshot) return <div className="detail-content" id="review-content">
-    <OrderRounds orderKey={orderKey} snapshot={data.snapshot} />
+    <OrderRounds orderKey={orderKey} snapshot={data.snapshot} noteAfterItems={noteAfterItems} />
   </div>;
-  return <div className="detail-content" id="review-content"><LegacyOrderItems data={data.legacy} /></div>;
+  return <div className="detail-content" id="review-content"><LegacyOrderItems data={data.legacy} noteAfterItems={noteAfterItems} /></div>;
 });
