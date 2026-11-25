@@ -7,6 +7,7 @@ import { Env } from './types/env';
 import { corsHeaders, json } from './utils/http';
 import { handleLineWebhook } from './modules/line';
 import { createOrder, appendOrder, updateOrder, getOrders, getWaitingCount, getHistorySummary, getOrdersByDate, getHistoryAll, getOrderEditContext, modifyOrder } from './modules/orders';
+import { getOrderDeliveryDetails } from './modules/order-delivery';
 import { getConfig, updateConfig } from './modules/config';
 import { getMenu, updateMenu, updateStockStatus, updateBundleRule, saveBundleProduct, getTenantId } from './modules/menu';
 import { menuShifts, qrChannels } from './modules/menu-shifts';
@@ -95,6 +96,7 @@ export default {
       if (request.method === "POST" && path === "/api/update") return updateOrder(request, env, ctx, tenantCtx);
       if (request.method === "GET" && path === "/api/orders/waiting-count") return getWaitingCount(request, env);
       if (request.method === "GET" && path === "/api/orders") return getOrders(request, env);
+      if (request.method === "GET" && path === "/api/orders/delivery-details") return getOrderDeliveryDetails(request, env, tenantCtx);
       if (request.method === "GET" && path === "/api/orders/history-summary") return getHistorySummary(request, env);
       if (request.method === "GET" && path === "/api/orders/by-date") return getOrdersByDate(request, env);
       if (request.method === "GET" && path === "/api/orders/history-all") return getHistoryAll(request, env);

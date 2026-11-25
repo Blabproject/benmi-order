@@ -6,8 +6,7 @@ require.extensions['.ts'] = (module, file) => module._compile(ts.transpileModule
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true }
 }).outputText, file);
 const { fixture: menuFixture } = require('./helpers/option-groups.cjs');
-const { handleStaffRoute, verifyStaffSession } = require('../benmi-worker-official/src/modules/staff.ts');
-const { handleAuth } = require('../benmi-worker-official/src/modules/auth.ts');
+const { getOrderDeliveryDetails } = require('../benmi-worker-official/src/modules/order-delivery.ts');
 const { getOrders } = require('../benmi-worker-official/src/modules/orders.ts');
 const { writeDetailedOrder } = require('../benmi-worker-official/src/modules/order-detail-write.ts');
 const { readDetail, attachOrderDetails, DetailView } = require('../benmi-worker-official/src/modules/order-detail.ts');
@@ -88,7 +87,7 @@ test('menu refresh preserves the selected spice level from cart through the stor
   assert.equal(DetailView.globalChoices(stored.snapshot)[0].value, '微辣');
 });
 
-test('delivery is tenant-gated, stored privately and preserved on retry and item replacement', async t => {
+test('delivery details open without pairing and stay scoped to the selected order and tenant', async t => {
   const f = fixture();
   t.after(() => f.db.close());
   const tenant = { tenantId: 'a', features: ['delivery'] };
@@ -112,47 +111,23 @@ test('delivery is tenant-gated, stored privately and preserved on retry and item
   assert.equal((await (await submit(req)).json()).idempotent, true);
   assert.equal((await submit({ ...req, delivery_details: { ...details, taxId: '12345678' } })).status, 409);
 
-  const privateUrl = 'https://example.test/api/staff/delivery-details?tenant_id=a&key=' + created.key;
-  const privateResponse = await handleStaffRoute(new Request(privateUrl), f.env, '/api/staff/delivery-details', tenant);
-  assert.equal(privateResponse.status, 401);
-  assert.equal(privateResponse.headers.get('Cache-Control'), 'no-store');
-  assert.doesNotMatch(await privateResponse.text(), /Test Recipient|Example Street/);
-  const pin = '462731';
-  f.db.exec(`CREATE TABLE staff_sessions (token_hash TEXT, tenant_id TEXT, pin_hash TEXT, expires_at TEXT, revoked_at TEXT, created_at TEXT);
-    ALTER TABLE orders ADD COLUMN legacy_key TEXT;
+  const detailsUrl = 'https://example.test/api/orders/delivery-details?tenant_id=a&key=' + created.key;
+  const directResponse = await getOrderDeliveryDetails(new Request(detailsUrl), f.env, tenant);
+  assert.equal(directResponse.status, 200);
+  assert.equal(directResponse.headers.get('Cache-Control'), 'no-store');
+  assert.deepEqual((await directResponse.json()).details, original);
+
+  const otherTenant = await getOrderDeliveryDetails(new Request(detailsUrl.replace('tenant_id=a', 'tenant_id=b')),
+    f.env, { ...tenant, tenantId: 'b' });
+  assert.equal(otherTenant.status, 404);
+  assert.doesNotMatch(await otherTenant.text(), /Test Recipient|Example Street/);
+  const takeawayResponse = await getOrderDeliveryDetails(new Request(detailsUrl.replace(created.key, takeaway.key)), f.env, tenant);
+  assert.equal(takeawayResponse.status, 404);
+
+  f.db.exec(`ALTER TABLE orders ADD COLUMN legacy_key TEXT;
     ALTER TABLE orders ADD COLUMN source TEXT;
     ALTER TABLE orders ADD COLUMN revision INTEGER;
     ALTER TABLE order_items ADD COLUMN bundle_snapshot_json TEXT;`);
-  const passwordKey = 'tenant:a:password';
-  f.env.ORDER_STATE = {
-    get: async key => key === 'tenant:a:config_cache' ? JSON.stringify({ tenantId: 'a', defaultPassword: pin }) :
-      key === passwordKey ? pin : null,
-  };
-  const staffTenant = { ...tenant, defaultPassword: pin };
-  const defaultTenant = { ...tenant, tenantId: 'b', defaultPassword: '12345678' };
-  const defaultPair = await handleAuth(new Request('https://example.test/api/auth?tenant_id=b', {
-    method: 'POST', body: JSON.stringify({ password: '12345678', pairDevice: true }),
-  }), f.env, undefined, defaultTenant);
-  assert.equal(defaultPair.status, 200);
-  assert.deepEqual(await defaultPair.json(), { ok: true, tenant_id: 'b', deliveryPairingNeedsCustomPin: true });
-  const pairRequest = new Request('https://example.test/api/auth?tenant_id=a', {
-    method: 'POST', body: JSON.stringify({ password: pin, pairDevice: true }),
-  });
-  const paired = await handleAuth(pairRequest, f.env, undefined, staffTenant);
-  assert.equal(paired.status, 200);
-  assert.equal(paired.headers.get('Cache-Control'), 'no-store');
-  const { deliverySession: token } = await paired.json();
-  assert.match(token, /^[a-f0-9]{64}$/);
-  const headers = { Authorization: 'Bearer ' + token };
-  assert.equal(await verifyStaffSession(new Request(privateUrl, { headers }), f.env, 'a'), null);
-  const staffResponse = await handleStaffRoute(new Request(privateUrl, { headers }), f.env, '/api/staff/delivery-details', staffTenant);
-  assert.equal(staffResponse.status, 200);
-  assert.deepEqual((await staffResponse.json()).details, original);
-  const crossTenantResponse = await handleStaffRoute(new Request(privateUrl.replace('tenant_id=a', 'tenant_id=b'), { headers }),
-    f.env, '/api/staff/delivery-details', { ...staffTenant, tenantId: 'b' });
-  assert.equal(crossTenantResponse.status, 401);
-  f.db.exec("UPDATE staff_sessions SET revoked_at=datetime('now') WHERE tenant_id='a'");
-  assert.equal((await handleStaffRoute(new Request(privateUrl, { headers }), f.env, '/api/staff/delivery-details', staffTenant)).status, 401);
 
   const liveResponse = await getOrders(new Request('https://example.test/api/orders?tenant_id=a'), f.env);
   assert.equal(liveResponse.status, 200);

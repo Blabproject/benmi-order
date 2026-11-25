@@ -2,10 +2,7 @@ import { Env } from '../types/env';
 import { json } from '../utils/http';
 import { resolveTenantContext } from './tenant';
 import { TenantContext, resolveTenantOrderPrefix, tenantHasDineInPackage } from '../types/tenant';
-import { canReadDeliveryDetails, DEFAULT_PASSWORD, getStoredPassword } from './auth';
-import { generateBearerToken, sha256Hex } from '../utils/session-token';
-export { generateBearerToken, sha256Hex } from '../utils/session-token';
-import { parseDeliveryDetails } from './order-delivery';
+import { getStoredPassword } from './auth';
 import { getNextDailyOrderSeq } from './orders';
 import { resolveOrderKey } from './order-identity';
 import { staffAccess, type StaffCapability } from './staff-access';
@@ -16,6 +13,18 @@ import { tenantIsDeleted } from '../utils/tenant-lifecycle';
 // ==========================================
 // 1. HELPERS & CRYPTO UTILITIES
 // ==========================================
+
+export async function sha256Hex(text: string): Promise<string> {
+  const msgUint8 = new TextEncoder().encode(text);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+export function generateBearerToken(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 /**
  * Directly queries D1 to verify if staff_ordering_enabled is turned on for this tenant.
@@ -101,22 +110,6 @@ async function dispatchStaffRoute(
     return json({ ok: false, error: "invalid_tenant", message: `門市代碼 '${tenantId}' 不存在` }, 404);
   }
 
-  if (request.method === 'GET' && path === '/api/staff/delivery-details') {
-    const headers = { 'Cache-Control': 'no-store' };
-    const allowed = await canReadDeliveryDetails(request, env, tenantCtx) ||
-      (!!await verifyStaffSession(request, env, tenantId) &&
-        await getStoredPassword(env, tenantId, tenantCtx) !== DEFAULT_PASSWORD);
-    if (!allowed) {
-      return json({ error: 'SESSION_REQUIRED' }, 401, headers);
-    }
-    const key = url.searchParams.get('key') || '';
-    const row = await env.DB.prepare(
-      "SELECT delivery_details_json FROM orders WHERE tenant_id=? AND key=? AND dining_option='delivery'"
-    ).bind(tenantId, key).first<{ delivery_details_json: string | null }>();
-    const details = row?.delivery_details_json ? parseDeliveryDetails(JSON.parse(row.delivery_details_json)) : null;
-    return details ? json({ details }, 200, headers) : json({ error: 'DELIVERY_DETAILS_NOT_FOUND' }, 404, headers);
-  }
-
   const access = await staffAccess(env, tenantId);
   const hasDineIn = resolveEffectiveDineInPackage(tenantCtx, access);
   const denied = () => json({ ok: false, error: 'FEATURE_DISABLED' }, 403, { 'Cache-Control': 'no-store' });
@@ -176,7 +169,7 @@ async function dispatchStaffRoute(
       expires_at: expiresAt,
       tenant_id: tenantId,
       brand_name: tenantCtx.brandName
-    }, 200, { 'Cache-Control': 'no-store' });
+    });
   }
 
   // --- 3. DELETE /api/staff/session (Logout & Revoke Token) ---

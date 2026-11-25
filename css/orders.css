@@ -1824,16 +1824,6 @@ html.is-web-platform .store-activation-modal:not(.force-show) {
   display: none !important;
 }
 
-#btn-cancel-delivery-pairing {
-  display: none;
-}
-
-.store-activation-modal[data-delivery-pairing="true"] #btn-cancel-delivery-pairing {
-  display: inline-flex;
-  min-height: 48px;
-  justify-content: center;
-}
-
 .store-activation-box {
   position: relative;
   width: min(460px, 92vw);
@@ -13006,9 +12996,4 @@ html.no-flex-gap .printer-report-row > * + * { margin-left: 8px; }
 
 .order-delivery-card [role="alert"] {
   color: #991b1b;
-}
-
-.order-delivery-card button {
-  min-height: 48px;
-  justify-self: start;
 }

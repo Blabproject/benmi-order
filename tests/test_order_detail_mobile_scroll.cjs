@@ -20,10 +20,24 @@ async function run() {
     { name: 'Desktop (1440x900)', width: 1440, height: 900, isMobile: false }
   ];
 
+  const deliveryDetails = {
+    recipient: 'Test recipient',
+    phone: '0912 345 678',
+    address: '42 Example Road',
+    taxId: '12345678'
+  };
+
   for (const vp of testViewports) {
     const page = await browser.newPage({ viewport: { width: vp.width, height: vp.height } });
+    const deliveryRequests = [];
+    const loginRequests = [];
     await page.route('**/*', route => {
-      const { hostname, pathname } = new URL(route.request().url());
+      const { hostname, pathname, searchParams } = new URL(route.request().url());
+      if (pathname === '/api/orders/delivery-details') {
+        deliveryRequests.push([searchParams.get('tenant_id'), searchParams.get('key'), route.request().headers().authorization]);
+        return route.fulfill({ json: { details: deliveryDetails } });
+      }
+      if (pathname === '/api/auth' || pathname === '/api/staff/session') loginRequests.push(pathname);
       if (hostname === 'pos.test' && pathname === '/orders.html') {
         return route.fulfill({ body: html, contentType: 'text/html' });
       }
@@ -121,6 +135,21 @@ async function run() {
         metrics.gridColumns.includes(' '),
         `[${vp.name}] Should have multi-column layout on tablet/desktop, got: ${metrics.gridColumns}`
       );
+    }
+
+    if (vp.width === 375) {
+      await page.evaluate(() => {
+        const order = { ...latestOrders[0], key: 'test-delivery', diningOption: 'delivery' };
+        latestOrders = [order];
+        openReview(order.key);
+      });
+      const details = page.locator('.order-delivery-card');
+      await details.locator('dd').first().waitFor({ state: 'visible', timeout: 5000 });
+      assert.deepEqual(await details.locator('dd').allTextContents(), Object.values(deliveryDetails));
+      assert.equal(await details.locator('input,button').count(), 0);
+      assert.deepEqual(deliveryRequests, [['fixture', 'test-delivery', undefined]]);
+      assert.deepEqual(loginRequests, []);
+      assert.equal(await page.locator('#storeActivationModal').isVisible(), false);
     }
 
     await page.close();
