@@ -1090,7 +1090,7 @@
       if (isKitchen) row('廚房出餐聯', 45, '', 'normal', true);
       divider();
       const tableLabel = order.tableNumber ? ` ${isNarrow ? '' : '桌號：'}${order.tableNumber}` : '';
-      const diningText = order.diningOption === 'dine_in' ? '內用' + tableLabel : '外帶自取';
+      const diningText = order.diningOption === 'dine_in' ? '內用' + tableLabel : order.diningOption === 'delivery' ? '外送' : '外帶自取';
       row(OrderCode.format(order.displayKey || order.key), 36, diningText, 'bold', false, 32, 'bold');
       row('顧客：' + (order.customer || '顧客'), 29, '', 'normal');
       row('時間：' + (order.time || ''), 29, '', 'normal');
@@ -1299,7 +1299,7 @@
 
     // --- 7. TSPL CANVAS PAINTERS (Order Summary Label & Individual Cup/Item Stickers) ---
     drawOrderLabelToCanvas(order, isKitchen, widthMm = 100, heightMm = 150, dpi = 203) {
-      const dining = order.diningOption === 'dine_in' ? '桌:' + (order.tableNumber || '-') : '外帶';
+      const dining = order.diningOption === 'dine_in' ? '桌:' + (order.tableNumber || '-') : order.diningOption === 'delivery' ? '外送' : '外帶';
       const body = this.parseOrderItems(order, false).map(item =>
         [item.quantity + ' x ' + item.name, item.options, item.note].filter(Boolean).join('\n')).join('\n');
       const dateTime = this.formatShortDateTime(order.time, order.createdAt);
@@ -1349,7 +1349,7 @@
 
     drawItemStickerToCanvas(item, orderContext, itemIdx, totalItems, widthMm = 40, heightMm = 30, dpi = 203) {
       const compact = widthMm <= 42;
-      const dining = orderContext.diningOption === 'dine_in' ? '桌:' + (orderContext.tableNumber || '-') : '外帶';
+      const dining = orderContext.diningOption === 'dine_in' ? '桌:' + (orderContext.tableNumber || '-') : orderContext.diningOption === 'delivery' ? '外送' : '外帶';
       const header = OrderCode.format(orderContext.displayKey || orderContext.key) + ' ' + dining + ' [' + itemIdx + '/' + totalItems + ']';
       const body = [item.name + ' x' + item.quantity, item.options, item.note].filter(Boolean).join('\n');
       const dateTime = this.formatShortDateTime(orderContext.time, orderContext.createdAt);

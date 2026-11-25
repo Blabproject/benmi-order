@@ -1,4 +1,4 @@
-export type DiningOption = 'takeaway' | 'dine_in';
+export type DiningOption = 'takeaway' | 'dine_in' | 'delivery';
 
 export type OrderStatus =
   | 'PENDING_PAYMENT'

@@ -65,11 +65,15 @@ export function extractOrderChannelLabel(
 }
 
 /** Determines whether an order is dine-in matching legacy orders-history precedence. */
+export function isDeliveryOrder(order: HistoryOrderDto): boolean {
+  return (order.diningOption || order.dining_option) === 'delivery';
+}
+
 export function isOrderDineIn(order: HistoryOrderDto | null | undefined): boolean {
   if (!order) return false;
   const opt = String(order.diningOption || order.dining_option || '').toLowerCase().trim();
   if (opt === 'dine_in' || opt === 'dinein' || opt === 'in') return true;
-  if (opt === 'takeaway' || opt === 'take_out' || opt === 'out') return false;
+  if (opt === 'delivery' || opt === 'takeaway' || opt === 'take_out' || opt === 'out') return false;
 
   if (extractOrderTableNumber(order)) return true;
 

@@ -6,6 +6,8 @@ require.extensions['.ts'] = (module, file) => module._compile(ts.transpileModule
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true }
 }).outputText, file);
 const { fixture: menuFixture } = require('./helpers/option-groups.cjs');
+const { handleStaffRoute, sha256Hex } = require('../benmi-worker-official/src/modules/staff.ts');
+const { getOrders } = require('../benmi-worker-official/src/modules/orders.ts');
 const { writeDetailedOrder } = require('../benmi-worker-official/src/modules/order-detail-write.ts');
 const { readDetail, attachOrderDetails, DetailView } = require('../benmi-worker-official/src/modules/order-detail.ts');
 const { buildOrderFlexMessage } = require('../benmi-worker-official/src/modules/line/templates/order-receipt.ts');
@@ -24,7 +26,7 @@ function fixture() {
     CREATE TABLE daily_order_counters(tenant_id TEXT,order_date TEXT,dining_option TEXT,last_seq INTEGER,PRIMARY KEY(tenant_id,order_date,dining_option));
     CREATE TABLE pending_actions(tenant_id TEXT,order_key TEXT);
   `);
-  for (const name of ['0032_create_order_items.sql','0065_line_order_receipts.sql','0069_order_detail_snapshots.sql'])
+  for (const name of ['0032_create_order_items.sql','0065_line_order_receipts.sql','0069_order_detail_snapshots.sql','0099_order_delivery_details.sql'])
     f.db.exec(fs.readFileSync('benmi-worker-official/migrations/' + name, 'utf8'));
   Object.assign(f.env, { ORDER_DETAIL_READS: 'true', ORDER_DETAIL_WRITES: 'true' });
   return f;
@@ -83,6 +85,72 @@ test('menu refresh preserves the selected spice level from cart through the stor
   const created = await ok(f, payload);
   const stored = await readDetail(f.env, 'a', created.key);
   assert.equal(DetailView.globalChoices(stored.snapshot)[0].value, '微辣');
+});
+
+test('delivery is tenant-gated, stored privately and preserved on retry and item replacement', async t => {
+  const f = fixture();
+  t.after(() => f.db.close());
+  const tenant = { tenantId: 'a', features: ['delivery'] };
+  const details = { recipient: '  Test Recipient ', phone: '0912 345 678', address: '42 Example Street' };
+  const req = input({ dining_option: 'delivery', delivery_details: details });
+  const submit = (payload, context = tenant) => writeDetailedOrder(f.env, 'a', payload, 'create', undefined, context);
+
+  assert.equal((await submit(req, { ...tenant, features: [] })).status, 403);
+  assert.equal((await submit({ ...req, delivery_details: { ...details, phone: 'none' } })).status, 400);
+  const takeaway = await ok(f, input());
+  const response = await submit(req);
+  assert.equal(response.status, 200);
+  const created = await response.json();
+  assert.match(takeaway.displayKey, /-T001$/);
+  assert.match(created.displayKey, /-T002$/);
+  assert.doesNotMatch(JSON.stringify(created), /Test Recipient|Example Street/);
+  const stored = () => f.db.prepare('SELECT dining_option, delivery_details_json FROM orders WHERE key=?').get(created.key);
+  const original = { ...details, recipient: details.recipient.trim() };
+  assert.equal(stored().dining_option, 'delivery');
+  assert.deepEqual(JSON.parse(stored().delivery_details_json), original);
+  assert.equal((await (await submit(req)).json()).idempotent, true);
+  assert.equal((await submit({ ...req, delivery_details: { ...details, taxId: '12345678' } })).status, 409);
+
+  const privateUrl = 'https://example.test/api/staff/delivery-details?tenant_id=a&key=' + created.key;
+  const privateResponse = await handleStaffRoute(new Request(privateUrl), f.env, '/api/staff/delivery-details', tenant);
+  assert.equal(privateResponse.status, 401);
+  assert.equal(privateResponse.headers.get('Cache-Control'), 'no-store');
+  assert.doesNotMatch(await privateResponse.text(), /Test Recipient|Example Street/);
+  const token = 'synthetic-staff-session-token';
+  const pin = '462731';
+  f.db.exec(`CREATE TABLE staff_sessions (token_hash TEXT, tenant_id TEXT, pin_hash TEXT, expires_at TEXT, revoked_at TEXT);
+    ALTER TABLE orders ADD COLUMN legacy_key TEXT;
+    ALTER TABLE orders ADD COLUMN source TEXT;
+    ALTER TABLE orders ADD COLUMN revision INTEGER;
+    ALTER TABLE order_items ADD COLUMN bundle_snapshot_json TEXT;`);
+  const passwordKey = 'tenant:a:password';
+  f.env.ORDER_STATE = {
+    get: async key => key === 'tenant:a:config_cache' ? JSON.stringify({ tenantId: 'a', defaultPassword: pin }) :
+      key === passwordKey ? pin : null,
+  };
+  const staffTenant = { ...tenant, defaultPassword: pin };
+  f.db.prepare("INSERT INTO staff_sessions VALUES (?,?,?,datetime('now','+1 hour'),NULL)")
+    .run(await sha256Hex(token), 'a', await sha256Hex(pin));
+  const headers = { Authorization: 'Bearer ' + token };
+  const staffResponse = await handleStaffRoute(new Request(privateUrl, { headers }), f.env, '/api/staff/delivery-details', staffTenant);
+  assert.equal(staffResponse.status, 200);
+  assert.deepEqual((await staffResponse.json()).details, original);
+  const crossTenantResponse = await handleStaffRoute(new Request(privateUrl.replace('tenant_id=a', 'tenant_id=b'), { headers }),
+    f.env, '/api/staff/delivery-details', { ...staffTenant, tenantId: 'b' });
+  assert.equal(crossTenantResponse.status, 401);
+
+  const liveResponse = await getOrders(new Request('https://example.test/api/orders?tenant_id=a'), f.env);
+  assert.equal(liveResponse.status, 200);
+  const liveOrders = await liveResponse.json();
+  assert.equal(liveOrders.find(order => order.key === created.key).diningOption, 'delivery');
+  assert.doesNotMatch(JSON.stringify(liveOrders), /Test Recipient|Example Street/);
+
+  f.db.prepare("UPDATE orders SET status='WAITING_CUSTOMER_CHANGE' WHERE key=?").run(created.key);
+  const line = created.detailSnapshot.rounds[0].items[0];
+  const modified = await write(f, input({ order_key: created.key, expectedDetailRevision: 1, targetRound: 1,
+    items: [{ lineId: line.lineId, itemId: 'a_main', quantity: 1 }] }), 'modify');
+  assert.equal(modified.status, 200);
+  assert.deepEqual(JSON.parse(stored().delivery_details_json), original);
 });
 
 test('create, load and display preserve typed notes exactly once', async () => {

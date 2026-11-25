@@ -1443,6 +1443,7 @@ function closeModal() {
       m.style.display = "none";
     }
   });
+  window.PosOrderDetail?.clear?.();
   reviewingOrder = null;
   currentOrderKey = null;
   if (typeof updateNewAlert === "function") updateNewAlert();

@@ -5,6 +5,7 @@ import {
   formatOrderSubmissionTime,
   formatPickupTimeDisplay,
   isOrderCancelled,
+  isDeliveryOrder,
   isOrderDineIn
 } from './history-model';
 
@@ -242,14 +243,14 @@ export function resolveOrderPaymentBadge(
 /** Resolves dining option, table number, append round, and modified flags for history cards. */
 export function resolveOrderDiningBadge(order: HistoryOrderDto, locale: PosLocale): OrderDiningBadgeModel {
   const isDineIn = isOrderDineIn(order);
-  const tableNumber = extractOrderTableNumber(order);
+  const tableNumber = isDeliveryOrder(order) ? '' : extractOrderTableNumber(order);
   const tableSuffix = tableNumber ? ` · ${translatePos(locale, 'tableInline', { table: tableNumber })}` : '';
   const roundCount = Number(order.round_count || order.roundCount) || 1;
   const isModified = order.is_modified === 1 || order.isModified === true;
 
   return {
     isDineIn,
-    label: `${translatePos(locale, isDineIn ? 'badgeDineIn' : 'badgeTakeaway')}${tableSuffix}`,
+    label: `${translatePos(locale, isDeliveryOrder(order) ? 'badgeDelivery' : isDineIn ? 'badgeDineIn' : 'badgeTakeaway')}${tableSuffix}`,
     tableNumber,
     roundCount,
     isModified

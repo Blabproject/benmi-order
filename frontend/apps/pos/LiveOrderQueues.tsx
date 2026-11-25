@@ -1,9 +1,9 @@
 import { flushSync } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
 import type { HistoryOrderDto } from '@shared/contracts/api';
-import { extractOrderChannelLabel } from '@shared/contracts/history-model';
+import { extractOrderChannelLabel, isDeliveryOrder } from '@shared/contracts/history-model';
 import { resolveOrderPaymentBadge } from '@shared/contracts/order-formatters';
-import { ClockIcon, DineInIcon, EyeIcon, InboxIcon, ModifyIcon, ReceiptIcon, TagIcon, TakeawayIcon } from '@shared/ui/PosIcons';
+import { ClockIcon, DeliveryIcon, DineInIcon, EyeIcon, InboxIcon, ModifyIcon, ReceiptIcon, TagIcon, TakeawayIcon } from '@shared/ui/PosIcons';
 import { Badge } from '@shared/ui/badge';
 import { Button } from '@shared/ui/button';
 import { Card } from '@shared/ui/card';
@@ -164,7 +164,9 @@ function OrderTile({ order, station, dineIn }: { order: HistoryOrderDto; station
         </Badge>}
         {payment && <span className="tile-meta-tag">{payment.label}</span>}
         {modified && <Badge variant="amber" shape="rounded" className="tile-badge badge-modified"><ModifyIcon />{t('badgeModifiedOrder')}</Badge>}
-        {dineIn
+        {isDeliveryOrder(order)
+          ? <Badge variant="blue" shape="rounded" className="tile-badge badge-delivery"><DeliveryIcon size={12} />{t('badgeDelivery')}</Badge>
+          : dineIn
           ? <Badge variant="purple" shape="rounded" className="tile-badge badge-dine-in"><DineInIcon size={12} />{t('badgeDineIn')}{tableLabel}</Badge>
           : <Badge variant="success" shape="rounded" className="tile-badge badge-takeaway"><TakeawayIcon size={12} />{t('badgeTakeaway')}</Badge>}
         {channelLabel && (

@@ -1,3 +1,4 @@
+import { isDeliveryOrder } from '@shared/contracts/history-model';
 import type { HistoryOrderDto } from '@shared/contracts/api';
 import {
   extractOrderChannelLabel,
@@ -26,6 +27,7 @@ import {
   ChevronDownIcon,
   ClockIcon,
   CloseIcon,
+  DeliveryIcon,
   DineInIcon,
   EyeIcon,
   FolderIcon,
@@ -353,10 +355,10 @@ export function PosHistoryPanel({
                                 {displayCode}
                               </span>
                               <Badge
-                                variant={diningBadge.isDineIn ? 'purple' : 'success'}
+                                variant={isDeliveryOrder(order) ? 'blue' : diningBadge.isDineIn ? 'purple' : 'success'}
                                 className="ps-ml-1 ps-px-1.5 ps-py-0.5 ps-text-[length:var(--pos-text-meta)]"
                               >
-                                {diningBadge.isDineIn ? <DineInIcon /> : <TakeawayIcon />}
+                                {isDeliveryOrder(order) ? <DeliveryIcon /> : diningBadge.isDineIn ? <DineInIcon /> : <TakeawayIcon />}
                                 <span>{diningBadge.label}</span>
                               </Badge>
                               {channelLabel ? (

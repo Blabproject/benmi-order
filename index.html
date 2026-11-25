@@ -6,13 +6,13 @@
     <link rel="stylesheet" href="/css/staff-order.css?v=20261122_staff_shadcn_v1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title id="page-title" data-i18n="page_default_title">線上點餐</title>
-    <link rel="preload" href="/index.css?v=20261124_uber_header_v1" as="style">
+    <link rel="preload" href="/index.css?v=20261125_delivery_v1" as="style">
     <link rel="preload" href="/js/store-notice-format.js?v=20261111_store_notice_v1" as="script">
     <link rel="preload" href="/js/menu-schedule.js?v=20261121_collection_qr_v1" as="script">
-    <link rel="preload" href="/js/client-i18n.js?v=20261124_uber_header_v1" as="script">
-    <link rel="preload" href="/js/client-core.js?v=20261124_uber_header_v1" as="script">
+    <link rel="preload" href="/js/client-i18n.js?v=20261125_delivery_v1" as="script">
+    <link rel="preload" href="/js/client-core.js?v=20261125_delivery_v1" as="script">
     <link rel="preload" href="/js/client-menu.js?v=20261125_staff_only_v1" as="script">
-    <link rel="stylesheet" href="/index.css?v=20261124_uber_header_v1">
+    <link rel="stylesheet" href="/index.css?v=20261125_delivery_v1">
     <style>html.tenant-resolution-failed body > :not(#tenant-resolution-error) { display: none !important; }</style>
     <script>
         try {
@@ -373,6 +373,11 @@
                         </svg>
                         <span class="dining-seg-text" data-i18n="dining_takeaway">外帶自取</span>
                     </button>
+                    <button type="button" class="dining-seg-btn" id="btn-dining-delivery" role="tab" aria-selected="false"
+                        onclick="setCustomerDiningOption('delivery')" hidden>
+                        <svg class="dining-seg-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 17h4V5H2v12h2m14 0h4v-4l-3-4h-5m0 8h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+                        <span class="dining-seg-text" data-i18n="dining_delivery">外送</span>
+                    </button>
                     <button type="button" class="dining-seg-btn" id="btn-dining-dinein" role="tab" aria-selected="false"
                         onclick="setCustomerDiningOption('dine_in')">
                         <svg class="dining-seg-svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
@@ -720,6 +725,11 @@
                                 </svg>
                                 <span class="dining-seg-text" data-i18n="dining_takeaway">外帶自取</span>
                             </button>
+                            <button type="button" class="dining-seg-btn" id="checkout-btn-delivery" aria-pressed="false"
+                                onclick="setCustomerDiningOption('delivery')" hidden>
+                                <svg class="dining-seg-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 17h4V5H2v12h2m14 0h4v-4l-3-4h-5m0 8h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+                                <span class="dining-seg-text" data-i18n="dining_delivery">外送</span>
+                            </button>
                             <button type="button" class="dining-seg-btn" id="checkout-btn-dinein"
                                 onclick="setCustomerDiningOption('dine_in')">
                                 <svg class="dining-seg-svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -780,7 +790,7 @@
                                         <line x1="12" y1="8" x2="12" y2="12"></line>
                                         <line x1="12" y1="16" x2="12.01" y2="16"></line>
                                     </svg>
-                                    <span data-i18n="pickup_eta_label">預計取餐時間</span>
+                                    <span data-fulfillment-time-label data-i18n="pickup_eta_label">預計取餐時間</span>
                                 </div>
                                 <span style="font-size: 11px; font-weight: 700; color: var(--primary); background: #f0fdf4; border: 1px solid #bbf7d0; padding: 2px 8px; border-radius: 99px;" data-i18n="pickup_tap_change">點擊修改</span>
                             </label>
@@ -875,6 +885,23 @@
                             </div>
                         </div>
                     </div>
+
+                    <section id="checkout-delivery-details" aria-labelledby="checkout-delivery-heading" hidden>
+                        <h3 class="section-title checkout-section-title" id="checkout-delivery-heading">
+                            <svg class="section-title-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 17h4V5H2v12h2m14 0h4v-4l-3-4h-5m0 8h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+                            <span data-i18n="delivery_details">外送資訊</span>
+                        </h3>
+                        <div class="input-group delivery-fields">
+                            <label for="delivery-recipient"><span data-i18n="delivery_recipient">收件人姓名</span> <span aria-hidden="true">*</span></label>
+                            <input id="delivery-recipient" name="recipient" autocomplete="shipping name" maxlength="100" required>
+                            <label for="delivery-phone"><span data-i18n="delivery_phone">聯絡電話</span> <span aria-hidden="true">*</span></label>
+                            <input id="delivery-phone" name="phone" type="tel" autocomplete="shipping tel" maxlength="32" required>
+                            <label for="delivery-address"><span data-i18n="delivery_address">外送地址</span> <span aria-hidden="true">*</span></label>
+                            <textarea id="delivery-address" name="address" autocomplete="shipping street-address" rows="2" maxlength="300" required></textarea>
+                            <label for="delivery-tax-id"><span data-i18n="delivery_tax_id">統一編號</span> <span class="delivery-optional" data-i18n="delivery_optional">選填</span></label>
+                            <input id="delivery-tax-id" name="taxId" inputmode="numeric" maxlength="32">
+                        </div>
+                    </section>
 
                     <div class="section-title checkout-section-title">
                         <svg class="section-title-svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -1119,8 +1146,8 @@
     <script src="/js/menu-schedule.js?v=20261121_collection_qr_v1"></script>
     <script src="/js/client-pricing-wasm.js?v=20261116_menu_schedule_v1"></script>
     <script src="/js/store-notice-format.js?v=20261111_store_notice_v1"></script>
-    <script src="/js/client-i18n.js?v=20261124_uber_header_v1"></script>
-    <script src="/js/client-core.js?v=20261124_uber_header_v1"></script>
+    <script src="/js/client-i18n.js?v=20261125_delivery_v1"></script>
+    <script src="/js/client-core.js?v=20261125_delivery_v1"></script>
     <script src="/js/client-menu.js?v=20261125_staff_only_v1"></script>
     <script src="/js/client-customizations.js?v=20261118_multi_portion_copy_v1"></script>
     <script src="/js/client-bundle.js?v=20261125_staff_only_v1"></script>
@@ -1151,9 +1178,9 @@
     </div>
     <script src="/js/order-legacy-adapter.js?v=20261017_order_detail_v1"></script>
   <script src="/js/order-detail-view.js?v=20261119_print_options_v2"></script>
-  <script src="/js/order-detail-checkout.js?v=20261121_collection_qr_v1"></script>
+  <script src="/js/order-detail-checkout.js?v=20261125_delivery_v1"></script>
   <script src="/js/line-order-presentation.js?v=20261030_line_portions_v3"></script>
-    <script src="/js/client-checkout.js?v=20261123_tag_banner_v2"></script>
+    <script src="/js/client-checkout.js?v=20261125_delivery_v1"></script>
     <script src="/js/staff-order.js?v=20261123_prod_release_v1"></script>
     <script>
         if (window.__TENANT_RESOLUTION_FAILED) {
@@ -1166,7 +1193,7 @@
   <script src="/js/payment-session.js?v=20261103_linepay_mobile_redirect_v1"></script>
   <script src="/js/payment-view.js?v=20261101_payment_result_v1"></script>
   <script src="/js/payment-actions.js?v=20261109_order_code_v1"></script>
-  <script src="/js/client-payments.js?v=20261120_counter_payment_v1"></script>
+  <script src="/js/client-payments.js?v=20261125_delivery_v1"></script>
     <script type="module" src="/frontend/apps/staff-order/entry.ts"></script>
 </body>
 

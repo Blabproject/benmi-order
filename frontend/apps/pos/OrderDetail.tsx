@@ -2,9 +2,10 @@ import { useRef, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
 import type { HistoryOrderDto } from '@shared/contracts/api';
-import { extractOrderChannelLabel } from '@shared/contracts/history-model';
+import { extractOrderChannelLabel, isDeliveryOrder } from '@shared/contracts/history-model';
 import { Button } from '@shared/ui/button';
 import { OrderDetailItems, prepareOrderItems } from './OrderDetailItems';
+import { OrderDeliveryDetails } from './OrderDeliveryDetails';
 import { ClockIcon, CloseIcon, ModifyIcon, ReceiptIcon, TagIcon } from '@shared/ui/PosIcons';
 
 interface PrintItem { name?: string; price?: string | number; unitPrice?: string | number; quantity?: number }
@@ -155,7 +156,8 @@ function OrderDetail({ order, etaOrder, detail }: { order: HistoryOrderDto; etaO
   const appended = (Number(order.round_count || order.roundCount) || 1) > 1 || Boolean(order.lastAppendedAt || order.last_appended_at);
   const customer = order.customer?.trim();
   const name = customer || t('defaultCustomer');
-  const dining = dineIn ? (table ? t('reviewTable', { table }) : t('dineIn')) : t('takeaway');
+  const delivery = isDeliveryOrder(order);
+  const dining = delivery ? t('badgeDelivery') : dineIn ? (table ? t('reviewTable', { table }) : t('dineIn')) : t('takeaway');
   const eta = timing(etaOrder);
   const statusLabel = statusLabels[order.status];
 
@@ -198,7 +200,7 @@ function OrderDetail({ order, etaOrder, detail }: { order: HistoryOrderDto; etaO
         <div className="order-detail-status-header"><h2 className="order-detail-status-title" id="review-status-title">{statusLabel ? t(statusLabel) : order.status || '-'}</h2></div>
         <div className="order-detail-timing-card" id="review-timing-card">
           <div className="timing-card-box pickup-box">
-            <div className="timing-card-label">{t(dineIn ? (appended ? 'dineInAppendedTimeLabel' : 'dineInTimeLabel') : 'labelPickup')}</div>
+            <div className="timing-card-label">{t(dineIn ? (appended ? 'dineInAppendedTimeLabel' : 'dineInTimeLabel') : delivery ? 'deliveryTimeLabel' : 'labelPickup')}</div>
             <div className="timing-card-val" id="review-pickup"><ClockIcon /><span>{dineIn ? formatDineInTimeDisplay(order) : formatPickupTimeDisplay(order.time, order.createdAt, order.content)}</span></div>
           </div>
           <div className="timing-card-divider" />
@@ -223,6 +225,7 @@ function OrderDetail({ order, etaOrder, detail }: { order: HistoryOrderDto; etaO
           </div>
           <DetailActions key={order.key} status={order.status} dineIn={dineIn} />
         </div>
+        {delivery && <OrderDeliveryDetails key={order.key} orderKey={order.key} />}
         <div className="modal-print-toolbar">
           <div className="printer-reports" data-printer-reports="current" role="status" aria-live="polite" />
           <div className="print-toolbar-header"><PrintIcon size={14} /><span>{t('printToolsLabel')}</span></div>
@@ -257,5 +260,6 @@ Object.assign(window, {
         root.render(<OrderDetail order={order} etaOrder={etaOrder} detail={model} />);
       });
     },
+    clear() { root?.render(null); },
   },
 });

@@ -11,6 +11,8 @@ import { json } from '../utils/http';
 import { buildDetailRound, DetailError, DetailView, detailWrites, detailStatement, detailProjection, readDetail } from './order-detail';
 import { hasDbColumn, resolveOrderQrChannelAndShiftPolicy, resolveEffectiveOrderDiningOption } from './operating-shifts';
 
+import { deliveryDetailsStatement, parseDeliveryDetails, type DeliveryDetails } from './order-delivery';
+
 type Kind = 'create' | 'append' | 'modify';
 const digest = async (value: unknown) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',
   new TextEncoder().encode(JSON.stringify(value))))).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -22,7 +24,8 @@ export async function detailRequestHash(kind: Kind, input: any, key: string) {
     revision: input.expectedDetailRevision, customer: input.customer, user: input.userId || input.user_id,
     time: input.time, dining: input.dining_option || input.diningOption, table: input.table_number || input.tableNumber,
     channel: input.channel_id || input.channelId || input.channel_code || input.channelCode,
-    shift: input.shift_id || input.shiftId });
+    shift: input.shift_id || input.shiftId, delivery: kind === 'create' && (input.dining_option || input.diningOption) === 'delivery'
+      ? parseDeliveryDetails(input.delivery_details) : undefined });
 }
 
 export async function writeDetailedOrder(env: Env, tenant: string, input: any, kind: Kind,
@@ -53,6 +56,7 @@ export async function writeDetailedOrder(env: Env, tenant: string, input: any, k
     let orderId: string;
     let displayKey: string;
     let businessDate: string;
+    let deliveryDetails: DeliveryDetails | null = null;
     const rawRequestedDining = input.dining_option || input.diningOption;
     let dining: DiningOption = rawRequestedDining === 'dine_in' ? 'dine_in' : 'takeaway';
     const attribution = kind === 'create'
@@ -62,6 +66,7 @@ export async function writeDetailedOrder(env: Env, tenant: string, input: any, k
       const resolvedDining = resolveEffectiveOrderDiningOption(rawRequestedDining, attribution, {
         allowDineInFeature: !tenantCtx || tenantHasFeature(tenantCtx, 'dine_in'),
         allowDineInSetting: tenantCtx?.allowDineIn !== false,
+        allowDelivery: !!tenantCtx && tenantHasFeature(tenantCtx, 'delivery'),
       });
       if (!resolvedDining.ok) {
         return json({
@@ -72,6 +77,10 @@ export async function writeDetailedOrder(env: Env, tenant: string, input: any, k
         }, resolvedDining.status);
       }
       dining = resolvedDining.diningOption;
+      if (dining === 'delivery') {
+        deliveryDetails = parseDeliveryDetails(input.delivery_details);
+        if (!deliveryDetails) throw new DetailError('INVALID_DELIVERY_DETAILS');
+      }
       const next = await getNextDailyOrderSeq(env, tenant, dining, new Date(), resolveTenantOrderPrefix(tenantCtx, tenant));
       orderId = crypto.randomUUID();
       displayKey = next.key;
@@ -114,7 +123,7 @@ export async function writeDetailedOrder(env: Env, tenant: string, input: any, k
       time: row?.pickup_time || String(input.time || ''), status: 'NEW', createdAt: Date.now(),
       userId: row?.user_id || input.userId || input.user_id,
       total: snapshot.total, content: DetailView.text(snapshot), note: DetailView.notes(snapshot),
-      diningOption: dining, tableNumber: row?.table_number || input.table_number || input.tableNumber || null,
+      diningOption: dining, tableNumber: dining === 'delivery' ? null : row?.table_number || input.table_number || input.tableNumber || null,
       roundCount: Math.max(...snapshot.rounds.map(r => r.roundNumber)), detailRevision: revision, detailSnapshot: snapshot };
     // Append receipts show only this round, while persisted snapshot contains the whole order.
     const receiptOrder = kind === 'append' ? { ...order, total: round.total,
@@ -140,6 +149,7 @@ export async function writeDetailedOrder(env: Env, tenant: string, input: any, k
         .bind(key, orderId, displayKey, businessDate, order.uuid || operation, tenant, order.userId || null,
           order.customer, order.time, order.total, order.content, order.note || '', dining, order.tableNumber || null, tableId || null, ...attrBindings));
     }
+    if (deliveryDetails) statements.push(deliveryDetailsStatement(env.DB, tenant, key, deliveryDetails));
     statements.push(detailStatement(env, tenant, key, revision, operation, hash, snapshot, kind));
     statements.push(env.DB.prepare(`UPDATE orders SET detail_revision=?,order_content=?,note=?,total_amount=?,status='NEW',
       round_count=?,last_appended_at=CASE WHEN ?='append' THEN strftime('%Y-%m-%d %H:%M:%f','now') ELSE last_appended_at END,

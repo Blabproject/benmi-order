@@ -306,7 +306,7 @@ function isOrderDineIn(order) {
   if (!order) return false;
   const opt = String(order.diningOption || order.dining_option || "").toLowerCase().trim();
   if (opt === "dine_in" || opt === "dinein" || opt === "in") return true;
-  if (opt === "takeaway" || opt === "take_out" || opt === "out") return false;
+  if (opt === "delivery" || opt === "takeaway" || opt === "take_out" || opt === "out") return false;
 
   const table = (typeof getOrderTableNumber === "function" ? getOrderTableNumber(order) : String(order.tableNumber || order.table_number || "")).trim();
   if (table) return true;

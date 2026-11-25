@@ -117,6 +117,15 @@ export function DineInIcon({ size = 13, ...props }: IconProps & { size?: number 
   );
 }
 
+/** Delivery truck icon (Lucide MIT). */
+export function DeliveryIcon({ size = 14, ...props }: IconProps & { size?: number }) {
+  return <StrokeIcon size={size} {...props}>
+    <path d="M10 17h4V5H2v12h2m14 0h4v-4l-3-4h-5m0 8h2" />
+    <circle cx="7" cy="17" r="2" />
+    <circle cx="17" cy="17" r="2" />
+  </StrokeIcon>;
+}
+
 /** Takeaway shopping bag icon (Lucide MIT). */
 export function TakeawayIcon({ size = 13, ...props }: IconProps & { size?: number }) {
   return (

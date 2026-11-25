@@ -123,16 +123,23 @@ window.LinePayCheckout = (function () {
   }
   function renderPaymentMethods(config) {
     const allowedMethods=Array.isArray(config.paymentMethods)&&config.paymentMethods.length>0?config.paymentMethods:['line_pay'];
-    if(!config.linePay?.enabled&&!allowedMethods.includes('cash'))return;
+    const isDelivery = window.currentDiningOption === 'delivery';
+    const previous = document.getElementById('payment-method');
+    if(!isDelivery&&!config.linePay?.enabled&&!allowedMethods.includes('cash')){
+      previous?.remove();
+      return;
+    }
     const isDineIn = window.currentDiningOption === 'dine_in' || window.isAppendMode || !!window.currentTableNumber;
-    const allDefinitions = isDineIn ? [
+    const allDefinitions = isDelivery ? [
+      ['cash', ct('payment_delivery_title'), ct('payment_delivery_description')]
+    ] : isDineIn ? [
       ['cash', ct('payment_counter_title'), ct('payment_counter_description')]
     ] : [
       ['line_pay', 'LINE Pay', ct('payment_linepay_description')],
       ['cash', ct('payment_counter_title'), ct('payment_pickup_description')]
     ];
     const choicesList = allDefinitions.filter(([val]) => {
-      if (isDineIn) return true;
+      if (isDineIn || isDelivery) return true;
       if (val === 'line_pay') return config.linePay?.enabled && allowedMethods.includes('line_pay');
       if (val === 'cash') return allowedMethods.includes('cash');
       return false;
@@ -160,10 +167,9 @@ window.LinePayCheckout = (function () {
     }
     group.append(legend, choices);
     group.addEventListener('change', event => {
-      if (!isDineIn) takeawayMethod = event.target.value;
+      if (!isDineIn && !isDelivery) takeawayMethod = event.target.value;
       syncButtons();
     });
-    const previous = document.getElementById('payment-method');
     if (previous) previous.replaceWith(group);
     else (document.getElementById('checkout-payment-method') || document.getElementById('sec-checkout')).append(group);
   }

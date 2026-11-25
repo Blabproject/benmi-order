@@ -845,10 +845,22 @@ export async function resolveOrderQrChannelAndShiftPolicy(
 export function resolveEffectiveOrderDiningOption(
   rawRequestedDining: unknown,
   attribution: OrderAttributionPolicyResult,
-  options: { allowDineInFeature: boolean; allowDineInSetting?: boolean }
+  options: { allowDineInFeature: boolean; allowDineInSetting?: boolean; allowDelivery?: boolean }
 ):
-  | { ok: true; diningOption: 'dine_in' | 'takeaway' }
-  | { ok: false; status: 409; error: string; message: string; shiftId: string | null; diningPolicy: string } {
+  | { ok: true; diningOption: 'dine_in' | 'takeaway' | 'delivery' }
+  | { ok: false; status: 403 | 409; error: string; message: string; shiftId: string | null; diningPolicy: string } {
+  if (rawRequestedDining === 'delivery') {
+    if (!options.allowDelivery) return {
+      ok: false, status: 403, error: 'DELIVERY_UNAVAILABLE', message: 'Delivery is unavailable for this store',
+      shiftId: attribution.shiftId, diningPolicy: attribution.diningPolicy,
+    };
+    if (attribution.diningPolicy === 'dine_in_only' ||
+        (attribution.channelDiningPolicy && attribution.channelDiningPolicy !== 'customer_choice')) return {
+      ok: false, status: 409, error: 'DELIVERY_UNAVAILABLE', message: 'Delivery is unavailable on this ordering channel or shift',
+      shiftId: attribution.shiftId, diningPolicy: attribution.channelDiningPolicy || attribution.diningPolicy,
+    };
+    return { ok: true, diningOption: 'delivery' };
+  }
   const requested = rawRequestedDining === 'dine_in' ? 'dine_in' : (rawRequestedDining === 'takeaway' ? 'takeaway' : null);
   const storeAllowsDineIn = options.allowDineInSetting !== false;
 

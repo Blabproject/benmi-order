@@ -3,6 +3,7 @@ var DetailCheckout = (function () {
   const enabled = () => typeof bootstrapData !== 'undefined' && bootstrapData?.orderDetailVersion === 1;
   const storageKey = () => `order_detail_pending:${typeof getTenantIdFromUrl === 'function' ? getTenantIdFromUrl() : ''}`;
   let pending = null;
+  let pendingDelivery = null;
   let context = null;
   const sources = new Map();
   function selections() {
@@ -52,7 +53,13 @@ var DetailCheckout = (function () {
     const fingerprint = JSON.stringify({ key, items: modern.items, groups: modern.orderSelections, note: modern.note,
       total: modern.appended_total ?? modern.new_total ?? modern.total, revision: modern.expectedDetailRevision,
       target: modern.targetRound, dining: modern.dining_option, table: modern.table_number,
-      channel: modern.channel_id || modern.channel_code, shift: modern.shift_id });
+      channel: modern.channel_id || modern.channel_code, shift: modern.shift_id, delivery: modern.delivery_details });
+    if (modern.delivery_details) {
+      if (pendingDelivery?.fingerprint === fingerprint) return pendingDelivery.payload;
+      modern.operationId = modern.uuid = crypto.randomUUID();
+      pendingDelivery = { fingerprint, payload: modern };
+      return modern;
+    }
     try { pending ||= JSON.parse(sessionStorage.getItem(storageKey()) || 'null'); } catch (_) {}
     if (pending?.fingerprint === fingerprint) return pending.payload;
     modern.operationId = crypto.randomUUID();

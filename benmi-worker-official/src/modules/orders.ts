@@ -1,3 +1,4 @@
+import { deliveryDetailsStatement, parseDeliveryDetails, type DeliveryDetails } from './order-delivery';
 import OrderCode from '../../../js/order-code.js';
 import { attachPayments } from './payments';
 import { writeDetailedOrder } from './order-detail-write';
@@ -115,7 +116,7 @@ export async function getNextDailyOrderSeq(
      VALUES (?, ?, ?, 1)
      ON CONFLICT(tenant_id, order_date, dining_option) DO UPDATE SET last_seq = last_seq + 1
      RETURNING last_seq`
-  ).bind(tenantId, dateStr, diningOption).first<{ last_seq: number }>();
+  ).bind(tenantId, dateStr, diningOption === 'delivery' ? 'takeaway' : diningOption).first<{ last_seq: number }>();
   if (!res?.last_seq) throw new Error('ORDER_COUNTER_UNAVAILABLE');
   return { key: `${p}${mm}${dd}-${typePrefix}${String(res.last_seq).padStart(3, "0")}`, seq: res.last_seq };
 }
@@ -452,6 +453,7 @@ export async function createOrder(
   const resolvedDining = resolveEffectiveOrderDiningOption(effectiveRequestedDining, attribution, {
     allowDineInFeature: !tenantCtx || tenantHasFeature(tenantCtx, 'dine_in'),
     allowDineInSetting: tenantCtx?.allowDineIn !== false,
+    allowDelivery: !!tenantCtx && tenantHasFeature(tenantCtx, 'delivery'),
   });
   if (!resolvedDining.ok) {
     return json({
@@ -462,6 +464,10 @@ export async function createOrder(
     }, resolvedDining.status);
   }
   const diningOption: DiningOption = resolvedDining.diningOption;
+  const deliveryDetails = diningOption === 'delivery' ? parseDeliveryDetails(data.delivery_details) : null;
+  if (diningOption === 'delivery' && !deliveryDetails) {
+    return json({ code: 'INVALID_DELIVERY_DETAILS', error: 'INVALID_DELIVERY_DETAILS' }, 400);
+  }
 
   const orderUuid = data.uuid || data.order_uuid || null;
 
@@ -749,10 +755,11 @@ export async function createOrder(
             );
           })
         ];
+        if (deliveryDetails) batchStatements.push(deliveryDetailsStatement(env.DB, tenantId, order.key, deliveryDetails));
         if (receipt) batchStatements.push(receipt.statement);
         await env.DB.batch(batchStatements);
       } else {
-        await saveOrder(env, order, tenantId, true, receipt?.statement);
+        await saveOrder(env, order, tenantId, true, receipt?.statement, deliveryDetails);
       }
       break;
     } catch (error) {
@@ -1657,7 +1664,7 @@ export async function getHistoryAll(request: Request, env: Env): Promise<Respons
   }
 }
 
-export async function saveOrder(env: Env, order: Order, tenantId: string, createOnly = false, receiptStatement?: D1PreparedStatement): Promise<void> {
+export async function saveOrder(env: Env, order: Order, tenantId: string, createOnly = false, receiptStatement?: D1PreparedStatement, deliveryDetails?: DeliveryDetails | null): Promise<void> {
   // Save order and receipt atomically.
   let tableId: string | null = null;
   if (order.tableNumber && env.DB) {
@@ -1685,7 +1692,7 @@ export async function saveOrder(env: Env, order: Order, tenantId: string, create
        order_content = excluded.order_content,
        reason = excluded.reason,
        note = excluded.note,
-       dining_option = excluded.dining_option,
+       dining_option = CASE WHEN orders.dining_option = 'delivery' THEN orders.dining_option ELSE excluded.dining_option END,
        table_number = excluded.table_number,
        table_id = CASE WHEN excluded.table_id IS NOT NULL THEN excluded.table_id ELSE orders.table_id END,
        round_count = CASE WHEN excluded.round_count > orders.round_count THEN excluded.round_count ELSE orders.round_count END,
@@ -1714,7 +1721,10 @@ export async function saveOrder(env: Env, order: Order, tenantId: string, create
     order.lastAppendedAt || order.last_appended_at || null,
     Math.floor((order.createdAt || Date.now()) / 1000)
   );
-  if (receiptStatement) await env.DB.batch([statement, receiptStatement]);
+  const statements = [statement];
+  if (deliveryDetails) statements.push(deliveryDetailsStatement(env.DB, tenantId, order.key, deliveryDetails));
+  if (receiptStatement) statements.push(receiptStatement);
+  if (statements.length > 1) await env.DB.batch(statements);
   else await statement.run();
 }
 

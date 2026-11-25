@@ -867,7 +867,7 @@ function setCustomerMenuCollection(shiftId) {
         }
         window.__collectionAutoSnappedTime = false;
     } else if (shift) {
-        if (shift.diningPolicy === 'takeaway_only' && !window.isAppendMode && !window.currentTableNumber) {
+        if (shift.diningPolicy === 'takeaway_only' && window.currentDiningOption !== 'delivery' && !window.isAppendMode && !window.currentTableNumber) {
             window.currentDiningOption = 'takeaway';
         } else if (shift.diningPolicy === 'dine_in_only' && storeConfig?.allowDineIn !== false && (window.currentQrChannel || (Array.isArray(storeConfig?.features) && storeConfig.features.includes('dine_in')))) {
             window.currentDiningOption = 'dine_in';
@@ -880,30 +880,10 @@ function setCustomerMenuCollection(shiftId) {
 window.setCustomerMenuCollection = setCustomerMenuCollection;
 
 function setCustomerDiningOption(opt) {
-    if (opt !== 'takeaway' && opt !== 'dine_in') return;
-    if (window.diningOptionLocked && opt !== window.diningOptionLocked && !window.currentTableNumber && !window.isAppendMode && !window.isEditOrderMode) {
-        return;
-    }
+    if (!['takeaway', 'dine_in', 'delivery'].includes(opt)) return;
+    if (window.diningOptionLocked && opt !== window.diningOptionLocked && !window.currentTableNumber && !window.isAppendMode && !window.isEditOrderMode) return;
+    if (opt === 'delivery' && document.getElementById('checkout-btn-delivery')?.hidden !== false) return;
     window.currentDiningOption = opt;
-
-    // Sync top segmented switcher
-    const btnTopTakeaway = document.getElementById('btn-dining-takeaway');
-    const btnTopDinein = document.getElementById('btn-dining-dinein');
-    if (btnTopTakeaway) {
-        btnTopTakeaway.classList.toggle('active', opt === 'takeaway');
-        btnTopTakeaway.setAttribute('aria-selected', opt === 'takeaway');
-    }
-    if (btnTopDinein) {
-        btnTopDinein.classList.toggle('active', opt === 'dine_in');
-        btnTopDinein.setAttribute('aria-selected', opt === 'dine_in');
-    }
-
-    // Sync checkout section switcher
-    const btnChkTakeaway = document.getElementById('checkout-btn-takeaway');
-    const btnChkDinein = document.getElementById('checkout-btn-dinein');
-    if (btnChkTakeaway) btnChkTakeaway.classList.toggle('active', opt === 'takeaway');
-    if (btnChkDinein) btnChkDinein.classList.toggle('active', opt === 'dine_in');
-
     applyPickupConfig();
 }
 
@@ -1220,7 +1200,12 @@ function applyPickupConfig() {
     const storeAllowsDineIn = !(storeConfig && storeConfig.allowDineIn === false);
     const hasDineInFeature = Boolean(storeConfig && Array.isArray(storeConfig.features) && (storeConfig.features.includes('dine_in') || storeConfig.features.includes('table_qr_ordering')));
 
-    const syncCustomerChoiceButtons = (choiceOpt, showTop, showCheckout, lockedMode = null) => {
+    const deliveryAllowed = Array.isArray(storeConfig?.features) && storeConfig.features.includes('delivery') &&
+        !window.isStaffOrderMode && !window.isEditOrderMode && !window.isAppendMode && !window.currentTableNumber &&
+        (!ch || chPolicy === 'customer_choice') && selectedShift?.diningPolicy !== 'dine_in_only';
+    const offPremiseChoice = deliveryAllowed && window.currentDiningOption === 'delivery' ? 'delivery' : 'takeaway';
+
+    const syncCustomerChoiceButtons = (choiceOpt, showTop, showCheckout, lockedMode = null, showDineIn = true) => {
         window.diningOptionLocked = lockedMode || null;
         const blockToggleUi = Boolean(window.isStaffOrderMode || window.isEditOrderMode);
         if (diningWrapper) diningWrapper.style.display = (showTop && !blockToggleUi) ? 'block' : 'none';
@@ -1247,10 +1232,20 @@ function applyPickupConfig() {
         };
         syncTopBtn(btnTopTakeaway, 'takeaway');
         syncTopBtn(btnTopDinein, 'dine_in');
+        const btnTopDelivery = document.getElementById('btn-dining-delivery');
+        const btnChkDelivery = document.getElementById('checkout-btn-delivery');
+        if (btnTopDelivery) btnTopDelivery.hidden = !deliveryAllowed || Boolean(lockedMode);
+        if (btnTopDinein) btnTopDinein.hidden = !showDineIn;
+        if (btnChkDelivery) btnChkDelivery.hidden = !deliveryAllowed || Boolean(lockedMode);
+        syncTopBtn(btnTopDelivery, 'delivery');
         const btnChkTakeaway = document.getElementById('checkout-btn-takeaway');
         const btnChkDinein = document.getElementById('checkout-btn-dinein');
-        if (btnChkTakeaway) btnChkTakeaway.classList.toggle('active', choiceOpt === 'takeaway');
-        if (btnChkDinein) btnChkDinein.classList.toggle('active', choiceOpt === 'dine_in');
+        if (btnChkDinein) btnChkDinein.hidden = !showDineIn;
+        for (const [button, mode] of [[btnChkTakeaway, 'takeaway'], [btnChkDinein, 'dine_in'], [btnChkDelivery, 'delivery']]) {
+            if (!button) continue;
+            button.classList.toggle('active', choiceOpt === mode);
+            button.setAttribute('aria-pressed', String(choiceOpt === mode));
+        }
     };
 
     const allowCollectionOrChannelChoice =
@@ -1265,6 +1260,9 @@ function applyPickupConfig() {
     if (window.isAppendMode || window.currentTableNumber) {
         window.currentDiningOption = 'dine_in';
         syncCustomerChoiceButtons('dine_in', false, false, 'dine_in');
+    } else if (deliveryAllowed && (selectedShift?.diningPolicy === 'takeaway_only' || (ch && !storeAllowsDineIn))) {
+        window.currentDiningOption = offPremiseChoice;
+        syncCustomerChoiceButtons(offPremiseChoice, false, true, null, false);
     } else if (selectedShift && selectedShift.diningPolicy === 'takeaway_only') {
         window.currentDiningOption = 'takeaway';
         syncCustomerChoiceButtons('takeaway', showLockedCorner, false, 'takeaway');
@@ -1275,7 +1273,7 @@ function applyPickupConfig() {
         window.currentDiningOption = 'dine_in';
         syncCustomerChoiceButtons('dine_in', showLockedCorner || chPolicy === 'dine_in', false, 'dine_in');
     } else if (allowCollectionOrChannelChoice) {
-        const cur = window.currentDiningOption === 'dine_in' ? 'dine_in' : 'takeaway';
+        const cur = window.currentDiningOption === 'dine_in' ? 'dine_in' : offPremiseChoice;
         window.currentDiningOption = cur;
         syncCustomerChoiceButtons(cur, true, true, null);
     } else if (window.isStaffOrderMode && hasDineInFeature && storeAllowsDineIn) {
@@ -1284,11 +1282,11 @@ function applyPickupConfig() {
         const isDineInAllowed = showLegacyDiningToggle && hasDineInFeature && storeAllowsDineIn;
         if (!isDineInAllowed) {
             if (!selectedShift || selectedShift.diningPolicy !== 'dine_in_only' || !hasDineInFeature || !storeAllowsDineIn) {
-                window.currentDiningOption = 'takeaway';
+                window.currentDiningOption = offPremiseChoice;
             }
-            syncCustomerChoiceButtons(window.currentDiningOption === 'dine_in' ? 'dine_in' : 'takeaway', false, false, null);
+            syncCustomerChoiceButtons(window.currentDiningOption, false, deliveryAllowed, null, false);
         } else {
-            const cur = window.currentDiningOption === 'dine_in' ? 'dine_in' : 'takeaway';
+            const cur = window.currentDiningOption === 'dine_in' ? 'dine_in' : offPremiseChoice;
             syncCustomerChoiceButtons(cur, true, true, null);
         }
     }
@@ -1296,10 +1294,22 @@ function applyPickupConfig() {
     const tableGroup = document.getElementById('dinein-table-input-group');
     const secTitle = document.getElementById('pickup-time-section-title');
     const secTitleText = document.getElementById('pickup-time-title-text');
+    const isDelivery = deliveryAllowed && window.currentDiningOption === 'delivery';
+    const deliverySection = document.getElementById('checkout-delivery-details');
+    if (deliverySection) deliverySection.hidden = !isDelivery;
+    const pickupLabel = document.querySelector?.('#pickup-time-picker-group [data-fulfillment-time-label]');
+    if (pickupLabel && typeof ct === 'function') {
+        const labelKey = isDelivery ? 'delivery_time_title' : 'pickup_eta_label';
+        pickupLabel.dataset.i18n = labelKey;
+        pickupLabel.textContent = ct(labelKey);
+    }
 
     if (window.currentDiningOption === 'dine_in') {
         if (secTitle) secTitle.style.display = window.isStaffOrderMode ? 'none' : '';
-        if (secTitleText) secTitleText.innerText = (typeof ct === 'function' ? ct('order_time_title') : '點餐時間');
+        if (secTitleText) {
+            if (secTitleText.dataset) secTitleText.dataset.i18n = 'order_time_title';
+            secTitleText.innerText = typeof ct === 'function' ? ct('order_time_title') : '點餐時間';
+        }
         if (pickerGroup) pickerGroup.style.display = 'none';
         if (asapNotice) asapNotice.style.display = 'none';
         if (dineInNotice) dineInNotice.style.display = window.isStaffOrderMode ? 'none' : 'block';
@@ -1316,7 +1326,11 @@ function applyPickupConfig() {
         }
         if (!window.isStaffOrderMode) updateAsapTimeDisplay();
     } else {
-        if (secTitleText) secTitleText.innerText = (typeof ct === 'function' ? ct('pickup_time_title') : '取餐時間');
+        if (secTitleText) {
+            const headingKey = isDelivery ? (storeConfig?.allowScheduledPickup === false ? 'order_time_title' : 'delivery_time_title') : 'pickup_time_title';
+            if (secTitleText.dataset) secTitleText.dataset.i18n = headingKey;
+            secTitleText.innerText = typeof ct === 'function' ? ct(headingKey) : '取餐時間';
+        }
         if (dineInNotice) dineInNotice.style.display = 'none';
         if (tableGroup) tableGroup.style.display = 'none';
         if (storeConfig && storeConfig.allowScheduledPickup === false) {
@@ -1854,7 +1868,7 @@ function getEffectiveMenuScheduleTime() {
     const orderType = (typeof window !== 'undefined' && (window.currentDiningOption || window.selectedOrderType))
         || (typeof selectedOrderType !== 'undefined' ? selectedOrderType : 'takeaway');
     const allowScheduled = !storeConfig || storeConfig.allowScheduledPickup !== false;
-    if (orderType === 'takeaway' && allowScheduled && !window.isStaffOrderMode && typeof document !== 'undefined') {
+    if ((orderType === 'takeaway' || orderType === 'delivery') && allowScheduled && !window.isStaffOrderMode && typeof document !== 'undefined') {
         const dateEl = document.getElementById('pickup-date');
         const timeEl = document.getElementById('pickup-time');
         const dateStr = dateEl && typeof dateEl.value === 'string' ? dateEl.value.trim() : '';

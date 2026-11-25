@@ -1,8 +1,9 @@
 import { Env } from '../types/env';
 import { json } from '../utils/http';
 import { resolveTenantContext } from './tenant';
-import { TenantContext, resolveTenantOrderPrefix, tenantHasDineInPackage } from '../types/tenant';
-import { getStoredPassword } from './auth';
+import { TenantContext, resolveTenantOrderPrefix, tenantHasDineInPackage, tenantHasFeature } from '../types/tenant';
+import { DEFAULT_PASSWORD, getStoredPassword } from './auth';
+import { parseDeliveryDetails } from './order-delivery';
 import { getNextDailyOrderSeq } from './orders';
 import { resolveOrderKey } from './order-identity';
 import { staffAccess, type StaffCapability } from './staff-access';
@@ -110,6 +111,20 @@ async function dispatchStaffRoute(
     return json({ ok: false, error: "invalid_tenant", message: `門市代碼 '${tenantId}' 不存在` }, 404);
   }
 
+  if (request.method === 'GET' && path === '/api/staff/delivery-details') {
+    const headers = { 'Cache-Control': 'no-store' };
+    if (!await verifyStaffSession(request, env, tenantId)) return json({ error: 'SESSION_REQUIRED' }, 401, headers);
+    if (await getStoredPassword(env, tenantId, tenantCtx) === DEFAULT_PASSWORD) {
+      return json({ error: 'DELIVERY_PIN_CHANGE_REQUIRED' }, 409, headers);
+    }
+    const key = url.searchParams.get('key') || '';
+    const row = await env.DB.prepare(
+      "SELECT delivery_details_json FROM orders WHERE tenant_id=? AND key=? AND dining_option='delivery'"
+    ).bind(tenantId, key).first<{ delivery_details_json: string | null }>();
+    const details = row?.delivery_details_json ? parseDeliveryDetails(JSON.parse(row.delivery_details_json)) : null;
+    return details ? json({ details }, 200, headers) : json({ error: 'DELIVERY_DETAILS_NOT_FOUND' }, 404, headers);
+  }
+
   const access = await staffAccess(env, tenantId);
   const hasDineIn = resolveEffectiveDineInPackage(tenantCtx, access);
   const denied = () => json({ ok: false, error: 'FEATURE_DISABLED' }, 403, { 'Cache-Control': 'no-store' });
@@ -137,7 +152,9 @@ async function dispatchStaffRoute(
 
   // --- 2. POST /api/staff/session (Login via POS PIN) ---
   if (request.method === "POST" && path === "/api/staff/session") {
-    if (!access.capabilities.session) {
+    const canSignIn = access.capabilities.session || tenantHasFeature(tenantCtx, 'delivery') ||
+      !!await env.DB?.prepare("SELECT 1 FROM orders WHERE tenant_id=? AND dining_option='delivery' LIMIT 1").bind(tenantId).first();
+    if (!canSignIn) {
       return json({ ok: false, error: "FEATURE_DISABLED", message: "門市尚未啟用桌邊點餐功能 / Quán chưa kích hoạt tính năng nhận đơn tại bàn" }, 403);
     }
 
@@ -169,7 +186,7 @@ async function dispatchStaffRoute(
       expires_at: expiresAt,
       tenant_id: tenantId,
       brand_name: tenantCtx.brandName
-    });
+    }, 200, { 'Cache-Control': 'no-store' });
   }
 
   // --- 3. DELETE /api/staff/session (Logout & Revoke Token) ---

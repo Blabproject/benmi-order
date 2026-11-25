@@ -12947,3 +12947,75 @@ html.no-flex-gap .printer-report-row > * + * { margin-left: 8px; }
   color: #fff;
   font: inherit;
 }
+
+.order-delivery-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  background: #f8fbff;
+  color: #1e293b;
+}
+
+.order-delivery-card h2 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1e40af;
+  font-size: var(--pos-text-body, 16px);
+}
+
+.order-delivery-card dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 12px 16px;
+  margin: 0;
+}
+
+.order-delivery-card dt {
+  color: #475569;
+  font-size: var(--pos-text-meta, 13px);
+}
+
+.order-delivery-card dd {
+  margin: 3px 0 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.order-delivery-address {
+  grid-column: 1 / -1;
+}
+
+.order-delivery-card p {
+  margin: 0;
+}
+
+.order-delivery-card [role="alert"] {
+  color: #991b1b;
+}
+
+.order-delivery-card form > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.order-delivery-card form input,
+.order-delivery-card form button {
+  min-height: 48px;
+}
+
+.order-delivery-card form input {
+  box-sizing: border-box;
+  flex: 1 1 140px;
+  min-width: 0;
+  border: 1px solid #64748b;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 16px;
+}

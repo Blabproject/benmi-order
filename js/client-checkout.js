@@ -2449,7 +2449,7 @@ function formatOrderTextMessage(orderNum, dateInput, timeInput, currentTotal, ma
     const tableInput = document.getElementById('dinein-table-number');
     const tableNumber = (isDineIn && tableInput) ? tableInput.value.trim() : '';
 
-    const diningLabel = isDineIn ? (tableNumber ? `內用 (桌號：${tableNumber})` : '內用') : '外帶';
+    const diningLabel = isDineIn ? (tableNumber ? `內用 (桌號：${tableNumber})` : '內用') : window.currentDiningOption === 'delivery' ? '外送' : '外帶';
     msg += `📍 用餐方式：${diningLabel}\n\n`;
 
     if (isDineIn) {
@@ -2459,7 +2459,7 @@ function formatOrderTextMessage(orderNum, dateInput, timeInput, currentTotal, ma
         }
     } else {
         const isScheduledEnabled = !(storeConfig && storeConfig.allowScheduledPickup === false);
-        const timeLabel = isScheduledEnabled ? '取餐時間' : '訂餐時間';
+        const timeLabel = isScheduledEnabled ? (window.currentDiningOption === 'delivery' ? '外送時間' : '取餐時間') : '訂餐時間';
         msg += `🕒 ${timeLabel}：${dateInput} ${timeInput}`;
     }
     if (mainNote) msg += `\n📝 總備註：${mainNote}`;
@@ -2777,6 +2777,27 @@ function isPickupTimeValid(dateTime) {
 }
 
 // 9. Thực thi gửi đơn hàng với Timeout 8s & Bảo vệ nút bấm
+function readCheckoutDeliveryDetails() {
+    const fields = [...document.querySelectorAll('#checkout-delivery-details [name]')];
+    if (fields.length !== 4) return null;
+    const details = {};
+    for (const field of fields) {
+        if (!field.oninput) field.oninput = () => {
+            field.setCustomValidity('');
+            field.removeAttribute('aria-invalid');
+        };
+        const value = field.value.trim();
+        const invalidPhone = field.name === 'phone' && value &&
+            (!/^[+() .0-9-]+$/.test(value) || !/^\d{7,20}$/.test(value.replace(/\D/g, '')));
+        const error = invalidPhone ? ct('delivery_invalid_phone') : field.required && !value ? ct('delivery_required') : '';
+        field.setCustomValidity(error);
+        field.setAttribute('aria-invalid', String(Boolean(error)));
+        if (!field.reportValidity()) return null;
+        if (value) details[field.name] = value;
+    }
+    return details;
+}
+
 async function submitOrder() {
     if (window.isStaffOrderMode) return StaffOrder.submit();
     if(window.LinePayCheckout?.blocked()){LinePayCheckout.manage();return;}
@@ -2792,6 +2813,8 @@ async function submitOrder() {
     const hasItem = Object.values(cart || {}).some(q => q > 0);
     if (!hasItem) return customAlert(_coT('alert_cart_empty', null, '請先選擇餐點品項加入購物車'));
     if (!hasAvailableCartItems()) return customAlert(_coT('alert_cart_all_oos', null, '購物車內餐點已全數售完，請重新挑選其他餐點'));
+
+    if (window.currentDiningOption === 'delivery' && !readCheckoutDeliveryDetails()) return;
 
     // Validate Required Global Customizations (Type 3)
     if (typeof bootstrapData !== 'undefined' && bootstrapData && Array.isArray(bootstrapData.customizations)) {
@@ -3169,6 +3192,9 @@ async function validateCartStockBeforeSubmit() {
 
 // 10. Hàm nội bộ thực thi POST dữ liệu
 async function doSubmitOrderExecution(dateInput, timeInput) {
+    const isDelivery = window.currentDiningOption === 'delivery';
+    const deliveryDetails = isDelivery ? readCheckoutDeliveryDetails() : null;
+    if (isDelivery && !deliveryDetails) return;
     if (window.LinePayCheckout && LinePayCheckout.blocked()) { LinePayCheckout.manage(); return; }
     if (window.LinePayCheckout && LinePayCheckout.selected() && (window.isEditOrderMode || window.isAppendOrderMode)) {
         customAlert(_coT('alert_linepay_new_takeaway_only', null, 'LINE Pay 僅支援新的外帶訂單。')); return;
@@ -3350,8 +3376,11 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
         }
 
         const currentTotal = typeof updateTotal === 'function' ? updateTotal() : 0;
+        if (isDelivery !== (window.currentDiningOption === 'delivery')) {
+            return customAlert(ct('delivery_unavailable'));
+        }
         const isDineIn = (window.currentDiningOption === 'dine_in');
-        const diningOption = isDineIn ? 'dine_in' : 'takeaway';
+        const diningOption = isDelivery ? 'delivery' : isDineIn ? 'dine_in' : 'takeaway';
         const tableInput = document.getElementById('dinein-table-number');
         const tableNumber = (isDineIn && tableInput) ? tableInput.value.trim() : '';
         const structuredItems = buildStructuredCartItems();
@@ -3538,6 +3567,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
             customer_locale: _coCustomerLocale(),
             time: `${dateInput} ${timeInput}`,
             dining_option: diningOption,
+            ...(deliveryDetails ? { delivery_details: deliveryDetails } : {}),
             table_number: tableNumber || undefined,
             channel_id: activeChannel?.id || undefined,
             channel_code: activeChannel?.code || undefined,
@@ -3579,6 +3609,8 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
             if (errData && errData.code === 'ITEMS_OUT_OF_STOCK') {
                 return _coHandleOutOfStockResponse(errData.outOfStockItems || [], 'create', false);
             }
+            if (errData.error === 'DELIVERY_UNAVAILABLE') return customAlert(ct('delivery_unavailable'));
+            if (errData.code === 'INVALID_DELIVERY_DETAILS') return customAlert(ct('delivery_invalid_details'));
             const serverError = new Error(errData.error || `API returned status ${res.status}`);
             serverError.serverRejected = true;
             serverError.details = errData;
@@ -3698,7 +3730,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
             }
             return;
         }
-        if (typeof DetailCheckout !== 'undefined' && DetailCheckout.enabled()) {
+        if (isDelivery || (typeof DetailCheckout !== 'undefined' && DetailCheckout.enabled())) {
             customAlert(_coT('err_unconfirmed_retry', null, '尚未確認送出結果，購物車已保留，請重試。'));
             return;
         }
