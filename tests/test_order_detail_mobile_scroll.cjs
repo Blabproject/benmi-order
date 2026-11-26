@@ -138,16 +138,40 @@ async function run() {
     }
 
     if (vp.width === 375) {
-      await page.evaluate(() => {
-        const order = { ...latestOrders[0], key: 'test-delivery', diningOption: 'delivery' };
-        latestOrders = [order];
-        openReview(order.key);
-      });
       const details = page.locator('.order-delivery-card');
-      await details.locator('dd').first().waitFor({ state: 'visible', timeout: 5000 });
-      assert.deepEqual(await details.locator('dd').allTextContents(), Object.values(deliveryDetails));
-      assert.equal(await details.locator('input,button').count(), 0);
-      assert.deepEqual(deliveryRequests, [['fixture', 'test-delivery', undefined]]);
+      const fixtures = [
+        { key: 'delivery-no-note', note: '', snapshot: true },
+        { key: 'delivery-with-note', note: '請分開裝', snapshot: true },
+        { key: 'delivery-legacy-note', note: '請按門鈴', snapshot: false }
+      ];
+      for (const fixture of fixtures) {
+        await page.evaluate(({ key, note, snapshot }) => {
+          const order = { ...latestOrders[0], key, note, diningOption: 'delivery' };
+          order.detailSnapshot = snapshot ? {
+            schemaVersion: 1, total: 60,
+            rounds: [{ roundNumber: 1, groups: [], note, items: [
+              { name: '雞胸肉', quantity: 1, unitPrice: 60, subtotal: 60, note: '', portions: [] }
+            ] }]
+          } : undefined;
+          latestOrders = [order];
+          openReview(order.key);
+        }, fixture);
+        await details.locator('dd').first().waitFor({ state: 'visible', timeout: 5000 });
+        assert.deepEqual(await details.locator('dd').allTextContents(), Object.values(deliveryDetails));
+        assert.equal(await details.locator('input,button').count(), 0);
+        const layout = await details.evaluate(card => {
+          const firstItem = document.querySelector('#review-content .review-item-row');
+          const previousNote = card.previousElementSibling?.querySelector('.detail-note-text, .flavor-note-val');
+          return {
+            aboveItems: card.getBoundingClientRect().bottom <= firstItem.getBoundingClientRect().top,
+            previousNote: previousNote?.textContent ?? ''
+          };
+        });
+        assert.equal(layout.aboveItems, true, fixture.key);
+        if (fixture.note) assert.ok(layout.previousNote.includes(fixture.note), fixture.key);
+        else assert.equal(layout.previousNote, '', fixture.key);
+      }
+      assert.deepEqual(deliveryRequests, fixtures.map(({ key }) => ['fixture', key, undefined]));
       assert.deepEqual(loginRequests, []);
       assert.equal(await page.locator('#storeActivationModal').isVisible(), false);
     }

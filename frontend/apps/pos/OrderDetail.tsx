@@ -5,7 +5,6 @@ import type { HistoryOrderDto } from '@shared/contracts/api';
 import { extractOrderChannelLabel, isDeliveryOrder } from '@shared/contracts/history-model';
 import { Button } from '@shared/ui/button';
 import { OrderDetailItems, prepareOrderItems } from './OrderDetailItems';
-import { OrderDeliveryDetails } from './OrderDeliveryDetails';
 import { ClockIcon, CloseIcon, ModifyIcon, ReceiptIcon, TagIcon } from '@shared/ui/PosIcons';
 
 interface PrintItem { name?: string; price?: string | number; unitPrice?: string | number; quantity?: number }
@@ -180,8 +179,7 @@ function OrderDetail({ order, etaOrder, detail }: { order: HistoryOrderDto; etaO
     <div className="order-detail-grid">
       <div className="order-detail-main-col">
         <div className="order-detail-meta-bar"><span className="order-detail-items-count" id="review-items-count">{t('tileItemCount', { count: detail.itemCount })}</span></div>
-        <OrderDetailItems orderKey={order.key} data={detail.items} noteAfterItems={delivery} />
-        {delivery && <OrderDeliveryDetails key={order.key} orderKey={order.key} />}
+        <OrderDetailItems orderKey={order.key} data={detail.items} showDelivery={delivery} />
         <div className="order-detail-totals-block">
           {detail.discount > 0 && <>
             <div className="order-detail-total-row subtotal-row" id="review-subtotal-row">

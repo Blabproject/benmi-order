@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { HistoryOrderDto } from '@shared/contracts/api';
 import { Button } from '@shared/ui/button';
 import { DineInIcon, ModifyIcon, ReceiptIcon } from '@shared/ui/PosIcons';
@@ -167,11 +168,11 @@ function FlavorCard({ flavors, note }: { flavors: LegacyReview['flavorData']; no
   </div>;
 }
 
-export function LegacyOrderItems({ data, noteAfterItems }: { data: LegacyReview; noteAfterItems: boolean }) {
+export function LegacyOrderItems({ data, afterOrderNote }: { data: LegacyReview; afterOrderNote: ReactNode }) {
   const { raw, messageOnly, orderKey, items, customerChanges, flavorData, noteText } = data;
-  if (messageOnly) return <div className="review-content-raw">{raw}</div>;
+  if (messageOnly) return <>{afterOrderNote}<div className="review-content-raw">{raw}</div></>;
   const lines = items.length ? [] : raw.split('\n').map(line => line.trimEnd()).filter(line => line.trim() && !isOrderMetadataText(line));
-  if (!items.length && !lines.length) return <div className="review-content-empty">-</div>;
+  if (!items.length && !lines.length) return <>{afterOrderNote}<div className="review-content-empty">-</div></>;
 
   const rounds = new Map<string, { item: LegacyItem; index: number }[]>();
   if (raw.includes('[第') || raw.includes('[Đợt')) items.forEach((item, index) => {
@@ -187,7 +188,8 @@ export function LegacyOrderItems({ data, noteAfterItems }: { data: LegacyReview;
       <div className="customer-change-header"><ModifyIcon /><span>{t('customerChangeTitle')}</span></div>
       <div className="customer-change-body">{customerChanges.map((line, index) => <div className="customer-change-line" key={index}>{line}</div>)}</div>
     </div>}
-    <FlavorCard flavors={flavorData} note={noteAfterItems ? '' : noteText} />
+    <FlavorCard flavors={flavorData} note={noteText} />
+    {afterOrderNote}
     {rounds.size > 0 ? [...rounds.entries()].sort(([a], [b]) => roundNumber(b) - roundNumber(a)).map(([title, entries], index) => {
       const latest = rounds.size > 1 && index === 0;
       return <div className={`round-section-block${latest ? ' round-section-latest' : ''}`} key={title}>
@@ -202,6 +204,5 @@ export function LegacyOrderItems({ data, noteAfterItems }: { data: LegacyReview;
     </div> : <div className="review-items-list-raw">
       {lines.map((line, index) => <div className={/^[-•↳－]/.test(line.trimStart()) ? 'review-raw-sub' : 'review-raw-item'} key={index}>{line}</div>)}
     </div>}
-    {noteAfterItems && <FlavorCard flavors={null} note={noteText} />}
   </div>;
 }
