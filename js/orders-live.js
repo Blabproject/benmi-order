@@ -1046,10 +1046,21 @@ function renderItemRowHtml(it, idx, orderKey) {
     ? parsePortionCustomizations(String(optsToRender).trim()) : null;
   const portionExtras = new Map();
   const attachedPortions = new Set();
+  const renderStickerButton = ({ className, label, title, withActionTitle, onclickAttr }) => {
+    const actionTitleAttr = withActionTitle ? ` data-print-action-title="${escapeHtml(label)}"` : '';
+    const disabledAttr = canPrintStickers ? '' : ' disabled aria-disabled="true"';
+    return `<button type="button" class="btn btn-ghost ${className}" data-print-action="stickers"${actionTitleAttr}${disabledAttr} onclick="${onclickAttr}" title="${escapeHtml(title || label)}"><span class="review-item-print-pill">${printerIcon}<span>${escapeHtml(label)}</span></span></button>`;
+  };
   const renderPortionPrint = (portion, fallbackIndex) => {
     const number = reviewPortionNumber(portion.label);
     const stickerIndex = startStickerIndex + (number ? number - 1 : fallbackIndex);
-    return `<button type="button" class="btn btn-ghost portion-print-btn" data-print-action="stickers" ${canPrintStickers ? '' : 'disabled aria-disabled="true"'} onclick="if(typeof PrinterService !== 'undefined') PrinterService.printSingleItemSticker('${escapeHtml(orderKey)}', ${stickerIndex})" title="${escapeHtml(t('btnPrintPortion'))}">${printerIcon}<span>${escapeHtml(printLabel)}</span></button>`;
+    return renderStickerButton({
+      className: 'portion-print-btn',
+      label: printLabel,
+      title: t('btnPrintPortion'),
+      withActionTitle: false,
+      onclickAttr: `if(typeof PrinterService !== 'undefined') PrinterService.printSingleItemSticker('${escapeHtml(orderKey)}', ${stickerIndex})`
+    });
   };
   if (bundleInfo?.isStructured && parsed?.portions) {
     parsed.portions.forEach((portion, index) => {
@@ -1151,10 +1162,13 @@ function renderItemRowHtml(it, idx, orderKey) {
         <div class="review-item-name"><span class="review-item-qty-badge">${itemQty}×</span><span class="review-item-name-text">${escapeHtml(it.name)}</span></div>
         <div class="review-item-meta-right">
           <span class="review-item-price ${isEmptyPrice ? 'is-empty' : ''}">${escapeHtml(displayPrice || "—")}</span>
-          <button type="button" class="btn btn-ghost review-item-print-btn" data-print-action="stickers" data-print-action-title="${escapeHtml(mainPrintLabel)}" ${canPrintStickers ? "" : "disabled aria-disabled=\"true\""} onclick="${mainPrintAction}" title="${escapeHtml(mainPrintLabel)}">
-            ${printerIcon}
-            <span>${escapeHtml(mainPrintLabel)}</span>
-          </button>
+          ${renderStickerButton({
+            className: 'review-item-print-btn',
+            label: mainPrintLabel,
+            title: mainPrintLabel,
+            withActionTitle: true,
+            onclickAttr: mainPrintAction
+          })}
         </div>
       </div>
       ${bundleHtml}

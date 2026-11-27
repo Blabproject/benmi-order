@@ -109,6 +109,13 @@ for (const viewport of [{ width: 320, height: 740 }, { width: 390, height: 844 }
           assert.deepEqual(layout.overflow, [], `${viewport.width}/${lang}/${mode}: content must wrap without clipping`);
           assert.deepEqual(layout.tooSmall, []);
           assert.ok(layout.pageWidth <= viewport.width + 1);
+          if (mode === 'standard' && viewport.width >= 390) {
+            const pillHeights = await page.locator('#review-content .review-item-print-pill').evaluateAll(pills =>
+              pills.map(pill => pill.getBoundingClientRect().height)
+            );
+            assert.ok(pillHeights.length > 0 && pillHeights.every(height => height <= 36),
+              `${viewport.width}/${lang}: visible sticker pill stays compact: ${JSON.stringify(pillHeights)}`);
+          }
           if (viewport.width <= 600) assert.ok(layout.choicesTop >= layout.labelBottom, 'mobile labels sit above choices');
           else assert.ok(layout.choicesLeft > layout.labelRight, 'tablet labels sit beside choices');
           const printLayout = await page.locator('.review-print-macro-bar').evaluate(bar => {

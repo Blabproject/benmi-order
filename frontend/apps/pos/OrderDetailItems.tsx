@@ -1,9 +1,8 @@
 import { memo, type ReactNode } from 'react';
 import type { DetailChoice, DetailGroup, DetailLine, HistoryOrderDto, OrderDetailSnapshot } from '@shared/contracts/api';
-import { Button } from '@shared/ui/button';
-import { ReceiptIcon } from '@shared/ui/PosIcons';
 import { LegacyOrderItems, prepareLegacyOrderItems } from './LegacyOrderItems';
 import { OrderDeliveryDetails } from './OrderDeliveryDetails';
+import { StickerPrintButton } from './StickerPrintButton';
 
 declare function t(key: string, params?: Record<string, number>): string;
 declare const OrderDetailView: {
@@ -52,12 +51,14 @@ function OrderLine({ line, orderKey, index, stickerIndex }: { line: DetailLine; 
       </div>
       <div className="review-item-meta-right">
         <span className="review-item-price">${line.subtotal}</span>
-        <Button className="btn btn-ghost review-item-print-btn" data-print-action="stickers" data-print-action-title={label}
-          title={label} onClick={() => quantity > 1
+        <StickerPrintButton
+          className="review-item-print-btn"
+          label={label}
+          withActionTitle
+          onClick={() => quantity > 1
             ? PrinterService.printItemRangeStickers(orderKey, stickerIndex, quantity, line.name)
-            : PrinterService.printSingleItemSticker(orderKey, stickerIndex)}>
-          <ReceiptIcon size={14} /><span>{label}</span>
-        </Button>
+            : PrinterService.printSingleItemSticker(orderKey, stickerIndex)}
+        />
       </div>
     </div>
     {hasPortionDetails && line.portions.map(portion => {
