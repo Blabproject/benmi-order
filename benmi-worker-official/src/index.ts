@@ -13,6 +13,7 @@ import { getMenu, updateMenu, updateStockStatus, updateBundleRule, saveBundlePro
 import { menuShifts, qrChannels } from './modules/menu-shifts';
 import { updateMenuSchedule } from './modules/menu-schedule-settings';
 import { handleAuth, handleAuthChange, handleCreateTempLink, handleVerifyTempLink } from './modules/auth';
+import { handlePosSessionRoute, isProtectedPosRoute, requirePosSessionIfEnabled } from './modules/pos-session';
 import { getImageList, getImage, updateImage, deleteImage } from './modules/image';
 import { resolveTenantContext } from './modules/tenant';
 import { handleLineWebhookProbe, LineRuntimeError } from './modules/line-runtime';
@@ -77,12 +78,25 @@ export default {
 
       if (path.startsWith('/api/payments/')) return handlePaymentRoute(request, env, tenantCtx, path);
 
+      // 3b. POS Web Login Session Routes
+      if (path === '/api/pos/session') {
+        return handlePosSessionRoute(request, env, path, tenantCtx);
+      }
+
       // 4. Staff API Routes
       if (path.startsWith("/api/staff")) {
+        if (!['/api/staff/capabilities', '/api/staff/session'].includes(path)) {
+          const staffAuthError = await requirePosSessionIfEnabled(request, env, tenantCtx);
+          if (staffAuthError) return staffAuthError;
+        }
         return handleStaffRoute(request, env, path, tenantCtx);
       }
 
       // 5. API Endpoints
+      if (isProtectedPosRoute(request.method, path)) {
+        const posAuthError = await requirePosSessionIfEnabled(request, env, tenantCtx);
+        if (posAuthError) return posAuthError;
+      }
       if (request.method === "GET" && (path === "/api/table/status" || path === "/api/tables/status")) return getTableStatus(request, env, tenantCtx);
       if (request.method === "POST" && path === "/api/line/order-receipt/push") return requestOrderReceiptPush(request, env, tenantCtx);
       if (request.method === "POST" && path === "/api/line/client-error") return recordLiffClientError(request, tenantCtx);

@@ -175,7 +175,7 @@ export function mountPosHistoryBridge(mountEl: HTMLElement | null = document.get
       {
         tenantId: readTenantId(),
         workerBase: readWorkerBase(),
-        fetcher: window.fetch.bind(window),
+        fetcher: (posWindow as unknown as { posApiFetch?: typeof fetch }).posApiFetch ?? window.fetch.bind(window),
         getFallbackCurrentOrders: readFallbackCurrentOrders,
         isDineInSupported: readDineInSupported
       },

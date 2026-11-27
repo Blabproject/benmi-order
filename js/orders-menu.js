@@ -336,6 +336,10 @@ function setMenuLoading(loading) {
   }
 }
 
+function _menuApiFetch(url, options) {
+  return (typeof posApiFetch === "function" ? posApiFetch : fetch)(url, options);
+}
+
 function loadMenuData() {
   if (!menuLoadPromise) menuLoadPromise = fetchMenuData().finally(() => { menuLoadPromise = null; });
   return menuLoadPromise;
@@ -349,9 +353,9 @@ async function fetchMenuData() {
   try {
     const tenantId = getTenantIdFromUrl();
     const [res, libraryResponse, imageListRes] = await Promise.all([
-      fetch(`${WORKER_BASE}/api/tenant/bootstrap?tenant_id=${tenantId}&_t=${Date.now()}`),
-      fetch(`${WORKER_BASE}/api/menu/modifier-library?tenant_id=${encodeURIComponent(tenantId)}&_t=${Date.now()}`),
-      fetch(`${WORKER_BASE}/api/image_list?tenant_id=${encodeURIComponent(tenantId)}&_t=${Date.now()}`).catch(() => null)
+      _menuApiFetch(`${WORKER_BASE}/api/tenant/bootstrap?tenant_id=${tenantId}&_t=${Date.now()}`),
+      _menuApiFetch(`${WORKER_BASE}/api/menu/modifier-library?tenant_id=${encodeURIComponent(tenantId)}&_t=${Date.now()}`),
+      _menuApiFetch(`${WORKER_BASE}/api/image_list?tenant_id=${encodeURIComponent(tenantId)}&_t=${Date.now()}`).catch(() => null)
     ]);
     if (!res.ok) throw new Error("Failed to load bootstrap");
     const data = await res.json();
@@ -1583,7 +1587,7 @@ async function uploadDirectItemImage(file, cIdx, iIdx) {
 
   try {
     const dataUri = await readMenuImageAsWebp(file, 600, 0.85);
-    const res = await fetch(`${WORKER_BASE}/api/image?tenant_id=${encodeURIComponent(tenantId)}`, {
+    const res = await _menuApiFetch(`${WORKER_BASE}/api/image?tenant_id=${encodeURIComponent(tenantId)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: imageName, dataUri })
@@ -2888,7 +2892,7 @@ async function saveMenuData(skipConfirm = false) {
   document.querySelectorAll(".menu-header-actions, #menu-categories, #menu-order-panels").forEach(el => el.inert = true);
 
   try {
-    const res = await fetch(`${WORKER_BASE}/api/menu?tenant_id=${getTenantIdFromUrl()}`, {
+    const res = await _menuApiFetch(`${WORKER_BASE}/api/menu?tenant_id=${getTenantIdFromUrl()}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(output)
@@ -3243,7 +3247,7 @@ async function deleteCategoryAtIndex(idx) {
     panels.forEach(el => { el.inert = true; });
     try {
       const remaining = saved.filter(entry => entry.id !== cat.id);
-      const res = await fetch(`${WORKER_BASE}/api/menu?tenant_id=${getTenantIdFromUrl()}`, {
+      const res = await _menuApiFetch(`${WORKER_BASE}/api/menu?tenant_id=${getTenantIdFromUrl()}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ __delete: getMenuDeletions(saved, remaining) })
       });
@@ -3306,7 +3310,7 @@ async function openImageModal(categoryId, itemName) {
   document.getElementById("imageModal").style.display = "flex";
 
   try {
-    const res = await fetch(`${WORKER_BASE}/api/image_list?tenant_id=${getTenantIdFromUrl()}&_t=${Date.now()}`);
+    const res = await _menuApiFetch(`${WORKER_BASE}/api/image_list?tenant_id=${getTenantIdFromUrl()}&_t=${Date.now()}`);
     if (res.ok) {
       const list = await res.json();
       const hasImg = list.includes(currentImageItemName) || list.includes(itemName);
@@ -3370,7 +3374,7 @@ function handleImageSelect(event) {
 async function uploadImage(dataUri) {
   document.getElementById("image-status").innerText = t("imageUploading");
   try {
-    const res = await fetch(`${WORKER_BASE}/api/image?tenant_id=${getTenantIdFromUrl()}`, {
+    const res = await _menuApiFetch(`${WORKER_BASE}/api/image?tenant_id=${getTenantIdFromUrl()}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: currentImageItemName, dataUri })
@@ -3396,7 +3400,7 @@ async function deleteItemImage() {
   if (statusEl) statusEl.innerText = t("imageDeleting");
   try {
     const tenantId = getTenantIdFromUrl();
-    const res = await fetch(`${WORKER_BASE}/api/image?tenant_id=${tenantId}`, {
+    const res = await _menuApiFetch(`${WORKER_BASE}/api/image?tenant_id=${tenantId}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: currentImageItemName })
@@ -3626,7 +3630,7 @@ async function saveStockStatus() {
   isStockSaving = true;
   updateStockSaveState();
   try {
-    const res = await fetch(`${WORKER_BASE}/api/menu/stock-status?tenant_id=${getTenantIdFromUrl()}`, {
+    const res = await _menuApiFetch(`${WORKER_BASE}/api/menu/stock-status?tenant_id=${getTenantIdFromUrl()}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
@@ -4349,7 +4353,7 @@ async function saveBundleConfig() {
       }
     };
 
-    const res = await fetch(`${WORKER_BASE}/api/menu/bundle-rules?tenant_id=${tenantId}`, {
+    const res = await _menuApiFetch(`${WORKER_BASE}/api/menu/bundle-rules?tenant_id=${tenantId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -4412,7 +4416,7 @@ async function clearBundleConfig() {
       delete: true
     };
 
-    const res = await fetch(`${WORKER_BASE}/api/menu/bundle-rules?tenant_id=${tenantId}`, {
+    const res = await _menuApiFetch(`${WORKER_BASE}/api/menu/bundle-rules?tenant_id=${tenantId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -5010,7 +5014,7 @@ async function checkItemDetailImage(categoryId, itemName) {
   try {
     let list = window._tenantImageList;
     if (!list) {
-      const res = await fetch(`${WORKER_BASE}/api/image_list?tenant_id=${encodeURIComponent(tenantId)}&_t=${Date.now()}`);
+      const res = await _menuApiFetch(`${WORKER_BASE}/api/image_list?tenant_id=${encodeURIComponent(tenantId)}&_t=${Date.now()}`);
       if (res.ok) {
         const names = await res.json();
         if (request !== itemDetailImageRequest || tenantId !== getTenantIdFromUrl()) return;
@@ -5062,7 +5066,7 @@ async function handleItemDetailImageSelect(event) {
   if (status) status.innerText = t("imageUploading");
   try {
     const dataUri = await readMenuImageAsWebp(file, 800, 0.82);
-    const res = await fetch(`${WORKER_BASE}/api/image?tenant_id=${encodeURIComponent(tenantId)}`, {
+    const res = await _menuApiFetch(`${WORKER_BASE}/api/image?tenant_id=${encodeURIComponent(tenantId)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: key, dataUri })
@@ -5097,7 +5101,7 @@ async function deleteItemDetailPhoto() {
 
   if (statusEl) statusEl.innerText = t("imageDeleting");
   try {
-    const res = await fetch(`${WORKER_BASE}/api/image?tenant_id=${encodeURIComponent(tenantId)}`, {
+    const res = await _menuApiFetch(`${WORKER_BASE}/api/image?tenant_id=${encodeURIComponent(tenantId)}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -5606,7 +5610,7 @@ async function translateItemDetailWithAI() {
   setAiTranslateButtonLoading(aiBtn, true, details);
   if (aiBtnLabel) aiBtnLabel.innerText = t("btnItemAiTranslating");
   try {
-    const res = await fetch(
+    const res = await _menuApiFetch(
       `${WORKER_BASE}/api/menu/ai-translate?tenant_id=${encodeURIComponent(tenantId)}`,
       {
         method: "POST",
@@ -5685,7 +5689,7 @@ async function translateMissingMenuWithAI() {
     if (typeof isMenuDirty !== "undefined" && isMenuDirty) {
       await saveMenuData(true);
     }
-    const res = await fetch(
+    const res = await _menuApiFetch(
       `${WORKER_BASE}/api/menu/ai-translate?tenant_id=${encodeURIComponent(tenantId)}`,
       {
         method: "POST",

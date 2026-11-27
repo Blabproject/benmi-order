@@ -356,25 +356,153 @@ function closeBundleGuideModal() {
 }
 window.closeBundleGuideModal = closeBundleGuideModal;
 
-function showStoreActivationModal(force = false) {
-  // Hotfix: Never display login/store activation modal when running in a standard web browser (not app)
-  if (!force && typeof isNativeAppPlatform === "function" && !isNativeAppPlatform()) {
+var __storeActivationPinOnly = false;
+
+function getActivationPinToggleSvg(visible) {
+  if (visible) {
+    return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" x2="22" y1="2" y2="22"></line></svg>';
+  }
+  return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+}
+
+function toggleActivationPinVisibility() {
+  var inpPin = document.getElementById("activation-pin");
+  var btnToggle = document.getElementById("activation-pin-toggle");
+  if (!inpPin || !btnToggle) return;
+  var nextVisible = inpPin.type === "password";
+  inpPin.type = nextVisible ? "text" : "password";
+  btnToggle.setAttribute("aria-pressed", nextVisible ? "true" : "false");
+  var labelKey = nextVisible ? "posPinHideAria" : "posPinShowAria";
+  var fallbackLabel = nextVisible ? "隱藏 PIN 碼" : "顯示 PIN 碼";
+  btnToggle.setAttribute("aria-label", (typeof t === "function" && t(labelKey)) || fallbackLabel);
+  btnToggle.innerHTML = getActivationPinToggleSvg(nextVisible);
+}
+
+function syncActivationModalBranding(tenantId) {
+  var logoEl = document.getElementById("activation-store-logo");
+  var badgeEl = document.getElementById("activation-store-name");
+  var tid = tenantId || (typeof getTenantIdFromUrl === "function" ? getTenantIdFromUrl() : "");
+  var branding = window.posShellBranding || null;
+  if (!branding && tid && typeof localStorage !== "undefined") {
+    try {
+      var raw = localStorage.getItem("tenant_branding_" + tid) || localStorage.getItem("tenant_theme_" + tid);
+      if (raw) branding = JSON.parse(raw);
+    } catch (e) {}
+  }
+  if (logoEl) {
+    logoEl.src = (__storeActivationPinOnly && branding && branding.logoUrl) ? branding.logoUrl : "blab_icon.png";
+  }
+  if (badgeEl) {
+    var displayName = (__storeActivationPinOnly && ((branding && (branding.brandName || branding.name)) || window.currentTenantBrandName || tid)) || "";
+    if (__storeActivationPinOnly && displayName) {
+      badgeEl.innerText = displayName;
+      badgeEl.style.display = "inline-flex";
+    } else {
+      badgeEl.style.display = "none";
+      badgeEl.innerText = "";
+    }
+  }
+}
+
+function applyActivationModalTexts() {
+  var actModT = document.getElementById("i18n-modal-activation-title");
+  var actModS = document.getElementById("i18n-modal-activation-sub");
+  var actInpP = document.getElementById("activation-pin");
+  var btnActTxt = document.getElementById("i18n-btn-submit-activation-text");
+  var btnToggle = document.getElementById("activation-pin-toggle");
+  var isPinOnly = Boolean(__storeActivationPinOnly);
+
+  if (actModT) {
+    actModT.innerText = (typeof t === "function" && t(isPinOnly ? "posWebLoginTitle" : "modalActivationTitle"))
+      || (isPinOnly ? "登入門市 POS" : "門市終端啟用");
+  }
+  if (actModS) {
+    actModS.innerText = (typeof t === "function" && t(isPinOnly ? "posWebLoginSub" : "modalActivationSub"))
+      || (isPinOnly ? "請輸入門市管理 PIN 碼以解鎖並管理訂單" : "請輸入門市代碼與管理 PIN 碼以綁定此終端設備");
+  }
+  if (actInpP) {
+    actInpP.placeholder = (typeof t === "function" && t(isPinOnly ? "activationPinOnlyPlaceholder" : "activationPinPlaceholder"))
+      || (isPinOnly ? "請輸入管理 PIN 碼" : "預設 12345678");
+  }
+  if (btnActTxt) {
+    btnActTxt.innerText = (typeof t === "function" && t(isPinOnly ? "btnSubmitPosLogin" : "btnSubmitActivation"))
+      || (isPinOnly ? "登入 POS" : "啟用終端並開始接單");
+  }
+  if (btnToggle && actInpP) {
+    var visible = actInpP.type === "text";
+    btnToggle.setAttribute("aria-label", (typeof t === "function" && t(visible ? "posPinHideAria" : "posPinShowAria")) || (visible ? "隱藏 PIN 碼" : "顯示 PIN 碼"));
+  }
+}
+
+function setPosBackgroundInert(active) {
+  var selectors = [".app-sidebar", ".main-layout"];
+  for (var i = 0; i < selectors.length; i += 1) {
+    var el = document.querySelector(selectors[i]);
+    if (el) {
+      el.inert = Boolean(active);
+    }
+  }
+}
+
+function syncStoreActivationModalMode(modal, tenantId, pinOnly) {
+  __storeActivationPinOnly = Boolean(pinOnly);
+  modal.classList.toggle("pin-only-mode", __storeActivationPinOnly);
+  var tenantGroup = document.getElementById("activation-tenant-group");
+  var inpTenant = document.getElementById("activation-tenant-id");
+  var inpPin = document.getElementById("activation-pin");
+  var resolvedTenant = tenantId || (typeof getTenantIdFromUrl === "function" ? getTenantIdFromUrl() : "");
+
+  if (tenantGroup) {
+    tenantGroup.style.display = __storeActivationPinOnly ? "none" : "";
+  }
+  if (inpTenant) {
+    inpTenant.required = !__storeActivationPinOnly;
+    if (__storeActivationPinOnly && resolvedTenant) {
+      inpTenant.value = resolvedTenant;
+    }
+  }
+  if (inpPin) {
+    inpPin.required = true;
+  }
+  syncActivationModalBranding(resolvedTenant);
+  applyActivationModalTexts();
+}
+
+function showStoreActivationModal(force, options) {
+  var opts = options && typeof options === "object" ? options : {};
+  var pinOnly = Boolean(opts.pinOnly);
+  // Hotfix: Never display login/store activation modal when running in a standard web browser unless explicitly triggered
+  if (!force && !pinOnly && typeof isNativeAppPlatform === "function" && !isNativeAppPlatform()) {
     return;
   }
   const modal = document.getElementById("storeActivationModal");
   if (!modal) return;
-  if (force) {
+  if (force || pinOnly) {
     modal.classList.add("force-show");
   }
+  syncStoreActivationModalMode(modal, opts.tenantId, pinOnly);
   // If already displayed, do not re-initialize or steal focus from active inputs
   if (modal.style.display === "flex") return;
   showModalFromTop(modal);
+  setPosBackgroundInert(true);
 
   const inpTenant = document.getElementById("activation-tenant-id");
   const inpPin = document.getElementById("activation-pin");
+  const btnToggle = document.getElementById("activation-pin-toggle");
   const errDiv = document.getElementById("activation-error-msg");
 
-  if (inpTenant) {
+  if (inpPin) {
+    inpPin.type = "password";
+    inpPin.value = "";
+  }
+  if (btnToggle) {
+    btnToggle.setAttribute("aria-pressed", "false");
+    btnToggle.innerHTML = getActivationPinToggleSvg(false);
+  }
+
+  if (pinOnly) {
+    if (inpPin) inpPin.focus();
+  } else if (inpTenant) {
     let saved = "";
     try { saved = localStorage.getItem("pos_device_tenant_id") || ""; } catch (e) {}
     if (saved) {
@@ -384,7 +512,6 @@ function showStoreActivationModal(force = false) {
       inpTenant.focus();
     }
   }
-  if (inpPin && (!inpTenant || !inpTenant.value)) inpPin.value = "";
   if (errDiv) {
     errDiv.style.display = "none";
     errDiv.innerText = "";
@@ -395,8 +522,10 @@ function closeStoreActivationModal() {
   const modal = document.getElementById("storeActivationModal");
   if (modal) {
     modal.style.display = "none";
-    modal.classList.remove("force-show");
+    modal.classList.remove("force-show", "pin-only-mode");
   }
+  __storeActivationPinOnly = false;
+  setPosBackgroundInert(false);
 }
 
 async function submitStoreActivation(e) {
@@ -408,8 +537,21 @@ async function submitStoreActivation(e) {
   const btnText = document.getElementById("i18n-btn-submit-activation-text");
   const errDiv = document.getElementById("activation-error-msg");
 
-  const tenantId = inpTenant ? inpTenant.value.trim().toLowerCase() : "";
+  const isPinOnly = Boolean(__storeActivationPinOnly);
+  const tenantId = (isPinOnly
+    ? ((typeof getTenantIdFromUrl === "function" && getTenantIdFromUrl()) || (inpTenant ? inpTenant.value : ""))
+    : (inpTenant ? inpTenant.value : "")
+  ).trim().toLowerCase();
   const pin = inpPin ? inpPin.value.trim() : "";
+
+  if (isPinOnly && !pin) {
+    if (errDiv) {
+      errDiv.innerText = (typeof t === "function" && t("posLoginPinRequired")) || "請輸入管理 PIN 碼。";
+      errDiv.style.display = "block";
+    }
+    if (inpPin) inpPin.focus();
+    return;
+  }
 
   if (!tenantId || !pin) {
     if (errDiv) {
@@ -429,10 +571,44 @@ async function submitStoreActivation(e) {
 
   try {
     const workerUrl = typeof WORKER_BASE !== "undefined" ? WORKER_BASE : "https://benmi-worker-official.thuanmnc.workers.dev";
+    if (isPinOnly) {
+      const res = await fetch(`${workerUrl}/api/pos/session?tenant_id=${encodeURIComponent(tenantId)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin, tenant_id: tenantId })
+      });
+      const data = await res.json().catch(() => ({ ok: false }));
+
+      if (res.ok && data && data.ok && data.token) {
+        if (typeof setPosSessionToken === "function") {
+          setPosSessionToken(data.token, tenantId);
+        }
+        if (inpPin) inpPin.value = "";
+        closeStoreActivationModal();
+        if (typeof unlockPosAfterLogin === "function") {
+          unlockPosAfterLogin(tenantId);
+        }
+      } else if (errDiv) {
+        if (res.status === 429 || (data && data.error === "POS_LOGIN_RATE_LIMIT")) {
+          errDiv.innerText = (typeof t === "function" && t("posLoginRateLimited")) || "嘗試次數過多，請稍後再試。";
+        } else if (res.status === 401 || (data && data.error === "INVALID_PIN")) {
+          errDiv.innerText = (typeof t === "function" && t("activationErrorWrongPin")) || "管理 PIN 碼錯誤，請重新確認。";
+        } else if (data && data.error === "INVALID_TENANT") {
+          errDiv.innerText = (typeof t === "function" && t("activationErrorTenantNotFound")) || "門市代碼不存在或已停用，請重新確認。";
+        } else {
+          errDiv.innerText = (data && data.message) || (typeof t === "function" && t("activationErrorWrongPin")) || "管理 PIN 碼錯誤，請重新確認。";
+        }
+        errDiv.style.display = "block";
+        if (inpPin) inpPin.focus();
+      }
+      return;
+    }
+
     const res = await fetch(`${workerUrl}/api/auth?pw=${encodeURIComponent(pin)}&tenant_id=${encodeURIComponent(tenantId)}`);
     const data = await res.json().catch(() => ({ ok: false }));
 
     if (res.ok && data && data.ok) {
+      let tenantRequiresSession = false;
       if (typeof localStorage !== "undefined") {
         localStorage.setItem("pos_device_tenant_id", tenantId);
         try {
@@ -442,7 +618,24 @@ async function submitStoreActivation(e) {
             if (bootData.tenant) {
               localStorage.setItem("tenant_branding_" + tenantId, JSON.stringify(bootData.tenant));
               localStorage.setItem("tenant_theme_" + tenantId, JSON.stringify(bootData.tenant));
+              if (Array.isArray(bootData.tenant.features) && bootData.tenant.features.indexOf("pos_web_login") !== -1) {
+                tenantRequiresSession = true;
+              }
             }
+          }
+        } catch (err) {}
+      }
+
+      if (tenantRequiresSession && typeof setPosSessionToken === "function") {
+        try {
+          const sessRes = await fetch(`${workerUrl}/api/pos/session?tenant_id=${encodeURIComponent(tenantId)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pin, tenant_id: tenantId })
+          });
+          const sessData = await sessRes.json().catch(() => ({ ok: false }));
+          if (sessRes.ok && sessData && sessData.ok && sessData.token) {
+            setPosSessionToken(sessData.token, tenantId);
           }
         } catch (err) {}
       }
@@ -472,10 +665,13 @@ async function submitStoreActivation(e) {
     }
   } finally {
     if (btnSubmit) btnSubmit.disabled = false;
-    if (btnText) btnText.innerText = (typeof t === "function" && t("btnSubmitActivation")) || "啟用終端並開始接單";
+    applyActivationModalTexts();
   }
 }
 
+window.toggleActivationPinVisibility = toggleActivationPinVisibility;
+window.syncActivationModalBranding = syncActivationModalBranding;
+window.applyActivationModalTexts = applyActivationModalTexts;
 window.showStoreActivationModal = showStoreActivationModal;
 window.closeStoreActivationModal = closeStoreActivationModal;
 window.submitStoreActivation = submitStoreActivation;

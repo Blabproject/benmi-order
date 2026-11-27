@@ -438,6 +438,14 @@ function renderLiveOrderLists(pending, ready) {
 }
 
 function updateNewAlert() {
+  var startShift = (typeof document !== "undefined") ? document.getElementById("startShiftModal") : null;
+  if ((typeof isPosAuthLocked === "function" && isPosAuthLocked()) || (startShift && startShift.style && startShift.style.display === "flex")) {
+    if (window.PosOrderAlert && typeof window.PosOrderAlert.hide === "function") {
+      window.PosOrderAlert.hide();
+    }
+    if (typeof stopContinuousAlarm === "function") stopContinuousAlarm();
+    return;
+  }
   const newCount = pendingNewOrders.length;
   const appendCount = (typeof unacknowledgedAppends !== "undefined") ? unacknowledgedAppends.size : 0;
   const totalCount = newCount + appendCount;
@@ -1450,10 +1458,12 @@ async function updateStatus(key, status, extra = {}, btn = null, autoAccept = fa
     if (autoAccept && (order?.status !== "NEW" || (order.updatedAt ?? null) !== extra.expectedUpdatedAt)) return false;
     const staff = order?.source === 'staff';
     const savedToken = (typeof sessionStorage !== 'undefined') ? sessionStorage.getItem('staff_session_token_' + getTenantIdFromUrl()) : null;
-    const token = staff ? null : savedToken;
+    const posToken = (typeof getPosSessionToken === 'function') ? getPosSessionToken() : null;
+    const token = posToken || (staff ? null : savedToken);
     const endpoint = staff ? `/api/staff/orders/${encodeURIComponent(key)}/status`
       : autoAccept ? '/api/orders/auto-accept' : '/api/update';
-    const response = await fetch(`${WORKER_BASE}${endpoint}?tenant_id=${getTenantIdFromUrl()}`, {
+    const fetchFn = typeof posApiFetch === 'function' ? posApiFetch : fetch;
+    const response = await fetchFn(`${WORKER_BASE}${endpoint}?tenant_id=${getTenantIdFromUrl()}`, {
       signal: controller.signal,
       method: staff ? 'PATCH' : 'POST',
       headers: { 'Content-Type':'application/json', ...(token ? {Authorization:`Bearer ${token}`} : {}) },

@@ -52,10 +52,27 @@ window.StaffOrder = (() => {
   async function api(path, options) {
     const timeout = createTimeoutSignal(20000);
     try {
+      const nextOptions = options ? { ...options } : {};
+      let posToken = '';
+      try {
+        posToken = localStorage.getItem(`pos_session_token_${tenant()}`) || '';
+      } catch (e) {}
+      if (posToken) {
+        const hdrs = { ...(nextOptions.headers || {}) };
+        if (!hdrs.Authorization && !hdrs.authorization) {
+          hdrs.Authorization = `Bearer ${posToken.trim()}`;
+        }
+        nextOptions.headers = hdrs;
+      }
       const response = await fetch(`${WORKER_BASE}${path}${path.includes('?') ? '&' : '?'}tenant_id=${encodeURIComponent(tenant())}`, {
-        ...options, signal: timeout.signal
+        ...nextOptions, signal: timeout.signal
       });
       const data = await response.json();
+      if (response.status === 401 && data && data.error === 'POS_AUTH_REQUIRED' && typeof parent !== 'undefined' && parent !== window) {
+        try {
+          parent.postMessage({ type: 'POS_AUTH_REQUIRED' }, location.origin);
+        } catch (e) {}
+      }
       if (!response.ok || data.ok === false) throw Object.assign(new Error(data.error || 'REQUEST_FAILED'), { status: response.status });
       return data;
     } finally {

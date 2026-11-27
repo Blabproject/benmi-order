@@ -4,6 +4,14 @@ import { settingsActions as actions } from './settings-actions';
 import { SettingsPanel } from './SettingsPanel';
 
 export function DeviceSettings() {
+  const win = typeof window !== 'undefined' ? (window as unknown as {
+    isPosWebLoginEnabled?: () => boolean;
+    getPosSessionToken?: () => string | null;
+    t?: (key: string) => string;
+  }) : {};
+  const showLogout = Boolean(win.isPosWebLoginEnabled?.() || win.getPosSessionToken?.());
+  const tr = (key: string, fallback: string) => (typeof win.t === 'function' ? win.t(key) || fallback : fallback);
+
   return (
     <SettingsPanel section="store-pairing">
       <div data-slot="card-header" className="settings-panel-actions-header">
@@ -124,6 +132,19 @@ export function DeviceSettings() {
             >返回付款管理</Button>
           </div>
         </form>
+        <div id="setting-pos-logout-row" hidden={!showLogout} style={{ borderTop: "1px solid #f1f5f9", paddingTop: "16px", marginBottom: "16px", display: showLogout ? "flex" : "none", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontSize: "var(--pos-text-body)", fontWeight: "700", color: "#1e293b" }} id="i18n-pos-logout-title">{tr('posLogoutTitle', '登出此裝置 POS')}</div>
+            <div style={{ fontSize: "var(--pos-text-meta)", color: "#64748b", marginTop: "2px" }} id="i18n-pos-logout-desc">{tr('posLogoutDesc', '登出後需重新輸入門市管理 PIN 碼才能存取訂單與設定。')}</div>
+          </div>
+          <Button
+            type="button"
+            className="btn"
+            style={{ minHeight: "48px", padding: "0 20px", fontSize: "var(--pos-text-body)", fontWeight: "700", color: "#0f172a", background: "#f8fafc", border: "1.5px solid #cbd5e1", borderRadius: "10px", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
+            onClick={() => actions.logoutPosSession()}
+            id="i18n-btn-pos-logout"
+          >{tr('btnPosLogout', '登出 POS')}</Button>
+        </div>
         <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
           <div>
             <div style={{ fontSize: "var(--pos-text-body)", fontWeight: "700", color: "#1e293b" }} id="i18n-unlink-title">解除此設備綁定 / 切換門市</div>

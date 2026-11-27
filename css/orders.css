@@ -1819,9 +1819,78 @@ body.is-staff-order-active .page-main-title {
   box-sizing: border-box;
 }
 
-/* Never display store activation / login modal on standard web browser */
+/* Never display store activation / login modal on standard web browser unless explicitly triggered */
 html.is-web-platform .store-activation-modal:not(.force-show) {
   display: none !important;
+}
+
+/* Hide POS workspace & pre-login shift modal cleanly until PIN login unlocks */
+html.pos-auth-locked .app-sidebar,
+html.pos-auth-locked .main-layout,
+html.pos-auth-locked #startShiftModal {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+html.pos-auth-locked .store-activation-modal.pin-only-mode.force-show {
+  background: #f8fafc;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.store-activation-modal.pin-only-mode .store-activation-box {
+  animation: none;
+}
+
+.store-activation-store-name {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 14px;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-size: var(--pos-text-meta);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.store-activation-pin-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.store-activation-pin-input {
+  padding-right: 54px;
+}
+
+.store-activation-pin-toggle {
+  position: absolute;
+  right: 4px;
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.store-activation-pin-toggle:hover,
+.store-activation-pin-toggle:focus-visible {
+  color: #0f172a;
+  background: #f1f5f9;
+  outline: none;
 }
 
 .store-activation-box {

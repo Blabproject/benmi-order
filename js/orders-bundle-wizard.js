@@ -507,7 +507,8 @@ async function saveComboWizard() {
   btn.disabled = true;
   try {
     const draftKey = comboDraftKey();
-    const response = await fetch(`${WORKER_BASE}/api/menu/bundles?tenant_id=${encodeURIComponent(getTenantIdFromUrl())}`, {
+    const fetchFn = typeof posApiFetch === 'function' ? posApiFetch : fetch;
+    const response = await fetchFn(`${WORKER_BASE}/api/menu/bundles?tenant_id=${encodeURIComponent(getTenantIdFromUrl())}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ product: comboWizard.product, config: comboWizard.config })
     });
     const result = await response.json();
@@ -517,7 +518,7 @@ async function saveComboWizard() {
     if (comboWizard.imageDataUri) {
       const category = currentMenuData.find(cat => cat.catId === comboWizard.product.categoryId);
       const name = `${category?.id || comboWizard.product.categoryId}_${comboWizard.product.name}`;
-      const imageResponse = await fetch(`${WORKER_BASE}/api/image?tenant_id=${encodeURIComponent(getTenantIdFromUrl())}`, {
+      const imageResponse = await fetchFn(`${WORKER_BASE}/api/image?tenant_id=${encodeURIComponent(getTenantIdFromUrl())}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, dataUri: comboWizard.imageDataUri })
       });
       if (!imageResponse.ok) throw new Error(`${comboText('comboSaved')} · ${comboText('imageUploadFail')}`);
