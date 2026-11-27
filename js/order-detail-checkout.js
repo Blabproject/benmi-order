@@ -53,7 +53,8 @@ var DetailCheckout = (function () {
     const fingerprint = JSON.stringify({ key, items: modern.items, groups: modern.orderSelections, note: modern.note,
       total: modern.appended_total ?? modern.new_total ?? modern.total, revision: modern.expectedDetailRevision,
       target: modern.targetRound, dining: modern.dining_option, table: modern.table_number,
-      channel: modern.channel_id || modern.channel_code, shift: modern.shift_id, delivery: modern.delivery_details });
+      channel: modern.channel_id || modern.channel_code, shift: modern.shift_id, delivery: modern.delivery_details,
+      deliveryTime: modern.delivery_details ? modern.time : undefined });
     if (modern.delivery_details) {
       if (pendingDelivery?.fingerprint === fingerprint) return pendingDelivery.payload;
       modern.operationId = modern.uuid = crypto.randomUUID();

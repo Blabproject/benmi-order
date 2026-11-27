@@ -9,9 +9,9 @@
     <link rel="preload" href="/index.css?v=20261125_delivery_v1" as="style">
     <link rel="preload" href="/js/store-notice-format.js?v=20261111_store_notice_v1" as="script">
     <link rel="preload" href="/js/menu-schedule.js?v=20261121_collection_qr_v1" as="script">
-    <link rel="preload" href="/js/client-i18n.js?v=20261125_delivery_v1" as="script">
-    <link rel="preload" href="/js/client-core.js?v=20261125_delivery_v1" as="script">
-    <link rel="preload" href="/js/client-menu.js?v=20261125_staff_only_v1" as="script">
+    <link rel="preload" href="/js/client-i18n.js?v=20261127_delivery_schedule_v1" as="script">
+    <link rel="preload" href="/js/client-core.js?v=20261127_delivery_schedule_v1" as="script">
+    <link rel="preload" href="/js/client-menu.js?v=20261127_delivery_schedule_v1" as="script">
     <link rel="stylesheet" href="/index.css?v=20261125_delivery_v1">
     <style>html.tenant-resolution-failed body > :not(#tenant-resolution-error) { display: none !important; }</style>
     <script>
@@ -1090,7 +1090,7 @@
                         <circle cx="12" cy="12" r="10"></circle>
                         <polyline points="12 6 12 12 16 14"></polyline>
                     </svg>
-                    <span data-i18n="pickup_modal_title">選擇取餐時間</span>
+                    <span id="pickup-time-modal-title" data-i18n="pickup_modal_title">選擇取餐時間</span>
                 </div>
                 <button type="button" class="pickup-sheet-close" onclick="closePickupTimeModal()" aria-label="關閉" data-i18n-aria-label="btn_close">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -1122,7 +1122,7 @@
 
                 <!-- Slots Section Title -->
                 <div class="pickup-slots-section-title">
-                    <span data-i18n="pickup_slots_title">或選擇指定時間</span>
+                    <span id="pickup-slots-title" data-i18n="pickup_slots_title">或選擇指定時間</span>
                     <span class="pickup-slots-step-hint" data-i18n="pickup_slots_hint">每 15 分鐘為一時段</span>
                 </div>
 
@@ -1146,9 +1146,9 @@
     <script src="/js/menu-schedule.js?v=20261121_collection_qr_v1"></script>
     <script src="/js/client-pricing-wasm.js?v=20261116_menu_schedule_v1"></script>
     <script src="/js/store-notice-format.js?v=20261111_store_notice_v1"></script>
-    <script src="/js/client-i18n.js?v=20261125_delivery_v1"></script>
-    <script src="/js/client-core.js?v=20261125_delivery_v1"></script>
-    <script src="/js/client-menu.js?v=20261125_staff_only_v1"></script>
+    <script src="/js/client-i18n.js?v=20261127_delivery_schedule_v1"></script>
+    <script src="/js/client-core.js?v=20261127_delivery_schedule_v1"></script>
+    <script src="/js/client-menu.js?v=20261127_delivery_schedule_v1"></script>
     <script src="/js/client-customizations.js?v=20261118_multi_portion_copy_v1"></script>
     <script src="/js/client-bundle.js?v=20261125_staff_only_v1"></script>
     <script src="/js/client-cart.js?v=20261122_staff_order_react_v1"></script>
@@ -1178,9 +1178,9 @@
     </div>
     <script src="/js/order-legacy-adapter.js?v=20261017_order_detail_v1"></script>
   <script src="/js/order-detail-view.js?v=20261119_print_options_v2"></script>
-  <script src="/js/order-detail-checkout.js?v=20261125_delivery_v1"></script>
+  <script src="/js/order-detail-checkout.js?v=20261127_delivery_schedule_v1"></script>
   <script src="/js/line-order-presentation.js?v=20261030_line_portions_v3"></script>
-    <script src="/js/client-checkout.js?v=20261125_delivery_v1"></script>
+    <script src="/js/client-checkout.js?v=20261127_delivery_schedule_v1"></script>
     <script src="/js/staff-order.js?v=20261123_prod_release_v1"></script>
     <script>
         if (window.__TENANT_RESOLUTION_FAILED) {

@@ -982,6 +982,7 @@ async function initEditOrderModeIfPresent() {
 // PICKUP TIME PICKER (BOTTOM SHEET / TIME SLOTS - MOBILE FIRST)
 // ============================================================
 var pickupTimePickerState = {
+    forDelivery: false,
     selectedDate: '',        // 'YYYY-MM-DD'
     selectedTime: '',        // 'HH:mm'
     selectedType: 'asap',    // 'asap' | 'slot'
@@ -1066,6 +1067,7 @@ function getStoreOperatingShifts(dateObj) {
 }
 
 function calcAsapPickupTime(twNow) {
+    if (window.currentDiningOption === 'delivery') return null;
     const cfg = getActiveStoreConfig();
     const isBusy = (cfg && cfg.storeStatus === 'busy');
     const prepMinutes = (cfg && typeof cfg.prepTimeMinutes === 'number')
@@ -1154,7 +1156,7 @@ function generatePickupSlots(dateStr) {
         : (cfg && cfg.prepTimeMinutes !== undefined ? Number(cfg.prepTimeMinutes) : 5);
     const bufferMin = isBusy ? Math.max(prepMinutes, 60) : prepMinutes;
     const nowMin = twNow.getHours() * 60 + twNow.getMinutes();
-    const minAllowedMin = nowMin + bufferMin;
+    const minAllowedMin = nowMin + (window.currentDiningOption === 'delivery' ? Math.max(1, bufferMin) : bufferMin);
 
     const slots = [];
     const seen = new Set();
@@ -1205,10 +1207,13 @@ function syncPickupTimeDisplay() {
 
     const dateVal = dateEl ? dateEl.value : '';
     const timeVal = timeEl ? timeEl.value : '';
+    const isDelivery = window.currentDiningOption === 'delivery';
 
     if (!dateVal || !timeVal) {
-        primaryLabel.textContent = _coT('pickup_select_prompt_primary', null, '請選擇預計取餐時間');
-        secondaryLabel.textContent = _coT('pickup_select_prompt_secondary', null, '點擊選擇取餐日期與時段');
+        primaryLabel.textContent = isDelivery ? _coT('delivery_time_select', null, '選擇外送時間')
+            : _coT('pickup_select_prompt_primary', null, '請選擇預計取餐時間');
+        secondaryLabel.textContent = isDelivery ? _coT('delivery_time_hint', null, '點擊選擇外送日期與時段')
+            : _coT('pickup_select_prompt_secondary', null, '點擊選擇取餐日期與時段');
         return;
     }
 
@@ -1232,7 +1237,7 @@ function syncPickupTimeDisplay() {
         dayLabel = `${daysName[dObj.getDay()]} (${dateFormatted})`;
     }
 
-    if (pickupTimePickerState.selectedType === 'asap' && dateVal === todayStr) {
+    if (!isDelivery && pickupTimePickerState.selectedType === 'asap' && dateVal === todayStr) {
         const cfg = getActiveStoreConfig();
         const prepMin = (cfg && typeof cfg.prepTimeMinutes === 'number')
             ? cfg.prepTimeMinutes
@@ -1242,7 +1247,8 @@ function syncPickupTimeDisplay() {
             ? _coT('pickup_asap_sec_prep', { day: dayLabel, min: prepMin }, `${dayLabel} · 備餐約 ${prepMin} 分鐘`)
             : _coT('pickup_asap_sec_now', { day: dayLabel }, `${dayLabel} · 店家即刻備餐`);
     } else {
-        primaryLabel.textContent = _coT('pickup_slot_primary', { time: timeVal }, `${timeVal} 取餐`);
+        primaryLabel.textContent = isDelivery ? _coT('delivery_slot_primary', { time: timeVal }, `${timeVal} 外送`)
+            : _coT('pickup_slot_primary', { time: timeVal }, `${timeVal} 取餐`);
         secondaryLabel.textContent = _coT('pickup_slot_sec', { day: dayLabel }, `${dayLabel} · 預約時段`);
     }
 }
@@ -1297,7 +1303,8 @@ function initPickupTimePicker() {
     const dateEl = document.getElementById('pickup-date');
     const timeEl = document.getElementById('pickup-time');
 
-    const avail = findFirstAvailableDate();
+    const isDelivery = window.currentDiningOption === 'delivery';
+    const avail = isDelivery !== pickupTimePickerState.forDelivery ? resetPickupTimeToDefault() : findFirstAvailableDate();
 
     if (dateEl) {
         dateEl.min = todayStr;
@@ -1313,8 +1320,12 @@ function initPickupTimePicker() {
     const asap = isToday ? calcAsapPickupTime(twNow) : null;
     const slots = generatePickupSlots(curDate);
 
-    // Default state: ASAP is usable and pre-selected!
-    if (!timeEl || !timeEl.value || timeEl.value === '' || (!isToday && !slots.includes(timeEl.value))) {
+    if (isDelivery) {
+        const slot = slots.includes(timeEl?.value) ? timeEl.value : (slots[0] || '');
+        if (timeEl) timeEl.value = slot;
+        pickupTimePickerState.selectedTime = slot;
+        pickupTimePickerState.selectedType = 'slot';
+    } else if (!timeEl || !timeEl.value || (!isToday && !slots.includes(timeEl.value))) {
         if (timeEl) timeEl.value = avail.defaultTime;
         pickupTimePickerState.selectedTime = avail.defaultTime;
         pickupTimePickerState.selectedType = avail.defaultType;
@@ -1385,6 +1396,7 @@ function resetPickupTimeToDefault() {
     const avail = findFirstAvailableDate();
 
     window.isPickupTimeManuallyChanged = false;
+    pickupTimePickerState.forDelivery = window.currentDiningOption === 'delivery';
     if (dateEl) {
         const twNow = (typeof getTaiwanDate === 'function') ? getTaiwanDate() : new Date();
         const todayStr = (typeof formatTaiwanDateTime === 'function') ? formatTaiwanDateTime(twNow).dateStr : twNow.toISOString().slice(0, 10);
@@ -1456,6 +1468,17 @@ window.refreshPickupTimeIfStale = refreshPickupTimeIfStale;
 function openPickupTimeModal() {
     const modal = document.getElementById('pickup-time-modal');
     if (!modal) return;
+    const isDelivery = window.currentDiningOption === 'delivery';
+    const modalTitle = document.getElementById('pickup-time-modal-title');
+    const slotsTitle = document.getElementById('pickup-slots-title');
+    if (modalTitle) {
+        modalTitle.dataset.i18n = isDelivery ? 'delivery_time_select' : 'pickup_modal_title';
+        modalTitle.textContent = _coT(modalTitle.dataset.i18n, null, isDelivery ? '選擇外送時間' : '選擇取餐時間');
+    }
+    if (slotsTitle) {
+        slotsTitle.dataset.i18n = isDelivery ? 'delivery_slots_title' : 'pickup_slots_title';
+        slotsTitle.textContent = _coT(slotsTitle.dataset.i18n, null, isDelivery ? '可預約時段' : '或選擇指定時間');
+    }
 
     const twNow = (typeof getTaiwanDate === 'function') ? getTaiwanDate() : new Date();
     const todayStr = (typeof formatTaiwanDateTime === 'function') ? formatTaiwanDateTime(twNow).dateStr : twNow.toISOString().slice(0, 10);
@@ -1480,14 +1503,15 @@ function openPickupTimeModal() {
     const activeSlots = isCurDateFallback ? generatePickupSlots(curDate) : curSlots;
     const activeAsap = isNowToday ? calcAsapPickupTime(twNow) : null;
 
-    if (!curTime || isCurDateFallback || (!isNowToday && !activeSlots.includes(curTime))) {
+    if (!curTime || isCurDateFallback || ((isDelivery || !isNowToday) && !activeSlots.includes(curTime))) {
         curTime = isNowToday && activeAsap ? activeAsap.timeStr : (activeSlots.length > 0 ? activeSlots[0] : avail.defaultTime);
     }
 
     pickupTimePickerState.activeTabDate = curDate;
     pickupTimePickerState.tempDate = curDate;
     pickupTimePickerState.tempTime = curTime;
-    pickupTimePickerState.tempType = (isNowToday && activeAsap && curTime === activeAsap.timeStr) ? 'asap' : (pickupTimePickerState.selectedType || 'slot');
+    pickupTimePickerState.tempType = (isNowToday && activeAsap && curTime === activeAsap.timeStr) ? 'asap'
+        : isDelivery ? 'slot' : (pickupTimePickerState.selectedType || 'slot');
 
     renderPickupDateTabs();
     renderPickupModalBodyForDate(curDate);
@@ -2458,8 +2482,8 @@ function formatOrderTextMessage(orderNum, dateInput, timeInput, currentTotal, ma
             msg += `\n🪑 用餐桌號：${tableNumber}`;
         }
     } else {
-        const isScheduledEnabled = !(storeConfig && storeConfig.allowScheduledPickup === false);
-        const timeLabel = isScheduledEnabled ? (window.currentDiningOption === 'delivery' ? '外送時間' : '取餐時間') : '訂餐時間';
+        const timeLabel = window.currentDiningOption === 'delivery' ? '外送時間'
+            : storeConfig?.allowScheduledPickup === false ? '訂餐時間' : '取餐時間';
         msg += `🕒 ${timeLabel}：${dateInput} ${timeInput}`;
     }
     if (mainNote) msg += `\n📝 總備註：${mainNote}`;
@@ -2917,7 +2941,7 @@ async function submitOrder() {
 
     const twNow = getTaiwanDate();
     const isDineIn = (window.currentDiningOption === 'dine_in');
-    const isScheduledEnabled = !(storeConfig && storeConfig.allowScheduledPickup === false);
+    const isScheduledEnabled = isScheduledCheckoutEnabled();
     let dateInput = "";
     let timeInput = "";
 
@@ -2990,6 +3014,10 @@ async function submitOrder() {
         if (!dateInput || !timeInput) {
             highlightMissingPickupTime();
             return;
+        }
+        if (window.currentDiningOption === 'delivery' &&
+            (dateInput < todayStr || !generatePickupSlots(dateInput).includes(timeInput))) {
+            return customAlert(_coT('delivery_invalid_time', null, '請重新選擇可預約的外送時段。'), highlightMissingPickupTime);
         }
 
         const [pYear, pMonth, pDay] = dateInput.split('-').map(Number);

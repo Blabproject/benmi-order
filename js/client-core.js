@@ -709,10 +709,14 @@ function findNextCollectionSlot(shift) {
     return null;
 }
 
+function isScheduledCheckoutEnabled(orderType = window.currentDiningOption, config = storeConfig) {
+    return orderType === 'delivery' || config?.allowScheduledPickup !== false;
+}
+
 function syncCollectionPickupSlotIfNeeded(shift) {
     if (!shift || window.isStaffOrderMode || window.isEditOrderMode || window.isAppendMode || window.currentTableNumber) return;
     if (window.isPickupTimeManuallyChanged) return;
-    if (storeConfig && storeConfig.allowScheduledPickup === false) return;
+    if (!isScheduledCheckoutEnabled()) return;
     if (typeof MenuSchedule === 'undefined' || typeof MenuSchedule.isShiftActiveAt !== 'function') return;
 
     const twNow = getTaiwanDate();
@@ -830,7 +834,7 @@ function renderMenuCollectionSwitcher() {
                 ? MenuSchedule.isShiftActiveAt(selectedShift, twNow)
                 : true;
             const winLabel = formatCollectionWindowSummary(selectedShift);
-            const allowScheduled = !storeConfig || storeConfig.allowScheduledPickup !== false;
+            const allowScheduled = isScheduledCheckoutEnabled();
             if (!isOpenNow && winLabel) {
                 banner.textContent = allowScheduled
                     ? tFn('collection_scheduled_hint', { window: winLabel }, `此時段供應時間為 ${winLabel}，已自動切換為預約時段`)
@@ -1303,6 +1307,12 @@ function applyPickupConfig() {
         pickupLabel.dataset.i18n = labelKey;
         pickupLabel.textContent = ct(labelKey);
     }
+    const timeTrigger = document.getElementById('pickup-time-trigger');
+    if (timeTrigger && typeof ct === 'function') {
+        const labelKey = isDelivery ? 'delivery_time_select' : 'pickup_aria_select';
+        timeTrigger.setAttribute('data-i18n-aria-label', labelKey);
+        timeTrigger.setAttribute('aria-label', ct(labelKey));
+    }
 
     if (window.currentDiningOption === 'dine_in') {
         if (secTitle) secTitle.style.display = window.isStaffOrderMode ? 'none' : '';
@@ -1327,13 +1337,13 @@ function applyPickupConfig() {
         if (!window.isStaffOrderMode) updateAsapTimeDisplay();
     } else {
         if (secTitleText) {
-            const headingKey = isDelivery ? (storeConfig?.allowScheduledPickup === false ? 'order_time_title' : 'delivery_time_title') : 'pickup_time_title';
+            const headingKey = isDelivery ? 'delivery_time_title' : 'pickup_time_title';
             if (secTitleText.dataset) secTitleText.dataset.i18n = headingKey;
             secTitleText.innerText = typeof ct === 'function' ? ct(headingKey) : '取餐時間';
         }
         if (dineInNotice) dineInNotice.style.display = 'none';
         if (tableGroup) tableGroup.style.display = 'none';
-        if (storeConfig && storeConfig.allowScheduledPickup === false) {
+        if (!isScheduledCheckoutEnabled()) {
             if (secTitle) secTitle.style.display = window.isStaffOrderMode ? 'none' : '';
             if (pickerGroup) pickerGroup.style.display = 'none';
             if (asapNotice) asapNotice.style.display = window.isStaffOrderMode ? 'none' : 'block';
@@ -1867,7 +1877,7 @@ function hasConfiguredOperatingHours(cfg = storeConfig) {
 function getEffectiveMenuScheduleTime() {
     const orderType = (typeof window !== 'undefined' && (window.currentDiningOption || window.selectedOrderType))
         || (typeof selectedOrderType !== 'undefined' ? selectedOrderType : 'takeaway');
-    const allowScheduled = !storeConfig || storeConfig.allowScheduledPickup !== false;
+    const allowScheduled = isScheduledCheckoutEnabled(orderType);
     if ((orderType === 'takeaway' || orderType === 'delivery') && allowScheduled && !window.isStaffOrderMode && typeof document !== 'undefined') {
         const dateEl = document.getElementById('pickup-date');
         const timeEl = document.getElementById('pickup-time');

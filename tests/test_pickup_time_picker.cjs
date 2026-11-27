@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict');
+const { test } = require('node:test');
 const fs = require('node:fs');
 const vm = require('node:vm');
 
@@ -14,14 +15,18 @@ class MockElement {
         this.textContent = '';
         this.innerHTML = '';
         this.style = {};
+        this.dataset = {};
         this.classList = {
             classes: new Set(),
             add(c) { this.classes.add(c); },
             remove(c) { this.classes.delete(c); },
-            contains(c) { return this.classes.has(c); }
+            contains(c) { return this.classes.has(c); },
+            toggle(c, enabled) { if (enabled) this.add(c); else this.remove(c); }
         };
         this.listeners = {};
     }
+    setAttribute() {}
+    removeAttribute() {}
     addEventListener(event, fn) {
         if (!this.listeners[event]) this.listeners[event] = [];
         this.listeners[event].push(fn);
@@ -69,6 +74,7 @@ const mockDocument = {
     getElementById(id) {
         return elements[id] || null;
     },
+    querySelectorAll: () => [],
     body: {
         style: {}
     },
@@ -361,3 +367,54 @@ ctx.switchPickupDateTab('2026-11-08');
 assert.equal(elements['pickup-slots-grid'].style.display, 'block', 'Slots grid displayed for Sunday overnight');
 assert.equal(elements['pickup-sheet-confirm-btn'].disabled, false, 'Confirm button enabled for Sunday overnight');
 console.log('✓ Overnight shifts crossing midnight verified for both evening and next-day early morning');
+
+test('delivery schedules a valid slot while takeaway keeps the live queue', async () => {
+    for (const id of ['pickup-time-picker-group', 'pickup-time-asap-notice', 'pickup-time-modal-title', 'pickup-slots-title', 'checkout-btn-delivery']) {
+        elements[id] = new MockElement(id);
+    }
+    Object.assign(ctx.storeConfig, {
+        features: ['delivery'], storeStatus: 'open', allowScheduledPickup: false, prepTimeMinutes: 5,
+        operatingHours: { 1: [{ start: '11:00', end: '21:00' }], 2: [{ start: '11:00', end: '21:00' }] }
+    });
+    ctx.getTaiwanDate = () => new Date(fixedTaiwanNow);
+    ctx.checkDesktopAuthGuard = () => true;
+    ctx.hasAvailableCartItems = () => true;
+    ctx.readCheckoutDeliveryDetails = () => ({ address: 'Fixture' });
+    ctx.updateTotal = () => {};
+    ctx.cart = { food_Meal: 1 };
+    ctx.isSubmitting = false;
+    const submitted = [];
+    const alerts = [];
+    ctx.customAlert = message => alerts.push(message);
+    ctx.doSubmitOrderExecution = (date, time) => submitted.push([date, time]);
+
+    ctx.setCustomerDiningOption('takeaway');
+    assert.equal(elements['pickup-time-picker-group'].style.display, 'none');
+    assert.equal(elements['pickup-time-asap-notice'].style.display, 'block');
+
+    ctx.setCustomerDiningOption('delivery');
+    assert.equal(elements['pickup-time-picker-group'].style.display, 'block');
+    assert.equal(elements['pickup-time-asap-notice'].style.display, 'none');
+    assert.equal(elements['pickup-time'].value, '12:15');
+    ctx.openPickupTimeModal();
+    assert.equal(elements['pickup-time-modal-title'].textContent, '選擇外送時間');
+    assert.equal(elements['pickup-asap-card'].style.display, 'none');
+    ctx.switchPickupDateTab('2026-11-10');
+    ctx.selectPickupSlot('13:30');
+    ctx.confirmPickupTimeSelection();
+    const schedule = ctx.getEffectiveMenuScheduleTime();
+    assert.equal(schedule.isScheduled, true);
+    assert.equal(schedule.dateStr, '2026-11-10');
+    assert.equal(schedule.timeStr, '13:30');
+    await ctx.submitOrder();
+
+    elements['pickup-time'].value = '13:31';
+    await ctx.submitOrder();
+    assert.match(alerts.at(-1), /外送時段/);
+
+    ctx.setCustomerDiningOption('takeaway');
+    assert.equal(elements['pickup-time-asap-notice'].style.display, 'block');
+    assert.equal(ctx.getEffectiveMenuScheduleTime().isScheduled, false);
+    await ctx.submitOrder();
+    assert.deepEqual(submitted, [['2026-11-10', '13:30'], ['2026-11-09', '12:00']]);
+});

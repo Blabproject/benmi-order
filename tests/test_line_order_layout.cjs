@@ -7,7 +7,7 @@ require.extensions['.ts'] = (module, file) => module._compile(ts.transpileModule
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true }
 }).outputText, file);
 const P = require('../js/line-order-presentation.js');
-const { buildOrderFlexMessage, buildAppendConfirmationFlexMessage } = require('../benmi-worker-official/src/modules/line/templates/order-receipt.ts');
+const { buildOrderFlexMessage, buildAppendConfirmationFlexMessage, buildProgressFlexMessage } = require('../benmi-worker-official/src/modules/line/templates/order-receipt.ts');
 const { createOrderModifiedConfirmationFlexBubble } = require('../benmi-worker-official/src/modules/line/templates/order-sold-out.ts');
 const F = require('./fixtures/line-order-layout.cjs');
 function texts(node) { return node && typeof node === 'object' ? [node.text || '', ...Object.values(node).filter(v => typeof v === 'object').flatMap(v => Array.isArray(v) ? v.map(texts) : [texts(v)])].flat(Infinity).filter(Boolean) : []; }
@@ -16,6 +16,15 @@ function boxes(node) { return !node || typeof node !== 'object' ? [] : [node, ..
 const portionBoxes = node => boxes(node).filter(n => n.type === 'box' && n.backgroundColor === '#F8FAFC' && n.contents?.[0]?.text?.match(/^(第 |Phần )/));
 function freeze(value) { if (value && typeof value === 'object') { Object.values(value).forEach(freeze); Object.freeze(value); } return value; }
 const containers = result => result.type === 'receipt-pages' ? result.pages.flatMap(containers) : result.type === 'carousel' ? result.contents : [result];
+
+test('delivery receipts and progress show delivery time for stores with ASAP takeaway', () => {
+  const tenant = { allowScheduledPickup: false };
+  const delivery = F.order({ diningOption: 'delivery' });
+  assert.match(text(buildOrderFlexMessage(delivery, tenant)), /外送時間/);
+  assert.match(text(buildProgressFlexMessage(delivery, 0, tenant)), /外送時間/);
+  assert.match(text(buildOrderFlexMessage(F.order(), tenant)), /訂餐時間/);
+  assert.match(text(buildProgressFlexMessage(F.order(), 0, tenant)), /訂餐時間/);
+});
 
 test('screenshot reproduction: choices and notes stay inside the correct portion in text and Flex', () => {
   const line = F.line();

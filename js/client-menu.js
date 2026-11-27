@@ -207,7 +207,9 @@ function getSelectedCollectionId() {
 function getCollectionVisibilityFlags() {
     const colId = getSelectedCollectionId();
     const cfg = (typeof window !== 'undefined' && window.storeConfig) || (typeof storeConfig !== 'undefined' ? storeConfig : null) || {};
-    const allowScheduled = cfg.allowScheduledPickup !== false;
+    const allowScheduled = typeof isScheduledCheckoutEnabled === 'function'
+        ? isScheduledCheckoutEnabled(window.currentDiningOption, cfg)
+        : cfg.allowScheduledPickup !== false;
     return { colId, previewMode: Boolean(colId && !allowScheduled) };
 }
 

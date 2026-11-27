@@ -1,6 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const vm = require('node:vm');
 const ts = require('../benmi-worker-official/node_modules/typescript');
 require.extensions['.ts'] = (module, file) => module._compile(ts.transpileModule(fs.readFileSync(file, 'utf8'), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true }
@@ -39,6 +40,18 @@ async function write(f, payload, kind='create', tenant='a') {
   return { status: response.status, ...body };
 }
 async function ok(f, payload, kind) { const r = await write(f, payload, kind); assert.equal(r.status, 200, JSON.stringify(r)); return r; }
+
+test('delivery retries reuse the payload only while the selected time is unchanged', async () => {
+  const checkout = vm.runInNewContext(fs.readFileSync('js/order-detail-checkout.js', 'utf8') + '\nDetailCheckout;', {
+    bootstrapData: { orderDetailVersion: 1 }, cart: {}, crypto,
+  });
+  const payload = { delivery_details: { recipient: 'Test' }, time: '2026-12-01 13:30' };
+  const first = await checkout.prepare(payload);
+  assert.equal((await checkout.prepare(payload)).operationId, first.operationId);
+  const changed = await checkout.prepare({ ...payload, time: '2026-12-01 14:00' });
+  assert.equal(changed.time, '2026-12-01 14:00');
+  assert.notEqual(changed.operationId, first.operationId);
+});
 
 test('menu refresh preserves the selected spice level from cart through the stored order', async t => {
   const f = fixture();
@@ -92,7 +105,7 @@ test('delivery details open without pairing and stay scoped to the selected orde
   t.after(() => f.db.close());
   const tenant = { tenantId: 'a', features: ['delivery'] };
   const details = { recipient: '  Test Recipient ', phone: '0912 345 678', address: '42 Example Street' };
-  const req = input({ dining_option: 'delivery', delivery_details: details });
+  const req = input({ dining_option: 'delivery', delivery_details: details, time: '2026-12-01 13:30' });
   const submit = (payload, context = tenant) => writeDetailedOrder(f.env, 'a', payload, 'create', undefined, context);
 
   assert.equal((await submit(req, { ...tenant, features: [] })).status, 403);
@@ -104,9 +117,10 @@ test('delivery details open without pairing and stay scoped to the selected orde
   assert.match(takeaway.displayKey, /-T001$/);
   assert.match(created.displayKey, /-T002$/);
   assert.doesNotMatch(JSON.stringify(created), /Test Recipient|Example Street/);
-  const stored = () => f.db.prepare('SELECT dining_option, delivery_details_json FROM orders WHERE key=?').get(created.key);
+  const stored = () => f.db.prepare('SELECT dining_option, pickup_time, delivery_details_json FROM orders WHERE key=?').get(created.key);
   const original = { ...details, recipient: details.recipient.trim() };
   assert.equal(stored().dining_option, 'delivery');
+  assert.equal(stored().pickup_time, req.time);
   assert.deepEqual(JSON.parse(stored().delivery_details_json), original);
   assert.equal((await (await submit(req)).json()).idempotent, true);
   assert.equal((await submit({ ...req, delivery_details: { ...details, taxId: '12345678' } })).status, 409);
@@ -132,7 +146,9 @@ test('delivery details open without pairing and stay scoped to the selected orde
   const liveResponse = await getOrders(new Request('https://example.test/api/orders?tenant_id=a'), f.env);
   assert.equal(liveResponse.status, 200);
   const liveOrders = await liveResponse.json();
-  assert.equal(liveOrders.find(order => order.key === created.key).diningOption, 'delivery');
+  const liveDelivery = liveOrders.find(order => order.key === created.key);
+  assert.equal(liveDelivery.diningOption, 'delivery');
+  assert.equal(liveDelivery.time, req.time);
   assert.doesNotMatch(JSON.stringify(liveOrders), /Test Recipient|Example Street/);
 
   f.db.prepare("UPDATE orders SET status='WAITING_CUSTOMER_CHANGE' WHERE key=?").run(created.key);

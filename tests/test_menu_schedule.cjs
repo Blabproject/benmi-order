@@ -1155,7 +1155,8 @@ test('Frontend Tag banner renders clean Tag label without table subtitle for ?ch
   const renderBannerFnCode = extractTopLevelFunctionSource(coreCode, 'renderQrChannelBanner');
   const renderCollectionFnCode = extractTopLevelFunctionSource(coreCode, 'renderMenuCollectionSwitcher');
   const setCollectionFnCode = extractTopLevelFunctionSource(coreCode, 'setCustomerMenuCollection');
-  const applyPickupFnCode = extractTopLevelFunctionSource(coreCode, 'applyPickupConfig');
+  const applyPickupFnCode = ['isScheduledCheckoutEnabled', 'applyPickupConfig']
+    .map(name => extractTopLevelFunctionSource(coreCode, name)).join('\n');
   const setDiningFnCode = extractTopLevelFunctionSource(coreCode, 'setCustomerDiningOption');
 
   async function runScenario({ search, cachedTable, cachedAppendParent, cachedAppendTable, tableStatusResponse, initialQrChannel, qrChannels, shifts, selectedShiftId }) {

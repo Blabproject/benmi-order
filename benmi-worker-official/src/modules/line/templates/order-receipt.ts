@@ -67,9 +67,9 @@ export function buildOrderFlexMessage(
     : (isEnCustomer ? "Takeaway · 外帶自取" : isViCustomer ? "Mang về · 外帶自取" : "外帶自取");
   const timeLabel = isDineIn
     ? (isEnCustomer ? "Order Time / 點餐時間" : isViCustomer ? "Giờ đặt / 點餐時間" : "點餐時間")
+    : isDelivery ? (isEnCustomer ? "Delivery Time / 外送時間" : isViCustomer ? "Giờ giao hàng / 外送時間" : "外送時間")
     : (isScheduled
-      ? (isDelivery ? (isEnCustomer ? "Delivery Time / 外送時間" : isViCustomer ? "Giờ giao hàng / 外送時間" : "外送時間")
-        : isEnCustomer ? "Pickup Time / 預計取餐時間" : isViCustomer ? "Giờ lấy / 預計取餐時間" : "預計取餐時間")
+      ? (isEnCustomer ? "Pickup Time / 預計取餐時間" : isViCustomer ? "Giờ lấy / 預計取餐時間" : "預計取餐時間")
       : (isEnCustomer ? "Order Time / 訂餐時間" : isViCustomer ? "Giờ đặt / 訂餐時間" : "訂餐時間"));
 
   // Extract and clean Global Customizations
@@ -287,9 +287,10 @@ export function buildOrderFlexMessage(
 
 export function buildProgressFlexMessage(order: Order, queueAheadCount: number, tenantCtx?: TenantContext | null): any {
   const isScheduled = tenantCtx?.allowScheduledPickup !== false;
-  const isDineIn = order.diningOption === "dine_in" || (order.content || "").includes("📍 用餐方式：🍽️ 內用") || (order.content || "").includes("【內用】");
-  const diningLabel = order.diningOption === "delivery" ? "外送" : isDineIn ? "內用 (現場製作)" : "外帶自取";
-  const timeLabel = isDineIn ? "點餐時間" : (isScheduled ? "預計取餐時間" : "訂餐時間");
+  const isDelivery = order.diningOption === "delivery";
+  const isDineIn = !isDelivery && (order.diningOption === "dine_in" || (order.content || "").includes("📍 用餐方式：🍽️ 內用") || (order.content || "").includes("【內用】"));
+  const diningLabel = isDelivery ? "外送" : isDineIn ? "內用 (現場製作)" : "外帶自取";
+  const timeLabel = isDelivery ? "外送時間" : isDineIn ? "點餐時間" : (isScheduled ? "預計取餐時間" : "訂餐時間");
 
   let statusTitle = "已收到訂單";
   let statusColor = "#059669";
