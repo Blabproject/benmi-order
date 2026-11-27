@@ -745,8 +745,8 @@ test('MenuSchedule supports all-day collections, displayMode, diningPolicy, and 
   assert.equal(shifts[1].displayMode, 'qr_only');
   assert.equal(shifts[1].diningPolicy, 'takeaway_only');
 
-  const mondayOpen = new Date('2026-11-16T15:30:00');
-  const sundayClosed = new Date('2026-11-15T15:30:00');
+  const mondayOpen = new Date('2026-11-16T15:30:00+08:00');
+  const sundayClosed = new Date('2026-11-15T15:30:00+08:00');
   assert.equal(MenuSchedule.isShiftActiveAt(shifts[0], mondayOpen), true);
   const catStudents = { availabilityMode: 'selected_shifts', hideWhenUnavailable: true, shiftIds: ['col_students'] };
   assert.equal(MenuSchedule.resolveCategoryAvailability(catStudents, shifts, hours, mondayOpen).available, true);
