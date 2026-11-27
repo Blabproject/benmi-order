@@ -319,6 +319,15 @@ for (const [browserName, engine] of Object.entries({ chromium, webkit })) {
     await page.waitForFunction(() => Boolean(document.getElementById('pos-reports-react-root')));
     assert.ok(api.calls.reportsAuthHeaders.some((h) => h === `Bearer ${storedToken}`));
 
+    // 3b. Immediately after cold login (BEFORE any page reload), Logout button in Settings must be visible!
+    await page.evaluate(() => {
+      switchTab('settings');
+      switchSettingTab('store-pairing');
+    });
+    const coldLogoutBtn = page.locator('#i18n-btn-pos-logout');
+    await coldLogoutBtn.waitFor({ state: 'visible' });
+    await page.evaluate(() => switchTab('live'));
+
     // 4. Page reload preserves login cleanly without re-prompting PIN
     await page.reload();
     await page.locator('#i18n-btn-start-shift').click();

@@ -1,15 +1,29 @@
+import { useEffect, useState } from 'react';
 import { Input } from '@shared/ui/input';
 import { Button } from '@shared/ui/button';
 import { settingsActions as actions } from './settings-actions';
 import { SettingsPanel } from './SettingsPanel';
 
 export function DeviceSettings() {
+  const getShowLogout = () => {
+    if (typeof window === 'undefined') return false;
+    const w = window as unknown as {
+      isPosWebLoginEnabled?: () => boolean;
+      getPosSessionToken?: () => string | null;
+    };
+    return Boolean(w.isPosWebLoginEnabled?.() || w.getPosSessionToken?.());
+  };
+  const [showLogout, setShowLogout] = useState<boolean>(getShowLogout);
+  useEffect(() => {
+    const sync = () => setShowLogout(getShowLogout());
+    sync();
+    window.addEventListener('pos-auth-change', sync);
+    return () => window.removeEventListener('pos-auth-change', sync);
+  }, []);
+
   const win = typeof window !== 'undefined' ? (window as unknown as {
-    isPosWebLoginEnabled?: () => boolean;
-    getPosSessionToken?: () => string | null;
     t?: (key: string) => string;
   }) : {};
-  const showLogout = Boolean(win.isPosWebLoginEnabled?.() || win.getPosSessionToken?.());
   const tr = (key: string, fallback: string) => (typeof win.t === 'function' ? win.t(key) || fallback : fallback);
 
   return (

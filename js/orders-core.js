@@ -200,12 +200,21 @@ function getPosSessionToken(tenantId) {
   }
 }
 
+function notifyPosAuthChange() {
+  try {
+    if (typeof window !== "undefined" && typeof window.dispatchEvent === "function" && typeof Event === "function") {
+      window.dispatchEvent(new Event("pos-auth-change"));
+    }
+  } catch (e) {}
+}
+
 function setPosSessionToken(token, tenantId) {
   var tid = tenantId || (typeof getTenantIdFromUrl === "function" ? getTenantIdFromUrl() : "");
   if (!tid || !token || typeof localStorage === "undefined") return;
   try {
     localStorage.setItem(window.POS_AUTH_STORAGE_PREFIX + tid, String(token).trim());
   } catch (e) {}
+  notifyPosAuthChange();
 }
 
 function clearPosSessionToken(tenantId) {
@@ -214,6 +223,7 @@ function clearPosSessionToken(tenantId) {
   try {
     localStorage.removeItem(window.POS_AUTH_STORAGE_PREFIX + tid);
   } catch (e) {}
+  notifyPosAuthChange();
 }
 
 function getCachedTenantFeatures(tenantId) {
