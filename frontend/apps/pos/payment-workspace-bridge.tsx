@@ -1,7 +1,7 @@
 import { StrictMode, useEffect, useSyncExternalStore } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
-import { resolveWorkerBase } from '@shared/infra/http';
+import { clearElementChildren, resolveWorkerBase } from '@shared/infra/http';
 import { resolveOrderPaymentBadge } from '@shared/contracts/order-formatters';
 import { translatePos, type PosLocale } from '@shared/i18n/pos-dictionary';
 import { PosPaymentWorkspace } from './PosPaymentWorkspace';
@@ -140,7 +140,7 @@ function createOrderReviewPaymentMount(store: PaymentWorkspaceStore) {
       el.className = 'payment-panel';
       document.getElementById('review-total')?.parentElement?.insertAdjacentElement('afterend', el);
     }
-    el.replaceChildren();
+    clearElementChildren(el);
     el.hidden = !order.payment;
     if (!order.payment) return;
 

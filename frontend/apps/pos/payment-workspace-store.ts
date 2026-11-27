@@ -1,5 +1,6 @@
 import { formatOrderCode } from '@shared/contracts/order-formatters';
 import { createTimeoutSignal } from '@shared/infra/http';
+import { allSettledSafe, createClientUuid } from '@shared/infra/http';
 import type {
   PaymentAttentionCountDto,
   PaymentConfigResponseDto,
@@ -636,7 +637,7 @@ export function createPaymentWorkspaceStore(deps: PaymentWorkspaceDependencies) 
       await init();
       return;
     }
-    await Promise.allSettled([refreshCount(), refreshData()]);
+    await allSettledSafe([refreshCount(), refreshData()]);
   };
 
   const login = async () => {
@@ -780,7 +781,7 @@ export function createPaymentWorkspaceStore(deps: PaymentWorkspaceDependencies) 
   ) => {
     if (!(await token())) return;
     const scope = contextKey();
-    const operationId = crypto.randomUUID();
+    const operationId = createClientUuid('pay');
     const orderKey = formatOrderCode(order.displayKey || order.key);
     const locale = deps.getLocale();
     await openPrompt<boolean>(

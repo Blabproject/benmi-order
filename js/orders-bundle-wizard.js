@@ -70,9 +70,12 @@ function isComboItemSelected(group, item) {
 
 // Keep the legacy API label fields synchronized with the single editable name.
 const comboLabel = (zh, vi) => { const name = currentLang === 'vi' ? vi : zh; return { 'zh-TW': name, vi: name }; };
+const comboRandomUuid = () => (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+  ? crypto.randomUUID()
+  : `id_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 const comboGroupName = group => typeof group.label === 'string' ? group.label : (group.label?.[currentLang] || group.name || group.label?.['zh-TW'] || group.label?.vi || '');
 function comboSetGroupName(group, name) { group.name = name; group.label = { 'zh-TW': name, vi: name }; }
-const comboNewGroup = type => ({ id: `group_${crypto.randomUUID()}`, type, label: comboLabel(type === 'fixed' ? '固定內容' : '自選餐點', type === 'fixed' ? 'Món có sẵn' : 'Món tự chọn'), minQuantity: 1, maxQuantity: 1, allowRepeats: false, sources: [], items: [], surcharges: {} });
+const comboNewGroup = type => ({ id: `group_${comboRandomUuid()}`, type, label: comboLabel(type === 'fixed' ? '固定內容' : '自選餐點', type === 'fixed' ? 'Món có sẵn' : 'Món tự chọn'), minQuantity: 1, maxQuantity: 1, allowRepeats: false, sources: [], items: [], surcharges: {} });
 
 function persistComboWizard() {
   if (!comboWizard) return;
@@ -127,7 +130,7 @@ function openBundleWizard(catIndex = activeCategoryIndex, itemIndex = null) {
       });
 
       return {
-        id: group.id || `group_${crypto.randomUUID()}`,
+        id: group.id || `group_${comboRandomUuid()}`,
         type: grpType,
         label: comboGroupName(group),
         name: comboGroupName(group),

@@ -26,6 +26,19 @@ window.StaffOrder = (() => {
     if (options.toast || options.type) showStaffToast(value, options.type || 'info');
   }
 
+  function replaceNodeChildren(node, child) {
+    if (!node) return;
+    node.textContent = '';
+    if (child) node.appendChild(child);
+  }
+
+  function createStaffUuid() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    return `staff_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  }
+
   function createTimeoutSignal(ms) {
     if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
       return { signal: AbortSignal.timeout(ms), clear: () => {} };
@@ -121,7 +134,7 @@ window.StaffOrder = (() => {
   async function refreshTables() {
     if (!dineInAllowed() || !capabilities?.capabilities?.tables_read) {
       tables = [];
-      select().replaceChildren(new Option(text('請選擇桌號', 'Chọn bàn'), ''));
+      replaceNodeChildren(select(), new Option(text('請選擇桌號', 'Chọn bàn'), ''));
       select().value = '';
       describeSelection();
       return;
@@ -129,7 +142,7 @@ window.StaffOrder = (() => {
     const data = await api('/api/staff/tables');
     const selected = select().value;
     tables = data.tables || [];
-    select().replaceChildren(new Option(text('請選擇桌號', 'Chọn bàn'), ''));
+    replaceNodeChildren(select(), new Option(text('請選擇桌號', 'Chọn bàn'), ''));
     for (const row of tables) select().add(new Option(`${row.label} — ${row.active_order_key ? text('使用中', 'Đang phục vụ') : text('空桌', 'Trống')}`, row.id));
     select().value = tables.some(row => row.id === selected) ? selected : '';
     if (!tables.length) message(text('尚未設定桌號，請先在設定中新增桌號。', 'Chưa cấu hình bàn. Hãy thêm bàn trong Cài đặt.'));
@@ -245,7 +258,7 @@ window.StaffOrder = (() => {
     if (globalOptions) {
       const optionsHost = document.getElementById(globalOptions.sectionId);
       if (optionsHost && (!stockOnly || !optionsHost.firstElementChild)) {
-        if (resetOrderOptions) optionsHost.replaceChildren();
+        if (resetOrderOptions) replaceNodeChildren(optionsHost);
         renderCustomizationsPanel(optionsHost, globalOptions.groups, globalOptions.title);
       }
     }
@@ -626,7 +639,7 @@ window.StaffOrder = (() => {
     } catch (error) {
       const panel = document.createElement('p'); panel.id = 'staff-access-error'; panel.setAttribute('role', 'alert');
       panel.textContent = text('無法開啟員工點餐。請確認店家已啟用此功能，再重新開啟。', 'Không mở được Staff Order. Kiểm tra tính năng đã bật và mở lại.');
-      document.body.replaceChildren(panel);
+      replaceNodeChildren(document.body, panel);
       console.warn('[StaffOrder]', error);
     }
   }
@@ -697,7 +710,7 @@ window.StaffOrder = (() => {
         payload.pickupTime = `${date} ${time}`;
       }
       const endpoint = append ? `/api/staff/orders/${encodeURIComponent(table.active_order_key)}/rounds` : '/api/staff/orders';
-      payload.requestId = crypto.randomUUID();
+      payload.requestId = createStaffUuid();
       const operation = replay ? retry : { endpoint, payload, draftSignature };
       sessionStorage.setItem(storageKey('pending'), JSON.stringify(operation));
       const result = await api(operation.endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(operation.payload) });

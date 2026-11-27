@@ -47,6 +47,34 @@ export function createTimeoutSignal(timeoutMs: number): { signal: AbortSignal | 
   return { signal: controller.signal, clear: () => clearTimeout(timer) };
 }
 
+/** Generates a client UUID with fallback for Android WebView < 92 or non-secure contexts. */
+export function createClientUuid(prefix = 'id'): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** Clears child nodes without calling Element.prototype.replaceChildren (Android WebView < 86). */
+export function clearElementChildren(element: Element): void {
+  element.textContent = '';
+}
+
+/** Settles all promises without requiring Promise.allSettled (Android WebView < 76). */
+export function allSettledSafe<T>(promises: ReadonlyArray<Promise<T>>): Promise<Array<PromiseSettledResult<T>>> {
+  if (typeof Promise.allSettled === 'function') {
+    return Promise.allSettled(promises);
+  }
+  return Promise.all(
+    promises.map(promise =>
+      Promise.resolve(promise).then(
+        (value): PromiseFulfilledResult<T> => ({ status: 'fulfilled', value }),
+        (reason: unknown): PromiseRejectedResult => ({ status: 'rejected', reason })
+      )
+    )
+  );
+}
+
 /** Fetches JSON with timeout and structured HTTP error normalization. */
 export async function fetchJson<T>(url: string, init: RequestInit = {}, timeoutMs = 20000): Promise<T> {
   const timeout = init.signal ? null : createTimeoutSignal(timeoutMs);

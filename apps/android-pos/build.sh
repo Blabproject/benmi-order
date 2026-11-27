@@ -14,8 +14,8 @@ echo "📦 Preparing web assets in $DIST_DIR..."
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
 
-# 0. Ensure Vite-compiled POS frontend bundles exist (orders.html + assets/)
-if [ ! -f "$ROOT_DIR/dist/orders.html" ] || [ ! -d "$ROOT_DIR/dist/assets" ]; then
+# 0. Ensure Vite-compiled POS frontend bundles and transpiled legacy assets exist
+if [ ! -f "$ROOT_DIR/dist/orders.html" ] || [ ! -d "$ROOT_DIR/dist/assets" ] || [ ! -d "$ROOT_DIR/dist/js" ] || [ ! -d "$ROOT_DIR/dist/css" ]; then
   echo "⚙️  Building compiled POS frontend bundles via Vite..."
   (cd "$ROOT_DIR" && npm run build:frontend)
 fi
@@ -25,7 +25,9 @@ cp "$ROOT_DIR/dist/orders.html" "$DIST_DIR/orders.html"
 # Set orders.html as default landing page index.html in the Android POS App
 cp "$ROOT_DIR/dist/orders.html" "$DIST_DIR/index.html"
 
-if [ -f "$ROOT_DIR/index.html" ]; then
+if [ -f "$ROOT_DIR/dist/index.html" ]; then
+  cp "$ROOT_DIR/dist/index.html" "$DIST_DIR/customer-menu.html"
+elif [ -f "$ROOT_DIR/index.html" ]; then
   cp "$ROOT_DIR/index.html" "$DIST_DIR/customer-menu.html"
 fi
 
@@ -34,17 +36,17 @@ if [ -d "$ROOT_DIR/dist/assets" ]; then
   cp -r "$ROOT_DIR/dist/assets" "$DIST_DIR/"
 fi
 
-# 2. Copy CSS stylesheets
-if [ -d "$ROOT_DIR/css" ]; then
-  cp -r "$ROOT_DIR/css" "$DIST_DIR/"
+# 2. Copy WebView-transpiled CSS stylesheets
+if [ -d "$ROOT_DIR/dist/css" ]; then
+  cp -r "$ROOT_DIR/dist/css" "$DIST_DIR/"
 fi
-if [ -f "$ROOT_DIR/index.css" ]; then
-  cp "$ROOT_DIR/index.css" "$DIST_DIR/"
+if [ -f "$ROOT_DIR/dist/index.css" ]; then
+  cp "$ROOT_DIR/dist/index.css" "$DIST_DIR/"
 fi
 
-# 3. Copy JavaScript modules
-if [ -d "$ROOT_DIR/js" ]; then
-  cp -r "$ROOT_DIR/js" "$DIST_DIR/"
+# 3. Copy ES2019-transpiled JavaScript modules
+if [ -d "$ROOT_DIR/dist/js" ]; then
+  cp -r "$ROOT_DIR/dist/js" "$DIST_DIR/"
 fi
 
 # 4. Copy assets & images if present

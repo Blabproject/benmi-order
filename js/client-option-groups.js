@@ -2,6 +2,14 @@
 (() => {
   let context = null;
   const IMAGE_WAIT_MS = 2000;
+  const lastArrayItem = (arr) => (Array.isArray(arr) && arr.length ? arr[arr.length - 1] : undefined);
+  const findLastIndexCompat = (arr, predicate) => {
+    if (!Array.isArray(arr)) return -1;
+    for (let i = arr.length - 1; i >= 0; i--) {
+      if (predicate(arr[i], i, arr)) return i;
+    }
+    return -1;
+  };
   const esc = (v) =>
     String(v ?? "").replace(
       /[&<>"']/g,
@@ -532,7 +540,7 @@
           (unavailable(o) && b.dataset.minus === undefined)
         )
           return;
-        const idx = selection.items.findLastIndex((s) => s.optionId === o.id);
+        const idx = findLastIndexCompat(selection.items, (s) => s.optionId === o.id);
         let added = false;
         if (
           b.dataset.minus !== undefined ||
@@ -552,7 +560,7 @@
         context.error = "";
         if (
           added &&
-          invalid(o.optionGroups || [], selection.items.at(-1).groups)
+          invalid(o.optionGroups || [], lastArrayItem(selection.items).groups)
         ) {
           const path = `${key}.${selection.items.length - 1}`;
           context.views.push({
@@ -609,7 +617,7 @@
           ),
         ].filter((e) => e.getClientRects().length),
         first = list[0],
-        last = list.at(-1);
+        last = lastArrayItem(list);
       if (
         event.shiftKey &&
         (document.activeElement === first ||
@@ -681,7 +689,7 @@
       previousStep = nav.querySelector('[aria-current="step"]')?.dataset.step,
       scroll = reset ? 0 : body.scrollTop,
       focus = restoreFocus || focusSelector(document.activeElement);
-    const view = context.views.at(-1),
+    const view = lastArrayItem(context.views),
       nested = view ? child(view.path) : null;
     const visibleGroups = nested
       ? nested.option.optionGroups || []
@@ -858,7 +866,7 @@
     }));
   }
   function confirm() {
-    const view = context.views.at(-1);
+    const view = lastArrayItem(context.views);
     if (view) {
       const nested = child(view.path);
       if (invalid(nested.option.optionGroups || [], nested.item.groups)) {

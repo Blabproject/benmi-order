@@ -679,7 +679,7 @@ let displayOrderInitialSnapshot = null;
 let displayOrderGroupInitial = [];
 
 function captureMenuDisplayOrder() {
-  const capture = entry => ({ ...entry, value: entry.model[entry.field], hadOrder: Object.hasOwn(entry.model, entry.field) });
+  const capture = entry => ({ ...entry, value: entry.model[entry.field], hadOrder: Object.prototype.hasOwnProperty.call(entry.model, entry.field) });
   displayOrderInitial = getMenuDisplayEntries().map(capture);
   displayOrderGroupInitial = getMenuOrderGroups().map(model => capture({ model, field: 'sortOrder', position: Number(model.sortOrder) || 0 }));
   try {
@@ -2847,7 +2847,9 @@ function serializeMenuData(categories) {
     : (typeof currentMenuData !== 'undefined' && Array.isArray(currentMenuData) ? currentMenuData : []);
   const deps = {
     getTenantId: () => getTenantIdFromUrl(),
-    createUuid: () => crypto.randomUUID(),
+    createUuid: () => (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+      ? crypto.randomUUID()
+      : `id_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
     sharedCategories: typeof currentMenuData !== 'undefined' ? currentMenuData : targetCategories,
     isCustomizationCategory: typeof isCustomizationCategory === 'function' ? isCustomizationCategory : undefined,
     getDuplicateItemMessage: () => t('menuDuplicateItem')

@@ -621,7 +621,7 @@
     if (!previous) return;
     for (const group of draft.rule.groups) {
       const saved = previous.groups.find(candidate => candidate.groupId === group.id);
-      if (saved) draft.selections[group.id] = structuredClone(saved.items).flatMap(item => Array.from({ length: Number(item.quantity || 1) }, () => ({ ...item, quantity: 1 })));
+      if (saved) draft.selections[group.id] = JSON.parse(JSON.stringify(saved.items || [])).flatMap(item => Array.from({ length: Number(item.quantity || 1) }, () => ({ ...item, quantity: 1 })));
     }
     if (draft.catModifiers && draft.catModifiers.length > 0) {
       const prevCustom = window.customizeData?.[draft.key]?.[draft.portionIndex - 1];

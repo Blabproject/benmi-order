@@ -103,8 +103,16 @@ function openReview(orderKey) {
   }
 
   window.PosOrderDetail?.render(order);
-  window.PaymentPOS?.mount(order);
-  if (typeof updatePrintActionAvailability === "function") updatePrintActionAvailability();
+  try {
+    window.PaymentPOS?.mount(order);
+  } catch (error) {
+    console.error('[OrderDetail] Payment mount failed:', error);
+  }
+  try {
+    if (typeof updatePrintActionAvailability === "function") updatePrintActionAvailability();
+  } catch (error) {
+    console.error('[OrderDetail] Print availability update failed:', error);
+  }
 
   const modal = document.getElementById("reviewModal");
   if (modal) {
