@@ -6,13 +6,13 @@
     <link rel="stylesheet" href="/css/staff-order.css?v=20261122_staff_shadcn_v1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title id="page-title" data-i18n="page_default_title">線上點餐</title>
-    <link rel="preload" href="/index.css?v=20261125_delivery_v1" as="style">
+    <link rel="preload" href="/index.css?v=20261128_prereq_rules_v1" as="style">
     <link rel="preload" href="/js/store-notice-format.js?v=20261111_store_notice_v1" as="script">
     <link rel="preload" href="/js/menu-schedule.js?v=20261121_collection_qr_v1" as="script">
-    <link rel="preload" href="/js/client-i18n.js?v=20261127_delivery_schedule_v1" as="script">
-    <link rel="preload" href="/js/client-core.js?v=20261127_delivery_schedule_v1" as="script">
-    <link rel="preload" href="/js/client-menu.js?v=20261127_delivery_schedule_v1" as="script">
-    <link rel="stylesheet" href="/index.css?v=20261125_delivery_v1">
+    <link rel="preload" href="/js/client-i18n.js?v=20261128_prereq_rules_v1" as="script">
+    <link rel="preload" href="/js/client-core.js?v=20261128_prereq_rules_v1" as="script">
+    <link rel="preload" href="/js/client-menu.js?v=20261128_prereq_rules_v1" as="script">
+    <link rel="stylesheet" href="/index.css?v=20261128_prereq_rules_v1">
     <style>html.tenant-resolution-failed body > :not(#tenant-resolution-error) { display: none !important; }</style>
     <script>
         try {
@@ -1140,18 +1140,42 @@
         </div>
     </div>
 
+    <!-- Purchase Prerequisite Guided Bottom Sheet -->
+    <div id="prereq-guide-modal" class="prereq-sheet-overlay" role="dialog" aria-modal="true" aria-labelledby="prereq-sheet-title" onclick="if (event.target === this) closePrerequisiteGuideSheet()">
+        <div class="prereq-sheet-card">
+            <div class="bundle-drag-handle-bar"></div>
+            <div class="prereq-sheet-header">
+                <div>
+                    <h3 class="prereq-sheet-title" id="prereq-sheet-title" data-i18n="prereq_sheet_title">加點品項需搭配主餐</h3>
+                    <p class="prereq-sheet-desc" id="prereq-sheet-desc"></p>
+                </div>
+                <button type="button" class="bundle-close-btn" onclick="closePrerequisiteGuideSheet()" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                </button>
+            </div>
+            <div id="prereq-anchor-list" class="prereq-anchor-list"></div>
+            <div class="prereq-sheet-actions">
+                <button type="button" id="prereq-sheet-add-both-btn" class="prereq-btn-primary" onclick="confirmPrerequisiteGuideAddBoth()"></button>
+                <div class="prereq-btn-secondary-row">
+                    <button type="button" id="prereq-sheet-scroll-btn" class="prereq-btn-secondary" onclick="scrollToPrerequisiteAnchor()" data-i18n="prereq_sheet_view_main">前往查看主餐</button>
+                    <button type="button" class="prereq-btn-secondary" onclick="closePrerequisiteGuideSheet()" data-i18n="btn_cancel">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
     <script src="/js/order-code.js?v=20261109_order_code_v1"></script>
     <script src="/js/menu-schedule.js?v=20261121_collection_qr_v1"></script>
     <script src="/js/client-pricing-wasm.js?v=20261116_menu_schedule_v1"></script>
     <script src="/js/store-notice-format.js?v=20261111_store_notice_v1"></script>
-    <script src="/js/client-i18n.js?v=20261127_delivery_schedule_v1"></script>
-    <script src="/js/client-core.js?v=20261127_delivery_schedule_v1"></script>
-    <script src="/js/client-menu.js?v=20261127_delivery_schedule_v1"></script>
+    <script src="/js/client-i18n.js?v=20261128_prereq_rules_v1"></script>
+    <script src="/js/client-core.js?v=20261128_prereq_rules_v1"></script>
+    <script src="/js/client-menu.js?v=20261128_prereq_rules_v1"></script>
     <script src="/js/client-customizations.js?v=20261118_multi_portion_copy_v1"></script>
     <script src="/js/client-bundle.js?v=20261125_staff_only_v1"></script>
-    <script src="/js/client-cart.js?v=20261122_staff_order_react_v1"></script>
+    <script src="/js/client-cart.js?v=20261128_prereq_rules_v1"></script>
     <script src="/js/bundle-builder-v2.js?v=20261127_webview_compat_v1"></script>
     <script src="/js/client-option-groups.js?v=20261127_webview_compat_v1"></script>
     <!-- Center Auth Card & Overlay for Desktop Guest Users -->
@@ -1180,8 +1204,8 @@
   <script src="/js/order-detail-view.js?v=20261119_print_options_v2"></script>
   <script src="/js/order-detail-checkout.js?v=20261127_webview_compat_v1"></script>
   <script src="/js/line-order-presentation.js?v=20261030_line_portions_v3"></script>
-    <script src="/js/client-checkout.js?v=20261127_webview_compat_v1"></script>
-    <script src="/js/staff-order.js?v=20261128_pos_web_login_v1"></script>
+    <script src="/js/client-checkout.js?v=20261128_prereq_rules_v1"></script>
+    <script src="/js/staff-order.js?v=20261128_prereq_rules_v1"></script>
     <script>
         if (window.__TENANT_RESOLUTION_FAILED) {
             document.getElementById('page-body-content').style.display = 'none';

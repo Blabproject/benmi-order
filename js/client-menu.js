@@ -335,7 +335,18 @@ function renderDynamicCatalog({ resetOrderOptions = false, stockOnly = false } =
             const scheduleBadge = scheduleBadgeText
                 ? `<span style="${promoBadge ? 'margin-left:8px;' : 'margin-left:auto;'} font-size:12px; font-weight:700; color:${catAvail.available ? '#475569' : '#b45309'}; background:${catAvail.available ? '#f1f5f9' : '#fef3c7'}; border:1px solid ${catAvail.available ? '#cbd5e1' : '#fde68a'}; padding:2px 8px; border-radius:9999px;">${_cmEsc(scheduleBadgeText)}</span>`
                 : '';
-            titleDiv.innerHTML = `<span>${_cmEsc(catDisplayName)}</span>${promoBadge}${scheduleBadge}`;
+            let prereqBadge = '';
+            if (cat.prerequisiteRule && cat.prerequisiteRule.mode === 'require_any') {
+                const catPrereqState = (typeof evaluateCategoryPrerequisite === 'function')
+                    ? evaluateCategoryPrerequisite(cat)
+                    : { unlocked: false, requiredLabel: '' };
+                const badgeTxt = catPrereqState.unlocked
+                    ? _cmT('prereq_cat_unlocked', null, '已可加點', 'Đã mở gọi kèm')
+                    : _cmT('prereq_cat_locked', { target: catPrereqState.requiredLabel }, `需搭配：${catPrereqState.requiredLabel}`, `Cần gọi kèm: ${catPrereqState.requiredLabel}`);
+                const marginStyle = (promoBadge || scheduleBadge) ? 'margin-left:8px;' : 'margin-left:auto;';
+                prereqBadge = `<span id="prereq-cat-badge-${cat.slug}" class="prereq-cat-badge ${catPrereqState.unlocked ? 'is-unlocked' : 'is-locked'}" style="${marginStyle}">${_cmEsc(badgeTxt)}</span>`;
+            }
+            titleDiv.innerHTML = `<span>${_cmEsc(catDisplayName)}</span>${promoBadge}${scheduleBadge}${prereqBadge}`;
             sec.appendChild(titleDiv);
 
             const gridDiv = document.createElement('div');
@@ -586,6 +597,16 @@ function handleItemCardClick(catSlug, itemName, event) {
     if (typeof isItemOutOfStock === 'function' && isItemOutOfStock(key)) return;
     if (typeof checkDesktopAuthGuard === 'function' && !checkDesktopAuthGuard()) return;
 
+    if (typeof evaluateItemPrerequisite === 'function') {
+        const prereqState = evaluateItemPrerequisite(catSlug, itemName);
+        if (prereqState.required && !prereqState.unlocked) {
+            if (typeof openPrerequisiteGuideSheet === 'function') {
+                openPrerequisiteGuideSheet(catSlug, itemName, prereqState);
+            }
+            return;
+        }
+    }
+
     const resolveFn = typeof resolveCatalogItem === 'function' ? resolveCatalogItem : (window.resolveCatalogItem || (k => ({ origName: itemName, displayName: itemName })));
     const itemInfo = resolveFn(key);
     const bundleRule = itemInfo?.bundleRule || (itemInfo?.targetItem && itemInfo.targetItem.bundleRule);
@@ -656,6 +677,17 @@ function createDynamicItemCard(catSlug, item, catObj) {
     const trans = localizedDesc || item.description || (bData?.translations && bData.translations[item.name]) || '';
     const transHTML = trans ? `<div style="font-size: 13px; color: #9ca3af; margin-top: 2px; line-height: 1.4; white-space: pre-line;">${_cmEsc(trans)}</div>` : '';
 
+    let itemPrereqHintHTML = '';
+    if (item.prerequisiteMode === 'require_any' && typeof evaluateItemPrerequisite === 'function') {
+        const itemPrereq = evaluateItemPrerequisite(catSlug, item.name);
+        if (itemPrereq.required) {
+            const hintText = itemPrereq.unlocked
+                ? _cmT('prereq_cat_unlocked', null, '已可加點', 'Đã mở gọi kèm')
+                : _cmT('prereq_cat_locked', { target: itemPrereq.requiredLabel }, `需搭配：${itemPrereq.requiredLabel}`, `Cần gọi kèm: ${itemPrereq.requiredLabel}`);
+            itemPrereqHintHTML = `<div><span id="prereq-item-hint-${catSlug}-${item.name}" class="prereq-item-hint ${itemPrereq.unlocked ? 'is-unlocked' : ''}">${_cmEsc(hintText)}</span></div>`;
+        }
+    }
+
     const safeItemName = item.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     const safeCatSlug = catSlug.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
@@ -683,6 +715,23 @@ function createDynamicItemCard(catSlug, item, catObj) {
         </button>
     `;
 
+    const dependentCats = (!isUnavailable && item.id && typeof findDependentCategoriesForItem === 'function')
+        ? findDependentCategoriesForItem(item.id)
+        : [];
+    let prereqJumpBtnHTML = '';
+    if (dependentCats.length > 0) {
+        const depCat = dependentCats[0];
+        const depCatName = typeof locText === 'function' ? locText(depCat, 'shortName', locText(depCat, 'name', depCat.shortName || depCat.name)) : (depCat.shortName || depCat.name);
+        const jumpText = _cmT('prereq_jump_to_addons', { cat: depCatName }, `前往「${depCatName}」加點`, `Gọi thêm ${depCatName}`);
+        const safeDepSlug = String(depCat.slug || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        prereqJumpBtnHTML = `
+            <button type="button" class="prereq-jump-btn" id="prereq-jump-btn-${catSlug}-${item.name}" onclick="scrollToSec('sec-${safeDepSlug}')" style="pointer-events: auto; display: ${qty > 0 ? 'flex' : 'none'};">
+                <span>${_cmEsc(jumpText)}</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+            </button>
+        `;
+    }
+
     div.innerHTML = `
         <div class="card-main" onclick="handleItemCardClick('${safeCatSlug}','${safeItemName}',event)" style="${isOos ? 'pointer-events: none;' : 'cursor: pointer;'}">
             ${imgHTML}
@@ -690,6 +739,7 @@ function createDynamicItemCard(catSlug, item, catObj) {
                 <div>
                     <div class="card-title">${_cmEsc(itemDisplayName)} ${badgeHTML} ${limitBadgeHTML}</div>
                     ${transHTML}
+                    ${itemPrereqHintHTML}
                 </div>
                 <div class="card-footer">
                     ${footerHTML}
@@ -698,6 +748,7 @@ function createDynamicItemCard(catSlug, item, catObj) {
         </div>
         ${customizeBtnHTML}
         ${bundleEditBtnHTML}
+        ${prereqJumpBtnHTML}
         <div id="combo-container-${catSlug}-${item.name}"></div>
     `;
 
@@ -723,12 +774,15 @@ function getDynamicItemFooterHTML(catSlug, itemName, price, isOos, isOutsideSche
         <div style="color: #b45309; font-weight: 800; font-size: 13px; background: #fef3c7; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 6px;">${_cmEsc(outsideScheduleText)}${scheduleLabel ? `<div style="margin-top:4px; font-weight:400; font-size:12px;">${_cmEsc(scheduleLabel)}</div>` : ''}</div>
     `;
     }
+    const prereqLocked = (typeof evaluateItemPrerequisite === 'function')
+        ? (() => { const s = evaluateItemPrerequisite(catSlug, itemName); return Boolean(s.required && !s.unlocked); })()
+        : false;
     return `
         <div class="card-price">$${price}</div>
         <div class="qty-control">
             <button class="btn-qty" onclick="event.stopPropagation(); updateQty('${safeCatSlug}','${safeItemName}',-1)">-</button>
             <span class="qty-text" id="qty-${catSlug}-${itemName}" style="${qty > 0 ? 'color: var(--primary);' : ''}">${qty}</span>
-            <button class="btn-qty" onclick="event.stopPropagation(); updateQty('${safeCatSlug}','${safeItemName}',1)">+</button>
+            <button class="btn-qty${prereqLocked ? ' prereq-locked' : ''}" id="btn-plus-${catSlug}-${itemName}" onclick="event.stopPropagation(); updateQty('${safeCatSlug}','${safeItemName}',1)">+</button>
         </div>
     `;
 }

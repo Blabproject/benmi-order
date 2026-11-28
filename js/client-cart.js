@@ -304,6 +304,520 @@ function getActiveThresholdViolations() {
     return validateCustomizationThresholds();
 }
 
+// --- PURCHASE PREREQUISITE RULES & GUIDED SHEET ---
+var _prereqGuideState = {
+    catSlug: '',
+    itemName: '',
+    anchors: [],
+    selectedAnchorIdx: 0
+};
+
+function _prLoc(entity, field, fallback) {
+    if (typeof locText === 'function' && entity) return locText(entity, field, fallback);
+    return fallback ?? (entity ? entity[field] : '') ?? '';
+}
+
+function _prT(key, vars, zhFallback, viFallback) {
+    if (typeof ct === 'function') {
+        const res = ct(key, vars);
+        if (res && res !== key) return res;
+    }
+    const lang = (typeof window !== 'undefined' && (window.currentClientLocale || window.currentLocale))
+        || (typeof document !== 'undefined' && document.documentElement ? document.documentElement.lang : 'zh-TW');
+    let tpl = (lang === 'vi' && viFallback !== undefined) ? viFallback : zhFallback;
+    if (vars && tpl) {
+        for (const [k, v] of Object.entries(vars)) {
+            tpl = tpl.split(`{${k}}`).join(String(v ?? ''));
+        }
+    }
+    return tpl;
+}
+
+function _prEsc(val) {
+    return String(val ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
+}
+
+function resolveEffectiveItemPrerequisiteRule(catObj, itemObj) {
+    if (!itemObj && !catObj) return null;
+    if (itemObj && itemObj.prerequisiteMode === 'none') return null;
+    if (itemObj && itemObj.prerequisiteRule && itemObj.prerequisiteRule.mode === 'require_any') {
+        return itemObj.prerequisiteRule;
+    }
+    if (catObj && catObj.prerequisiteRule && catObj.prerequisiteRule.mode === 'require_any') {
+        return catObj.prerequisiteRule;
+    }
+    return null;
+}
+
+function evaluatePrerequisiteRule(rule, excludeItemId, cartOverride) {
+    if (!rule || rule.mode !== 'require_any') {
+        return { required: false, unlocked: true, qualifyingQty: 0, minParentQty: 0, requiredLabel: '', qualifyingItems: [], availableAnchors: [] };
+    }
+    const bData = window.bootstrapData || bootstrapData;
+    const cartObj = cartOverride || window.cart || cart || {};
+    const reqItemIds = Array.isArray(rule.requiredItemIds) ? rule.requiredItemIds.map(String) : [];
+    const reqCatIds = Array.isArray(rule.requiredCategoryIds) ? rule.requiredCategoryIds.map(String) : [];
+    const reqItemSet = new Set(reqItemIds);
+    const reqCatSet = new Set(reqCatIds);
+    const minParentQty = Math.max(1, Number(rule.minParentQty || 1));
+
+    const qualifyingItems = [];
+    const availableAnchors = [];
+    const requiredNames = [];
+    const itemById = new Map();
+
+    if (bData && Array.isArray(bData.catalog)) {
+        for (const cat of bData.catalog) {
+            const catIdStr = String(cat.id || '');
+            const isReqCat = reqCatSet.has(catIdStr) || reqCatSet.has(String(cat.slug || ''));
+            if (isReqCat) {
+                const cName = _prLoc(cat, 'name', cat.name || cat.slug);
+                if (cName && !requiredNames.includes(cName)) requiredNames.push(cName);
+            }
+            for (const it of (cat.items || [])) {
+                const itId = String(it.id || '');
+                if (itId) itemById.set(itId, { cat, item: it });
+                if (excludeItemId && itId === String(excludeItemId)) continue;
+                const isReqItem = itId && reqItemSet.has(itId);
+                if (isReqItem) {
+                    const iName = _prLoc(it, 'name', it.name);
+                    if (iName && !requiredNames.includes(iName)) requiredNames.push(iName);
+                }
+                if (isReqItem || isReqCat) {
+                    if (!window.isStaffOrderMode && (it.staffOnly || it.staff_only)) continue;
+                    const schedAvail = (typeof getItemScheduleState === 'function')
+                        ? getItemScheduleState(cat, it).available
+                        : true;
+                    const isUnavailable = Boolean(it.isOutOfStock || !schedAvail);
+                    const entry = {
+                        catSlug: cat.slug,
+                        catId: catIdStr,
+                        catName: _prLoc(cat, 'name', cat.name || ''),
+                        item: it,
+                        itemId: itId,
+                        name: it.name,
+                        displayName: _prLoc(it, 'name', it.name),
+                        price: Number(it.price || 0),
+                        isUnavailable
+                    };
+                    qualifyingItems.push(entry);
+                    if (!isUnavailable) availableAnchors.push(entry);
+                }
+            }
+        }
+    }
+
+    let qualifyingQty = 0;
+    const countedProdQty = new Map();
+    const addProdQty = (prodId, catId, qty) => {
+        if (!qty || qty <= 0) return;
+        if (excludeItemId && prodId && String(prodId) === String(excludeItemId)) return;
+        if ((prodId && reqItemSet.has(String(prodId))) || (catId && reqCatSet.has(String(catId)))) {
+            const k = String(prodId || `${catId}:${Math.random()}`);
+            countedProdQty.set(k, (countedProdQty.get(k) || 0) + qty);
+        }
+    };
+
+    // 1. Current cart items
+    const resolveFn = typeof resolveCatalogItem === 'function' ? resolveCatalogItem : window.resolveCatalogItem;
+    for (const [k, rawQ] of Object.entries(cartObj)) {
+        const q = Number(rawQ || 0);
+        if (q <= 0) continue;
+        if (typeof isItemOutOfStock === 'function' && isItemOutOfStock(k)) continue;
+        const info = resolveFn ? resolveFn(k) : null;
+        const tItem = info?.targetItem;
+        const tCat = info?.targetCat;
+        if (!tItem) continue;
+        if (window.isEditOrderMode && Array.isArray(window.editOrderSoldOutNames)) {
+            const dName = info.displayName || tItem.name;
+            if (window.editOrderSoldOutNames.includes(dName) || window.editOrderSoldOutNames.includes(tItem.name)) continue;
+        }
+        addProdQty(tItem.id, tCat?.id, q);
+    }
+
+    // 2. Existing parent order items in Append Mode or Staff Table Append Mode
+    const isAppendActive = Boolean(
+        (window.isAppendMode && window.parentOrderKey) ||
+        (window.isStaffOrderMode && Array.isArray(window.appendParentOrderItems) && window.appendParentOrderItems.length > 0)
+    );
+    if (isAppendActive) {
+        const priorItems = Array.isArray(window.appendParentOrderItems) ? window.appendParentOrderItems : [];
+        for (const pLine of priorItems) {
+            const pq = Number(pLine?.quantity || 0);
+            if (pq <= 0) continue;
+            const pid = String(pLine.itemId || pLine.item_id || '');
+            if (pid && itemById.has(pid)) {
+                const matched = itemById.get(pid);
+                addProdQty(matched.item.id, matched.cat.id, pq);
+            } else if (pLine?.name && bData?.catalog) {
+                const cleanName = String(pLine.name).replace(/\s+(L|S|M)$/i, '').replace(/^\[[^\]]+\]\s*/, '').trim();
+                for (const c of bData.catalog) {
+                    const found = (c.items || []).find(it => it.name === cleanName);
+                    if (found) {
+                        addProdQty(found.id, c.id, pq);
+                        break;
+                    }
+                }
+            }
+        }
+        if (typeof window.appendParentLegacyText === 'string' && window.appendParentLegacyText.trim()) {
+            const rawTxt = window.appendParentLegacyText;
+            for (const qItem of qualifyingItems) {
+                if (qItem.name && rawTxt.includes(qItem.name) && !countedProdQty.has(qItem.itemId)) {
+                    countedProdQty.set(qItem.itemId, 1);
+                }
+            }
+        }
+    }
+
+    for (const v of countedProdQty.values()) qualifyingQty += v;
+    const requiredLabel = requiredNames.join(' / ');
+
+    return {
+        required: true,
+        unlocked: qualifyingQty >= minParentQty,
+        qualifyingQty,
+        minParentQty,
+        rule,
+        requiredLabel,
+        qualifyingItems,
+        availableAnchors
+    };
+}
+
+function evaluateCategoryPrerequisite(catObj, cartOverride) {
+    if (!catObj || !catObj.prerequisiteRule || catObj.prerequisiteRule.mode !== 'require_any') {
+        return { required: false, unlocked: true, requiredLabel: '' };
+    }
+    return evaluatePrerequisiteRule(catObj.prerequisiteRule, null, cartOverride);
+}
+
+function evaluateItemPrerequisite(catSlug, itemName, cartOverride) {
+    const bData = window.bootstrapData || bootstrapData;
+    if (!bData || !Array.isArray(bData.catalog)) {
+        return { required: false, unlocked: true };
+    }
+    const catObj = bData.catalog.find(c => c.slug === catSlug || c.id === catSlug) || null;
+    const itemObj = catObj?.items?.find(it => it.name === itemName || it.id === itemName) || null;
+    const rule = resolveEffectiveItemPrerequisiteRule(catObj, itemObj);
+    if (!rule) return { required: false, unlocked: true };
+    return evaluatePrerequisiteRule(rule, itemObj?.id || null, cartOverride);
+}
+
+function findDependentCategoriesForItem(itemId) {
+    const bData = window.bootstrapData || bootstrapData;
+    if (!itemId || !bData || !Array.isArray(bData.catalog)) return [];
+    return bData.catalog.filter(cat =>
+        cat?.prerequisiteRule?.mode === 'require_any' &&
+        Array.isArray(cat.prerequisiteRule.requiredItemIds) &&
+        cat.prerequisiteRule.requiredItemIds.includes(String(itemId))
+    );
+}
+
+function updatePrerequisiteUI() {
+    const bData = window.bootstrapData || bootstrapData;
+    const cartObj = window.cart || cart || {};
+    if (!bData || !Array.isArray(bData.catalog)) return;
+
+    for (const cat of bData.catalog) {
+        const badgeEl = typeof document !== 'undefined' ? document.getElementById(`prereq-cat-badge-${cat.slug}`) : null;
+        if (badgeEl && cat.prerequisiteRule?.mode === 'require_any') {
+            const catState = evaluateCategoryPrerequisite(cat, cartObj);
+            badgeEl.classList.toggle('is-locked', !catState.unlocked);
+            badgeEl.classList.toggle('is-unlocked', catState.unlocked);
+            badgeEl.textContent = catState.unlocked
+                ? _prT('prereq_cat_unlocked', null, '已可加點', 'Đã mở gọi kèm')
+                : _prT('prereq_cat_locked', { target: catState.requiredLabel }, `需搭配：${catState.requiredLabel}`, `Cần gọi kèm: ${catState.requiredLabel}`);
+        }
+
+        for (const item of (cat.items || [])) {
+            const itemState = evaluateItemPrerequisite(cat.slug, item.name, cartObj);
+            const plusBtn = typeof document !== 'undefined' ? document.getElementById(`btn-plus-${cat.slug}-${item.name}`) : null;
+            if (plusBtn) {
+                plusBtn.classList.toggle('prereq-locked', Boolean(itemState.required && !itemState.unlocked));
+            }
+            const itemHint = typeof document !== 'undefined' ? document.getElementById(`prereq-item-hint-${cat.slug}-${item.name}`) : null;
+            if (itemHint && itemState.required) {
+                itemHint.classList.toggle('is-unlocked', itemState.unlocked);
+                itemHint.textContent = itemState.unlocked
+                    ? _prT('prereq_cat_unlocked', null, '已可加點', 'Đã mở gọi kèm')
+                    : _prT('prereq_cat_locked', { target: itemState.requiredLabel }, `需搭配：${itemState.requiredLabel}`, `Cần gọi kèm: ${itemState.requiredLabel}`);
+            }
+            const jumpBtn = typeof document !== 'undefined' ? document.getElementById(`prereq-jump-btn-${cat.slug}-${item.name}`) : null;
+            if (jumpBtn) {
+                const qty = Number(cartObj[`${cat.slug}_${item.name}`] || 0);
+                jumpBtn.style.display = qty > 0 ? 'flex' : 'none';
+            }
+        }
+    }
+
+    if (window.isStaffOrderMode && window.StaffOrder && typeof window.StaffOrder.refreshPrerequisiteState === 'function') {
+        window.StaffOrder.refreshPrerequisiteState();
+    }
+}
+
+function flushPendingPrerequisiteAddon() {
+    const pending = window.__pendingPrerequisiteAddon;
+    if (!pending || window.__flushingPrerequisiteAddon) return;
+    const state = evaluateItemPrerequisite(pending.catSlug, pending.itemName);
+    if (!state.unlocked) return;
+    window.__pendingPrerequisiteAddon = null;
+    window.__flushingPrerequisiteAddon = true;
+    try {
+        updateQty(pending.catSlug, pending.itemName, 1);
+    } finally {
+        window.__flushingPrerequisiteAddon = false;
+    }
+}
+
+function _anchorNeedsAutoPopup(anchor) {
+    if (!anchor || !anchor.item) return false;
+    const rule = anchor.item.bundleRule;
+    if (rule && typeof shouldAutoOpenItemOptions === 'function' && shouldAutoOpenItemOptions(rule)) return true;
+    const getItemModsFn = typeof getItemModifiers === 'function' ? getItemModifiers : window.getItemModifiers;
+    if (typeof getItemModsFn === 'function') {
+        const mods = getItemModsFn(anchor.catSlug, anchor.name);
+        if (Array.isArray(mods) && mods.some(m => m.isRequired || Number(m.minSelection || 0) > 0)) return true;
+    }
+    return false;
+}
+
+function renderPrerequisiteSheetAnchors() {
+    const listEl = typeof document !== 'undefined' ? document.getElementById('prereq-anchor-list') : null;
+    const addBothBtn = typeof document !== 'undefined' ? document.getElementById('prereq-sheet-add-both-btn') : null;
+    if (!listEl || !addBothBtn) return;
+
+    const anchors = _prereqGuideState.anchors || [];
+    const resolveFn = typeof resolveCatalogItem === 'function' ? resolveCatalogItem : window.resolveCatalogItem;
+    const addonInfo = resolveFn ? resolveFn(`${_prereqGuideState.catSlug}_${_prereqGuideState.itemName}`) : null;
+    const addonItem = addonInfo?.targetItem;
+    const addonDisplay = addonItem ? _prLoc(addonItem, 'name', addonItem.name) : _prereqGuideState.itemName;
+    const addonPrice = Number(addonItem?.price || addonInfo?.basePrice || 0);
+
+    if (anchors.length === 0) {
+        listEl.innerHTML = `<div style="padding:12px 14px; border-radius:12px; background:#fef2f2; color:#b91c1c; font-size:13.5px; font-weight:700;">${_prEsc(_prT('prereq_sheet_parent_oos', null, '所需搭配的主餐目前皆已售完，暫無法加購此品項', 'Món chính đi kèm hiện đã hết hàng, tạm thời chưa thể gọi thêm'))}</div>`;
+        addBothBtn.disabled = true;
+        addBothBtn.textContent = _prT('sold_out_today', null, '今日已售完', 'Hôm nay đã hết');
+        return;
+    }
+
+    if (_prereqGuideState.selectedAnchorIdx >= anchors.length) _prereqGuideState.selectedAnchorIdx = 0;
+    const chosen = anchors[_prereqGuideState.selectedAnchorIdx];
+
+    listEl.innerHTML = anchors.map((a, idx) => {
+        const isSel = idx === _prereqGuideState.selectedAnchorIdx;
+        const desc = a.item?.description ? _prLoc(a.item, 'description', a.item.description) : '';
+        return `<button type="button" class="prereq-anchor-option${isSel ? ' is-selected' : ''}" onclick="selectPrerequisiteGuideAnchor(${idx})">
+            <div>
+                <div class="prereq-anchor-name">${_prEsc(a.displayName)}</div>
+                ${desc ? `<div class="prereq-anchor-sub">${_prEsc(desc)}</div>` : ''}
+            </div>
+            <div class="prereq-anchor-price">$${a.price}</div>
+        </button>`;
+    }).join('');
+
+    addBothBtn.disabled = false;
+    if (_anchorNeedsAutoPopup(chosen)) {
+        addBothBtn.textContent = _prT(
+            'prereq_sheet_add_parent_first',
+            { parent: chosen.displayName },
+            `先選擇「${chosen.displayName}」並加購`,
+            `Chọn "${chosen.displayName}" và thêm món`
+        );
+    } else {
+        const combinedTotal = Math.round((chosen.price + addonPrice) * 100) / 100;
+        addBothBtn.textContent = _prT(
+            'prereq_sheet_add_both',
+            { parent: chosen.displayName, addon: addonDisplay, total: combinedTotal },
+            `一併加入 ${chosen.displayName} + ${addonDisplay} ($${combinedTotal})`,
+            `Thêm cả ${chosen.displayName} + ${addonDisplay} ($${combinedTotal})`
+        );
+    }
+}
+
+function selectPrerequisiteGuideAnchor(idx) {
+    _prereqGuideState.selectedAnchorIdx = Number(idx) || 0;
+    renderPrerequisiteSheetAnchors();
+}
+
+function openPrerequisiteGuideSheet(catSlug, itemName, prereqState) {
+    const state = prereqState || evaluateItemPrerequisite(catSlug, itemName);
+    const resolveFn = typeof resolveCatalogItem === 'function' ? resolveCatalogItem : window.resolveCatalogItem;
+    const addonInfo = resolveFn ? resolveFn(`${catSlug}_${itemName}`) : null;
+    const addonItem = addonInfo?.targetItem;
+    const addonDisplay = addonItem ? _prLoc(addonItem, 'name', addonItem.name) : itemName;
+
+    _prereqGuideState = {
+        catSlug,
+        itemName,
+        anchors: state.availableAnchors || [],
+        selectedAnchorIdx: 0,
+        allQualifying: state.qualifyingItems || []
+    };
+
+    const modal = typeof document !== 'undefined' ? document.getElementById('prereq-guide-modal') : null;
+    if (!modal) {
+        const fallbackMsg = _prT(
+            'err_prerequisite_required',
+            { addon: addonDisplay, parent: state.requiredLabel || '主餐' },
+            `選購「${addonDisplay}」需先點購「${state.requiredLabel || '主餐'}」`,
+            `Món "${addonDisplay}" cần gọi kèm "${state.requiredLabel || 'món chính'}".`
+        );
+        if (typeof customAlert === 'function') customAlert(fallbackMsg);
+        else if (typeof alert === 'function') alert(fallbackMsg);
+        return;
+    }
+
+    const titleEl = document.getElementById('prereq-sheet-title');
+    if (titleEl) titleEl.textContent = _prT('prereq_sheet_title', null, '加點品項需搭配主餐', 'Món gọi thêm cần gọi kèm món chính');
+    const descEl = document.getElementById('prereq-sheet-desc');
+    if (descEl) {
+        descEl.textContent = _prT(
+            'prereq_sheet_desc',
+            { addon: addonDisplay, parent: state.requiredLabel || '' },
+            `選購「${addonDisplay}」前，需先點購「${state.requiredLabel || ''}」`,
+            `Cần chọn "${state.requiredLabel || ''}" trước khi gọi thêm "${addonDisplay}"`
+        );
+    }
+    const scrollBtn = document.getElementById('prereq-sheet-scroll-btn');
+    if (scrollBtn) {
+        scrollBtn.textContent = _prT('prereq_sheet_view_main', null, '前往查看主餐', 'Xem món chính');
+    }
+    renderPrerequisiteSheetAnchors();
+    modal.style.display = 'flex';
+}
+
+function closePrerequisiteGuideSheet() {
+    const modal = typeof document !== 'undefined' ? document.getElementById('prereq-guide-modal') : null;
+    if (modal) modal.style.display = 'none';
+}
+
+function confirmPrerequisiteGuideAddBoth() {
+    const chosen = (_prereqGuideState.anchors || [])[_prereqGuideState.selectedAnchorIdx];
+    const targetCatSlug = _prereqGuideState.catSlug;
+    const targetItemName = _prereqGuideState.itemName;
+    closePrerequisiteGuideSheet();
+    if (!chosen || !targetCatSlug || !targetItemName) return;
+
+    if (_anchorNeedsAutoPopup(chosen)) {
+        window.__pendingPrerequisiteAddon = { catSlug: targetCatSlug, itemName: targetItemName };
+        updateQty(chosen.catSlug, chosen.name, 1);
+        return;
+    }
+    updateQty(chosen.catSlug, chosen.name, 1);
+    const unlockedNow = evaluateItemPrerequisite(targetCatSlug, targetItemName).unlocked;
+    if (unlockedNow) {
+        updateQty(targetCatSlug, targetItemName, 1);
+    }
+}
+
+function scrollToPrerequisiteAnchor() {
+    const candidate = (_prereqGuideState.anchors || [])[_prereqGuideState.selectedAnchorIdx]
+        || (_prereqGuideState.allQualifying || [])[0];
+    closePrerequisiteGuideSheet();
+    if (!candidate) return;
+    if (window.isStaffOrderMode && window.StaffOrder && typeof window.StaffOrder.focusCategorySlug === 'function') {
+        window.StaffOrder.focusCategorySlug(candidate.catSlug);
+        return;
+    }
+    const card = typeof document !== 'undefined' ? document.getElementById(`item-${candidate.catSlug}-${candidate.name}`) : null;
+    if (card && typeof card.scrollIntoView === 'function') {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.classList.add('attention-pulse');
+        setTimeout(() => card.classList.remove('attention-pulse'), 1500);
+    } else if (typeof scrollToSec === 'function') {
+        scrollToSec(`sec-${candidate.catSlug}`);
+    }
+}
+
+function getOrphanedDependentCartItems(simulatedCart) {
+    const cartObj = window.cart || cart || {};
+    const resolveFn = typeof resolveCatalogItem === 'function' ? resolveCatalogItem : window.resolveCatalogItem;
+    const orphans = [];
+    for (const [k, rawQ] of Object.entries(simulatedCart)) {
+        const q = Number(rawQ || 0);
+        if (q <= 0 || Number(cartObj[k] || 0) <= 0) continue;
+        const { catSlug, origName } = parseCartKey(k);
+        const beforeState = evaluateItemPrerequisite(catSlug, origName, cartObj);
+        if (!beforeState.required || !beforeState.unlocked) continue;
+        const afterState = evaluateItemPrerequisite(catSlug, origName, simulatedCart);
+        if (!afterState.unlocked) {
+            const info = resolveFn ? resolveFn(k) : null;
+            const tItem = info?.targetItem;
+            orphans.push({
+                key: k,
+                catSlug,
+                origName,
+                qty: q,
+                displayName: tItem ? _prLoc(tItem, 'name', origName) : origName
+            });
+        }
+    }
+    return orphans;
+}
+
+function clearCartItemCompletely(key) {
+    const cartObj = window.cart || cart || {};
+    const { catSlug, origName } = parseCartKey(key);
+    delete cartObj[key];
+    if (window.customizeData) delete window.customizeData[key];
+    if (typeof customizeData !== 'undefined' && customizeData) delete customizeData[key];
+    if (window.bundleCartData) delete window.bundleCartData[key];
+    if (window.comboDrinkData && origName) delete window.comboDrinkData[origName];
+    if (typeof document !== 'undefined') {
+        const qtySpan = document.getElementById(`qty-${catSlug}-${origName}`);
+        if (qtySpan && !(window.isStaffOrderMode && window.StaffOrderView)) {
+            qtySpan.innerText = '0';
+            qtySpan.style.color = 'inherit';
+        }
+        for (const prefix of ['customize-btn-', 'bundle-edit-btn-', 'prereq-jump-btn-']) {
+            const btn = document.getElementById(`${prefix}${catSlug}-${origName}`);
+            if (btn) btn.style.display = 'none';
+        }
+    }
+}
+
+function confirmAndRemoveWithOrphans(parentDisplayName, orphans, executeParentDecrement) {
+    const listHtml = orphans.map(o => `<div style="font-weight:800; color:#0f172a; margin-top:4px;">• ${_prEsc(o.displayName)} ×${o.qty}</div>`).join('');
+    const htmlMsg =
+        `<div style="font-size:16px; font-weight:900; color:#0f172a; margin-bottom:8px;">${_prEsc(_prT('prereq_remove_confirm_title', null, '一併移除加點品項？', 'Xóa kèm các món gọi thêm?'))}</div>` +
+        `<div style="font-size:14px; color:#475569; line-height:1.5;">${_prEsc(_prT('prereq_remove_confirm_body', { parent: parentDisplayName }, `移除「${parentDisplayName}」後，以下需搭配的加點品項將一併移除：`, `Khi bỏ "${parentDisplayName}", các món gọi thêm đi kèm sau sẽ được xóa cùng:`))}` +
+        `<div style="margin-top:8px; padding:10px 12px; background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0;">${listHtml}</div></div>`;
+
+    const runConfirmed = () => {
+        window.__bypassPrereqRemoveGuard = true;
+        try {
+            for (const o of orphans) clearCartItemCompletely(o.key);
+            executeParentDecrement();
+        } finally {
+            window.__bypassPrereqRemoveGuard = false;
+        }
+    };
+
+    if (typeof customConfirm === 'function') {
+        customConfirm(htmlMsg, runConfirmed);
+    } else if (typeof confirm === 'function') {
+        const plain = _prT('prereq_remove_confirm_body', { parent: parentDisplayName }, `移除「${parentDisplayName}」後，需搭配的加點品項將一併移除`, `Xóa "${parentDisplayName}" sẽ xóa kèm các món gọi thêm`);
+        if (confirm(plain)) runConfirmed();
+    } else {
+        runConfirmed();
+    }
+}
+
+function getActivePrerequisiteViolations() {
+    const cartObj = window.cart || cart || {};
+    const violations = [];
+    for (const [k, rawQ] of Object.entries(cartObj)) {
+        if (Number(rawQ || 0) <= 0) continue;
+        const { catSlug, origName } = parseCartKey(k);
+        const st = evaluateItemPrerequisite(catSlug, origName, cartObj);
+        if (st.required && !st.unlocked) {
+            violations.push({ key: k, catSlug, origName, state: st });
+        }
+    }
+    return violations;
+}
+
 function updateQty(category, origName, change) {
     if (change > 0 && typeof checkDesktopAuthGuard === 'function' && !checkDesktopAuthGuard()) {
         return;
@@ -324,6 +838,23 @@ function updateQty(category, origName, change) {
     const maxPerOrder = targetItem?.maxPerOrder || targetItem?.max_per_order;
     const cartObj = window.cart || cart;
     const currentQty = cartObj[key] || 0;
+
+    if (change > 0) {
+        const prereqState = evaluateItemPrerequisite(category, origName, cartObj);
+        if (prereqState.required && !prereqState.unlocked) {
+            openPrerequisiteGuideSheet(category, origName, prereqState);
+            return;
+        }
+    } else if (change < 0 && currentQty > 0 && !window.__bypassPrereqRemoveGuard) {
+        const nextQty = Math.max(0, currentQty + change);
+        const simulated = { ...cartObj, [key]: nextQty };
+        const orphans = getOrphanedDependentCartItems(simulated);
+        if (orphans.length > 0) {
+            const parentDisplay = _prLoc(targetItem, 'name', targetItem?.name || origName);
+            confirmAndRemoveWithOrphans(parentDisplay, orphans, () => updateQty(category, origName, change));
+            return;
+        }
+    }
 
     if (change > 0 && maxPerOrder && currentQty >= maxPerOrder) {
         const itemLabel = (typeof locText === 'function' ? locText(targetItem, 'name', targetItem.name || origName) : (targetItem.name || origName));
@@ -501,6 +1032,17 @@ function removeCartPortion(category, origName, index) {
     const cartObj = window.cart || cart || {};
     const quantity = Number(cartObj[key] || 0);
     if (!Number.isInteger(index) || index < 0 || index >= quantity) return;
+    if (!window.__bypassPrereqRemoveGuard) {
+        const simulated = { ...cartObj, [key]: Math.max(0, quantity - 1) };
+        const orphans = getOrphanedDependentCartItems(simulated);
+        if (orphans.length > 0) {
+            const resolveFn = typeof resolveCatalogItem === 'function' ? resolveCatalogItem : window.resolveCatalogItem;
+            const info = resolveFn ? resolveFn(key) : null;
+            const parentDisplay = _prLoc(info?.targetItem, 'name', origName);
+            confirmAndRemoveWithOrphans(parentDisplay, orphans, () => removeCartPortion(category, origName, index));
+            return;
+        }
+    }
     for (const state of [window.customizeData, window.bundleCartData]) {
         if (!Array.isArray(state?.[key])) continue;
         state[key].splice(index, 1);
@@ -585,6 +1127,12 @@ function updateTotal() {
     window.LinePayCheckout?.onCartChange?.();
     if (typeof updateCustomizationThresholdUI === 'function') {
         updateCustomizationThresholdUI();
+    }
+    if (typeof updatePrerequisiteUI === 'function') {
+        updatePrerequisiteUI();
+    }
+    if (typeof flushPendingPrerequisiteAddon === 'function') {
+        flushPendingPrerequisiteAddon();
     }
     const wasmCart = (window.PricingWasm?.isReady && typeof window.PricingWasm.calculateCart === 'function')
         ? window.PricingWasm.calculateCart()
@@ -1179,6 +1727,16 @@ window.calculateCurrentFoodSubtotal = calculateCurrentFoodSubtotal;
 window.updateCustomizationThresholdUI = updateCustomizationThresholdUI;
 window.validateCustomizationThresholds = validateCustomizationThresholds;
 window.getActiveThresholdViolations = getActiveThresholdViolations;
+window.evaluateCategoryPrerequisite = evaluateCategoryPrerequisite;
+window.evaluateItemPrerequisite = evaluateItemPrerequisite;
+window.findDependentCategoriesForItem = findDependentCategoriesForItem;
+window.updatePrerequisiteUI = updatePrerequisiteUI;
+window.openPrerequisiteGuideSheet = openPrerequisiteGuideSheet;
+window.closePrerequisiteGuideSheet = closePrerequisiteGuideSheet;
+window.selectPrerequisiteGuideAnchor = selectPrerequisiteGuideAnchor;
+window.confirmPrerequisiteGuideAddBoth = confirmPrerequisiteGuideAddBoth;
+window.scrollToPrerequisiteAnchor = scrollToPrerequisiteAnchor;
+window.getActivePrerequisiteViolations = getActivePrerequisiteViolations;
 window.updateQty = updateQty;
 window.calculateCategoryBundleSubtotal = calculateCategoryBundleSubtotal;
 window.updateTotal = updateTotal;

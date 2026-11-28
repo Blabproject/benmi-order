@@ -3,6 +3,7 @@ import type { Order } from '../types';
 import type { DetailGroup, DetailLine, DetailRound, OrderDetailSnapshot } from '../types/order-detail';
 import { loadOptionCatalog, effectiveGroups, groupOptions, validateOptionSelection, type OptionCatalog } from './option-groups';
 import { validateCatalogScheduleForItems, hasTenantMenuScheduleFeature } from './operating-shifts';
+import { validateOrderPrerequisites } from './menu-prerequisites';
 import DetailView from '../../../js/order-detail-view.js';
 import { pricingRustEnabled, callRustBuildDetailRound } from './pricing-engine-client';
 
@@ -10,7 +11,7 @@ export { DetailView };
 export const detailReads = (env: Env) => env.ORDER_DETAIL_READS !== 'false';
 export const detailWrites = (env: Env) => env.ORDER_DETAIL_WRITES !== 'false';
 export class DetailError extends Error {
-  constructor(public code: string, public status = 400) { super(code); }
+  constructor(public code: string, public status = 400, public details?: Record<string, unknown>) { super(code); }
 }
 const fail = (code: string): never => { throw new DetailError(code); };
 const amount = (n: number) => Math.round(n * 100) / 100;
@@ -54,9 +55,31 @@ function assertNoStaffOnlySelections(catalog: OptionCatalog, groups: any[] | und
 
 /** Same catalog validation for every write. Inputs never supply sale labels/prices. */
 export async function buildDetailRound(env: Env, tenant: string, input: any, roundNumber: number,
-  previous?: DetailRound, features?: string[], options?: { allowStaffOnly?: boolean }): Promise<DetailRound> {
+  previous?: DetailRound, features?: string[], options?: { allowStaffOnly?: boolean; priorRounds?: DetailRound[] }): Promise<DetailRound> {
   const catalog = await loadOptionCatalog(env, tenant);
   if (!Array.isArray(input.items) || !input.items.length || input.items.length > 200) fail('EMPTY_OR_TOO_MANY_ITEMS');
+  const priorRounds = Array.isArray(options?.priorRounds) ? options!.priorRounds : [];
+  const existingOrderItems = priorRounds.flatMap(r => Array.isArray(r?.items) ? r.items : []);
+  const legacyOrderTexts = priorRounds.map(r => r?.legacyContent || '').filter(Boolean);
+  const prereqCheck = validateOrderPrerequisites({
+    products: catalog.products,
+    categories: catalog.categories,
+    prerequisiteLinks: catalog.prerequisiteLinks,
+    submittedItems: input.items,
+    existingOrderItems,
+    legacyOrderTexts,
+  });
+  if (!prereqCheck.valid) {
+    throw new DetailError('PREREQUISITE_ITEM_REQUIRED', 400, {
+      itemIndex: prereqCheck.itemIndex,
+      itemId: prereqCheck.itemId,
+      itemName: prereqCheck.itemName,
+      requiredItemIds: prereqCheck.requiredItemIds,
+      requiredCategoryIds: prereqCheck.requiredCategoryIds,
+      requiredNames: prereqCheck.requiredNames,
+      message: prereqCheck.error,
+    });
+  }
   const unchangedLine = (i: any) => {
     const old = previous?.items.find(l => l.lineId === i.lineId && l.itemId === (i.itemId || i.item_id));
     const portions = i.bundleSelections?.portions || Array.from({ length: i.quantity }, () => ({ groups: [] }));

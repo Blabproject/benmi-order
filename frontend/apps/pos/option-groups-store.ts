@@ -122,6 +122,9 @@ function makeProductDraft(
     badgeText?: string;
     isRecommended?: boolean;
     staffOnly?: boolean;
+    prerequisiteMode?: 'inherit' | 'none' | 'require_any';
+    prerequisiteItemIds?: string[];
+    prerequisiteCategoryIds?: string[];
     revision?: number;
     i18n?: MenuI18nMapDto;
     imageKey?: string | null;
@@ -139,6 +142,15 @@ function makeProductDraft(
   );
 
   const imgKey = override && 'imageKey' in override ? (override.imageKey ?? null) : (product.image_key ?? null);
+  const rawMode = override?.prerequisiteMode ?? product.prerequisiteMode ?? product.prerequisite_mode;
+  const prerequisiteMode: 'inherit' | 'none' | 'require_any' =
+    rawMode === 'none' || rawMode === 'require_any' ? rawMode : 'inherit';
+  const prerequisiteItemIds = sortedUniqueIds(
+    override?.prerequisiteItemIds ?? product.prerequisiteItemIds ?? []
+  );
+  const prerequisiteCategoryIds = sortedUniqueIds(
+    override?.prerequisiteCategoryIds ?? product.prerequisiteCategoryIds ?? []
+  );
   return {
     id: prodId,
     isNew: override?.isNew ?? false,
@@ -149,6 +161,9 @@ function makeProductDraft(
     badgeText: override?.badgeText ?? (product.badge_text || ''),
     isRecommended: override?.isRecommended ?? Boolean(product.is_recommended),
     staffOnly: override?.staffOnly ?? Boolean(product.staff_only),
+    prerequisiteMode,
+    prerequisiteItemIds,
+    prerequisiteCategoryIds,
     revision: Number(override?.revision ?? product.menu_revision ?? 1),
     i18n: cleanI18n(override?.i18n ?? product.i18n),
     links,
@@ -223,6 +238,12 @@ function validateRouteAndDraft(
     const p = draft as ProductDraft;
     if (!String(p.name || '').trim()) {
       return { error: translatePos(locale, 'ugInvalid'), ruleErrors: {} };
+    }
+    if (
+      p.prerequisiteMode === 'require_any' &&
+      (p.prerequisiteItemIds?.length || 0) + (p.prerequisiteCategoryIds?.length || 0) === 0
+    ) {
+      return { error: translatePos(locale, 'prereqNoneSelectedHint'), ruleErrors: {} };
     }
     return { error: '', ruleErrors: {} };
   }
@@ -494,6 +515,9 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
         badgeText?: string;
         isRecommended?: boolean;
         staffOnly?: boolean;
+        prerequisiteMode?: 'inherit' | 'none' | 'require_any' | string;
+        prerequisiteItemIds?: string[];
+        prerequisiteCategoryIds?: string[];
         menuRevision?: number;
         imageKey?: string | null;
         i18n?: MenuI18nMapDto;
@@ -538,6 +562,21 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
           badgeText: localRecord.badgeText || '',
           isRecommended: Boolean(localRecord.isRecommended),
           staffOnly: prod ? Boolean(prod.staff_only) : Boolean(localRecord.staffOnly),
+          prerequisiteMode: prod
+            ? prod.prerequisiteMode === 'none' || prod.prerequisite_mode === 'none'
+              ? 'none'
+              : prod.prerequisiteMode === 'require_any' || prod.prerequisite_mode === 'require_any'
+                ? 'require_any'
+                : 'inherit'
+            : localRecord.prerequisiteMode === 'none' || localRecord.prerequisiteMode === 'require_any'
+              ? localRecord.prerequisiteMode
+              : 'inherit',
+          prerequisiteItemIds: prod
+            ? prod.prerequisiteItemIds || []
+            : localRecord.prerequisiteItemIds || [],
+          prerequisiteCategoryIds: prod
+            ? prod.prerequisiteCategoryIds || []
+            : localRecord.prerequisiteCategoryIds || [],
           revision: Number(prod?.menu_revision ?? localRecord.menuRevision ?? 1),
           i18n: cleanI18n(localRecord.i18n || prod?.i18n),
           imageKey:
@@ -922,6 +961,13 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
           d.isRecommended = Boolean(value);
         } else if (field === 'staffOnly') {
           d.staffOnly = Boolean(value);
+        } else if (field === 'prerequisiteMode') {
+          d.prerequisiteMode =
+            value === 'none' || value === 'require_any' ? value : 'inherit';
+          if (d.prerequisiteMode !== 'require_any') {
+            d.prerequisiteItemIds = [];
+            d.prerequisiteCategoryIds = [];
+          }
         } else if (field.startsWith('i18n.')) {
           const parts = field.split('.');
           const loc = parts[1];
@@ -1158,6 +1204,31 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
         route.ids = Array.from(set);
       }
 
+      next.error = '';
+      return next;
+    });
+  }
+
+  function toggleProductPrerequisiteTarget(
+    targetType: 'item' | 'category',
+    targetId: string,
+    checked: boolean
+  ) {
+    updateDrawer((prev) => {
+      if (prev.kind !== 'product') return prev;
+      const next = cloneValue(prev);
+      const d = next.draft as ProductDraft;
+      if (targetType === 'item') {
+        const set = new Set(d.prerequisiteItemIds || []);
+        if (checked) set.add(targetId);
+        else set.delete(targetId);
+        d.prerequisiteItemIds = sortedUniqueIds(Array.from(set));
+      } else {
+        const set = new Set(d.prerequisiteCategoryIds || []);
+        if (checked) set.add(targetId);
+        else set.delete(targetId);
+        d.prerequisiteCategoryIds = sortedUniqueIds(Array.from(set));
+      }
       next.error = '';
       return next;
     });
@@ -2175,6 +2246,7 @@ export function createOptionGroupsStore(bridge: OptionGroupsHostBridge) {
     stepRule,
     validateRules,
     toggleSelectionId,
+    toggleProductPrerequisiteTarget,
     removeProductGroup,
     moveProductGroup,
     moveGroupOption,

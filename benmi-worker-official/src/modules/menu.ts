@@ -1,5 +1,12 @@
 import { assertProductsCanBeDeleted, loadOptionCatalog, validateOptionGraph, unifiedMenuEnabled } from './option-groups';
 import { hasDbTable, loadCategoryAndItemShiftLinks, loadTenantOperatingShifts, hasTenantMenuScheduleFeature } from './operating-shifts';
+import {
+  buildPrerequisiteLinkDiffStatements,
+  extractTargetIds,
+  loadTenantPrerequisiteLinks,
+  normalizeCategoryPrerequisiteMode,
+  normalizeItemPrerequisiteMode,
+} from './menu-prerequisites';
 import { Env } from '../types/env';
 import { Menu } from '../types/index';
 import { json } from '../utils/http';
@@ -646,7 +653,7 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
   // Anchor the guard before reading ranks and IDs used to construct the write batch.
   const unifiedCatalog = unifiedMenuEnabled(env) ? await loadOptionCatalog(env, tenantId) : null;
   const hasMenuSchedule = await hasTenantMenuScheduleFeature(env.DB, tenantId, null);
-  const [hasCatI18nCol, hasItemI18nCol, hasItemDescCol, hasCatAvailCol, hasCatHideCol, hasItemAvailCol, hasItemStaffOnlyCol, rawHasCatShiftsTbl, rawHasItemShiftsTbl] = await Promise.all([
+  const [hasCatI18nCol, hasItemI18nCol, hasItemDescCol, hasCatAvailCol, hasCatHideCol, hasItemAvailCol, hasItemStaffOnlyCol, hasCatPrereqCol, hasItemPrereqCol, rawHasCatShiftsTbl, rawHasItemShiftsTbl, hasPrereqLinksTbl] = await Promise.all([
     hasTableColumn(env.DB, "menu_categories", "i18n_json"),
     hasTableColumn(env.DB, "menu_items", "i18n_json"),
     hasTableColumn(env.DB, "menu_items", "description"),
@@ -654,22 +661,31 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
     hasTableColumn(env.DB, "menu_categories", "hide_when_unavailable"),
     hasTableColumn(env.DB, "menu_items", "availability_mode"),
     hasTableColumn(env.DB, "menu_items", "staff_only"),
+    hasTableColumn(env.DB, "menu_categories", "prerequisite_mode"),
+    hasTableColumn(env.DB, "menu_items", "prerequisite_mode"),
     hasDbTable(env.DB, "menu_category_shifts"),
     hasDbTable(env.DB, "menu_item_shifts"),
+    hasDbTable(env.DB, "menu_prerequisite_links"),
   ]);
   const hasCatShiftsTbl = hasMenuSchedule && rawHasCatShiftsTbl;
   const hasItemShiftsTbl = hasMenuSchedule && rawHasItemShiftsTbl;
-  const [tenantShifts, existingShiftLinks] = (hasCatShiftsTbl || hasItemShiftsTbl)
-    ? await Promise.all([loadTenantOperatingShifts(env.DB, tenantId), loadCategoryAndItemShiftLinks(env.DB, tenantId)])
-    : [[], { categoryShiftIds: new Map<string, string[]>(), itemShiftIds: new Map<string, string[]>() }];
+  const [tenantShifts, existingShiftLinks, existingPrereqLinks] = await Promise.all([
+    (hasCatShiftsTbl || hasItemShiftsTbl) ? loadTenantOperatingShifts(env.DB, tenantId) : Promise.resolve([]),
+    (hasCatShiftsTbl || hasItemShiftsTbl)
+      ? loadCategoryAndItemShiftLinks(env.DB, tenantId)
+      : Promise.resolve({ categoryShiftIds: new Map<string, string[]>(), itemShiftIds: new Map<string, string[]>() }),
+    hasPrereqLinksTbl
+      ? loadTenantPrerequisiteLinks(env.DB, tenantId)
+      : Promise.resolve({ hasTable: false, links: [], byCategoryId: new Map(), byItemId: new Map() }),
+  ]);
   const ownedShiftIds = new Set(tenantShifts.map((s) => s.id));
   // 1. Nạp danh mục và món ăn hiện có để ánh xạ ID tránh xung đột unique
   const { results: existingCats } = await env.DB.prepare(
-    `SELECT id, slug, name, short_name, category_type, sort_order${hasCatI18nCol ? ", i18n_json" : ""}${hasCatAvailCol ? ", availability_mode" : ""}${hasCatHideCol ? ", hide_when_unavailable" : ""} FROM menu_categories WHERE tenant_id = ?`
+    `SELECT id, slug, name, short_name, category_type, sort_order${hasCatI18nCol ? ", i18n_json" : ""}${hasCatAvailCol ? ", availability_mode" : ""}${hasCatHideCol ? ", hide_when_unavailable" : ""}${hasCatPrereqCol ? ", prerequisite_mode" : ""} FROM menu_categories WHERE tenant_id = ?`
   ).bind(tenantId).all();
 
   const { results: existingItems } = await env.DB.prepare(
-    `SELECT id, category_id, name${hasItemI18nCol ? ", i18n_json" : ""}${hasItemDescCol ? ", description" : ""}${hasItemAvailCol ? ", availability_mode" : ""}${hasItemStaffOnlyCol ? ", COALESCE(staff_only, 0) AS staff_only" : ""} FROM menu_items WHERE tenant_id = ?`
+    `SELECT id, category_id, name${hasItemI18nCol ? ", i18n_json" : ""}${hasItemDescCol ? ", description" : ""}${hasItemAvailCol ? ", availability_mode" : ""}${hasItemStaffOnlyCol ? ", COALESCE(staff_only, 0) AS staff_only" : ""}${hasItemPrereqCol ? ", prerequisite_mode" : ""} FROM menu_items WHERE tenant_id = ?`
   ).bind(tenantId).all();
 
   const existingCatI18nMap = new Map<string, string>(
@@ -680,6 +696,9 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
   );
   const existingCatHideMap = new Map<string, number>(
     (existingCats || []).map((row: any) => [String(row.id), row.hide_when_unavailable ? 1 : 0])
+  );
+  const existingCatPrereqMap = new Map<string, string>(
+    (existingCats || []).map((row: any) => [String(row.id), normalizeCategoryPrerequisiteMode(row.prerequisite_mode)])
   );
   const existingItemI18nMap = new Map<string, string>(
     (existingItems || []).map((row: any) => [String(row.id), String(row.i18n_json || "{}")])
@@ -692,6 +711,9 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
   );
   const existingItemStaffOnlyMap = new Map<string, number>(
     (existingItems || []).map((row: any) => [String(row.id), row.staff_only ? 1 : 0])
+  );
+  const existingItemPrereqMap = new Map<string, string>(
+    (existingItems || []).map((row: any) => [String(row.id), normalizeItemPrerequisiteMode(row.prerequisite_mode)])
   );
 
   const { results: existingCustomizations } = await env.DB.prepare(
@@ -828,6 +850,13 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
   }
   const activeCategoryIds: string[] = [];
   const activeItemIds: string[] = [];
+  const pendingPrerequisiteDiffs: Array<{
+    sourceType: 'category' | 'item';
+    sourceId: string;
+    mode: 'none' | 'inherit' | 'require_any';
+    requiredItemIds: string[];
+    requiredCategoryIds: string[];
+  }> = [];
 
   let catSortOrder = 1;
   for (const slug of Object.keys(menuData)) {
@@ -1023,11 +1052,27 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
     const catHideUnavailable = catHideRaw !== undefined
       ? (catHideRaw ? 1 : 0)
       : (existingCatHideMap.get(catId) ?? 0);
+    const catPrereqRaw = itemsMap && (itemsMap.__prerequisite_mode ?? itemsMap._prerequisite_mode);
+    const catPrereqMode = catPrereqRaw !== undefined
+      ? normalizeCategoryPrerequisiteMode(catPrereqRaw)
+      : normalizeCategoryPrerequisiteMode(existingCatPrereqMap.get(catId));
+    const rawCatPrereqItems = itemsMap && (itemsMap.__prerequisite_item_ids ?? itemsMap._prerequisite_item_ids);
+    const rawCatPrereqCats = itemsMap && (itemsMap.__prerequisite_category_ids ?? itemsMap._prerequisite_category_ids);
+    if (hasPrereqLinksTbl && (catPrereqRaw !== undefined || Array.isArray(rawCatPrereqItems) || Array.isArray(rawCatPrereqCats))) {
+      const prevCatTargets = extractTargetIds(existingPrereqLinks.byCategoryId.get(catId));
+      pendingPrerequisiteDiffs.push({
+        sourceType: 'category',
+        sourceId: catId,
+        mode: catPrereqMode,
+        requiredItemIds: Array.isArray(rawCatPrereqItems) ? rawCatPrereqItems.map((s: any) => String(s)) : prevCatTargets.requiredItemIds,
+        requiredCategoryIds: Array.isArray(rawCatPrereqCats) ? rawCatPrereqCats.map((s: any) => String(s)) : prevCatTargets.requiredCategoryIds,
+      });
+    }
 
     statements.push(
       env.DB.prepare(
-        `INSERT INTO menu_categories (id, tenant_id, name, short_name, slug, category_type, allow_customization, applied_modifiers, sort_order${hasCatI18nCol ? ", i18n_json" : ""}${hasCatAvailCol ? ", availability_mode" : ""}${hasCatHideCol ? ", hide_when_unavailable" : ""})
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?${hasCatI18nCol ? ", ?" : ""}${hasCatAvailCol ? ", ?" : ""}${hasCatHideCol ? ", ?" : ""})
+        `INSERT INTO menu_categories (id, tenant_id, name, short_name, slug, category_type, allow_customization, applied_modifiers, sort_order${hasCatI18nCol ? ", i18n_json" : ""}${hasCatAvailCol ? ", availability_mode" : ""}${hasCatHideCol ? ", hide_when_unavailable" : ""}${hasCatPrereqCol ? ", prerequisite_mode" : ""})
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?${hasCatI18nCol ? ", ?" : ""}${hasCatAvailCol ? ", ?" : ""}${hasCatHideCol ? ", ?" : ""}${hasCatPrereqCol ? ", ?" : ""})
          ON CONFLICT(id) DO UPDATE SET 
            name = excluded.name, 
            short_name = excluded.short_name,
@@ -1035,13 +1080,14 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
            category_type = excluded.category_type,
            allow_customization = excluded.allow_customization,
            applied_modifiers = excluded.applied_modifiers,
-           sort_order = excluded.sort_order${hasCatI18nCol ? ",\n           i18n_json = excluded.i18n_json" : ""}${hasCatAvailCol ? ",\n           availability_mode = excluded.availability_mode" : ""}${hasCatHideCol ? ",\n           hide_when_unavailable = excluded.hide_when_unavailable" : ""}
+           sort_order = excluded.sort_order${hasCatI18nCol ? ",\n           i18n_json = excluded.i18n_json" : ""}${hasCatAvailCol ? ",\n           availability_mode = excluded.availability_mode" : ""}${hasCatHideCol ? ",\n           hide_when_unavailable = excluded.hide_when_unavailable" : ""}${hasCatPrereqCol ? ",\n           prerequisite_mode = excluded.prerequisite_mode" : ""}
              WHERE menu_categories.tenant_id = excluded.tenant_id`
       ).bind(
         catId, tenantId, catName, catShortName, slug, customCatType, allowCustomization, appliedModifiers, customCatSort,
         ...(hasCatI18nCol ? [catI18nJson] : []),
         ...(hasCatAvailCol ? [catAvailMode] : []),
-        ...(hasCatHideCol ? [catHideUnavailable] : [])
+        ...(hasCatHideCol ? [catHideUnavailable] : []),
+        ...(hasCatPrereqCol ? [catPrereqMode] : [])
       )
     );
 
@@ -1129,11 +1175,33 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
         const itemAvailMode = itemAvailRaw !== undefined
           ? ((itemAvailRaw === 'all_shifts' || itemAvailRaw === 'selected_shifts') ? itemAvailRaw : 'inherit')
           : (existingItemAvailMap.get(itemId) || 'inherit');
+        const itemPrereqRaw = (itemVal && typeof itemVal === "object")
+          ? (itemVal.prerequisite_mode ?? itemVal.prerequisiteMode)
+          : undefined;
+        const itemPrereqMode = itemPrereqRaw !== undefined
+          ? normalizeItemPrerequisiteMode(itemPrereqRaw)
+          : normalizeItemPrerequisiteMode(existingItemPrereqMap.get(itemId));
+        const rawItemPrereqItems = (itemVal && typeof itemVal === "object")
+          ? (itemVal.prerequisite_item_ids ?? itemVal.prerequisiteItemIds)
+          : undefined;
+        const rawItemPrereqCats = (itemVal && typeof itemVal === "object")
+          ? (itemVal.prerequisite_category_ids ?? itemVal.prerequisiteCategoryIds)
+          : undefined;
+        if (hasPrereqLinksTbl && (itemPrereqRaw !== undefined || Array.isArray(rawItemPrereqItems) || Array.isArray(rawItemPrereqCats))) {
+          const prevItemTargets = extractTargetIds(existingPrereqLinks.byItemId.get(itemId));
+          pendingPrerequisiteDiffs.push({
+            sourceType: 'item',
+            sourceId: itemId,
+            mode: itemPrereqMode,
+            requiredItemIds: Array.isArray(rawItemPrereqItems) ? rawItemPrereqItems.map((s: any) => String(s)) : prevItemTargets.requiredItemIds,
+            requiredCategoryIds: Array.isArray(rawItemPrereqCats) ? rawItemPrereqCats.map((s: any) => String(s)) : prevItemTargets.requiredCategoryIds,
+          });
+        }
 
         statements.push(
           env.DB.prepare(
-            `INSERT INTO menu_items (id, tenant_id, category_id, name, price, badge_text, is_recommended, sort_order, item_type${hasItemI18nCol ? ", i18n_json" : ""}${hasItemDescCol ? ", description" : ""}${hasItemAvailCol ? ", availability_mode" : ""}${hasItemStaffOnlyCol ? ", staff_only" : ""})
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?${hasItemI18nCol ? ", ?" : ""}${hasItemDescCol ? ", ?" : ""}${hasItemAvailCol ? ", ?" : ""}${hasItemStaffOnlyCol ? ", ?" : ""})
+            `INSERT INTO menu_items (id, tenant_id, category_id, name, price, badge_text, is_recommended, sort_order, item_type${hasItemI18nCol ? ", i18n_json" : ""}${hasItemDescCol ? ", description" : ""}${hasItemAvailCol ? ", availability_mode" : ""}${hasItemStaffOnlyCol ? ", staff_only" : ""}${hasItemPrereqCol ? ", prerequisite_mode" : ""})
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?${hasItemI18nCol ? ", ?" : ""}${hasItemDescCol ? ", ?" : ""}${hasItemAvailCol ? ", ?" : ""}${hasItemStaffOnlyCol ? ", ?" : ""}${hasItemPrereqCol ? ", ?" : ""})
              ON CONFLICT(id) DO UPDATE SET 
                category_id = excluded.category_id,
                name = excluded.name,
@@ -1141,14 +1209,15 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
                badge_text = excluded.badge_text, 
                is_recommended = excluded.is_recommended, 
                sort_order = excluded.sort_order,
-               item_type = excluded.item_type${hasItemI18nCol ? ",\n               i18n_json = excluded.i18n_json" : ""}${hasItemDescCol ? ",\n               description = excluded.description" : ""}${hasItemAvailCol ? ",\n               availability_mode = excluded.availability_mode" : ""}${hasItemStaffOnlyCol ? ",\n               staff_only = excluded.staff_only" : ""}
+               item_type = excluded.item_type${hasItemI18nCol ? ",\n               i18n_json = excluded.i18n_json" : ""}${hasItemDescCol ? ",\n               description = excluded.description" : ""}${hasItemAvailCol ? ",\n               availability_mode = excluded.availability_mode" : ""}${hasItemStaffOnlyCol ? ",\n               staff_only = excluded.staff_only" : ""}${hasItemPrereqCol ? ",\n               prerequisite_mode = excluded.prerequisite_mode" : ""}
              WHERE menu_items.tenant_id = excluded.tenant_id`
           ).bind(
             itemId, tenantId, catId, itemName, price, badgeText, isRec, explicitItemSort, itemType,
             ...(hasItemI18nCol ? [itemI18nJson] : []),
             ...(hasItemDescCol ? [itemDescription] : []),
             ...(hasItemAvailCol ? [itemAvailMode] : []),
-            ...(hasItemStaffOnlyCol ? [itemStaffOnly] : [])
+            ...(hasItemStaffOnlyCol ? [itemStaffOnly] : []),
+            ...(hasItemPrereqCol ? [itemPrereqMode] : [])
           )
         );
 
@@ -1267,8 +1336,73 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
   if (activeCategoryIds.some(id => categoryDeletes.includes(id)) ||
       activeItemIds.some(id => itemDeletes.includes(id))) throw new Error('CONFLICTING_MENU_DELETE');
 
+  if (hasPrereqLinksTbl && pendingPrerequisiteDiffs.length > 0) {
+    const validCatIds = new Set<string>([
+      ...(existingCats || []).map((r: any) => String(r.id)).filter((id) => !categoryDeletes.includes(id)),
+      ...activeCategoryIds,
+    ]);
+    const validItemIds = new Set<string>([
+      ...(existingItems || []).map((r: any) => String(r.id)).filter((id) => !itemDeletes.includes(id)),
+      ...activeItemIds,
+    ]);
+    const resolveTargetCatIds = (rawIds: string[]) =>
+      rawIds.map((raw) => catIdMap.get(raw) || (validCatIds.has(`${tenantId}_${raw}`) ? `${tenantId}_${raw}` : raw));
+    for (const diff of pendingPrerequisiteDiffs) {
+      const resolvedCats = resolveTargetCatIds(diff.requiredCategoryIds);
+      const existingForSource = diff.sourceType === 'item'
+        ? (existingPrereqLinks.byItemId.get(diff.sourceId) || [])
+        : (existingPrereqLinks.byCategoryId.get(diff.sourceId) || []);
+      statements.push(
+        ...buildPrerequisiteLinkDiffStatements({
+          db: env.DB,
+          tenantId,
+          sourceType: diff.sourceType,
+          sourceId: diff.sourceId,
+          mode: diff.mode,
+          requiredItemIds: diff.requiredItemIds,
+          requiredCategoryIds: resolvedCats,
+          existingLinks: existingForSource,
+          ownedCategoryIds: validCatIds,
+          ownedItemIds: validItemIds,
+        })
+      );
+      if (unifiedCatalog) {
+        unifiedCatalog.prerequisiteLinks = (unifiedCatalog.prerequisiteLinks || []).filter(
+          (l) => !(l.sourceType === diff.sourceType && l.sourceId === diff.sourceId)
+        );
+        if (diff.mode === 'require_any') {
+          let sortIdx = 0;
+          for (const cid of new Set(resolvedCats.filter(Boolean))) {
+            unifiedCatalog.prerequisiteLinks.push({
+              sourceType: diff.sourceType,
+              sourceId: diff.sourceId,
+              requiredType: 'category',
+              requiredId: cid,
+              minQuantity: 1,
+              sortOrder: sortIdx++,
+            });
+          }
+          for (const iid of new Set(diff.requiredItemIds.filter(Boolean))) {
+            unifiedCatalog.prerequisiteLinks.push({
+              sourceType: diff.sourceType,
+              sourceId: diff.sourceId,
+              requiredType: 'item',
+              requiredId: iid,
+              minQuantity: 1,
+              sortOrder: sortIdx++,
+            });
+          }
+        }
+      }
+    }
+  }
+
   // Explicit category deletion also removes its child items and modifier links.
   for (const id of categoryDeletes) {
+    if (hasPrereqLinksTbl) {
+      statements.push(env.DB.prepare("DELETE FROM menu_prerequisite_links WHERE tenant_id = ? AND source_type = 'item' AND source_id IN (SELECT id FROM menu_items WHERE tenant_id = ? AND category_id = ?)").bind(tenantId, tenantId, id));
+      statements.push(env.DB.prepare("DELETE FROM menu_prerequisite_links WHERE tenant_id = ? AND ((source_type = 'category' AND source_id = ?) OR (required_type = 'category' AND required_id = ?))").bind(tenantId, id, id));
+    }
     if (hasItemShiftsTbl) {
       statements.push(env.DB.prepare('DELETE FROM menu_item_shifts WHERE tenant_id = ? AND item_id IN (SELECT id FROM menu_items WHERE tenant_id = ? AND category_id = ?)').bind(tenantId, tenantId, id));
     }
@@ -1281,6 +1415,11 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
   if (itemDeletes.length > 0) {
     for (let i = 0; i < itemDeletes.length; i += 50) {
       const chunk = itemDeletes.slice(i, i + 50);
+      if (hasPrereqLinksTbl) {
+        statements.push(env.DB.prepare(
+          `DELETE FROM menu_prerequisite_links WHERE tenant_id = ? AND source_type = 'item' AND source_id IN (${chunk.map(() => '?').join(',')})`
+        ).bind(tenantId, ...chunk));
+      }
       if (hasItemShiftsTbl) {
         statements.push(env.DB.prepare(
           `DELETE FROM menu_item_shifts WHERE tenant_id = ? AND item_id IN (${chunk.map(() => '?').join(',')})`
@@ -1336,6 +1475,11 @@ async function syncMenuToD1(tenantId: string, menuData: any, env: Env): Promise<
     const removed = new Set([...itemDeletes,...unifiedCatalog.products.filter(p=>categoryDeletes.includes(p.category_id)).map(p=>p.id)]);
     const removedGroups=new Set(customDeletes.flatMap(id=>[id,id.startsWith('mg_')?id.slice(3):`mg_${id}`]));
     unifiedCatalog.groups=unifiedCatalog.groups.filter(g=>!removedGroups.has(g.id));
+    if (unifiedCatalog.prerequisiteLinks) {
+      unifiedCatalog.prerequisiteLinks = unifiedCatalog.prerequisiteLinks.filter(
+        (l) => !(l.sourceType === 'category' && categoryDeletes.includes(l.sourceId))
+      );
+    }
     assertProductsCanBeDeleted(unifiedCatalog, removed);
     unifiedCatalog.products=unifiedCatalog.products.filter(p=>!removed.has(p.id));
     unifiedCatalog.links=unifiedCatalog.links.filter(l=>!removed.has(l.itemId) && !removedGroups.has(l.groupId));

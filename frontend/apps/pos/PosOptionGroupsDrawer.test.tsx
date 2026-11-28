@@ -149,4 +149,80 @@ describe('PosOptionGroupsDrawer', () => {
     const sentPayload = JSON.parse(String(productSaveCall![1]?.body || '{}'));
     expect(sentPayload.staffOnly).toBe(true);
   });
+
+  it('configures item prerequisite rule in product drawer, validates empty target, and sends targets on save', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('/api/menu/product')) {
+        const body = JSON.parse(String(init?.body || '{}'));
+        return new Response(
+          JSON.stringify({
+            success: true,
+            id: 'p2',
+            catalog: {
+              ...CATALOG,
+              products: CATALOG.products.map((p) =>
+                p.id === 'p2'
+                  ? {
+                      ...p,
+                      prerequisiteMode: body.prerequisiteMode,
+                      prerequisiteItemIds: body.prerequisiteItemIds,
+                      prerequisiteCategoryIds: body.prerequisiteCategoryIds,
+                      menu_revision: 2,
+                    }
+                  : p
+              ),
+            },
+          }),
+          { status: 200 }
+        );
+      }
+      return new Response(JSON.stringify(CATALOG), { status: 200 });
+    });
+
+    const store = createOptionGroupsStore({
+      getLocale: () => 'zh-TW',
+      getTenantId: () => 'benmi',
+      getWorkerBase: () => 'https://worker.test',
+      getCurrentMenuData: () => [],
+      getSavedMenuSnapshot: () => '[]',
+      setMenuSnapshots: vi.fn(),
+      getAuthHeaders: () => ({ 'Content-Type': 'application/json' }),
+      fetchImpl: fetchMock,
+    });
+
+    await store.openProduct('p2');
+    render(<Harness store={store} />);
+
+    const modeSelect = document.querySelector<HTMLSelectElement>('[data-field="prerequisiteMode"]')!;
+    expect(modeSelect).toBeTruthy();
+    expect(modeSelect.value).toBe('inherit');
+
+    fireEvent.change(modeSelect, { target: { value: 'require_any' } });
+    expect(modeSelect.value).toBe('require_any');
+
+    // Saving without selecting any target should fail validation cleanly
+    let savedEmpty = true;
+    await act(async () => {
+      savedEmpty = await store.save();
+    });
+    expect(savedEmpty).toBe(false);
+    expect(store.getSnapshot().drawer?.error).toContain('尚未勾選');
+
+    const itemCheckbox = document.querySelector<HTMLInputElement>('[data-prereq-item="p1"]')!;
+    expect(itemCheckbox).toBeTruthy();
+    fireEvent.click(itemCheckbox);
+
+    let saved = false;
+    await act(async () => {
+      saved = await store.save();
+    });
+    expect(saved).toBe(true);
+
+    const productSaveCall = fetchMock.mock.calls.find(([url]) => String(url).includes('/api/menu/product'));
+    expect(productSaveCall).toBeTruthy();
+    const sentPayload = JSON.parse(String(productSaveCall![1]?.body || '{}'));
+    expect(sentPayload.prerequisiteMode).toBe('require_any');
+    expect(sentPayload.prerequisiteItemIds).toEqual(['p1']);
+  });
 });

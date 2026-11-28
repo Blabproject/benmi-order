@@ -1038,6 +1038,104 @@ export function PosOptionGroupsDrawer({
             })}
           </div>
 
+          <details
+            data-section="prerequisites"
+            className="ug-i18n-details ug-prereq-details"
+            open={draft.prerequisiteMode === 'require_any' || draft.prerequisiteMode === 'none'}
+          >
+            <summary>
+              {tr('ugPrerequisiteSection')} ·{' '}
+              {tr(
+                draft.prerequisiteMode === 'require_any'
+                  ? 'prereqModeRequireAny'
+                  : draft.prerequisiteMode === 'none'
+                    ? 'prereqModeNone'
+                    : 'prereqModeInherit'
+              )}
+            </summary>
+            <div className="ug-i18n-box ug-prereq-box">
+              <label className="ug-field">
+                <span>{tr('ugPrerequisiteMode')}</span>
+                <select
+                  data-field="prerequisiteMode"
+                  value={draft.prerequisiteMode || 'inherit'}
+                  onChange={(e) => store.setField('prerequisiteMode', e.currentTarget.value)}
+                >
+                  <option value="inherit">{tr('prereqModeInherit')}</option>
+                  <option value="none">{tr('prereqModeNone')}</option>
+                  <option value="require_any">{tr('prereqModeRequireAny')}</option>
+                </select>
+              </label>
+
+              {draft.prerequisiteMode === 'require_any' ? (
+                <div className="ug-prereq-targets">
+                  <p className="ug-muted" style={{ margin: '0 0 8px' }}>
+                    {tr('prereqSelectTargetsLabel')}
+                  </p>
+                  <strong className="ug-prereq-subheading">{tr('prereqSectionCategories')}</strong>
+                  <div className="ug-list" style={{ marginBottom: 12 }}>
+                    {catalogCategories
+                      .filter((c) => c.id !== draft.categoryId)
+                      .map((c) => {
+                        const checked = Boolean(draft.prerequisiteCategoryIds?.includes(c.id));
+                        return (
+                          <label key={`pcat-${c.id}`} className="ug-check">
+                            <input
+                              type="checkbox"
+                              data-prereq-category={c.id}
+                              checked={checked}
+                              onChange={(e) =>
+                                store.toggleProductPrerequisiteTarget(
+                                  'category',
+                                  c.id,
+                                  e.currentTarget.checked
+                                )
+                              }
+                            />
+                            <span>
+                              <strong>{c.name}</strong>
+                            </span>
+                          </label>
+                        );
+                      })}
+                  </div>
+                  <strong className="ug-prereq-subheading">{tr('prereqSectionItems')}</strong>
+                  <div className="ug-list">
+                    {(catalog?.products || [])
+                      .filter((p) => p.id !== draft.id)
+                      .map((p) => {
+                        const checked = Boolean(draft.prerequisiteItemIds?.includes(p.id));
+                        const catName =
+                          catalogCategories.find((c) => c.id === p.category_id)?.name || '';
+                        return (
+                          <label key={`pitem-${p.id}`} className="ug-check">
+                            <input
+                              type="checkbox"
+                              data-prereq-item={p.id}
+                              checked={checked}
+                              onChange={(e) =>
+                                store.toggleProductPrerequisiteTarget(
+                                  'item',
+                                  p.id,
+                                  e.currentTarget.checked
+                                )
+                              }
+                            />
+                            <span>
+                              <strong>{p.name}</strong>
+                              <small>
+                                {catName ? `${catName} · ` : ''}${p.price}
+                              </small>
+                            </span>
+                          </label>
+                        );
+                      })}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </details>
+
           {renderI18nSection({
             prefix: 'i18n',
             i18nMap: draft.i18n,

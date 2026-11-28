@@ -440,7 +440,24 @@ const POS_DICTIONARY = {
     qrModalTitlePrefix: 'QR Code',
     qrNoActiveChannels: '目前無任何已啟用的 QR 碼',
     qrDeleteBtn: '刪除',
-    qrDeleteConfirm: '確定要刪除 QR 碼「{label}」嗎？既有歷史訂單與報表紀錄仍會保留。'
+    qrDeleteConfirm: '確定要刪除 QR 碼「{label}」嗎？既有歷史訂單與報表紀錄仍會保留。',
+    prereqCardTitle: '加購條件限制',
+    prereqCardDesc: '設定顧客須先點選指定主餐或分類，才可加點此處品項',
+    prereqModeInherit: '依分類設定',
+    prereqModeNone: '不限制（可單點）',
+    prereqModeRequireAny: '需搭配指定主餐 / 分類',
+    prereqSelectTargetsLabel: '勾選任一符合即可解鎖的主餐或分類：',
+    prereqSectionCategories: '指定整個分類',
+    prereqSectionItems: '指定個別主餐',
+    prereqNoneSelectedHint: '尚未勾選條件目標，儲存前請至少勾選一項主餐或分類。',
+    prereqSummaryActive: '需搭配 {count} 項指定條件',
+    prereqSummaryNone: '不限制（可單點）',
+    prereqBtnConfigure: '設定條件',
+    prereqBtnCollapse: '收合',
+    prereqBadgeTag: '需搭配主餐',
+    prereqFreeBadgeTag: '可單點',
+    ugPrerequisiteSection: '加購條件限制',
+    ugPrerequisiteMode: '點餐條件'
   },
   vi: {
     sandboxBadge: 'Môi trường thử nghiệm POS (Tách biệt)',
@@ -881,7 +898,24 @@ const POS_DICTIONARY = {
     qrModalTitlePrefix: 'Mã QR',
     qrNoActiveChannels: 'Chưa có mã QR nào đang bật',
     qrDeleteBtn: 'Xóa mã',
-    qrDeleteConfirm: 'Xóa mã QR "{label}"? Các đơn hàng cũ vẫn giữ nguyên tên nhóm trong báo cáo.'
+    qrDeleteConfirm: 'Xóa mã QR "{label}"? Các đơn hàng cũ vẫn giữ nguyên tên nhóm trong báo cáo.',
+    prereqCardTitle: 'Điều kiện gọi kèm',
+    prereqCardDesc: 'Yêu cầu khách chọn món chính hoặc danh mục chỉ định trước khi gọi thêm',
+    prereqModeInherit: 'Theo cài đặt danh mục',
+    prereqModeNone: 'Không giới hạn (Gọi lẻ)',
+    prereqModeRequireAny: 'Cần gọi kèm món chính / danh mục',
+    prereqSelectTargetsLabel: 'Chọn món chính hoặc danh mục giúp mở khóa gọi thêm:',
+    prereqSectionCategories: 'Theo toàn bộ danh mục',
+    prereqSectionItems: 'Theo từng món chính',
+    prereqNoneSelectedHint: 'Chưa chọn món hoặc danh mục điều kiện, vui lòng chọn ít nhất 1 mục.',
+    prereqSummaryActive: 'Cần gọi kèm ({count} điều kiện)',
+    prereqSummaryNone: 'Không giới hạn (Gọi lẻ)',
+    prereqBtnConfigure: 'Thiết lập',
+    prereqBtnCollapse: 'Thu gọn',
+    prereqBadgeTag: 'Cần món chính',
+    prereqFreeBadgeTag: 'Gọi lẻ',
+    ugPrerequisiteSection: 'Điều kiện gọi kèm',
+    ugPrerequisiteMode: 'Quy tắc gọi kèm'
   }
 } as const satisfies Record<PosLocale, Record<string, string>>;
 

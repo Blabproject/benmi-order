@@ -10,6 +10,16 @@ import {
 	loadTenantOperatingShifts,
 	type OperatingShiftDto,
 } from './operating-shifts';
+import {
+	buildCategoryPrerequisiteRule,
+	buildPrerequisiteLinkDiffStatements,
+	extractTargetIds,
+	loadTenantPrerequisiteLinks,
+	normalizeCategoryPrerequisiteMode,
+	normalizeItemPrerequisiteMode,
+	resolveEffectivePrerequisiteRule,
+	type PrerequisiteLinkDto,
+} from './menu-prerequisites';
 
 type EntityI18nEntry = Record<string, string | Record<string, string> | undefined>;
 type EntityI18nMap = Record<string, EntityI18nEntry>;
@@ -130,6 +140,7 @@ export type OptionCatalog = {
 	operatingShifts?: OperatingShiftDto[];
 	categoryShiftLinks?: Array<{ categoryId: string; shiftId: string }>;
 	itemShiftLinks?: Array<{ itemId: string; shiftId: string }>;
+	prerequisiteLinks?: PrerequisiteLinkDto[];
 	revision?: number;
 	imageList?: string[];
 };
@@ -255,9 +266,10 @@ export async function loadOptionCatalog(env: Env, tenantId: string): Promise<Opt
 	if (hasAuthoritativeImageSource) {
 		imageList = Array.from(imageNamesSet);
 	}
-	const [operatingShifts, shiftLinks] = await Promise.all([
+	const [operatingShifts, shiftLinks, prereqData] = await Promise.all([
 		loadTenantOperatingShifts(env.DB, tenantId),
 		loadCategoryAndItemShiftLinks(env.DB, tenantId),
+		loadTenantPrerequisiteLinks(env.DB, tenantId),
 	]);
 	const categoryShiftLinks: Array<{ categoryId: string; shiftId: string }> = [];
 	for (const [categoryId, sids] of shiftLinks.categoryShiftIds.entries()) {
@@ -267,22 +279,45 @@ export async function loadOptionCatalog(env: Env, tenantId: string): Promise<Opt
 	for (const [itemId, sids] of shiftLinks.itemShiftIds.entries()) {
 		for (const shiftId of sids) itemShiftLinks.push({ itemId, shiftId });
 	}
+	const catByIdMap = new Map<string, Row>(categories.map((c) => [String(c.id), c]));
 	const catalog = {
 		revision: Number((results[6].results[0] as Row)?.revision || 0),
-		products: products.map((p) => ({
-			...p,
-			staffOnly: Boolean(p.staff_only),
-			availabilityMode: p.availability_mode || 'inherit',
-			shiftIds: shiftLinks.itemShiftIds.get(String(p.id)) || [],
-		})),
+		products: products.map((p) => {
+			const pId = String(p.id);
+			const itemMode = normalizeItemPrerequisiteMode(p.prerequisite_mode);
+			const itemTargets = extractTargetIds(prereqData.byItemId.get(pId));
+			const parentCat = catByIdMap.get(String(p.category_id)) || null;
+			const prerequisiteRule = resolveEffectivePrerequisiteRule(parentCat, p, prereqData);
+			return {
+				...p,
+				staffOnly: Boolean(p.staff_only),
+				availabilityMode: p.availability_mode || 'inherit',
+				shiftIds: shiftLinks.itemShiftIds.get(pId) || [],
+				prerequisiteMode: itemMode,
+				prerequisiteItemIds: itemMode === 'require_any' ? itemTargets.requiredItemIds : [],
+				prerequisiteCategoryIds: itemMode === 'require_any' ? itemTargets.requiredCategoryIds : [],
+				prerequisiteRule,
+			};
+		}),
 		categories: categories
 			.filter((c) => !['order_customization', 'bundle_pool'].includes(c.category_type))
-			.map((c) => ({
-				...c,
-				availabilityMode: c.availability_mode || 'all_shifts',
-				hideWhenUnavailable: Boolean(c.hide_when_unavailable),
-				shiftIds: shiftLinks.categoryShiftIds.get(String(c.id)) || [],
-			})),
+			.map((c) => {
+				const cId = String(c.id);
+				const catMode = normalizeCategoryPrerequisiteMode(c.prerequisite_mode);
+				const catLinks = prereqData.byCategoryId.get(cId) || [];
+				const catTargets = extractTargetIds(catLinks);
+				const prerequisiteRule = buildCategoryPrerequisiteRule(catMode, catLinks);
+				return {
+					...c,
+					availabilityMode: c.availability_mode || 'all_shifts',
+					hideWhenUnavailable: Boolean(c.hide_when_unavailable),
+					shiftIds: shiftLinks.categoryShiftIds.get(cId) || [],
+					prerequisiteMode: catMode,
+					prerequisiteItemIds: catMode === 'require_any' ? catTargets.requiredItemIds : [],
+					prerequisiteCategoryIds: catMode === 'require_any' ? catTargets.requiredCategoryIds : [],
+					prerequisiteRule,
+				};
+			}),
 		groups: normalized,
 		links: links.map((l) => ({
 			itemId: l.item_id,
@@ -295,6 +330,7 @@ export async function loadOptionCatalog(env: Env, tenantId: string): Promise<Opt
 		operatingShifts,
 		categoryShiftLinks,
 		itemShiftLinks,
+		prerequisiteLinks: prereqData.links,
 		imageList,
 	};
 	return catalog;
@@ -383,6 +419,19 @@ export function assertProductsCanBeDeleted(catalog: OptionCatalog, productIds: S
 			option.subOptions.some((sub: SubOption | string) => typeof sub !== 'string' && sub.productId && productIds.has(sub.productId)),
 		) || group.sources.some((source) => source.type === 'item_list' && source.itemIds?.some((id: string) => productIds.has(id)));
 		if (linked) throw new Error('PRODUCT_IS_LINKED');
+	}
+	for (const prereq of catalog.prerequisiteLinks || []) {
+		if (prereq.requiredType === 'item' && productIds.has(prereq.requiredId)) {
+			if (prereq.sourceType === 'item' && productIds.has(prereq.sourceId)) continue;
+			if (prereq.sourceType === 'item') {
+				const srcProd = catalog.products.find((p) => String(p.id) === prereq.sourceId);
+				if (!srcProd || normalizeItemPrerequisiteMode(srcProd.prerequisite_mode ?? srcProd.prerequisiteMode) !== 'require_any') continue;
+			} else {
+				const srcCat = catalog.categories.find((c) => String(c.id) === prereq.sourceId);
+				if (!srcCat || normalizeCategoryPrerequisiteMode(srcCat.prerequisite_mode ?? srcCat.prerequisiteMode) !== 'require_any') continue;
+			}
+			throw new Error('PRODUCT_IS_LINKED');
+		}
 	}
 }
 
@@ -596,6 +645,15 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 					id,
 				),
 			);
+			if (kind === 'product' && await hasDbTable(env.DB, 'menu_prerequisite_links')) {
+				statements.push(
+					env.DB.prepare('DELETE FROM menu_prerequisite_links WHERE tenant_id=? AND source_type=? AND source_id=?').bind(
+						tenantId,
+						'item',
+						id,
+					),
+				);
+			}
 			if (kind === 'group') {
 				const legacyId = entity.metadata?.source_id || entity.metadata?.source_group_id || id;
 				const legacyKey = entity.metadata?.legacy_key || entity.metadata?.source_group_id || id;
@@ -778,21 +836,28 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 			const oldLinkByGroupId = new Map(oldProductLinks.map((l) => [String(l.groupId), l]));
 			catalog.links = catalog.links.filter((l) => l.itemId !== id).concat(links);
 			validateOptionGraph(catalog);
-			const [hasItemI18nCol, hasItemDescCol, hasItemAvailCol, hasItemStaffOnlyCol, hasItemShiftsTbl] = await Promise.all([
+			const [hasItemI18nCol, hasItemDescCol, hasItemAvailCol, hasItemStaffOnlyCol, hasItemPrereqCol, hasItemShiftsTbl, hasPrereqLinksTbl] = await Promise.all([
 				hasTableColumn(env.DB, 'menu_items', 'i18n_json'),
 				hasTableColumn(env.DB, 'menu_items', 'description'),
 				hasTableColumn(env.DB, 'menu_items', 'availability_mode'),
 				hasTableColumn(env.DB, 'menu_items', 'staff_only'),
+				hasTableColumn(env.DB, 'menu_items', 'prerequisite_mode'),
 				hasDbTable(env.DB, 'menu_item_shifts'),
+				hasDbTable(env.DB, 'menu_prerequisite_links'),
 			]);
 			const rawItemAvailMode = raw.availabilityMode ?? raw.availability_mode;
 			const itemAvailabilityMode =
 				rawItemAvailMode !== undefined
 					? (rawItemAvailMode === 'all_shifts' || rawItemAvailMode === 'selected_shifts' ? rawItemAvailMode : 'inherit')
 					: (previous?.availability_mode || 'inherit');
+			const rawItemPrereqMode = raw.prerequisiteMode ?? raw.prerequisite_mode;
+			const itemPrerequisiteMode =
+				rawItemPrereqMode !== undefined
+					? normalizeItemPrerequisiteMode(rawItemPrereqMode)
+					: normalizeItemPrerequisiteMode(previous?.prerequisite_mode);
 			statements.push(
 				env.DB.prepare(
-					`INSERT INTO menu_items (id,tenant_id,category_id,name,price,badge_text,is_recommended,menu_revision,sort_order,image_key${hasItemI18nCol ? ',i18n_json' : ''}${hasItemDescCol ? ',description' : ''}${hasItemAvailCol ? ',availability_mode' : ''}${hasItemStaffOnlyCol ? ',staff_only' : ''}) VALUES (?,?,?,?,?,?,?,?,?,?${hasItemI18nCol ? ',?' : ''}${hasItemDescCol ? ',?' : ''}${hasItemAvailCol ? ',?' : ''}${hasItemStaffOnlyCol ? ',?' : ''}) ON CONFLICT(id) DO UPDATE SET category_id=excluded.category_id,name=excluded.name,price=excluded.price,badge_text=excluded.badge_text,is_recommended=excluded.is_recommended,menu_revision=excluded.menu_revision,image_key=excluded.image_key${hasItemI18nCol ? ',i18n_json=excluded.i18n_json' : ''}${hasItemDescCol ? ',description=excluded.description' : ''}${hasItemAvailCol ? ',availability_mode=excluded.availability_mode' : ''}${hasItemStaffOnlyCol ? ',staff_only=excluded.staff_only' : ''},updated_at=datetime('now')`,
+					`INSERT INTO menu_items (id,tenant_id,category_id,name,price,badge_text,is_recommended,menu_revision,sort_order,image_key${hasItemI18nCol ? ',i18n_json' : ''}${hasItemDescCol ? ',description' : ''}${hasItemAvailCol ? ',availability_mode' : ''}${hasItemStaffOnlyCol ? ',staff_only' : ''}${hasItemPrereqCol ? ',prerequisite_mode' : ''}) VALUES (?,?,?,?,?,?,?,?,?,?${hasItemI18nCol ? ',?' : ''}${hasItemDescCol ? ',?' : ''}${hasItemAvailCol ? ',?' : ''}${hasItemStaffOnlyCol ? ',?' : ''}${hasItemPrereqCol ? ',?' : ''}) ON CONFLICT(id) DO UPDATE SET category_id=excluded.category_id,name=excluded.name,price=excluded.price,badge_text=excluded.badge_text,is_recommended=excluded.is_recommended,menu_revision=excluded.menu_revision,image_key=excluded.image_key${hasItemI18nCol ? ',i18n_json=excluded.i18n_json' : ''}${hasItemDescCol ? ',description=excluded.description' : ''}${hasItemAvailCol ? ',availability_mode=excluded.availability_mode' : ''}${hasItemStaffOnlyCol ? ',staff_only=excluded.staff_only' : ''}${hasItemPrereqCol ? ',prerequisite_mode=excluded.prerequisite_mode' : ''},updated_at=datetime('now')`,
 				).bind(
 					id,
 					tenantId,
@@ -808,8 +873,40 @@ export async function saveOptionEntity(request: Request, env: Env, kind: 'produc
 					...(hasItemDescCol ? [productDescription] : []),
 					...(hasItemAvailCol ? [itemAvailabilityMode] : []),
 					...(hasItemStaffOnlyCol ? [productStaffOnly] : []),
+					...(hasItemPrereqCol ? [itemPrerequisiteMode] : []),
 				),
 			);
+			const hasExplicitPrereqTargets =
+				rawItemPrereqMode !== undefined ||
+				Array.isArray(raw.prerequisiteItemIds ?? raw.prerequisite_item_ids) ||
+				Array.isArray(raw.prerequisiteCategoryIds ?? raw.prerequisite_category_ids);
+			if (hasPrereqLinksTbl && hasExplicitPrereqTargets) {
+				const existingItemPrereqs = (catalog.prerequisiteLinks || []).filter(
+					(l) => l.sourceType === 'item' && l.sourceId === id,
+				);
+				const ownedCatSet = new Set(catalog.categories.map((c) => String(c.id)));
+				const ownedProdSet = new Set(catalog.products.map((p) => String(p.id)));
+				const rawReqItems = Array.isArray(raw.prerequisiteItemIds ?? raw.prerequisite_item_ids)
+					? (raw.prerequisiteItemIds ?? raw.prerequisite_item_ids)
+					: extractTargetIds(existingItemPrereqs).requiredItemIds;
+				const rawReqCats = Array.isArray(raw.prerequisiteCategoryIds ?? raw.prerequisite_category_ids)
+					? (raw.prerequisiteCategoryIds ?? raw.prerequisite_category_ids)
+					: extractTargetIds(existingItemPrereqs).requiredCategoryIds;
+				statements.push(
+					...buildPrerequisiteLinkDiffStatements({
+						db: env.DB,
+						tenantId,
+						sourceType: 'item',
+						sourceId: id,
+						mode: itemPrerequisiteMode,
+						requiredItemIds: rawReqItems,
+						requiredCategoryIds: rawReqCats,
+						existingLinks: existingItemPrereqs,
+						ownedCategoryIds: ownedCatSet,
+						ownedItemIds: ownedProdSet,
+					}),
+				);
+			}
 			if (hasItemShiftsTbl && Array.isArray(raw.shiftIds ?? raw.shift_ids)) {
 				const incomingShiftIds = [...new Set<string>((raw.shiftIds ?? raw.shift_ids).map((s: any) => String(s)).filter(Boolean))];
 				const ownedShiftIds = new Set((catalog.operatingShifts || []).map((s) => s.id));

@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const ts = require('../benmi-worker-official/node_modules/typescript');
-const { fixture } = require('./helpers/option-groups.cjs');
+const { fixture, getMenuPrerequisitesExports } = require('./helpers/option-groups.cjs');
 
 const menuScript = new vm.Script(ts.transpileModule(
   fs.readFileSync('benmi-worker-official/src/modules/menu.ts', 'utf8'),
@@ -22,6 +22,7 @@ async function setup(t, group = {}) {
     crypto: require('node:crypto').webcrypto,
     require(name) {
       if (name.includes('option-groups')) return f.api;
+      if (name.includes('menu-prerequisites')) return getMenuPrerequisitesExports();
       if (name.includes('operating-shifts')) return {
         hasDbTable: async () => false,
         loadCategoryAndItemShiftLinks: async () => ({ categoryShiftIds: new Map(), itemShiftIds: new Map() }),

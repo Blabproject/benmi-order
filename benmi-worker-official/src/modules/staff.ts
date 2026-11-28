@@ -457,7 +457,7 @@ async function handleStaffOrderWrite(request: Request, env: Env, path: string, t
     if (row && !current) snapshot.rounds.push({roundNumber:Number(row.round_count)||1,createdAt:row.created_at,
       note:'',groups:[],items:[],discount:0,total:row.total_amount,legacyContent:row.order_content});
     const roundNumber = Math.max(0,...snapshot.rounds.map(r=>r.roundNumber))+1;
-    const round = await buildDetailRound(env,tenant,body,roundNumber,undefined,undefined,{allowStaffOnly:true});
+    const round = await buildDetailRound(env,tenant,body,roundNumber,undefined,undefined,{allowStaffOnly:true, priorRounds: snapshot.rounds});
     snapshot.rounds.push(round);
     snapshot.total = Math.round(snapshot.rounds.reduce((sum,r)=>sum+r.total,0)*100)/100;
     const detailRevision = Number(row?.detail_revision || 0)+1;
@@ -504,9 +504,10 @@ async function handleStaffOrderWrite(request: Request, env: Env, path: string, t
     return json(response,create?201:200);
   } catch (error) {
     const code = error instanceof Error ? error.message : 'STAFF_WRITE_FAILED';
-    const validation = /^(OPTION_|PRODUCT_|INVALID_|ORDER_PRICE_|MIN_ORDER_|EMPTY_|DUPLICATE_|PORTION_|ORDER_SELECTIONS_|ORDER_CLIENT_)/.test(code);
+    const validation = /^(OPTION_|PRODUCT_|INVALID_|ORDER_PRICE_|MIN_ORDER_|EMPTY_|DUPLICATE_|PORTION_|ORDER_SELECTIONS_|ORDER_CLIENT_|PREREQUISITE_)/.test(code);
     if (!(error instanceof DetailError) && !validation) console.error('[StaffWrite]',{tenant,code:'STAFF_WRITE_FAILED'});
-    return json({ok:false,error:error instanceof DetailError || validation ? code : 'STAFF_WRITE_FAILED'},
+    const extra = error instanceof DetailError && error.details ? error.details : {};
+    return json({ok:false,error:error instanceof DetailError || validation ? code : 'STAFF_WRITE_FAILED', ...extra},
       error instanceof DetailError ? error.status : validation?400:500);
   }
 }

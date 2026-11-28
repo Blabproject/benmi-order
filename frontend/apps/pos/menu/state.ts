@@ -112,6 +112,7 @@ export interface PosMenuRuntimeState {
   itemDetailSnapshotBeforeEdit: MenuItemDraft | null;
   collapsedCategoryMods: Set<string>;
   initializedCategoryMods: Set<string>;
+  expandedCategoryPrereq: Set<string>;
   tenantImageList: Set<string> | null;
   isMenuAiTranslating: boolean;
   hubModalReturnState: HubModalReturnState | null;
@@ -178,6 +179,7 @@ export const menuState: PosMenuRuntimeState = {
   itemDetailSnapshotBeforeEdit: null,
   collapsedCategoryMods: new Set<string>(),
   initializedCategoryMods: new Set<string>(),
+  expandedCategoryPrereq: new Set<string>(),
   tenantImageList: null,
   isMenuAiTranslating: false,
   hubModalReturnState: null,

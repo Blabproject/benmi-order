@@ -374,7 +374,21 @@
             collection_takeaway_only_hint: '此時段僅供外帶自取',
             collection_scheduled_hint: '此時段供應時間為 {window}，已自動切換為預約時段',
             collection_preview_hint: '此時段供應時間為 {window}（目前僅供瀏覽）',
-            qr_channel_banner_prefix: 'Tag：'
+            qr_channel_banner_prefix: 'Tag：',
+            prereq_cat_locked: '需搭配：{target}',
+            prereq_cat_unlocked: '已可加點',
+            prereq_jump_to_addons: '前往「{cat}」加點',
+            prereq_sheet_title: '加點品項需搭配主餐',
+            prereq_sheet_desc: '選購「{addon}」前，需先點購「{parent}」',
+            prereq_sheet_pick_label: '選擇搭配的主餐',
+            prereq_sheet_add_both: '一併加入 {parent} + {addon} (${total})',
+            prereq_sheet_add_parent_first: '先選擇「{parent}」並加購',
+            prereq_sheet_view_main: '前往查看主餐',
+            prereq_sheet_parent_oos: '所需搭配的主餐目前皆已售完，暫無法加購此品項',
+            prereq_remove_confirm_title: '一併移除加點品項？',
+            prereq_remove_confirm_body: '移除「{parent}」後，以下需搭配的加點品項將一併移除：',
+            prereq_remove_confirm_ok: '確定一併移除',
+            err_prerequisite_required: '選購「{addon}」需先點購「{parent}」'
         },
 
         'en': {
@@ -724,7 +738,21 @@
             collection_takeaway_only_hint: 'Takeaway only during this menu period',
             collection_scheduled_hint: 'Served {window}. Switched to scheduled pickup.',
             collection_preview_hint: 'Served {window} (preview only)',
-            qr_channel_banner_prefix: 'Tag: '
+            qr_channel_banner_prefix: 'Tag: ',
+            prereq_cat_locked: 'Requires: {target}',
+            prereq_cat_unlocked: 'Add-ons Unlocked',
+            prereq_jump_to_addons: 'Add {cat}',
+            prereq_sheet_title: 'Main Item Required',
+            prereq_sheet_desc: 'Order "{parent}" first to add "{addon}"',
+            prereq_sheet_pick_label: 'Choose a qualifying item',
+            prereq_sheet_add_both: 'Add {parent} + {addon} (${total})',
+            prereq_sheet_add_parent_first: 'Select "{parent}" & Add',
+            prereq_sheet_view_main: 'View Main Menu',
+            prereq_sheet_parent_oos: 'All qualifying main items are currently sold out',
+            prereq_remove_confirm_title: 'Remove Linked Add-ons?',
+            prereq_remove_confirm_body: 'Removing "{parent}" will also remove these dependent add-ons:',
+            prereq_remove_confirm_ok: 'Remove All',
+            err_prerequisite_required: '"{addon}" requires ordering "{parent}" first.'
         },
 
         'vi': {
@@ -1074,7 +1102,21 @@
             collection_takeaway_only_hint: 'Khung giờ này chỉ phục vụ mang đi',
             collection_scheduled_hint: 'Thực đơn phục vụ lúc {window}. Đã chuyển sang hẹn giờ lấy.',
             collection_preview_hint: 'Thực đơn phục vụ lúc {window} (chỉ xem trước)',
-            qr_channel_banner_prefix: 'Tag: '
+            qr_channel_banner_prefix: 'Tag: ',
+            prereq_cat_locked: 'Cần gọi kèm: {target}',
+            prereq_cat_unlocked: 'Đã mở gọi kèm',
+            prereq_jump_to_addons: 'Gọi thêm {cat}',
+            prereq_sheet_title: 'Món gọi thêm cần gọi kèm món chính',
+            prereq_sheet_desc: 'Cần chọn "{parent}" trước khi gọi thêm "{addon}"',
+            prereq_sheet_pick_label: 'Chọn món chính đi kèm',
+            prereq_sheet_add_both: 'Thêm cả {parent} + {addon} (${total})',
+            prereq_sheet_add_parent_first: 'Chọn "{parent}" và thêm món',
+            prereq_sheet_view_main: 'Xem món chính',
+            prereq_sheet_parent_oos: 'Món chính đi kèm hiện đã hết hàng, tạm thời chưa thể gọi thêm',
+            prereq_remove_confirm_title: 'Xóa kèm các món gọi thêm?',
+            prereq_remove_confirm_body: 'Khi bỏ "{parent}", các món gọi thêm đi kèm sau sẽ được xóa cùng:',
+            prereq_remove_confirm_ok: 'Xóa tất cả',
+            err_prerequisite_required: 'Món "{addon}" cần gọi kèm "{parent}".'
         }
     };
 

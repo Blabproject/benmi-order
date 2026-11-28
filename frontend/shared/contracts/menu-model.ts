@@ -96,6 +96,10 @@ export interface MenuItemDraft {
   sort_order?: number;
   availabilityMode?: 'inherit' | 'all_shifts' | 'selected_shifts' | string;
   shiftIds?: string[];
+  prerequisiteMode?: 'inherit' | 'none' | 'require_any' | string;
+  prerequisiteItemIds?: string[];
+  prerequisiteCategoryIds?: string[];
+  prerequisiteRule?: Record<string, unknown> | null;
   i18n?: Record<string, unknown>;
   originalName?: string;
   [key: string]: unknown;
@@ -114,6 +118,10 @@ export interface MenuCategoryDraft {
   availabilityMode?: 'all_shifts' | 'selected_shifts' | string;
   hideWhenUnavailable?: boolean;
   shiftIds?: string[];
+  prerequisiteMode?: 'none' | 'require_any' | string;
+  prerequisiteItemIds?: string[];
+  prerequisiteCategoryIds?: string[];
+  prerequisiteRule?: Record<string, unknown> | null;
   sortOrder?: number;
   i18n?: Record<string, unknown>;
   groups?: MenuOptionGroupDraft[];
@@ -140,6 +148,13 @@ export interface BootstrapMenuItemDto {
   availability_mode?: string;
   shiftIds?: string[];
   shift_ids?: string[];
+  prerequisiteMode?: string;
+  prerequisite_mode?: string;
+  prerequisiteItemIds?: string[];
+  prerequisite_item_ids?: string[];
+  prerequisiteCategoryIds?: string[];
+  prerequisite_category_ids?: string[];
+  prerequisiteRule?: Record<string, unknown> | null;
   modifierGroups?: ItemModifierGroupDraft[];
   i18n?: Record<string, unknown>;
 }
@@ -160,6 +175,13 @@ export interface BootstrapMenuCategoryDto {
   hide_when_unavailable?: boolean | number;
   shiftIds?: string[];
   shift_ids?: string[];
+  prerequisiteMode?: string;
+  prerequisite_mode?: string;
+  prerequisiteItemIds?: string[];
+  prerequisite_item_ids?: string[];
+  prerequisiteCategoryIds?: string[];
+  prerequisite_category_ids?: string[];
+  prerequisiteRule?: Record<string, unknown> | null;
   modifierGroups?: Array<{ id?: string }>;
   sortOrder?: number;
   sort_order?: number;
@@ -289,6 +311,9 @@ export interface SerializedMenuItemPayload {
   sort_order: number;
   availability_mode?: string;
   shift_ids?: string[];
+  prerequisite_mode?: string;
+  prerequisite_item_ids?: string[];
+  prerequisite_category_ids?: string[];
   modifier_groups?: ItemModifierGroupDraft[];
   i18n?: Record<string, unknown>;
 }
@@ -302,6 +327,9 @@ export interface SerializedMenuCategoryPayload {
   __availability_mode?: string;
   __hide_when_unavailable?: number;
   __shift_ids?: string[];
+  __prerequisite_mode?: string;
+  __prerequisite_item_ids?: string[];
+  __prerequisite_category_ids?: string[];
   __sort_order: number;
   __i18n?: Record<string, unknown>;
   [itemName: string]:
@@ -375,12 +403,14 @@ export function canonicalMenuSnapshot(data: unknown): string {
       const sortedKeys = Object.keys(record).sort();
       const res: Record<string, unknown> = {};
       for (const k of sortedKeys) {
-        if (k.startsWith('_')) continue;
+        if (k.startsWith('_') || k === 'prerequisiteRule') continue;
         const v = record[k];
         if (
           (k === 'modifierGroups' ||
             k === 'appliedItems' ||
             k === 'appliedCategories' ||
+            k === 'prerequisiteItemIds' ||
+            k === 'prerequisiteCategoryIds' ||
             k === 'sub_options') &&
           (v === undefined || v === null || (Array.isArray(v) && v.length === 0))
         ) {
@@ -497,6 +527,21 @@ export function normalizeBootstrapMenuCategories(
         : Array.isArray(cat.shift_ids)
           ? [...cat.shift_ids]
           : [],
+      prerequisiteMode:
+        cat.prerequisiteMode === 'require_any' || cat.prerequisite_mode === 'require_any'
+          ? 'require_any'
+          : 'none',
+      prerequisiteItemIds: Array.isArray(cat.prerequisiteItemIds)
+        ? [...cat.prerequisiteItemIds]
+        : Array.isArray(cat.prerequisite_item_ids)
+          ? [...cat.prerequisite_item_ids]
+          : [],
+      prerequisiteCategoryIds: Array.isArray(cat.prerequisiteCategoryIds)
+        ? [...cat.prerequisiteCategoryIds]
+        : Array.isArray(cat.prerequisite_category_ids)
+          ? [...cat.prerequisite_category_ids]
+          : [],
+      ...(cat.prerequisiteRule ? { prerequisiteRule: cat.prerequisiteRule } : {}),
       sortOrder: Number(
         cat.sortOrder !== undefined ? cat.sortOrder : cat.sort_order !== undefined ? cat.sort_order : cIdx + 1
       ),
@@ -519,6 +564,23 @@ export function normalizeBootstrapMenuCategories(
           : Array.isArray(it.shift_ids)
             ? [...it.shift_ids]
             : [],
+        prerequisiteMode:
+          it.prerequisiteMode === 'none' || it.prerequisite_mode === 'none'
+            ? 'none'
+            : it.prerequisiteMode === 'require_any' || it.prerequisite_mode === 'require_any'
+              ? 'require_any'
+              : 'inherit',
+        prerequisiteItemIds: Array.isArray(it.prerequisiteItemIds)
+          ? [...it.prerequisiteItemIds]
+          : Array.isArray(it.prerequisite_item_ids)
+            ? [...it.prerequisite_item_ids]
+            : [],
+        prerequisiteCategoryIds: Array.isArray(it.prerequisiteCategoryIds)
+          ? [...it.prerequisiteCategoryIds]
+          : Array.isArray(it.prerequisite_category_ids)
+            ? [...it.prerequisite_category_ids]
+            : [],
+        ...(it.prerequisiteRule ? { prerequisiteRule: it.prerequisiteRule } : {}),
         modifierGroups: Array.isArray(it.modifierGroups) ? it.modifierGroups : [],
         originalName: it.name,
         ...(it.i18n && typeof it.i18n === 'object' && Object.keys(it.i18n).length > 0 ? { i18n: it.i18n } : {})
@@ -780,6 +842,21 @@ export function serializeMenuData(
     }
   }
 
+  for (const cat of categories.filter(c => !isCustomCat(c))) {
+    if (Array.isArray(cat.prerequisiteItemIds)) {
+      cat.prerequisiteItemIds = [
+        ...new Set(cat.prerequisiteItemIds.map(id => temporaryItemIds.get(String(id)) || String(id)))
+      ];
+    }
+    for (const item of cat.items ?? []) {
+      if (Array.isArray(item.prerequisiteItemIds)) {
+        item.prerequisiteItemIds = [
+          ...new Set(item.prerequisiteItemIds.map(id => temporaryItemIds.get(String(id)) || String(id)))
+        ];
+      }
+    }
+  }
+
   for (const cat of categories.filter(isCustomCat)) {
     for (const group of cat.groups ?? []) {
       if (Array.isArray(group.appliedItems)) {
@@ -859,6 +936,7 @@ export function serializeMenuData(
       continue;
     }
 
+    const catPrereqMode = cat.prerequisiteMode === 'require_any' ? 'require_any' : 'none';
     const catPayload: SerializedMenuCategoryPayload = {
       __title: cat.title,
       __short_name: cat.shortName || cat.title,
@@ -868,6 +946,15 @@ export function serializeMenuData(
       __availability_mode: cat.availabilityMode === 'selected_shifts' ? 'selected_shifts' : 'all_shifts',
       __hide_when_unavailable: cat.hideWhenUnavailable ? 1 : 0,
       __shift_ids: Array.isArray(cat.shiftIds) ? [...cat.shiftIds] : [],
+      __prerequisite_mode: catPrereqMode,
+      __prerequisite_item_ids:
+        catPrereqMode === 'require_any' && Array.isArray(cat.prerequisiteItemIds)
+          ? [...new Set(cat.prerequisiteItemIds)]
+          : [],
+      __prerequisite_category_ids:
+        catPrereqMode === 'require_any' && Array.isArray(cat.prerequisiteCategoryIds)
+          ? [...new Set(cat.prerequisiteCategoryIds)]
+          : [],
       __sort_order: currentOrder
     };
     if (cat.i18n && typeof cat.i18n === 'object' && Object.keys(cat.i18n).length > 0) {
@@ -918,6 +1005,24 @@ export function serializeMenuData(
           : [];
       serializedItem.shift_ids =
         serializedItem.availability_mode === 'selected_shifts' ? [...rawShiftIds] : [];
+
+      const rawPrereqMode = item.prerequisiteMode ?? item.prerequisite_mode;
+      serializedItem.prerequisite_mode =
+        rawPrereqMode === 'none' || rawPrereqMode === 'require_any' ? rawPrereqMode : 'inherit';
+      const rawPrereqItems = Array.isArray(item.prerequisiteItemIds)
+        ? item.prerequisiteItemIds
+        : Array.isArray(item.prerequisite_item_ids)
+          ? (item.prerequisite_item_ids as string[])
+          : [];
+      const rawPrereqCats = Array.isArray(item.prerequisiteCategoryIds)
+        ? item.prerequisiteCategoryIds
+        : Array.isArray(item.prerequisite_category_ids)
+          ? (item.prerequisite_category_ids as string[])
+          : [];
+      serializedItem.prerequisite_item_ids =
+        serializedItem.prerequisite_mode === 'require_any' ? [...new Set(rawPrereqItems)] : [];
+      serializedItem.prerequisite_category_ids =
+        serializedItem.prerequisite_mode === 'require_any' ? [...new Set(rawPrereqCats)] : [];
 
       const linkedGroups: ItemModifierGroupDraft[] = (
         Array.isArray(item.modifierGroups) ? item.modifierGroups : []

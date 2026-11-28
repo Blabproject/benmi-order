@@ -12,6 +12,7 @@ declare function handleItemDetailImageSelect(event: ChangeEvent<HTMLInputElement
 declare function translateItemDetailWithAI(): Promise<void>;
 declare function transitionToSubEditor(type: 'modifiers' | 'bundle'): void;
 declare function handleQuickTagClick(tag: string): void;
+declare function setItemDetailPrerequisiteMode(mode: string): void;
 
 interface FormView {
   category: string;
@@ -191,6 +192,21 @@ function ItemDetailForm({ category, name, create, bundle, tag }: FormView & { ta
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
               </div>
             </Button>
+            <div id="item-detail-prereq-card" className="item-detail-prereq-panel" style={{ marginTop: "14px", paddingTop: "14px", borderTop: "1px solid #e2e8f0" }}>
+              <label className="item-detail-label" htmlFor="item-detail-prereq-mode">{t('prereqCardTitle')}</label>
+              <select
+                id="item-detail-prereq-mode"
+                className="item-detail-input"
+                style={{ height: "48px", width: "100%" }}
+                defaultValue="inherit"
+                onChange={(e) => setItemDetailPrerequisiteMode(e.currentTarget.value)}
+              >
+                <option value="inherit">{t('prereqModeInherit')}</option>
+                <option value="none">{t('prereqModeNone')}</option>
+                <option value="require_any">{t('prereqModeRequireAny')}</option>
+              </select>
+              <div id="item-detail-prereq-targets" style={{ display: "none", marginTop: "10px" }}></div>
+            </div>
           </div>
         </div>
       </div>

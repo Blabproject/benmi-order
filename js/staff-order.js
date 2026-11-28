@@ -113,10 +113,32 @@ window.StaffOrder = (() => {
     window.StaffOrderView.cartHeader(target, round);
   }
 
+  async function syncSelectedTableOrderPrerequisites(tableId) {
+    const table = tables.find(row => row.id === tableId);
+    if (!table || !table.active_order_key) {
+      window.appendParentOrderItems = [];
+      window.appendParentLegacyText = '';
+      refreshCatalog();
+      return;
+    }
+    try {
+      const data = await api(`/api/staff/orders/${encodeURIComponent(table.active_order_key)}`);
+      const rounds = data?.detailSnapshot?.rounds || [];
+      const snapItems = rounds.flatMap(r => Array.isArray(r?.items) ? r.items : []);
+      window.appendParentOrderItems = snapItems.length > 0 ? snapItems : (Array.isArray(data?.items) ? data.items : []);
+      window.appendParentLegacyText = String(data?.order?.order_content || '');
+      refreshCatalog();
+    } catch (e) {
+      window.appendParentOrderItems = [];
+      window.appendParentLegacyText = '';
+    }
+  }
+
   function selectTable(tableId) {
     const picker = select();
     if (picker) picker.value = tableId;
     setCustomerDiningOption(tableId ? 'dine_in' : 'takeaway');
+    void syncSelectedTableOrderPrerequisites(tableId);
     updateTotal();
     saveDraft();
   }
@@ -244,8 +266,22 @@ window.StaffOrder = (() => {
       const locale = window.currentClientLocale || 'zh-TW';
       const label = category.i18n?.[locale]?.shortName
         || (category.shortName && title.includes(category.shortName) ? category.shortName : title);
-      const promo = category.pricingRules?.promo_label_i18n?.[locale]
+      let promo = category.pricingRules?.promo_label_i18n?.[locale]
         || locText(category, 'promo_label', '') || category.pricingRules?.promo_label || '';
+      if (category.prerequisiteRule && typeof window.evaluateCategoryPrerequisite === 'function') {
+        const prereqState = window.evaluateCategoryPrerequisite(category);
+        if (prereqState && prereqState.required) {
+          const prereqPromo = prereqState.unlocked
+            ? _cmT('prereq_cat_unlocked', null, '已可加點', 'Đã mở gọi kèm')
+            : _cmT(
+                'prereq_cat_locked',
+                { target: prereqState.requiredLabel },
+                `需搭配：${prereqState.requiredLabel}`,
+                `Cần gọi kèm: ${prereqState.requiredLabel}`
+              );
+          promo = promo ? `${promo} · ${prereqPromo}` : prereqPromo;
+        }
+      }
       const availability = section.availability;
       const items = section.visibleItems.map(item => itemView(category, item));
       let schedule = '';
@@ -789,5 +825,25 @@ window.StaffOrder = (() => {
     if (document.visibilityState === 'visible') syncTables();
   }, 15000);
 
-  return { start, submit, ready, syncTables, renderCatalog, openCashierModal, closeCashierModal };
+  function refreshPrerequisiteState() {
+    if (catalogSections.length > 0) refreshCatalog();
+  }
+
+  function focusCategorySlug(slug) {
+    if (!slug) return;
+    activeTabId = `sec-${slug}`;
+    refreshCatalog();
+  }
+
+  return {
+    start,
+    submit,
+    ready,
+    syncTables,
+    renderCatalog,
+    openCashierModal,
+    closeCashierModal,
+    refreshPrerequisiteState,
+    focusCategorySlug
+  };
 })();

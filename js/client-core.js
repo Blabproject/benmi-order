@@ -2158,7 +2158,7 @@ async function initApp() {
         const cachedRaw = localStorage.getItem(`tenant_bootstrap_${tenantId}`);
         if (cachedRaw) {
             const parsed = JSON.parse(cachedRaw);
-            if (parsed?.tenant?.id === tenantId && Number(parsed.bootstrapVersion) >= 8 && parsed.menuComplete === true) {
+            if (parsed?.tenant?.id === tenantId && Number(parsed.bootstrapVersion) >= 9 && parsed.menuComplete === true) {
                 bootstrapData = parsed;
                 window.bootstrapData = parsed;
                 if (typeof buildModifierPriceMap === 'function') {

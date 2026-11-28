@@ -41,6 +41,7 @@ interface ProductRow {
   price?: number | null;
   isOos?: boolean;
   staffOnly?: boolean;
+  prerequisiteBadge?: string;
   badge: string;
   bundleCount?: number;
   modifierCount: number;
@@ -127,7 +128,7 @@ function ProductList(props: ProductListProps) {
   if (!rows.length) return <div className="menu-category-empty"><p>{t('menuEmptyCategory')}</p></div>;
 
   return rows.map((product, index) => {
-    const { name, price, isOos, staffOnly, badge, bundleCount, modifierCount } = product;
+    const { name, price, isOos, staffOnly, prerequisiteBadge, badge, bundleCount, modifierCount } = product;
     const bundle = bundleCount !== undefined;
     const status = t(isOos ? 'stockStatusOutOfStock' : 'stockStatusInStock');
     const modifierText = modifierCount ? `${modifierCount} ${t('customItemModifiers')}`
@@ -151,6 +152,7 @@ function ProductList(props: ProductListProps) {
           <div className="menu-item-meta-col">
             {bundle && <Badge variant="amber" shape="square" className="menu-combo-badge">{t('bundleBadge')}</Badge>}
             {staffOnly && <Badge variant="blue" shape="square" className="menu-item-staff-only-badge">{t('staffOnlyBadge')}</Badge>}
+            {prerequisiteBadge && <Badge variant="amber" shape="square" className="menu-item-prereq-badge">{prerequisiteBadge}</Badge>}
             {badge && <Badge variant="destructive" shape="square" className="menu-item-quick-badge">{badge}</Badge>}
             <Badge
               variant={modifierCount ? 'blue' : inheritedCount ? 'secondary' : 'outline'}

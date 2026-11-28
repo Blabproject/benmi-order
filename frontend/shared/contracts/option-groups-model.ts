@@ -31,6 +31,11 @@ export interface OptionCatalogProductDto {
   is_out_of_stock?: boolean | number;
   out_of_stock_until?: string | null;
   staff_only?: boolean | number;
+  prerequisiteMode?: 'inherit' | 'none' | 'require_any' | string;
+  prerequisite_mode?: string;
+  prerequisiteItemIds?: string[];
+  prerequisiteCategoryIds?: string[];
+  prerequisiteRule?: Record<string, unknown> | null;
   menu_revision?: number;
   i18n?: MenuI18nMapDto;
   [key: string]: unknown;
@@ -41,6 +46,11 @@ export interface OptionCatalogCategoryDto {
   name: string;
   slug?: string;
   category_type?: string;
+  prerequisiteMode?: 'none' | 'require_any' | string;
+  prerequisite_mode?: string;
+  prerequisiteItemIds?: string[];
+  prerequisiteCategoryIds?: string[];
+  prerequisiteRule?: Record<string, unknown> | null;
   [key: string]: unknown;
 }
 
@@ -150,6 +160,9 @@ export interface ProductDraft {
   badgeText: string;
   isRecommended: boolean;
   staffOnly?: boolean;
+  prerequisiteMode?: 'inherit' | 'none' | 'require_any';
+  prerequisiteItemIds?: string[];
+  prerequisiteCategoryIds?: string[];
   revision: number;
   i18n: MenuI18nMapDto;
   links: OptionCatalogLinkDto[];
@@ -555,6 +568,14 @@ export function entitySnapshot(
       badgeText: d.badgeText || '',
       isRecommended: Boolean(d.isRecommended),
       staffOnly: Boolean(d.staffOnly),
+      prerequisiteMode:
+        d.prerequisiteMode === 'none' || d.prerequisiteMode === 'require_any'
+          ? d.prerequisiteMode
+          : 'inherit',
+      prerequisiteItemIds:
+        d.prerequisiteMode === 'require_any' ? sortedUniqueIds(d.prerequisiteItemIds) : [],
+      prerequisiteCategoryIds:
+        d.prerequisiteMode === 'require_any' ? sortedUniqueIds(d.prerequisiteCategoryIds) : [],
       imageKey: d.imageKey,
       imageDraft: d.imageDraft || null,
       i18n: cleanI18n(d.i18n),
@@ -762,6 +783,15 @@ export function rebaseMenuSnapshots({
           badgeText: p.badge_text || '',
           isRecommended: Boolean(p.is_recommended),
           staffOnly: Boolean(p.staff_only),
+          prerequisiteMode:
+            p.prerequisiteMode === 'none' || p.prerequisite_mode === 'none'
+              ? 'none'
+              : p.prerequisiteMode === 'require_any' || p.prerequisite_mode === 'require_any'
+                ? 'require_any'
+                : 'inherit',
+          prerequisiteItemIds: Array.isArray(p.prerequisiteItemIds) ? [...p.prerequisiteItemIds] : [],
+          prerequisiteCategoryIds: Array.isArray(p.prerequisiteCategoryIds) ? [...p.prerequisiteCategoryIds] : [],
+          ...(p.prerequisiteRule ? { prerequisiteRule: p.prerequisiteRule } : {}),
           imageKey: p.image_key || null,
           imageUrl: p.image_key ? (old?.imageUrl as string | null | undefined) : null,
           itemType: 'standard',

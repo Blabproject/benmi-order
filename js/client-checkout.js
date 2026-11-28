@@ -494,7 +494,27 @@ function initAppendModeIfPresent() {
         if (submitBtn) {
             submitBtn.innerText = _coT('btn_submit_append', null, '確認加點');
         }
+        loadAppendParentContextIfNeeded(parentOrderKey);
     }
+}
+
+async function loadAppendParentContextIfNeeded(parentOrderKey) {
+    if (!parentOrderKey) return;
+    try {
+        const tenantId = (typeof getTenantIdFromUrl === 'function' ? getTenantIdFromUrl() : null) || 'benmi';
+        const res = await fetch(`${WORKER_BASE}/api/order/edit-context?key=${encodeURIComponent(parentOrderKey)}&tenant_id=${encodeURIComponent(tenantId)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data || !data.success || !data.order || window.parentOrderKey !== parentOrderKey) return;
+        if (typeof DetailCheckout !== 'undefined' && data.order.detailSnapshot?.schemaVersion === 1) {
+            DetailCheckout.setContext(data.order);
+        }
+        const snapshotRounds = data.order.detailSnapshot?.rounds || [];
+        const snapshotItems = snapshotRounds.flatMap(r => Array.isArray(r?.items) ? r.items : []);
+        window.appendParentOrderItems = snapshotItems.length > 0 ? snapshotItems : (Array.isArray(data.items) ? data.items : []);
+        window.appendParentLegacyText = String(data.order.content || '');
+        if (typeof updatePrerequisiteUI === 'function') updatePrerequisiteUI();
+    } catch (e) {}
 }
 
 function clearTableQrModeState({ clearUiLocks = true } = {}) {
@@ -503,6 +523,8 @@ function clearTableQrModeState({ clearUiLocks = true } = {}) {
     window.parentOrderKey = null;
     window.parentOrderDisplayKey = null;
     window.appendTableNumber = null;
+    window.appendParentOrderItems = [];
+    window.appendParentLegacyText = '';
     try {
         sessionStorage.removeItem('benmi_table_number');
         sessionStorage.removeItem('benmi_append_parent');
@@ -683,6 +705,9 @@ function cancelAppendMode() {
     window.parentOrderKey = null;
     window.parentOrderDisplayKey = null;
     window.appendTableNumber = null;
+    window.appendParentOrderItems = [];
+    window.appendParentLegacyText = '';
+    if (typeof updatePrerequisiteUI === 'function') updatePrerequisiteUI();
     try {
         sessionStorage.removeItem('benmi_append_parent');
         sessionStorage.removeItem('benmi_append_display');
@@ -1997,6 +2022,18 @@ function handleFooterAction() {
     if (!hasItem) return customAlert(_coT('alert_cart_empty', null, '請先選擇餐點品項加入購物車'));
     if (!hasAvailableCartItems()) return customAlert(_coT('alert_cart_all_oos', null, '購物車內餐點已全數售完，請重新挑選其他餐點'));
 
+    if (typeof getActivePrerequisiteViolations === 'function') {
+        const prereqViolations = getActivePrerequisiteViolations();
+        if (prereqViolations.length > 0) {
+            const firstV = prereqViolations[0];
+            if (typeof openPrerequisiteGuideSheet === 'function') {
+                openPrerequisiteGuideSheet(firstV.catSlug, firstV.origName, firstV.state);
+                return;
+            }
+            return customAlert(_coT('err_prerequisite_required', { addon: firstV.origName, parent: firstV.state.requiredLabel }, `選購「${firstV.origName}」需先點購「${firstV.state.requiredLabel}」`));
+        }
+    }
+
     // Bước 1: Nếu chưa ở khu vực thanh toán -> cuộn mượt xuống
     if (!isCheckoutSectionVisible()) {
         scrollToSec('sec-checkout');
@@ -2849,6 +2886,18 @@ async function submitOrder() {
     const hasItem = Object.values(cart || {}).some(q => q > 0);
     if (!hasItem) return customAlert(_coT('alert_cart_empty', null, '請先選擇餐點品項加入購物車'));
     if (!hasAvailableCartItems()) return customAlert(_coT('alert_cart_all_oos', null, '購物車內餐點已全數售完，請重新挑選其他餐點'));
+
+    if (typeof getActivePrerequisiteViolations === 'function') {
+        const prereqViolations = getActivePrerequisiteViolations();
+        if (prereqViolations.length > 0) {
+            const firstV = prereqViolations[0];
+            if (typeof openPrerequisiteGuideSheet === 'function') {
+                openPrerequisiteGuideSheet(firstV.catSlug, firstV.origName, firstV.state);
+                return;
+            }
+            return customAlert(_coT('err_prerequisite_required', { addon: firstV.origName, parent: firstV.state.requiredLabel }, `選購「${firstV.origName}」需先點購「${firstV.state.requiredLabel}」`));
+        }
+    }
 
     if (window.currentDiningOption === 'delivery' && !readCheckoutDeliveryDetails()) return;
 
@@ -3708,6 +3757,14 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
             const _rejectResolve = (candidate) => (typeof _coResolveCatalogItem === 'function' ? _coResolveCatalogItem(candidate) : (typeof resolveCatalogItem === 'function' ? resolveCatalogItem(candidate) : null));
             const details = err.details || {};
             const code = String(details.code || '');
+            if (code === 'PREREQUISITE_ITEM_REQUIRED') {
+                const reqLabel = Array.isArray(details.requiredNames) && details.requiredNames.length > 0
+                    ? details.requiredNames.join(' / ')
+                    : '指定主餐';
+                const itemLabel = details.itemName || '';
+                customAlert(_coT('err_prerequisite_required', { addon: itemLabel, parent: reqLabel }, `選購「${itemLabel}」需先點購「${reqLabel}」`));
+                return;
+            }
             const optionError = code.startsWith('OPTION_') || code === 'ORDER_PRICE_CHANGED' || code === 'PRODUCT_UNAVAILABLE' || code === 'MIN_ORDER_SUBTOTAL_NOT_MET';
             if (code.startsWith('BUNDLE_') || optionError) {
                 const affected = buildStructuredCartItems()[Number(details.itemIndex || 0)];

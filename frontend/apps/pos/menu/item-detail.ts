@@ -3,6 +3,7 @@ import { readMenuImageAsWebp, renderMenuCategories, renderMenuCategoryEditor } f
 import { getInheritedItemModifierGroups, openItemModifiersModal } from './customizations-legacy';
 import { menuState } from './state';
 import {
+  esc,
   getHost,
   invokeHook,
   notifyToast,
@@ -16,6 +17,7 @@ import {
 import {
   _menuApiFetch,
   checkMenuDirty,
+  isCustomizationCategory,
   loadMenuData,
   markMenuDirty,
   saveMenuData,
@@ -24,6 +26,97 @@ import {
 } from './workspace';
 
 type ItemI18nMap = Record<string, { name?: string; description?: string; badge_text?: string }>;
+
+let itemDetailPrereqDraft: {
+  mode: 'inherit' | 'none' | 'require_any';
+  itemIds: string[];
+  categoryIds: string[];
+} = {
+  mode: 'inherit',
+  itemIds: [],
+  categoryIds: []
+};
+
+export function renderItemDetailPrerequisiteTargets(): void {
+  const container = document.getElementById('item-detail-prereq-targets');
+  if (!container) return;
+  if (itemDetailPrereqDraft.mode !== 'require_any') {
+    container.style.display = 'none';
+    container.innerHTML = '';
+    return;
+  }
+  container.style.display = 'block';
+  const activeCatIdx = menuState.activeItemDetailCatIdx;
+  const activeItem =
+    activeCatIdx !== null && menuState.activeItemDetailItemIdx !== null
+      ? menuState.currentMenuData?.[activeCatIdx]?.items?.[menuState.activeItemDetailItemIdx]
+      : undefined;
+  const selfItemId = activeItem?.id ? String(activeItem.id) : '';
+  const allCats = (menuState.currentMenuData || []).filter(c => !isCustomizationCategory(c));
+
+  let catHtml = '';
+  let itemHtml = '';
+  allCats.forEach((c, idx) => {
+    const canonicalCatId = String(c.databaseId || c.catId || c.id);
+    if (idx !== activeCatIdx) {
+      const checked =
+        itemDetailPrereqDraft.categoryIds.includes(canonicalCatId) ||
+        itemDetailPrereqDraft.categoryIds.includes(c.id);
+      const safeId = esc(canonicalCatId).replace(/'/g, "\\'");
+      catHtml += `<label class="cust-prereq-chip ${checked ? 'selected' : ''}">
+        <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleItemDetailPrerequisiteTarget('category', '${safeId}', this.checked)">
+        <span>${esc(c.title)}</span>
+      </label>`;
+    }
+    (c.items || []).forEach(it => {
+      const itId = String(it.id || `${c.id}:${it.name}`);
+      if (!it.name || (selfItemId && itId === selfItemId)) return;
+      const checked = itemDetailPrereqDraft.itemIds.includes(itId);
+      const safeId = esc(itId).replace(/'/g, "\\'");
+      itemHtml += `<label class="cust-prereq-chip ${checked ? 'selected' : ''}">
+        <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleItemDetailPrerequisiteTarget('item', '${safeId}', this.checked)">
+        <span><small class="cust-prereq-chip-cat">${esc(c.title)}</small>${esc(it.name)}</span>
+      </label>`;
+    });
+  });
+
+  container.innerHTML = `
+    <div class="cust-prereq-targets-hint">${esc(tr('prereqSelectTargetsLabel'))}</div>
+    ${catHtml ? `<div class="cust-prereq-group-label">${esc(tr('prereqSectionCategories'))}</div><div class="cust-prereq-chips-grid">${catHtml}</div>` : ''}
+    ${itemHtml ? `<div class="cust-prereq-group-label">${esc(tr('prereqSectionItems'))}</div><div class="cust-prereq-chips-grid">${itemHtml}</div>` : ''}
+  `;
+}
+
+export function setItemDetailPrerequisiteMode(mode: string): void {
+  itemDetailPrereqDraft.mode =
+    mode === 'none' || mode === 'require_any' ? mode : 'inherit';
+  if (itemDetailPrereqDraft.mode !== 'require_any') {
+    itemDetailPrereqDraft.itemIds = [];
+    itemDetailPrereqDraft.categoryIds = [];
+  }
+  renderItemDetailPrerequisiteTargets();
+}
+
+export function toggleItemDetailPrerequisiteTarget(
+  targetType: string,
+  targetId: string,
+  checked: boolean
+): void {
+  if (!targetId) return;
+  itemDetailPrereqDraft.mode = 'require_any';
+  if (targetType === 'category') {
+    const next = new Set(itemDetailPrereqDraft.categoryIds);
+    if (checked) next.add(targetId);
+    else next.delete(targetId);
+    itemDetailPrereqDraft.categoryIds = Array.from(next);
+  } else {
+    const next = new Set(itemDetailPrereqDraft.itemIds);
+    if (checked) next.add(targetId);
+    else next.delete(targetId);
+    itemDetailPrereqDraft.itemIds = Array.from(next);
+  }
+  renderItemDetailPrerequisiteTargets();
+}
 
 export function updateItemDetailPhoto(src: string | null, status: string): void {
   const preview = document.getElementById('item-detail-img-preview') as HTMLImageElement | null;
@@ -427,6 +520,17 @@ export function showItemDetailForm(cat: MenuCategoryDraft, item?: MenuItemDraft)
     if (bundleSummary) {
       bundleSummary.innerText = bundleCount ? tr('cardBundleCount', { count: bundleCount }) : tr('cardBundleEmpty');
     }
+    itemDetailPrereqDraft = {
+      mode:
+        item?.prerequisiteMode === 'none' || item?.prerequisiteMode === 'require_any'
+          ? item.prerequisiteMode
+          : 'inherit',
+      itemIds: Array.isArray(item?.prerequisiteItemIds) ? [...item.prerequisiteItemIds] : [],
+      categoryIds: Array.isArray(item?.prerequisiteCategoryIds) ? [...item.prerequisiteCategoryIds] : []
+    };
+    const prereqSelect = document.getElementById('item-detail-prereq-mode') as HTMLSelectElement | null;
+    if (prereqSelect) prereqSelect.value = itemDetailPrereqDraft.mode;
+    renderItemDetailPrerequisiteTargets();
   }
 
   const modal = document.getElementById('itemDetailModal');
@@ -547,6 +651,11 @@ export function saveItemDetailModal(): void {
       badgeText: badgeVal,
       isRecommended: isRec,
       staffOnly: isStaffOnly,
+      prerequisiteMode: itemDetailPrereqDraft.mode,
+      prerequisiteItemIds:
+        itemDetailPrereqDraft.mode === 'require_any' ? [...itemDetailPrereqDraft.itemIds] : [],
+      prerequisiteCategoryIds:
+        itemDetailPrereqDraft.mode === 'require_any' ? [...itemDetailPrereqDraft.categoryIds] : [],
       isOos: false,
       bundleRule: null,
       itemType: 'standard',
@@ -572,6 +681,11 @@ export function saveItemDetailModal(): void {
       item.badgeText = badgeVal;
       item.isRecommended = isRec;
       item.staffOnly = isStaffOnly;
+      item.prerequisiteMode = itemDetailPrereqDraft.mode;
+      item.prerequisiteItemIds =
+        itemDetailPrereqDraft.mode === 'require_any' ? [...itemDetailPrereqDraft.itemIds] : [];
+      item.prerequisiteCategoryIds =
+        itemDetailPrereqDraft.mode === 'require_any' ? [...itemDetailPrereqDraft.categoryIds] : [];
       const nextI18n = readItemDetailI18nInputs(item.i18n);
       if (nextI18n !== undefined) item.i18n = nextI18n;
       else delete item.i18n;
@@ -635,6 +749,11 @@ export function transitionToSubEditor(type: 'modifiers' | 'bundle'): void {
       badgeText: badgeVal,
       isRecommended: isRec,
       staffOnly: isStaffOnly,
+      prerequisiteMode: itemDetailPrereqDraft.mode,
+      prerequisiteItemIds:
+        itemDetailPrereqDraft.mode === 'require_any' ? [...itemDetailPrereqDraft.itemIds] : [],
+      prerequisiteCategoryIds:
+        itemDetailPrereqDraft.mode === 'require_any' ? [...itemDetailPrereqDraft.categoryIds] : [],
       isOos: false,
       bundleRule: null,
       itemType: 'standard',

@@ -1545,7 +1545,24 @@ const I18N = {
     menuScheduleOutsideMixed: "目前依各分類的個別設定顯示",
     menuScheduleConflict: "其他裝置已更新時段設定。請保留本次變更，重新載入最新菜單後再確認。",
     menuScheduleLoading: "正在載入時段菜單…",
-    menuScheduleSaveMenuFirst: "請先儲存新增的分類或餐點，再設定供餐時段。"
+    menuScheduleSaveMenuFirst: "請先儲存新增的分類或餐點，再設定供餐時段。",
+    prereqCardTitle: "加購條件限制",
+    prereqCardDesc: "設定顧客須先點選指定主餐或分類，才可加點此處品項",
+    prereqModeInherit: "依分類設定",
+    prereqModeNone: "不限制（可單點）",
+    prereqModeRequireAny: "需搭配指定主餐 / 分類",
+    prereqSelectTargetsLabel: "勾選任一符合即可解鎖的主餐或分類：",
+    prereqSectionCategories: "指定整個分類",
+    prereqSectionItems: "指定個別主餐",
+    prereqNoneSelectedHint: "尚未勾選條件目標，儲存前請至少勾選一項主餐或分類。",
+    prereqSummaryActive: "需搭配 {count} 項指定條件",
+    prereqSummaryNone: "不限制（可單點）",
+    prereqBtnConfigure: "設定條件",
+    prereqBtnCollapse: "收合",
+    prereqBadgeTag: "需搭配主餐",
+    prereqFreeBadgeTag: "可單點",
+    ugPrerequisiteSection: "加購條件限制",
+    ugPrerequisiteMode: "點餐條件"
   },
   "vi": {
     posLoginTitle: 'Đăng nhập quản lý quán', posLoginHint: 'Nhập PIN quản lý để thao tác đơn hàng.', posLoginPIN: 'PIN quản lý', posLoginSubmit: 'Đăng nhập', posLoginCancel: 'Hủy', posLoginFailed: 'Đăng nhập thất bại. Kiểm tra PIN và thử lại.', posLoginLimited: 'Đã thử quá nhiều lần. Vui lòng thử lại sau.',
@@ -3089,7 +3106,24 @@ const I18N = {
     menuScheduleOutsideMixed: "Đang dùng thiết lập riêng theo danh mục",
     menuScheduleConflict: "Thiết lập ca đã được cập nhật trên thiết bị khác. Bản nháp được giữ lại; hãy tải menu mới và kiểm tra lại trước khi lưu.",
     menuScheduleLoading: "Đang tải menu theo ca…",
-    menuScheduleSaveMenuFirst: "Hãy lưu danh mục hoặc món mới trước khi thiết lập ca."
+    menuScheduleSaveMenuFirst: "Hãy lưu danh mục hoặc món mới trước khi thiết lập ca.",
+    prereqCardTitle: "Điều kiện gọi kèm",
+    prereqCardDesc: "Yêu cầu khách chọn món chính hoặc danh mục chỉ định trước khi gọi thêm",
+    prereqModeInherit: "Theo cài đặt danh mục",
+    prereqModeNone: "Không giới hạn (Gọi lẻ)",
+    prereqModeRequireAny: "Cần gọi kèm món chính / danh mục",
+    prereqSelectTargetsLabel: "Chọn món chính hoặc danh mục giúp mở khóa gọi thêm:",
+    prereqSectionCategories: "Theo toàn bộ danh mục",
+    prereqSectionItems: "Theo từng món chính",
+    prereqNoneSelectedHint: "Chưa chọn món hoặc danh mục điều kiện, vui lòng chọn ít nhất 1 mục.",
+    prereqSummaryActive: "Cần gọi kèm ({count} điều kiện)",
+    prereqSummaryNone: "Không giới hạn (Gọi lẻ)",
+    prereqBtnConfigure: "Thiết lập",
+    prereqBtnCollapse: "Thu gọn",
+    prereqBadgeTag: "Cần món chính",
+    prereqFreeBadgeTag: "Gọi lẻ",
+    ugPrerequisiteSection: "Điều kiện gọi kèm",
+    ugPrerequisiteMode: "Quy tắc gọi kèm"
   }
 };
 

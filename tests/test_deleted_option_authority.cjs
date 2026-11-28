@@ -76,7 +76,7 @@ test('legacy menu still opens its required options and displays the actual base 
 });
 
 test('pre-cutover or incomplete browser snapshots are not used to hydrate the menu', async () => {
-  for (const [version, complete, shouldHydrate] of [[2, true, false], [3, false, false], [3, true, true]]) {
+  for (const [version, complete, shouldHydrate] of [[8, true, false], [9, false, false], [9, true, true]]) {
     const app = customer(null);
     const data = { ...mixedBootstrap(false), bootstrapVersion: version, menuComplete: complete };
     app.localStorage.getItem = () => JSON.stringify(data);
@@ -103,6 +103,8 @@ function bootstrapFor(f) {
     require(name) {
       if (name.includes('option-groups')) return f.api;
       if (name.includes('operating-shifts')) return require('./helpers/option-groups.cjs').getOperatingShiftsExports();
+      if (name.includes('menu-prerequisites')) return require('./helpers/option-groups.cjs').getMenuPrerequisitesExports();
+      if (name.includes('qr-channels')) return { loadTenantQrChannels: async () => [] };
       if (name.includes('order-detail')) return { detailWrites: () => false };
       if (name.includes('tenant-lifecycle')) return { tenantIsDeleted: async () => false };
       if (name.endsWith('/tenant')) return { resolveTenantContext: async id => ({ tenantId: id, brandName: id }) };
@@ -295,9 +297,11 @@ test('a reconciled cart passes the actual typed server validator with the update
         ? f.api
         : (name.includes('operating-shifts')
             ? require('./helpers/option-groups.cjs').getOperatingShiftsExports()
-            : (name.includes('pricing-engine-client')
-                ? { pricingRustEnabled: () => false }
-                : require('../js/order-detail-view.js'))) });
+            : (name.includes('menu-prerequisites')
+                ? require('./helpers/option-groups.cjs').getMenuPrerequisitesExports()
+                : (name.includes('pricing-engine-client')
+                    ? { pricingRustEnabled: () => false }
+                    : require('../js/order-detail-view.js')))) });
     const result = await exports.buildDetailRound(f.env, 'a', {
       items: app.DetailCheckout.items(), orderSelections: [], total: app.calculateCurrentFoodSubtotal(),
     }, 1);

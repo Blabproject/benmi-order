@@ -13,6 +13,16 @@ import {
   type OperatingShiftDto,
   type QrChannelDto,
 } from './operating-shifts';
+import {
+  buildCategoryPrerequisiteRule,
+  extractTargetIds,
+  loadTenantPrerequisiteLinks,
+  normalizeCategoryPrerequisiteMode,
+  normalizeItemPrerequisiteMode,
+  resolveEffectivePrerequisiteRule,
+  type LoadedPrerequisiteLinks,
+  type PrerequisiteRuleDto,
+} from './menu-prerequisites';
 
 type EntityI18nEntry = Record<string, string | Record<string, string> | undefined>;
 type EntityI18nMap = Record<string, EntityI18nEntry>;
@@ -207,8 +217,8 @@ export interface BootstrapBundleRule {
   groups: BootstrapBundleGroup[];
 }
 
-// v8 keeps customer operating hours independent from menu shifts.
-export const BOOTSTRAP_VERSION = 8;
+// v9 projects category/item purchase prerequisite rules into bootstrap edge cache.
+export const BOOTSTRAP_VERSION = 9;
 
 export interface BootstrapResponse {
   bootstrapVersion: number;
@@ -255,6 +265,10 @@ export interface BootstrapResponse {
     availabilityMode?: 'all_shifts' | 'selected_shifts';
     hideWhenUnavailable?: boolean;
     shiftIds?: string[];
+    prerequisiteMode?: 'none' | 'require_any';
+    prerequisiteItemIds?: string[];
+    prerequisiteCategoryIds?: string[];
+    prerequisiteRule?: PrerequisiteRuleDto | null;
     modifierGroups?: Array<{
       id: string;
       name: string;
@@ -285,6 +299,10 @@ export interface BootstrapResponse {
       badge?: string | null;
       maxPerOrder?: number | null;
       itemType?: 'standard' | 'bundle';
+      prerequisiteMode?: 'inherit' | 'none' | 'require_any';
+      prerequisiteItemIds?: string[];
+      prerequisiteCategoryIds?: string[];
+      prerequisiteRule?: PrerequisiteRuleDto | null;
       modifierGroups?: Array<{
         id: string;
         name: string;
@@ -643,6 +661,12 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
     let qrChannels: QrChannelDto[] = [];
     let categoryShiftIdsMap = new Map<string, string[]>();
     let itemShiftIdsMap = new Map<string, string[]>();
+    let prerequisiteData: LoadedPrerequisiteLinks = {
+      hasTable: false,
+      links: [],
+      byCategoryId: new Map(),
+      byItemId: new Map(),
+    };
 
     if (env.DB) {
       try {
@@ -657,8 +681,11 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
           hasCatHideCol,
           hasItemAvailCol,
           hasItemStaffOnlyCol,
+          hasCatPrereqCol,
+          hasItemPrereqCol,
           loadedShifts,
           loadedShiftLinks,
+          loadedPrereqs,
           loadedQrChannels,
         ] = await Promise.all([
           hasTableColumn(env.DB, 'tenant_config', 'i18n_json'),
@@ -671,13 +698,17 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
           hasTableColumn(env.DB, 'menu_categories', 'hide_when_unavailable'),
           hasTableColumn(env.DB, 'menu_items', 'availability_mode'),
           hasTableColumn(env.DB, 'menu_items', 'staff_only'),
+          hasTableColumn(env.DB, 'menu_categories', 'prerequisite_mode'),
+          hasTableColumn(env.DB, 'menu_items', 'prerequisite_mode'),
           hasMenuScheduleFeature ? loadTenantOperatingShifts(env.DB, tenantId) : Promise.resolve([]),
           hasMenuScheduleFeature ? loadCategoryAndItemShiftLinks(env.DB, tenantId) : Promise.resolve({ categoryShiftIds: new Map(), itemShiftIds: new Map() }),
+          loadTenantPrerequisiteLinks(env.DB, tenantId),
           loadTenantQrChannels(env.DB, tenantId),
         ]);
         operatingShifts = loadedShifts;
         categoryShiftIdsMap = loadedShiftLinks.categoryShiftIds;
         itemShiftIdsMap = loadedShiftLinks.itemShiftIds;
+        prerequisiteData = loadedPrereqs;
         qrChannels = loadedQrChannels;
 
         const baseOrderModifierSql =
@@ -708,7 +739,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
                     COALESCE(allow_customization, 1) AS allow_customization,
                     COALESCE(applied_modifiers, '') AS applied_modifiers,
                     pricing_rules,
-                    sort_order${hasCatI18nCol ? ', i18n_json' : ''}${hasCatAvailCol ? ', availability_mode' : ''}${hasCatHideCol ? ', hide_when_unavailable' : ''} 
+                    sort_order${hasCatI18nCol ? ', i18n_json' : ''}${hasCatAvailCol ? ', availability_mode' : ''}${hasCatHideCol ? ', hide_when_unavailable' : ''}${hasCatPrereqCol ? ', prerequisite_mode' : ''} 
              FROM menu_categories 
              WHERE tenant_id = ? 
              ORDER BY sort_order ASC, rowid ASC`
@@ -718,7 +749,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
                     COALESCE(badge_text, '') AS badge_text,
                     COALESCE(is_recommended, 0) AS is_recommended,
                     max_per_order,
-                    COALESCE(item_type, 'standard') AS item_type${hasItemI18nCol ? ', i18n_json' : ''}${hasItemAvailCol ? ', availability_mode' : ''}${hasItemStaffOnlyCol ? ', COALESCE(staff_only, 0) AS staff_only' : ''}
+                    COALESCE(item_type, 'standard') AS item_type${hasItemI18nCol ? ', i18n_json' : ''}${hasItemAvailCol ? ', availability_mode' : ''}${hasItemStaffOnlyCol ? ', COALESCE(staff_only, 0) AS staff_only' : ''}${hasItemPrereqCol ? ', prerequisite_mode' : ''}
              FROM menu_items 
              WHERE tenant_id = ? 
              ORDER BY sort_order ASC, rowid ASC`
@@ -1090,6 +1121,7 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
     }
 
     // 4. Organize Items by Category
+    const rawCatById = new Map<string, any>(categories.map((c: any) => [String(c.id), c]));
     const itemsByCatId = new Map<string, any[]>();
     for (const item of items) {
       if (!itemsByCatId.has(item.category_id)) {
@@ -1111,6 +1143,13 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
       const bundleRule = bundleRulesByItemId.get(item.id) || null;
       const modGroups = itemModifierGroupsMap.get(item.id) || [];
       const itemI18n = parseI18nJson(item.i18n_json);
+      const itemPrereqMode = normalizeItemPrerequisiteMode(item.prerequisite_mode);
+      const itemPrereqTargets = extractTargetIds(prerequisiteData.byItemId.get(String(item.id)));
+      const effectiveItemPrereqRule = resolveEffectivePrerequisiteRule(
+        rawCatById.get(String(item.category_id)) || null,
+        item,
+        prerequisiteData
+      );
 
       itemsByCatId.get(item.category_id)!.push({
         id: item.id,
@@ -1128,6 +1167,14 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
         itemType: item.item_type || 'standard',
         availabilityMode: (item.availability_mode === 'all_shifts' || item.availability_mode === 'selected_shifts') ? item.availability_mode : 'inherit',
         shiftIds: itemShiftIdsMap.get(String(item.id)) || [],
+        prerequisiteMode: itemPrereqMode,
+        ...(itemPrereqMode === 'require_any'
+          ? {
+              prerequisiteItemIds: itemPrereqTargets.requiredItemIds,
+              prerequisiteCategoryIds: itemPrereqTargets.requiredCategoryIds,
+            }
+          : {}),
+        ...(effectiveItemPrereqRule ? { prerequisiteRule: effectiveItemPrereqRule } : {}),
         modifierGroups: modGroups.length > 0 ? modGroups : undefined,
         ...(Object.keys(itemI18n).length > 0 ? { i18n: itemI18n } : {}),
         outOfStockUntil: item.out_of_stock_until || null,
@@ -1208,6 +1255,10 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
         const catShiftIds = hasMenuScheduleFeature ? (categoryShiftIdsMap.get(String(cat.id)) || []) : [];
         const catAvailMode = (hasMenuScheduleFeature && cat.availability_mode === 'selected_shifts') ? 'selected_shifts' : 'all_shifts';
         const catHideUnavailable = hasMenuScheduleFeature ? Boolean(cat.hide_when_unavailable) : false;
+        const catPrereqMode = normalizeCategoryPrerequisiteMode(cat.prerequisite_mode);
+        const catPrereqLinks = prerequisiteData.byCategoryId.get(String(cat.id)) || [];
+        const catPrereqTargets = extractTargetIds(catPrereqLinks);
+        const catPrereqRule = buildCategoryPrerequisiteRule(catPrereqMode, catPrereqLinks);
 
         catalog.push({
           id: cat.id,
@@ -1221,6 +1272,14 @@ export async function getTenantBootstrap(request: Request, env: Env): Promise<Re
           availabilityMode: catAvailMode,
           hideWhenUnavailable: catHideUnavailable,
           shiftIds: catShiftIds,
+          prerequisiteMode: catPrereqMode,
+          ...(catPrereqMode === 'require_any'
+            ? {
+                prerequisiteItemIds: catPrereqTargets.requiredItemIds,
+                prerequisiteCategoryIds: catPrereqTargets.requiredCategoryIds,
+              }
+            : {}),
+          ...(catPrereqRule ? { prerequisiteRule: catPrereqRule } : {}),
           ...(Object.keys(catI18n).length > 0 ? { i18n: catI18n } : {}),
           sortOrder: cat.sort_order || 0,
           items: hasMenuScheduleFeature

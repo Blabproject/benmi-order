@@ -114,7 +114,8 @@ export async function writeDetailedOrder(env: Env, tenant: string, input: any, k
     const roundInput = kind === 'modify' && !input.time && row?.pickup_time
       ? { ...input, time: row.pickup_time }
       : (kind === 'append' ? { ...input, time: new Date() } : input);
-    const round = await buildDetailRound(env, tenant, roundInput, roundNumber, previous, tenantCtx?.features);
+    const priorRounds = snapshot.rounds.filter(r => r !== previous);
+    const round = await buildDetailRound(env, tenant, roundInput, roundNumber, previous, tenantCtx?.features, { priorRounds });
     if (previous) snapshot.rounds[snapshot.rounds.indexOf(previous)] = round;
     else snapshot.rounds.push(round);
     snapshot.total = Math.round(snapshot.rounds.reduce((n, r) => n + r.total, 0) * 100) / 100;
@@ -172,11 +173,12 @@ export async function writeDetailedOrder(env: Env, tenant: string, input: any, k
     return json({ success: true, key, orderId, displayKey, detailSnapshot: snapshot, detailRevision: revision,
       total: order.total, deltaAmount: order.total - Number(row?.total_amount || 0), notification: receipt?.notification });
   } catch (error) {
-    const validationCodes = /^(OPTION_|PRODUCT_UNAVAILABLE|MIN_ORDER_SUBTOTAL_NOT_MET)/;
-    if (error instanceof Error && validationCodes.test(error.message)) error = new DetailError(error.message);
+    const validationCodes = /^(OPTION_|PRODUCT_UNAVAILABLE|MIN_ORDER_SUBTOTAL_NOT_MET|PREREQUISITE_)/;
+    if (error instanceof Error && !(error instanceof DetailError) && validationCodes.test(error.message)) error = new DetailError(error.message);
     if (String(error).includes('TENANT_DELETED')) error = new DetailError('TENANT_DELETED', 410);
     const code = error instanceof DetailError ? error.code : 'ORDER_DETAIL_WRITE_FAILED';
+    const extraDetails = error instanceof DetailError && error.details ? error.details : {};
     console.warn('[OrderDetail]', { tenantId: tenant, kind, code });
-    return json({ code, error: code }, error instanceof DetailError ? error.status : 500);
+    return json({ code, error: (extraDetails.message as string) || code, ...extraDetails }, error instanceof DetailError ? error.status : 500);
   }
 }

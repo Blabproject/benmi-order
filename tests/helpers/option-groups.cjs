@@ -5,6 +5,7 @@ const { DatabaseSync } = require("node:sqlite");
 
 let cachedOptionGroupsScript = null;
 let cachedOperatingShiftsScript = null;
+let cachedMenuPrerequisitesScript = null;
 const cachedSqlFiles = new Map();
 let cachedAllMigrationNames = null;
 
@@ -51,6 +52,43 @@ function getOperatingShiftsExports() {
     },
   });
   cachedOperatingShiftsScript.runInContext(ctx);
+  return ctx.module.exports || modExports;
+}
+
+function getMenuPrerequisitesExports() {
+  if (!cachedMenuPrerequisitesScript) {
+    const source = fs.readFileSync(
+      "benmi-worker-official/src/modules/menu-prerequisites.ts",
+      "utf8",
+    );
+    const transpiled = ts.transpileModule(source, {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2022,
+      },
+    }).outputText;
+    cachedMenuPrerequisitesScript = new vm.Script(transpiled, {
+      filename: "menu-prerequisites.ts",
+    });
+  }
+  const modExports = {};
+  const ctx = vm.createContext({
+    exports: modExports,
+    module: { exports: modExports },
+    console,
+    Date,
+    JSON,
+    Map,
+    Set,
+    crypto: require("node:crypto").webcrypto,
+    require: (name) => {
+      if (name.includes("operating-shifts")) {
+        return getOperatingShiftsExports();
+      }
+      return {};
+    },
+  });
+  cachedMenuPrerequisitesScript.runInContext(ctx);
   return ctx.module.exports || modExports;
 }
 
@@ -148,6 +186,8 @@ function moduleFor(db) {
             }
         : name.includes("operating-shifts")
           ? getOperatingShiftsExports()
+        : name.includes("menu-prerequisites")
+          ? getMenuPrerequisitesExports()
         : name.includes("bootstrap")
           ? {
               invalidateBootstrapCache: async (tenant) =>
@@ -220,4 +260,11 @@ function schemaTrueFixture() {
   return { db, ...moduleFor(db) };
 }
 
-module.exports = { fixture, schemaTrueFixture, moduleFor, DatabaseSync, getOperatingShiftsExports };
+module.exports = {
+  fixture,
+  schemaTrueFixture,
+  moduleFor,
+  DatabaseSync,
+  getOperatingShiftsExports,
+  getMenuPrerequisitesExports,
+};

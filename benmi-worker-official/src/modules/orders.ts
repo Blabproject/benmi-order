@@ -5,6 +5,7 @@ import { writeDetailedOrder } from './order-detail-write';
 import { attachOrderDetails, detailReads } from './order-detail';
 import { unifiedMenuEnabled, validateUnifiedOrderItems, loadOptionCatalog } from './option-groups';
 import { hasDbTable, hasDbColumn, validateCatalogScheduleForItems, hasTenantMenuScheduleFeature, resolveOrderQrChannelAndShiftPolicy, resolveEffectiveOrderDiningOption } from './operating-shifts';
+import { validateOrderPrerequisites, type OrderLikeLine } from './menu-prerequisites';
 import { resolveOrderKey } from './order-identity';
 import { Env } from '../types/env';
 import { Order, DiningOption, AppendOrderPayload, OrderItemInput } from '../types/index';
@@ -530,6 +531,26 @@ export async function createOrder(
         outOfStockItems: staffOnlyNames
       }, 400);
     }
+    if (await hasDbTable(env.DB, 'menu_prerequisite_links')) {
+      const catalog = await loadOptionCatalog(env, tenantId);
+      const prereqCheck = validateOrderPrerequisites({
+        products: catalog.products,
+        categories: catalog.categories,
+        prerequisiteLinks: catalog.prerequisiteLinks,
+        submittedItems: rawItems,
+      });
+      if (!prereqCheck.valid) {
+        return json({
+          error: prereqCheck.error,
+          code: prereqCheck.code,
+          itemIndex: prereqCheck.itemIndex,
+          itemId: prereqCheck.itemId,
+          requiredItemIds: prereqCheck.requiredItemIds,
+          requiredCategoryIds: prereqCheck.requiredCategoryIds,
+          requiredNames: prereqCheck.requiredNames,
+        }, 400);
+      }
+    }
   }
 
   // 1.0b Kiểm tra khung giờ phục vụ theo ca (Time-Based Menu Schedule - gated by 'menu_schedule' package)
@@ -896,6 +917,36 @@ export async function executeAppendOrderInternal(
       error: "訂單已完成或已取消，無法再加點，請重新開啟新訂單 / Đơn hàng đã kết thúc hoặc đã hủy, không thể gọi thêm",
       code: "ORDER_LOCKED"
     }, 400);
+  }
+
+  if (rawItems.length > 0 && env.DB && await hasDbTable(env.DB, 'menu_prerequisite_links')) {
+    const catalog = await loadOptionCatalog(env, tenantId);
+    let existingItems: OrderLikeLine[] = [];
+    try {
+      const priorRows = await env.DB.prepare(
+        'SELECT item_id, item_name AS name, category_name, quantity FROM order_items WHERE tenant_id = ? AND order_key = ?'
+      ).bind(tenantId, parentKey).all<OrderLikeLine>();
+      existingItems = Array.isArray(priorRows?.results) ? priorRows.results : [];
+    } catch {}
+    const prereqCheck = validateOrderPrerequisites({
+      products: catalog.products,
+      categories: catalog.categories,
+      prerequisiteLinks: catalog.prerequisiteLinks,
+      submittedItems: rawItems,
+      existingOrderItems: existingItems,
+      legacyOrderTexts: row.order_content ? [String(row.order_content)] : [],
+    });
+    if (!prereqCheck.valid) {
+      return json({
+        error: prereqCheck.error,
+        code: prereqCheck.code,
+        itemIndex: prereqCheck.itemIndex,
+        itemId: prereqCheck.itemId,
+        requiredItemIds: prereqCheck.requiredItemIds,
+        requiredCategoryIds: prereqCheck.requiredCategoryIds,
+        requiredNames: prereqCheck.requiredNames,
+      }, 400);
+    }
   }
 
   // 3. Compute next round & time
@@ -2052,6 +2103,26 @@ export async function modifyOrder(
         code: "ITEMS_OUT_OF_STOCK",
         outOfStockItems: staffOnlyNames
       }, 400);
+    }
+    if (await hasDbTable(env.DB, 'menu_prerequisite_links')) {
+      const catalog = await loadOptionCatalog(env, tenantId);
+      const prereqCheck = validateOrderPrerequisites({
+        products: catalog.products,
+        categories: catalog.categories,
+        prerequisiteLinks: catalog.prerequisiteLinks,
+        submittedItems: rawItems,
+      });
+      if (!prereqCheck.valid) {
+        return json({
+          error: prereqCheck.error,
+          code: prereqCheck.code,
+          itemIndex: prereqCheck.itemIndex,
+          itemId: prereqCheck.itemId,
+          requiredItemIds: prereqCheck.requiredItemIds,
+          requiredCategoryIds: prereqCheck.requiredCategoryIds,
+          requiredNames: prereqCheck.requiredNames,
+        }, 400);
+      }
     }
 
     // 2. Validate combo bundle selections
