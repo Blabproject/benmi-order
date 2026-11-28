@@ -130,6 +130,9 @@ if (navigation && content) {
     const displayRoot = createRoot(display);
     pos.syncPOSSettingsView = () => {
       syncNavigation();
+      if (typeof window !== 'undefined' && typeof Event === 'function') {
+        window.dispatchEvent(new Event('pos-auth-change'));
+      }
       displayRoot.render(
         <PosDisplaySettings
           translate={pos.t}

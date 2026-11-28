@@ -438,6 +438,14 @@ function renderLiveOrderLists(pending, ready) {
 }
 
 function updateNewAlert() {
+  var startShift = (typeof document !== "undefined") ? document.getElementById("startShiftModal") : null;
+  if ((typeof isPosAuthLocked === "function" && isPosAuthLocked()) || (startShift && startShift.style && startShift.style.display === "flex")) {
+    if (window.PosOrderAlert && typeof window.PosOrderAlert.hide === "function") {
+      window.PosOrderAlert.hide();
+    }
+    if (typeof stopContinuousAlarm === "function") stopContinuousAlarm();
+    return;
+  }
   const newCount = pendingNewOrders.length;
   const appendCount = (typeof unacknowledgedAppends !== "undefined") ? unacknowledgedAppends.size : 0;
   const totalCount = newCount + appendCount;
@@ -1046,10 +1054,21 @@ function renderItemRowHtml(it, idx, orderKey) {
     ? parsePortionCustomizations(String(optsToRender).trim()) : null;
   const portionExtras = new Map();
   const attachedPortions = new Set();
+  const renderStickerButton = ({ className, label, title, withActionTitle, onclickAttr }) => {
+    const actionTitleAttr = withActionTitle ? ` data-print-action-title="${escapeHtml(label)}"` : '';
+    const disabledAttr = canPrintStickers ? '' : ' disabled aria-disabled="true"';
+    return `<button type="button" class="btn btn-ghost ${className}" data-print-action="stickers"${actionTitleAttr}${disabledAttr} onclick="${onclickAttr}" title="${escapeHtml(title || label)}"><span class="review-item-print-pill">${printerIcon}<span>${escapeHtml(label)}</span></span></button>`;
+  };
   const renderPortionPrint = (portion, fallbackIndex) => {
     const number = reviewPortionNumber(portion.label);
     const stickerIndex = startStickerIndex + (number ? number - 1 : fallbackIndex);
-    return `<button type="button" class="btn btn-ghost portion-print-btn" data-print-action="stickers" ${canPrintStickers ? '' : 'disabled aria-disabled="true"'} onclick="if(typeof PrinterService !== 'undefined') PrinterService.printSingleItemSticker('${escapeHtml(orderKey)}', ${stickerIndex})" title="${escapeHtml(t('btnPrintPortion'))}">${printerIcon}<span>${escapeHtml(printLabel)}</span></button>`;
+    return renderStickerButton({
+      className: 'portion-print-btn',
+      label: printLabel,
+      title: t('btnPrintPortion'),
+      withActionTitle: false,
+      onclickAttr: `if(typeof PrinterService !== 'undefined') PrinterService.printSingleItemSticker('${escapeHtml(orderKey)}', ${stickerIndex})`
+    });
   };
   if (bundleInfo?.isStructured && parsed?.portions) {
     parsed.portions.forEach((portion, index) => {
@@ -1151,10 +1170,13 @@ function renderItemRowHtml(it, idx, orderKey) {
         <div class="review-item-name"><span class="review-item-qty-badge">${itemQty}×</span><span class="review-item-name-text">${escapeHtml(it.name)}</span></div>
         <div class="review-item-meta-right">
           <span class="review-item-price ${isEmptyPrice ? 'is-empty' : ''}">${escapeHtml(displayPrice || "—")}</span>
-          <button type="button" class="btn btn-ghost review-item-print-btn" data-print-action="stickers" data-print-action-title="${escapeHtml(mainPrintLabel)}" ${canPrintStickers ? "" : "disabled aria-disabled=\"true\""} onclick="${mainPrintAction}" title="${escapeHtml(mainPrintLabel)}">
-            ${printerIcon}
-            <span>${escapeHtml(mainPrintLabel)}</span>
-          </button>
+          ${renderStickerButton({
+            className: 'review-item-print-btn',
+            label: mainPrintLabel,
+            title: mainPrintLabel,
+            withActionTitle: true,
+            onclickAttr: mainPrintAction
+          })}
         </div>
       </div>
       ${bundleHtml}
@@ -1436,10 +1458,12 @@ async function updateStatus(key, status, extra = {}, btn = null, autoAccept = fa
     if (autoAccept && (order?.status !== "NEW" || (order.updatedAt ?? null) !== extra.expectedUpdatedAt)) return false;
     const staff = order?.source === 'staff';
     const savedToken = (typeof sessionStorage !== 'undefined') ? sessionStorage.getItem('staff_session_token_' + getTenantIdFromUrl()) : null;
-    const token = staff ? null : savedToken;
+    const posToken = (typeof getPosSessionToken === 'function') ? getPosSessionToken() : null;
+    const token = posToken || (staff ? null : savedToken);
     const endpoint = staff ? `/api/staff/orders/${encodeURIComponent(key)}/status`
       : autoAccept ? '/api/orders/auto-accept' : '/api/update';
-    const response = await fetch(`${WORKER_BASE}${endpoint}?tenant_id=${getTenantIdFromUrl()}`, {
+    const fetchFn = typeof posApiFetch === 'function' ? posApiFetch : fetch;
+    const response = await fetchFn(`${WORKER_BASE}${endpoint}?tenant_id=${getTenantIdFromUrl()}`, {
       signal: controller.signal,
       method: staff ? 'PATCH' : 'POST',
       headers: { 'Content-Type':'application/json', ...(token ? {Authorization:`Bearer ${token}`} : {}) },

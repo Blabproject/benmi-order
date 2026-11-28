@@ -184,6 +184,293 @@ function getTenantIdFromUrl() {
   return "";
 }
 
+window.POS_AUTH_STORAGE_PREFIX = "pos_session_token_";
+window.__posAuthLocked = (typeof document !== "undefined" && document.documentElement && document.documentElement.classList && typeof document.documentElement.classList.contains === "function")
+  ? document.documentElement.classList.contains("pos-auth-locked")
+  : false;
+
+function getPosSessionToken(tenantId) {
+  var tid = tenantId || (typeof getTenantIdFromUrl === "function" ? getTenantIdFromUrl() : "");
+  if (!tid || typeof localStorage === "undefined") return null;
+  try {
+    var tok = localStorage.getItem(window.POS_AUTH_STORAGE_PREFIX + tid);
+    return tok && tok.trim() ? tok.trim() : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function notifyPosAuthChange() {
+  try {
+    if (typeof window !== "undefined" && typeof window.dispatchEvent === "function" && typeof Event === "function") {
+      window.dispatchEvent(new Event("pos-auth-change"));
+    }
+  } catch (e) {}
+}
+
+function setPosSessionToken(token, tenantId) {
+  var tid = tenantId || (typeof getTenantIdFromUrl === "function" ? getTenantIdFromUrl() : "");
+  if (!tid || !token || typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(window.POS_AUTH_STORAGE_PREFIX + tid, String(token).trim());
+  } catch (e) {}
+  notifyPosAuthChange();
+}
+
+function clearPosSessionToken(tenantId) {
+  var tid = tenantId || (typeof getTenantIdFromUrl === "function" ? getTenantIdFromUrl() : "");
+  if (!tid || typeof localStorage === "undefined") return;
+  try {
+    localStorage.removeItem(window.POS_AUTH_STORAGE_PREFIX + tid);
+  } catch (e) {}
+  notifyPosAuthChange();
+}
+
+function getCachedTenantFeatures(tenantId) {
+  var tid = tenantId || (typeof getTenantIdFromUrl === "function" ? getTenantIdFromUrl() : "");
+  if (!tid || typeof localStorage === "undefined") return [];
+  try {
+    var raw = localStorage.getItem("tenant_branding_" + tid) || localStorage.getItem("tenant_theme_" + tid);
+    if (!raw) return [];
+    var parsed = JSON.parse(raw);
+    return parsed && Array.isArray(parsed.features) ? parsed.features : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function isPosWebLoginEnabled(tenantId) {
+  if (window.__posFeaturesResolved === true && Array.isArray(window.currentTenantFeatures)) {
+    return window.currentTenantFeatures.indexOf("pos_web_login") !== -1;
+  }
+  return getCachedTenantFeatures(tenantId).indexOf("pos_web_login") !== -1;
+}
+
+function isPosAuthLocked() {
+  return Boolean(window.__posAuthLocked);
+}
+
+function setPosAuthLockedState(locked) {
+  var next = Boolean(locked);
+  window.__posAuthLocked = next;
+  if (typeof document !== "undefined") {
+    if (document.documentElement && document.documentElement.classList && typeof document.documentElement.classList.toggle === "function") {
+      document.documentElement.classList.toggle("pos-auth-locked", next);
+    }
+    if (document.body && document.body.classList && typeof document.body.classList.toggle === "function") {
+      document.body.classList.toggle("pos-auth-locked", next);
+    }
+  }
+}
+
+function mergePosRequestHeaders(existingHeaders, isJson, token) {
+  var merged = {};
+  if (existingHeaders) {
+    if (typeof Headers !== "undefined" && existingHeaders instanceof Headers) {
+      existingHeaders.forEach(function (value, key) {
+        merged[key] = value;
+      });
+    } else if (Array.isArray(existingHeaders)) {
+      for (var i = 0; i < existingHeaders.length; i += 1) {
+        var pair = existingHeaders[i];
+        if (pair && pair.length >= 2) merged[pair[0]] = pair[1];
+      }
+    } else if (typeof existingHeaders === "object") {
+      var keys = Object.keys(existingHeaders);
+      for (var k = 0; k < keys.length; k += 1) {
+        merged[keys[k]] = existingHeaders[keys[k]];
+      }
+    }
+  }
+  if (isJson && !merged["Content-Type"] && !merged["content-type"]) {
+    merged["Content-Type"] = "application/json";
+  }
+  if (token && !merged["Authorization"] && !merged["authorization"]) {
+    merged["Authorization"] = "Bearer " + token;
+  }
+  return merged;
+}
+
+function buildPosAuthHeaders(isJson, existingHeaders) {
+  var token = getPosSessionToken();
+  return mergePosRequestHeaders(existingHeaders, Boolean(isJson), token);
+}
+
+function lockPosForLogin(tenantId) {
+  var tid = tenantId || (typeof getTenantIdFromUrl === "function" ? getTenantIdFromUrl() : "");
+  setPosAuthLockedState(true);
+  var shiftModal = typeof document !== "undefined" ? document.getElementById("startShiftModal") : null;
+  if (shiftModal) shiftModal.style.display = "none";
+  if (typeof stopContinuousAlarm === "function") {
+    try { stopContinuousAlarm(); } catch (e) {}
+  }
+  if (typeof showStoreActivationModal === "function") {
+    showStoreActivationModal(true, { pinOnly: true, tenantId: tid });
+  }
+  if (typeof window.syncPOSSettingsView === "function") {
+    window.syncPOSSettingsView();
+  }
+}
+
+function handlePosUnauthorizedResponse(tenantId) {
+  var tid = tenantId || (typeof getTenantIdFromUrl === "function" ? getTenantIdFromUrl() : "");
+  clearPosSessionToken(tid);
+  if (Array.isArray(window.currentTenantFeatures) && window.currentTenantFeatures.indexOf("pos_web_login") === -1) {
+    window.currentTenantFeatures.push("pos_web_login");
+  }
+  window.__posFeaturesResolved = true;
+  if (typeof latestOrders !== "undefined") latestOrders = [];
+  window.latestOrders = [];
+  if (typeof pendingNewOrders !== "undefined") pendingNewOrders = [];
+  window.pendingNewOrders = [];
+  if (typeof reviewingOrder !== "undefined") reviewingOrder = null;
+  window.reviewingOrder = null;
+  if (typeof currentOrderKey !== "undefined") currentOrderKey = null;
+  if (typeof isFirstLoad !== "undefined") isFirstLoad = true;
+  if (typeof lastOrdersETag !== "undefined") lastOrdersETag = "";
+  if (typeof renderAll === "function") {
+    try { renderAll(); } catch (e) {}
+  }
+  if (typeof window.renderHistory === "function") {
+    try { window.renderHistory([]); } catch (e) {}
+  }
+  lockPosForLogin(tid);
+}
+
+function posApiFetch(input, init) {
+  var nextInit = init ? Object.assign({}, init) : {};
+  var token = getPosSessionToken();
+  if (token) {
+    nextInit.headers = mergePosRequestHeaders(init && init.headers, false, token);
+  }
+  return fetch(input, nextInit).then(function (response) {
+    if (response && response.status === 401 && typeof response.clone === "function") {
+      var reqUrl = typeof input === "string" ? input : (input && input.url ? input.url : "");
+      if (reqUrl.indexOf("/api/pos/session") === -1 && reqUrl.indexOf("/api/payments/") === -1) {
+        response.clone().json().then(function (data) {
+          if (data && data.error === "POS_AUTH_REQUIRED") {
+            handlePosUnauthorizedResponse();
+          }
+        }).catch(function () {});
+      }
+    }
+    return response;
+  });
+}
+
+function refreshActivePosTabAfterLogin() {
+  var tab = typeof activeTab !== "undefined" ? activeTab : window.activeTab;
+  if (tab === "history" && typeof window.fetchHistoryOrders === "function") {
+    window.fetchHistoryOrders(true);
+  } else if (tab === "reports" && typeof window.fetchReportData === "function") {
+    window.fetchReportData(undefined, true);
+  } else if (tab === "menu" && typeof loadMenuData === "function") {
+    loadMenuData();
+  } else if (tab === "menu-schedule" && typeof window.initMenuScheduleWorkspace === "function") {
+    window.initMenuScheduleWorkspace();
+  } else if (tab === "settings" && typeof loadRestaurantTablesSetting === "function") {
+    loadRestaurantTablesSetting();
+  } else if (tab === "staff-order" && typeof notifyStaffOrderTablesChanged === "function") {
+    notifyStaffOrderTablesChanged();
+  }
+}
+
+function unlockPosAfterLogin(tenantId) {
+  setPosAuthLockedState(false);
+  if (typeof window.syncPOSSettingsView === "function") {
+    window.syncPOSSettingsView();
+  }
+  if (typeof fetchOrders === "function") {
+    fetchOrders();
+  }
+  if (typeof loadStoreStatus === "function") {
+    loadStoreStatus();
+  }
+  refreshActivePosTabAfterLogin();
+  if (!window.__posShiftStarted && typeof checkInitialSessionModal === "function") {
+    checkInitialSessionModal();
+  }
+}
+
+async function verifyStoredPosSession(tenantId) {
+  var tid = tenantId || (typeof getTenantIdFromUrl === "function" ? getTenantIdFromUrl() : "");
+  var token = getPosSessionToken(tid);
+  if (!tid || !token) return { authenticated: false, checked: true };
+  try {
+    var res = await fetch(WORKER_BASE + "/api/pos/session?tenant_id=" + encodeURIComponent(tid) + "&_t=" + Date.now(), {
+      cache: "no-store",
+      headers: { Authorization: "Bearer " + token }
+    });
+    if (!res.ok) return { authenticated: false, checked: true };
+    var data = await res.json().catch(function () { return {}; });
+    return { authenticated: Boolean(data && data.authenticated), checked: true };
+  } catch (e) {
+    return { authenticated: true, checked: false };
+  }
+}
+
+async function bootstrapPosApp() {
+  var tenantId = typeof getTenantIdFromUrl === "function" ? getTenantIdFromUrl() : "";
+  if (!tenantId) {
+    if (typeof isNativeAppPlatform === "function" && isNativeAppPlatform() && typeof showStoreActivationModal === "function") {
+      showStoreActivationModal();
+    }
+    return;
+  }
+
+  if (isPosWebLoginEnabled(tenantId) && !getPosSessionToken(tenantId)) {
+    lockPosForLogin(tenantId);
+    return;
+  }
+
+  if (!isPosAuthLocked() && !window.__posShiftStarted && typeof checkInitialSessionModal === "function") {
+    checkInitialSessionModal();
+  }
+
+  if (window.__posBrandingPromise) {
+    try {
+      await window.__posBrandingPromise;
+    } catch (e) {}
+  }
+
+  if (isPosWebLoginEnabled(tenantId)) {
+    var token = getPosSessionToken(tenantId);
+    if (!token) {
+      lockPosForLogin(tenantId);
+      return;
+    }
+    setPosAuthLockedState(true);
+    var sessionCheck = await verifyStoredPosSession(tenantId);
+    if (sessionCheck.checked && !sessionCheck.authenticated) {
+      clearPosSessionToken(tenantId);
+      lockPosForLogin(tenantId);
+      return;
+    }
+    setPosAuthLockedState(false);
+    if (typeof window.syncPOSSettingsView === "function") {
+      window.syncPOSSettingsView();
+    }
+  }
+
+  fetchOrders();
+  loadStoreStatus();
+  if (!isPosAuthLocked() && !window.__posShiftStarted && typeof checkInitialSessionModal === "function") {
+    checkInitialSessionModal();
+  }
+}
+
+window.getPosSessionToken = getPosSessionToken;
+window.setPosSessionToken = setPosSessionToken;
+window.clearPosSessionToken = clearPosSessionToken;
+window.isPosWebLoginEnabled = isPosWebLoginEnabled;
+window.isPosAuthLocked = isPosAuthLocked;
+window.buildPosAuthHeaders = buildPosAuthHeaders;
+window.posApiFetch = posApiFetch;
+window.lockPosForLogin = lockPosForLogin;
+window.unlockPosAfterLogin = unlockPosAfterLogin;
+window.handlePosUnauthorizedResponse = handlePosUnauthorizedResponse;
+window.bootstrapPosApp = bootstrapPosApp;
+
 function isTenantMultilingualEnabled() {
   if (window.currentTenantI18nEnabled === true) return true;
   const feats = Array.isArray(window.currentTenantFeatures) ? window.currentTenantFeatures : [];
@@ -284,6 +571,12 @@ function applyTenantBranding(tenant) {
     window.currentTenantFeatures = [];
   }
   window.__posFeaturesResolved = true;
+  if (typeof syncActivationModalBranding === "function") {
+    syncActivationModalBranding();
+  }
+  if (isPosWebLoginEnabled() && !getPosSessionToken()) {
+    lockPosForLogin(getTenantIdFromUrl());
+  }
   window.syncPOSSettingsView?.();
   if (typeof window.syncMenuScheduleEntryButtonVisibility === "function") {
     window.syncMenuScheduleEntryButtonVisibility();
@@ -458,13 +751,13 @@ async function initTenantBranding() {
         }
       }
       if (typeof refreshOrderDetail === "function") refreshOrderDetail();
-      if (typeof checkStaffOrderingCapability === "function") {
+      if (!isPosAuthLocked() && typeof checkStaffOrderingCapability === "function") {
         checkStaffOrderingCapability();
       }
     }
   } catch(e) {}
 }
-initTenantBranding();
+window.__posBrandingPromise = initTenantBranding();
 
 async function ensureTenantCustomizations() {
   if (Array.isArray(window.tenantCustomizations) && window.tenantCustomizations.length > 0) {
@@ -1185,7 +1478,11 @@ if (typeof window !== "undefined" && !window.__staffOrderMessageListenerBound) {
   window.addEventListener("message", (event) => {
     if (!event || !event.data) return;
     const data = event.data;
-    if (data.type === "SWITCH_POS_TAB" && data.tab) {
+    if (data.type === "POS_AUTH_REQUIRED") {
+      if (typeof handlePosUnauthorizedResponse === "function") {
+        handlePosUnauthorizedResponse(getTenantIdFromUrl());
+      }
+    } else if (data.type === "SWITCH_POS_TAB" && data.tab) {
       if (typeof switchTab === "function") {
         switchTab(data.tab);
       }
@@ -1209,6 +1506,7 @@ if (typeof window !== "undefined" && !window.__staffOrderMessageListenerBound) {
 let isFetchingOrders = false;
 
 async function fetchOrders() {
+  if (typeof isPosAuthLocked === "function" && isPosAuthLocked()) return;
   if (isFetchingOrders) return;
   isFetchingOrders = true;
 
@@ -1228,7 +1526,11 @@ async function fetchOrders() {
       fetchOptions.signal = controller.signal;
     }
 
-    const response = await fetch(`${WORKER_BASE}/api/orders?tenant_id=${tenantId}`, fetchOptions);
+    const fetchImpl = typeof posApiFetch === "function" ? posApiFetch : fetch;
+    const response = await fetchImpl(`${WORKER_BASE}/api/orders?tenant_id=${tenantId}`, fetchOptions);
+    if (response.status === 401) {
+      return;
+    }
     if (response.status === 304) {
       // Even on 304, re-check snooze expiration for new alert
       if (typeof updateNewAlert === "function") updateNewAlert();
@@ -1439,9 +1741,9 @@ function copyToClipboard(text, msgZh, msgVi) {
 
 function closeModal() {
   document.querySelectorAll(".modal").forEach(m => {
-    if (m.id !== "startShiftModal") {
-      m.style.display = "none";
-    }
+    if (m.id === "startShiftModal") return;
+    if (m.id === "storeActivationModal" && typeof isPosAuthLocked === "function" && isPosAuthLocked()) return;
+    m.style.display = "none";
   });
   window.PosOrderDetail?.clear?.();
   reviewingOrder = null;
@@ -1714,6 +2016,7 @@ window.updatePageMainTitle = updatePageMainTitle;
 
 // 1.5s Polling loop for active order updates - ALWAYS runs across all dashboard tabs!
 setInterval(() => {
+  if (typeof isPosAuthLocked === "function" && isPosAuthLocked()) return;
   fetchOrders();
 }, 1500);
 

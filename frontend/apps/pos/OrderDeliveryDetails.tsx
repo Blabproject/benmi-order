@@ -25,7 +25,8 @@ export function OrderDeliveryDetails({ orderKey }: { orderKey: string }) {
     async function load() {
       try {
         const query = new URLSearchParams({ tenant_id: tenant, key: orderKey });
-        const response = await fetch(WORKER_BASE + '/api/orders/delivery-details?' + query, {
+        const fetcher = (window as unknown as { posApiFetch?: typeof fetch }).posApiFetch ?? fetch;
+        const response = await fetcher(WORKER_BASE + '/api/orders/delivery-details?' + query, {
           signal: controller.signal,
           cache: 'no-store'
         });

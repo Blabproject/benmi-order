@@ -190,10 +190,11 @@ test('save serializes the changed item sequence and failed saves retain the orde
   app.context.fetch=async()=>({ok:true});await app.context.saveMenuData(true);assert.equal(app.dirty(),false);
 });
 
-test('ordering screen assets include the current cache busters', () => {
+test('ordering screen assets include the current cache busters and TS menu entry', () => {
   const html = fs.readFileSync(path.resolve(__dirname, '../orders.html'), 'utf-8');
-  for (const asset of ['css/orders-menu.css', 'js/orders-menu.js', 'js/orders-i18n.js']) {
+  for (const asset of ['css/orders-menu.css', 'js/orders-i18n.js']) {
     const escaped = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     assert.match(html, new RegExp(`${escaped}\\?v=\\d{8}_[a-z0-9_]+`));
   }
+  assert.ok(html.includes('src="/frontend/apps/pos/menu/index.ts"'));
 });

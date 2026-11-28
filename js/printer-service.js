@@ -302,7 +302,7 @@
         const visible = reports.filter(report => container.dataset.printerReports === 'current'
           ? report.key === current
           : Object.values(report.stations || {}).some(entry => !this.isPrintPartComplete(entry.state))).slice(-10).reverse();
-        container.replaceChildren();
+        container.textContent = '';
         container.hidden = visible.length === 0;
         for (const report of visible) {
           const group = document.createElement('div');
@@ -461,7 +461,9 @@
         // Customer orders must be explicitly accepted on this POS before printing.
         if (order?.key && order.source === 'staff') {
           await this.handleStaffRounds(order,1,1,'auto_print_new');
-          const latestRound = Number(order.round_count || order.roundCount || order.detailSnapshot?.rounds?.at(-1)?.roundNumber) || 1;
+          const rounds = order.detailSnapshot?.rounds;
+          const lastRound = Array.isArray(rounds) && rounds.length ? rounds[rounds.length - 1] : null;
+          const latestRound = Number(order.round_count || order.roundCount || lastRound?.roundNumber) || 1;
           if (latestRound > 1) await this.handleStaffRounds(order,2,latestRound,'auto_print_round');
         }
       }

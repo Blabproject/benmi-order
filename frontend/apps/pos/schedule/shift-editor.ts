@@ -42,6 +42,13 @@ export function formatCoverageReasons(conflicts: CoverageConflict[], hours: Stor
   }));
 }
 
+const apiFetch: typeof fetch = (input, init) => {
+  const fn = typeof window !== 'undefined'
+    ? ((window as unknown as { posApiFetch?: typeof fetch }).posApiFetch ?? window.fetch.bind(window))
+    : fetch;
+  return fn(input, init);
+};
+
 export function createShiftEditor(options: ShiftEditorOptions) {
   const state = {
     draft: [] as Shift[], hours: {} as StoreHours, editing: true, opening: false, saving: false,
@@ -89,7 +96,7 @@ export function createShiftEditor(options: ShiftEditorOptions) {
     state.opening = true;
     options.render();
     try {
-      const response = await fetch(options.endpoint(), { cache: 'no-store' });
+      const response = await apiFetch(options.endpoint(), { cache: 'no-store' });
       const data = await response.json();
       if (request !== openRequest) return;
       if (!response.ok) throw new Error(options.formatError(data));
@@ -148,7 +155,7 @@ export function createShiftEditor(options: ShiftEditorOptions) {
     state.serverConflicts = [];
     options.render();
     try {
-      const response = await fetch(options.endpoint(), {
+      const response = await apiFetch(options.endpoint(), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

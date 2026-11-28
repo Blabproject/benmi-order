@@ -84,7 +84,7 @@ function buildLoadDeps(): MenuStoreLoadDependencies {
   return {
     tenantId: readTenantId(),
     workerBase: readWorkerBase(),
-    fetcher: window.fetch.bind(window),
+    fetcher: (posWindow as unknown as { posApiFetch?: typeof fetch }).posApiFetch ?? window.fetch.bind(window),
     getCurrentTenantId: readTenantId,
     onSyncPriceMap: categories => {
       posWindow.updatePosCatalogPriceMap?.(categories);

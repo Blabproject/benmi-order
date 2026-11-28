@@ -2,6 +2,9 @@
 var DetailCheckout = (function () {
   const enabled = () => typeof bootstrapData !== 'undefined' && bootstrapData?.orderDetailVersion === 1;
   const storageKey = () => `order_detail_pending:${typeof getTenantIdFromUrl === 'function' ? getTenantIdFromUrl() : ''}`;
+  const createDetailUuid = () => (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+    ? crypto.randomUUID()
+    : `ord_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
   let pending = null;
   let pendingDelivery = null;
   let context = null;
@@ -57,13 +60,13 @@ var DetailCheckout = (function () {
       deliveryTime: modern.delivery_details ? modern.time : undefined });
     if (modern.delivery_details) {
       if (pendingDelivery?.fingerprint === fingerprint) return pendingDelivery.payload;
-      modern.operationId = modern.uuid = crypto.randomUUID();
+      modern.operationId = modern.uuid = createDetailUuid();
       pendingDelivery = { fingerprint, payload: modern };
       return modern;
     }
-    try { pending ||= JSON.parse(sessionStorage.getItem(storageKey()) || 'null'); } catch (_) {}
+    try { if (!pending) pending = JSON.parse(sessionStorage.getItem(storageKey()) || 'null'); } catch (_) {}
     if (pending?.fingerprint === fingerprint) return pending.payload;
-    modern.operationId = crypto.randomUUID();
+    modern.operationId = createDetailUuid();
     if (!key) modern.uuid = modern.operationId;
     pending = { fingerprint, payload: modern };
     try { sessionStorage.setItem(storageKey(), JSON.stringify(pending)); } catch (_) {}

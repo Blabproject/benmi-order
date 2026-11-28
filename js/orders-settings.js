@@ -181,6 +181,10 @@ function renderStorePrepTimeUI(mins) {
   });
 }
 
+function _settingsApiFetch(url, options) {
+  return (typeof posApiFetch === "function" ? posApiFetch : fetch)(url, options);
+}
+
 async function setStorePrepTime(mins, e) {
   if (e) e.stopPropagation();
   mins = parseInt(mins, 10);
@@ -192,7 +196,7 @@ async function setStorePrepTime(mins, e) {
 
   try {
     const tenantId = typeof getTenantIdFromUrl === 'function' ? getTenantIdFromUrl() : '';
-    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${tenantId}`, {
+    const res = await _settingsApiFetch(`${WORKER_BASE}/api/config?tenant_id=${tenantId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prepTimeMinutes: mins })
@@ -256,7 +260,7 @@ async function setAutoOpenBeforeMinutes(mins, e) {
 
   try {
     const tenantId = typeof getTenantIdFromUrl === 'function' ? getTenantIdFromUrl() : '';
-    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${tenantId}`, {
+    const res = await _settingsApiFetch(`${WORKER_BASE}/api/config?tenant_id=${tenantId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ autoOpenBeforeMinutes: mins })
@@ -303,7 +307,7 @@ async function setStoreStatus(newStatus) {
           return `closed:${nowTw.getUTCFullYear()}-${String(nowTw.getUTCMonth() + 1).padStart(2, '0')}-${String(nowTw.getUTCDate()).padStart(2, '0')}`;
         })()
       : newStatus;
-    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}`, {
+    const res = await _settingsApiFetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ storeStatus: payloadStatus })
@@ -342,7 +346,7 @@ function ensureParsedOperatingHours(raw) {
 
 async function loadStoreStatus() {
   try {
-    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}&_t=${Date.now()}`);
+    const res = await _settingsApiFetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}&_t=${Date.now()}`);
     if (res.ok) {
       const data = await res.json();
       if (data.storeStatus) {
@@ -358,6 +362,11 @@ async function loadStoreStatus() {
       if (data.features) {
         currentTenantFeatures = Array.isArray(data.features) ? data.features : (typeof data.features === 'string' ? JSON.parse(data.features) : []);
         window.currentTenantFeatures = currentTenantFeatures;
+        window.__posFeaturesResolved = true;
+        if (typeof isPosWebLoginEnabled === 'function' && isPosWebLoginEnabled() && typeof getPosSessionToken === 'function' && !getPosSessionToken()) {
+          if (typeof lockPosForLogin === 'function') lockPosForLogin(getTenantIdFromUrl());
+        }
+        window.syncPOSSettingsView?.();
       }
       if (data.prepTimeMinutes !== undefined) {
         currentPrepTimeMinutes = Number(data.prepTimeMinutes);
@@ -478,7 +487,7 @@ async function loadOperatingHours() {
   }
 
   try {
-    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${tenantId}&_t=${Date.now()}`);
+    const res = await _settingsApiFetch(`${WORKER_BASE}/api/config?tenant_id=${tenantId}&_t=${Date.now()}`);
     if (res.ok) {
       const data = await res.json();
       storeOperatingHours = ensureParsedOperatingHours(data.operatingHours);
@@ -600,7 +609,7 @@ async function saveScheduledPickupSetting() {
   const oldText = btn ? btn.innerText : "";
   if (btn) { btn.innerText = t("saving"); btn.disabled = true; }
   try {
-    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}`, {
+    const res = await _settingsApiFetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -692,7 +701,7 @@ async function savePaymentMethodsSetting() {
 
   try {
     const tenantId = typeof getTenantIdFromUrl === 'function' ? getTenantIdFromUrl() : '';
-    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${tenantId}`, {
+    const res = await _settingsApiFetch(`${WORKER_BASE}/api/config?tenant_id=${tenantId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ paymentMethods: newMethods })
@@ -766,7 +775,7 @@ async function saveDineInSetting() {
   const oldText = btn ? btn.innerText : "";
   if (btn) { btn.innerText = t("saving"); btn.disabled = true; }
   try {
-    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}`, {
+    const res = await _settingsApiFetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ allowDineIn: allowDineIn })
@@ -850,7 +859,7 @@ async function saveOperatingSettings(bodyPayload, buttonId) {
   const oldText = btn ? btn.innerText : "";
   if (btn) { btn.innerText = t("saving"); btn.disabled = true; }
   try {
-    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}`, {
+    const res = await _settingsApiFetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(bodyPayload)
@@ -903,7 +912,7 @@ async function saveStoreAddressSetting() {
   const oldText = btn ? btn.innerText : "";
   if (btn) { btn.innerText = t("saving"); btn.disabled = true; }
   try {
-    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}`, {
+    const res = await _settingsApiFetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ storeAddress: newAddress })
@@ -925,7 +934,7 @@ async function saveStoreAnnouncementSetting() {
   const oldText = btn ? btn.innerText : "";
   if (btn) { btn.innerText = t("saving"); btn.disabled = true; }
   try {
-    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}`, {
+    const res = await _settingsApiFetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ announcement: newAnnouncement })
@@ -1017,7 +1026,7 @@ async function saveStoreNoticeSetting() {
   const oldText = btn ? btn.innerText : "";
   if (btn) { btn.innerText = t("saving"); btn.disabled = true; }
   try {
-    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}`, {
+    const res = await _settingsApiFetch(`${WORKER_BASE}/api/config?tenant_id=${getTenantIdFromUrl()}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ storeNotice: notice })
@@ -1102,7 +1111,7 @@ async function saveStoreLogoSetting() {
 
     // If there is a new image selected, upload it via /api/image
     if (pendingLogoDataUri) {
-      const imgRes = await fetch(`${WORKER_BASE}/api/image?tenant_id=${tenantId}`, {
+      const imgRes = await _settingsApiFetch(`${WORKER_BASE}/api/image?tenant_id=${tenantId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1115,7 +1124,7 @@ async function saveStoreLogoSetting() {
     }
 
     // Update config with logoUrl
-    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${tenantId}`, {
+    const res = await _settingsApiFetch(`${WORKER_BASE}/api/config?tenant_id=${tenantId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ logoUrl: finalLogoUrl })
@@ -1152,7 +1161,7 @@ async function deleteStoreLogoSetting() {
   const tenantId = getTenantIdFromUrl();
 
   try {
-    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${tenantId}`, {
+    const res = await _settingsApiFetch(`${WORKER_BASE}/api/config?tenant_id=${tenantId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ logoUrl: "" })
@@ -1193,7 +1202,7 @@ async function saveAllStoreInfoSettings() {
     let finalLogoUrl = currentStoreLogoUrl;
 
     if (pendingLogoDataUri) {
-      const imgRes = await fetch(`${WORKER_BASE}/api/image?tenant_id=${tenantId}`, {
+      const imgRes = await _settingsApiFetch(`${WORKER_BASE}/api/image?tenant_id=${tenantId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1215,7 +1224,7 @@ async function saveAllStoreInfoSettings() {
       payload.logoUrl = finalLogoUrl;
     }
 
-    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${tenantId}`, {
+    const res = await _settingsApiFetch(`${WORKER_BASE}/api/config?tenant_id=${tenantId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -1311,7 +1320,7 @@ async function saveCustomerSupportedLocalesSetting() {
   if (btn) btn.disabled = true;
   if (label) label.innerText = t("saving") || "儲存中...";
   try {
-    const res = await fetch(`${WORKER_BASE}/api/config?tenant_id=${encodeURIComponent(tenantId)}`, {
+    const res = await _settingsApiFetch(`${WORKER_BASE}/api/config?tenant_id=${encodeURIComponent(tenantId)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ supportedLocales: selected })
@@ -2162,7 +2171,7 @@ async function submitStorePinChange(event) {
   let resultField = null;
   let saved = false;
   try {
-    const response = await fetch(`${WORKER_BASE}/api/auth/change?tenant_id=${encodeURIComponent(tenantId)}`, {
+    const response = await _settingsApiFetch(`${WORKER_BASE}/api/auth/change?tenant_id=${encodeURIComponent(tenantId)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ current: currentInput.value, newPassword: newInput.value, tenant_id: tenantId })
@@ -2171,6 +2180,22 @@ async function submitStorePinChange(event) {
     saved = response.ok && data.ok === true;
     if (saved) {
       try { sessionStorage.removeItem("staff_session_token_" + tenantId); } catch (e) {}
+      if (typeof clearPosSessionToken === "function") {
+        clearPosSessionToken(tenantId);
+      }
+      if (typeof isPosWebLoginEnabled === "function" && isPosWebLoginEnabled(tenantId) && typeof setPosSessionToken === "function") {
+        try {
+          const refreshRes = await fetch(`${WORKER_BASE}/api/pos/session?tenant_id=${encodeURIComponent(tenantId)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pin: newInput.value, tenant_id: tenantId })
+          });
+          const refreshData = await refreshRes.json().catch(() => ({}));
+          if (refreshRes.ok && refreshData && refreshData.token) {
+            setPosSessionToken(refreshData.token, tenantId);
+          }
+        } catch (err) {}
+      }
     } else if (response.status === 401) {
       resultKey = "pinWrongCurrent";
       resultField = currentInput.id;
@@ -2251,8 +2276,27 @@ async function promptUnlinkStoreDevice() {
   }
 }
 
+async function logoutPosSession() {
+  const currentTenant = (typeof getTenantIdFromUrl === "function" && getTenantIdFromUrl()) || "";
+  if (!currentTenant) return;
+  const token = typeof getPosSessionToken === "function" ? getPosSessionToken(currentTenant) : null;
+  if (token) {
+    try {
+      const workerUrl = typeof WORKER_BASE !== "undefined" ? WORKER_BASE : "https://benmi-worker-official.thuanmnc.workers.dev";
+      await fetch(`${workerUrl}/api/pos/session?tenant_id=${encodeURIComponent(currentTenant)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (e) {}
+  }
+  if (typeof handlePosUnauthorizedResponse === "function") {
+    handlePosUnauthorizedResponse(currentTenant);
+  }
+}
+
 window.renderStorePairingSection = renderStorePairingSection;
 window.promptUnlinkStoreDevice = promptUnlinkStoreDevice;
+window.logoutPosSession = logoutPosSession;
 
 window.addEventListener("pagehide", resetStorePinChangeForm);
 
@@ -2267,7 +2311,7 @@ async function checkStaffOrderingCapability() {
   if (!tenantId) return false;
   try {
     const workerUrl = typeof WORKER_BASE !== "undefined" ? WORKER_BASE : "https://benmi-worker-official.thuanmnc.workers.dev";
-    const res = await fetch(`${workerUrl}/api/staff/capabilities?tenant_id=${encodeURIComponent(tenantId)}&_t=${Date.now()}`);
+    const res = await _settingsApiFetch(`${workerUrl}/api/staff/capabilities?tenant_id=${encodeURIComponent(tenantId)}&_t=${Date.now()}`);
     if (res.ok) {
       const data = await res.json();
       const respFeatures = Array.isArray(data.features) ? data.features : [];
@@ -2339,7 +2383,7 @@ async function loadRestaurantTables() {
   }
 
   const workerUrl = typeof WORKER_BASE !== "undefined" ? WORKER_BASE : "https://benmi-worker-official.thuanmnc.workers.dev";
-  const res = await fetch(`${workerUrl}/api/staff/tables?tenant_id=${encodeURIComponent(tenantId)}&include_inactive=1&_t=${Date.now()}`);
+  const res = await _settingsApiFetch(`${workerUrl}/api/staff/tables?tenant_id=${encodeURIComponent(tenantId)}&include_inactive=1&_t=${Date.now()}`);
 
   if (!res.ok) {
     window.renderPOSRestaurantTables?.({ state: 'error' });
@@ -2422,7 +2466,7 @@ async function submitTableEditor() {
     const workerUrl = typeof WORKER_BASE !== "undefined" ? WORKER_BASE : "https://benmi-worker-official.thuanmnc.workers.dev";
     let res;
     if (id) {
-      res = await fetch(`${workerUrl}/api/staff/tables/${encodeURIComponent(id)}?tenant_id=${encodeURIComponent(tenantId)}`, {
+      res = await _settingsApiFetch(`${workerUrl}/api/staff/tables/${encodeURIComponent(id)}?tenant_id=${encodeURIComponent(tenantId)}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json"
@@ -2430,7 +2474,7 @@ async function submitTableEditor() {
         body: JSON.stringify({ label, sort_order: sort, is_active: isActive })
       });
     } else {
-      res = await fetch(`${workerUrl}/api/staff/tables?tenant_id=${encodeURIComponent(tenantId)}`, {
+      res = await _settingsApiFetch(`${workerUrl}/api/staff/tables?tenant_id=${encodeURIComponent(tenantId)}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -2462,7 +2506,7 @@ async function toggleTableActive(tableId, newActive) {
 
   try {
     const workerUrl = typeof WORKER_BASE !== "undefined" ? WORKER_BASE : "https://benmi-worker-official.thuanmnc.workers.dev";
-    const res = await fetch(`${workerUrl}/api/staff/tables/${encodeURIComponent(tableId)}?tenant_id=${encodeURIComponent(tenantId)}`, {
+    const res = await _settingsApiFetch(`${workerUrl}/api/staff/tables/${encodeURIComponent(tableId)}?tenant_id=${encodeURIComponent(tenantId)}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json"
@@ -2655,7 +2699,7 @@ async function createQuickQrChannel() {
     const asciiSlug = label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 24);
     const code = asciiSlug || `ch_${Date.now().toString(36)}`;
 
-    const res = await fetch(`${WORKER_BASE}/api/menu/qr-channels?tenant_id=${encodeURIComponent(tenantId)}`, {
+    const res = await _settingsApiFetch(`${WORKER_BASE}/api/menu/qr-channels?tenant_id=${encodeURIComponent(tenantId)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -3102,7 +3146,7 @@ async function submitBatchTable() {
 
   try {
     const workerUrl = typeof WORKER_BASE !== "undefined" ? WORKER_BASE : "https://benmi-worker-official.thuanmnc.workers.dev";
-    const res = await fetch(`${workerUrl}/api/staff/tables/batch?tenant_id=${encodeURIComponent(tenantId)}`, {
+    const res = await _settingsApiFetch(`${workerUrl}/api/staff/tables/batch?tenant_id=${encodeURIComponent(tenantId)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prefix, start, end, sort_start: sortStart })

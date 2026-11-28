@@ -97,13 +97,18 @@ async function playNewOrderSound() {
 }
 
 async function startOrderShift() {
+  window.__posShiftStarted = true;
   await unlockSound();
   playAlarmCycle();
   const modal = document.getElementById("startShiftModal");
   if (modal) modal.style.display = "none";
+  if (typeof updateNewAlert === "function") updateNewAlert();
 }
 
 function checkInitialSessionModal() {
+  if (typeof isPosAuthLocked === "function" && isPosAuthLocked()) {
+    return;
+  }
   const modal = document.getElementById("startShiftModal");
   if (modal) {
     modal.style.display = "flex";

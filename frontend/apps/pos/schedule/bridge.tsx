@@ -28,6 +28,7 @@ declare function showToast(message: string, type?: string): void;
 declare function formatScheduleError(detail: { error?: string; conflicts?: CoverageConflict[] }): string;
 
 interface ScheduleHost extends Window {
+  posApiFetch?: typeof fetch;
   currentMenuData?: MenuCategory[];
   currentTenantFeatures?: string[];
   storeOperatingShifts?: Shift[];
@@ -50,6 +51,7 @@ interface ScheduleHost extends Window {
 }
 
 const pos = window as unknown as ScheduleHost;
+const apiFetch: typeof fetch = (input, init) => (pos.posApiFetch ?? window.fetch.bind(window))(input, init);
 const mount = document.getElementById('menu-schedule-workspace-root');
 const translate: Translate = (key, params) => t(key, params);
 const categories = () => {
@@ -121,7 +123,7 @@ if (mount) {
     channelsLoading = true;
     render();
     try {
-      const response = await fetch(endpoint('/api/menu/qr-channels'));
+      const response = await apiFetch(endpoint('/api/menu/qr-channels'));
       if (response.ok) {
         const data = await response.json();
         if (Array.isArray(data?.qrChannels)) pos.storeQrChannels = data.qrChannels;
@@ -137,7 +139,7 @@ if (mount) {
 
   async function saveChannel(draft: QrChannelDraft): Promise<QrChannel | null> {
     const isUpdate = Boolean(draft.id);
-    const response = await fetch(endpoint('/api/menu/qr-channels'), {
+    const response = await apiFetch(endpoint('/api/menu/qr-channels'), {
       method: isUpdate ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -163,7 +165,7 @@ if (mount) {
   }
 
   async function toggleChannel(channel: QrChannel, isActive: boolean): Promise<void> {
-    const response = await fetch(endpoint('/api/menu/qr-channels'), {
+    const response = await apiFetch(endpoint('/api/menu/qr-channels'), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: channel.id, isActive }),
@@ -178,7 +180,7 @@ if (mount) {
   }
 
   async function deleteChannel(channel: QrChannel): Promise<void> {
-    const response = await fetch(`${endpoint('/api/menu/qr-channels')}&id=${encodeURIComponent(channel.id)}`, {
+    const response = await apiFetch(`${endpoint('/api/menu/qr-channels')}&id=${encodeURIComponent(channel.id)}`, {
       method: 'DELETE',
     });
     const data = await response.json().catch(() => ({}));
@@ -195,7 +197,7 @@ if (mount) {
     tableConfigSaving = true;
     render();
     try {
-      const response = await fetch(endpoint('/api/config'), {
+      const response = await apiFetch(endpoint('/api/config'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dineInTableMode: mode }),
@@ -311,7 +313,7 @@ if (mount) {
           void pos.loadRestaurantTablesSetting?.();
         }
         if (!shifts().length && typeof getTenantIdFromUrl === 'function') {
-          const response = await fetch(`${endpoint('/api/tenant/bootstrap')}&nocache=1`);
+          const response = await apiFetch(`${endpoint('/api/tenant/bootstrap')}&nocache=1`);
           if (response.ok) {
             const data = await response.json();
             if (Array.isArray(data?.tenant?.operatingShifts)) pos.storeOperatingShifts = data.tenant.operatingShifts;
@@ -342,7 +344,7 @@ if (mount) {
     render();
     try {
       const patch = assignments.buildPatch();
-      const response = await fetch(endpoint('/api/menu/schedule'), {
+      const response = await apiFetch(endpoint('/api/menu/schedule'), {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch)
       });
       if (!response.ok) {

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { HistoryOrderDto } from '@shared/contracts/api';
-import { Button } from '@shared/ui/button';
 import { DineInIcon, ModifyIcon, ReceiptIcon } from '@shared/ui/PosIcons';
+import { StickerPrintButton } from './StickerPrintButton';
 
 type LegacyPortion = { label: string; chips: string[] };
 type BundleItem = { name?: string; item_name?: string; quantity: number; surcharge?: number; modifiers?: { name: string; price?: number }[] };
@@ -47,10 +47,12 @@ function PortionChips({ portion }: { portion: LegacyPortion }) {
 }
 
 function PortionPrint({ orderKey, stickerIndex }: { orderKey: string; stickerIndex: number }) {
-  return <Button className="btn btn-ghost portion-print-btn" data-print-action="stickers" title={t('btnPrintPortion')}
-    onClick={() => PrinterService.printSingleItemSticker(orderKey, stickerIndex)}>
-    <ReceiptIcon size={14} /><span>{t('btnPrintStickerShort')}</span>
-  </Button>;
+  return <StickerPrintButton
+    className="portion-print-btn"
+    label={t('btnPrintStickerShort')}
+    title={t('btnPrintPortion')}
+    onClick={() => PrinterService.printSingleItemSticker(orderKey, stickerIndex)}
+  />;
 }
 
 function BundleGroups({ groups }: { groups: BundleGroup[] }) {
@@ -104,10 +106,12 @@ function LegacyLine({ item, orderKey, index }: { item: LegacyItem; orderKey: str
       <div className="review-item-name"><span className="review-item-qty-badge">{quantity}×</span><span className="review-item-name-text">{item.name}</span></div>
       <div className="review-item-meta-right">
         <span className={`review-item-price${!price || price === '—' ? ' is-empty' : ''}`}>{price || '—'}</span>
-        <Button className="btn btn-ghost review-item-print-btn" data-print-action="stickers" data-print-action-title={label} title={label}
-          onClick={() => quantity > 1 ? PrinterService.printItemRangeStickers(orderKey, start, quantity, item.name) : PrinterService.printSingleItemSticker(orderKey, start)}>
-          <ReceiptIcon size={14} /><span>{label}</span>
-        </Button>
+        <StickerPrintButton
+          className="review-item-print-btn"
+          label={label}
+          withActionTitle
+          onClick={() => quantity > 1 ? PrinterService.printItemRangeStickers(orderKey, start, quantity, item.name) : PrinterService.printSingleItemSticker(orderKey, start)}
+        />
       </div>
     </div>
     {(bundlePortions.length > 0 || Boolean(bundle?.textGroups?.some(group => group.items?.length))) && <div className="bundle-components-container">

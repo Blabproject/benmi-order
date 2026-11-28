@@ -2,8 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
+import { transform as transformCss } from 'lightningcss';
 import tailwindcss from 'tailwindcss';
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, transformWithOxc, type Plugin } from 'vite';
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -27,19 +28,48 @@ const LEGACY_ROOT_FILES = [
 
 const LEGACY_ASSET_DIRS = ['css', 'js', 'wasm'];
 
+const LEGACY_WEBVIEW_CSS_TARGETS = { chrome: 79 << 16, safari: 13 << 16 };
+
+async function transpileLegacyJs(srcPath: string, outPath: string): Promise<void> {
+  if (srcPath.endsWith('.min.js') || !srcPath.endsWith('.js')) {
+    fs.copyFileSync(srcPath, outPath);
+    return;
+  }
+  const source = fs.readFileSync(srcPath, 'utf8');
+  const result = await transformWithOxc(source, srcPath, {
+    lang: 'js',
+    sourceType: 'script',
+    target: 'es2019'
+  });
+  fs.writeFileSync(outPath, result.code, 'utf8');
+}
+
+function transpileLegacyCss(srcPath: string, outPath: string): void {
+  const result = transformCss({
+    filename: srcPath,
+    code: fs.readFileSync(srcPath),
+    minify: false,
+    targets: LEGACY_WEBVIEW_CSS_TARGETS
+  });
+  fs.writeFileSync(outPath, result.code);
+}
+
 /**
  * Keeps zero-build legacy HTML/CSS/JS/WASM pages and Cloudflare Pages routing
- * files intact inside dist/ alongside content-hashed Vite/React bundles.
+ * files intact inside dist/ while lowering legacy JS/CSS to ES2019 / Chrome 79.
  */
 function legacyPagesCoexistencePlugin(): Plugin {
   return {
     name: 'benmi-legacy-pages-coexistence',
     apply: 'build',
-    closeBundle() {
+    async closeBundle() {
       const outDir = path.resolve(rootDir, 'dist');
       for (const file of LEGACY_ROOT_FILES) {
         const src = path.join(rootDir, file);
-        if (fs.existsSync(src)) {
+        if (!fs.existsSync(src)) continue;
+        if (file.endsWith('.css')) {
+          transpileLegacyCss(src, path.join(outDir, file));
+        } else {
           fs.copyFileSync(src, path.join(outDir, file));
         }
       }
@@ -50,10 +80,41 @@ function legacyPagesCoexistencePlugin(): Plugin {
       for (const file of fs.readdirSync(apkDir).filter(name => name.endsWith('.apk'))) {
         fs.copyFileSync(path.join(apkDir, file), path.join(apkOutDir, file));
       }
+      const legacyJsStems = new Set<string>();
       for (const dir of LEGACY_ASSET_DIRS) {
         const srcDir = path.join(rootDir, dir);
-        if (fs.existsSync(srcDir)) {
-          fs.cpSync(srcDir, path.join(outDir, dir), { recursive: true });
+        const destDir = path.join(outDir, dir);
+        if (!fs.existsSync(srcDir)) continue;
+        if (dir === 'wasm') {
+          fs.cpSync(srcDir, destDir, { recursive: true });
+          continue;
+        }
+        fs.mkdirSync(destDir, { recursive: true });
+        for (const entry of fs.readdirSync(srcDir)) {
+          const srcFile = path.join(srcDir, entry);
+          const outFile = path.join(destDir, entry);
+          if (!fs.statSync(srcFile).isFile()) continue;
+          if (dir === 'css' && entry.endsWith('.css')) {
+            transpileLegacyCss(srcFile, outFile);
+          } else if (dir === 'js') {
+            if (entry.endsWith('.js') && !entry.endsWith('.min.js')) {
+              legacyJsStems.add(entry.slice(0, -3));
+            }
+            await transpileLegacyJs(srcFile, outFile);
+          } else {
+            fs.copyFileSync(srcFile, outFile);
+          }
+        }
+      }
+      // Lower Vite-copied preload script assets (e.g. client-core-*.js) that bypass Rollup transforms.
+      const assetsDir = path.join(outDir, 'assets');
+      if (fs.existsSync(assetsDir)) {
+        for (const asset of fs.readdirSync(assetsDir)) {
+          if (!asset.endsWith('.js')) continue;
+          const stem = asset.match(/^(.+)-[A-Za-z0-9_-]{8}\.js$/)?.[1];
+          if (stem && legacyJsStems.has(stem)) {
+            await transpileLegacyJs(path.join(assetsDir, asset), path.join(assetsDir, asset));
+          }
         }
       }
     }

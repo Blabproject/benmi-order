@@ -9,7 +9,7 @@
 
   <script src="/js/order-code.js?v=20261109_order_code_v1"></script>
   <script src="js/orders-display.js?v=20261121_settings_react_v1"></script>
-  <link rel="stylesheet" href="css/orders.css?v=20261126_delivery_details_v5" />
+  <link rel="stylesheet" href="css/orders.css?v=20261128_pos_web_login_v1" />
   <link rel="stylesheet" href="css/orders-stock.css?v=20261107_stock_drawer_v1" />
   <link rel="stylesheet" href="css/orders-menu.css?v=20261124_item_description_v1" />
     <script>
@@ -100,6 +100,12 @@
               const data = JSON.parse(cached);
               if (data.brandName) {
                 document.title = data.brandName + " Dashboard";
+              }
+              if (Array.isArray(data.features) && data.features.indexOf("pos_web_login") !== -1) {
+                const posTok = localStorage.getItem("pos_session_token_" + tenantId);
+                if (!posTok || !posTok.trim()) {
+                  document.documentElement.classList.add("pos-auth-locked");
+                }
               }
             }
           }
@@ -1253,12 +1259,14 @@
     </div>
   </div>
 
-  <!-- Store Activation Modal (Universal Multi-Tenant POS) -->
-  <div id="storeActivationModal" class="modal store-activation-modal">
+  <!-- Store Activation & PIN Login Modal (Universal Multi-Tenant POS) -->
+  <div id="storeActivationModal" class="modal store-activation-modal" role="dialog" aria-modal="true" aria-labelledby="i18n-modal-activation-title">
     <div class="store-activation-box">
       <div class="store-activation-logo-wrap">
-        <img src="blab_icon.png" alt="BLAB Logo" />
+        <img id="activation-store-logo" src="blab_icon.png" alt="BLAB Logo" />
       </div>
+
+      <div id="activation-store-name" class="store-activation-store-name" style="display:none;"></div>
 
       <h2 class="store-activation-title" id="i18n-modal-activation-title">
         門市終端啟用
@@ -1268,24 +1276,32 @@
       </p>
 
       <form id="storeActivationForm" onsubmit="submitStoreActivation(event)" class="store-activation-form">
-        <div>
-          <label class="store-activation-label" id="i18n-activation-tenant-label">
+        <div id="activation-tenant-group">
+          <label class="store-activation-label" id="i18n-activation-tenant-label" for="activation-tenant-id">
             門市代碼 (Tenant ID)
           </label>
           <input type="text" id="activation-tenant-id" class="store-activation-input" placeholder="例如: bsc, benmi..." required autocomplete="off" autocapitalize="none" spellcheck="false" />
         </div>
 
         <div>
-          <label class="store-activation-label" id="i18n-activation-pin-label">
+          <label class="store-activation-label" id="i18n-activation-pin-label" for="activation-pin">
             管理 PIN 碼
           </label>
-          <input type="password" id="activation-pin" class="store-activation-input" placeholder="預設 12345678" required autocomplete="off" />
+          <div class="store-activation-pin-wrap">
+            <input type="password" id="activation-pin" class="store-activation-input store-activation-pin-input" placeholder="預設 12345678" required autocomplete="current-password" enterkeyhint="done" />
+            <button type="button" id="activation-pin-toggle" class="store-activation-pin-toggle" onclick="toggleActivationPinVisibility()" aria-controls="activation-pin" aria-pressed="false" aria-label="顯示 PIN 碼">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
         </div>
 
-        <div id="activation-error-msg" class="store-activation-error"></div>
+        <div id="activation-error-msg" class="store-activation-error" role="alert" aria-live="assertive"></div>
 
         <button type="submit" id="btn-submit-activation" class="store-activation-btn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M20 6 9 17l-5-5"></path>
           </svg>
           <span id="i18n-btn-submit-activation-text">啟用終端並開始接單</span>
@@ -1312,21 +1328,18 @@
 
   <!-- Benmi POS Modular Architecture Scripts -->
   <script src="js/menu-schedule.js?v=20261121_collection_qr_v1"></script>
-  <script src="js/orders-i18n.js?v=20261126_delivery_direct_v3"></script>
-  <script src="js/orders-core.js?v=20261126_delivery_direct_v3"></script>
-  <script src="js/orders-audio.js?v=20261114_deadcode_cleanup_v1"></script>
+  <script src="js/orders-i18n.js?v=20261128_pos_web_login_v1"></script>
+  <script src="js/orders-core.js?v=20261128_pos_web_login_v2"></script>
+  <script src="js/orders-audio.js?v=20261128_pos_web_login_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>
   <script src="js/order-detail-view.js?v=20261119_print_options_v2"></script>
-  <script src="js/printer-service.js?v=20261125_delivery_v1"></script>
-  <script src="js/orders-live.js?v=20261125_delivery_v1"></script>
-  <script src="js/orders-modals.js?v=20261126_delivery_direct_v3"></script>
+  <script src="js/printer-service.js?v=20261127_webview_compat_v1"></script>
+  <script src="js/orders-live.js?v=20261128_pos_web_login_v1"></script>
+  <script src="js/orders-modals.js?v=20261128_pos_web_login_v1"></script>
   <script src="js/qrcode.min.js?v=20261107_table_qr_v1"></script>
   <script src="js/store-notice-format.js?v=20261111_store_notice_v1"></script>
-  <script src="js/orders-settings.js?v=20261126_delivery_direct_v3"></script>
+  <script src="js/orders-settings.js?v=20261128_pos_web_login_v1"></script>
   <script src="js/orders-orientation.js?v=20261122_desktop_pos_v1"></script>
-  <script src="js/orders-menu-model.js?v=20261125_staff_only_v1"></script>
-  <script src="js/orders-menu.js?v=20261125_staff_only_v1"></script>
-  <script src="js/orders-bundle-wizard.js?v=20261007_dev_main_sync_v1"></script>
 
   <!-- POS Bootstrap & Initialization -->
   <script>
@@ -1354,6 +1367,10 @@
       if (typeof initOrderDetailHeaderScroll === "function") {
         initOrderDetailHeaderScroll();
       }
+      if (typeof bootstrapPosApp === "function") {
+        bootstrapPosApp();
+        return;
+      }
       const tenantId = getTenantIdFromUrl();
       if (!tenantId) {
         if (typeof isNativeAppPlatform === "function" && isNativeAppPlatform()) {
@@ -1376,6 +1393,7 @@
 <script type="module" src="/frontend/apps/pos/ai-settings-bridge.tsx"></script>
 <script type="module" src="/frontend/apps/pos/settings-bridge.tsx"></script>
 <script type="module" src="/frontend/apps/pos/payment-workspace-bridge.tsx"></script>
+<script type="module" src="/frontend/apps/pos/menu/index.ts"></script>
 <script type="module" src="/frontend/apps/pos/option-groups-bridge.tsx"></script>
 <script type="module" src="/frontend/apps/pos/MenuCatalogLists.tsx"></script>
 <script type="module" src="/frontend/apps/pos/ItemDetailForm.tsx"></script>

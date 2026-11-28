@@ -240,23 +240,35 @@ async function getLiffDeliveryDiagnostic() {
     };
 }
 
+function createCheckoutTimeoutSignal(timeoutMs) {
+    if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+        return { signal: AbortSignal.timeout(timeoutMs), clear: () => {} };
+    }
+    if (typeof AbortController === 'undefined') {
+        return { signal: undefined, clear: () => {} };
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    return { signal: controller.signal, clear: () => clearTimeout(timer) };
+}
+
 async function requestOrderConfirmationPush(notification, tenantId) {
     if (!notification?.id || !notification?.token) return;
+    const timeout = createCheckoutTimeoutSignal(6000);
     try {
-        const timeoutSignal = typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
-            ? AbortSignal.timeout(6000)
-            : undefined;
         const response = await fetch(`${WORKER_BASE}/api/line/order-receipt/push?tenant_id=${encodeURIComponent(tenantId)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-Tenant-ID': tenantId },
             body: JSON.stringify({ id: notification.id, token: notification.token }),
             keepalive: true,
-            signal: timeoutSignal
+            signal: timeout.signal
         });
         if (!response.ok) throw new Error(`Receipt fallback HTTP ${response.status}`);
     } catch (error) {
         // The committed backend receipt remains pending for scheduled delivery.
         console.error('[LINE] Receipt fallback request failed', { receiptId: notification.id, message: String(error?.message || error) });
+    } finally {
+        timeout.clear();
     }
 }
 
@@ -3111,13 +3123,16 @@ async function validateCartStockBeforeSubmit() {
     const tenantId = getTenantIdFromUrl();
     try {
         console.log(`[Validation] Fetching fresh bootstrap data for tenant: ${tenantId}...`);
-        const fetchSignal = typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
-            ? AbortSignal.timeout(5000)
-            : undefined;
-        const res = await fetch(`${WORKER_BASE}/api/tenant/bootstrap?tenant_id=${tenantId}`, {
-            cache: 'no-cache',
-            signal: fetchSignal
-        });
+        const timeout = createCheckoutTimeoutSignal(5000);
+        let res;
+        try {
+            res = await fetch(`${WORKER_BASE}/api/tenant/bootstrap?tenant_id=${tenantId}`, {
+                cache: 'no-cache',
+                signal: timeout.signal
+            });
+        } finally {
+            timeout.clear();
+        }
         if (!res.ok) {
             console.warn(`[Validation] Bootstrap fetch returned status ${res.status}`);
             return { valid: false, unavailable: true, outOfStockItems: [], paused: false };
@@ -3698,10 +3713,11 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
                 const affected = buildStructuredCartItems()[Number(details.itemIndex || 0)];
                 let key = affected && Object.keys(cart).find(candidate => _rejectResolve(candidate)?.itemId === affected.itemId);
                 let location = key ? parseCartKey(key) : null;
+                const refreshTimeout = createCheckoutTimeoutSignal(8000);
                 try {
                     const fresh = await fetch(`${WORKER_BASE}/api/tenant/bootstrap?tenant_id=${encodeURIComponent(getTenantIdFromUrl())}&_t=${Date.now()}`, {
                         cache: 'no-store',
-                        signal: AbortSignal.timeout(8000)
+                        signal: refreshTimeout.signal
                     });
                     if (fresh.ok) {
                         const data = await fresh.json();
@@ -3712,7 +3728,7 @@ async function doSubmitOrderExecution(dateInput, timeInput) {
                             if (typeof buildModifierPriceMap === 'function') buildModifierPriceMap(data);
                         }
                     }
-                } catch (refreshError) { console.warn('[Bundle] Refresh failed', refreshError); }
+                } catch (refreshError) { console.warn('[Bundle] Refresh failed', refreshError); } finally { refreshTimeout.clear(); }
                 // Cart keys include names: retain selections when the same product was renamed.
                 const category = bootstrapData?.catalog?.find(cat => cat.items?.some(item => item.id === affected?.itemId));
                 const product = category?.items?.find(item => item.id === affected?.itemId);

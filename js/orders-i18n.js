@@ -1110,6 +1110,17 @@ const I18N = {
     unlinkTitle: "解除此設備綁定 / 切換門市",
     unlinkDesc: "解除後此終端機將停止同步該門市訂單，需輸入管理 PIN 碼確認。",
     btnUnlinkStore: "切換門市 / 解除綁定",
+    posLogoutTitle: "登出此裝置 POS",
+    posLogoutDesc: "登出後需重新輸入門市管理 PIN 碼才能存取訂單與設定。",
+    btnPosLogout: "登出 POS",
+    posWebLoginTitle: "登入門市 POS",
+    posWebLoginSub: "請輸入門市管理 PIN 碼以解鎖並管理訂單",
+    activationPinOnlyPlaceholder: "請輸入管理 PIN 碼",
+    btnSubmitPosLogin: "登入 POS",
+    posLoginPinRequired: "請輸入管理 PIN 碼。",
+    posLoginRateLimited: "PIN 碼錯誤次數過多，請稍後再試。",
+    posPinShowAria: "顯示 PIN 碼",
+    posPinHideAria: "隱藏 PIN 碼",
     modalActivationTitle: "門市終端啟用",
     modalActivationSub: "請輸入門市代碼與管理 PIN 碼以綁定此終端設備",
     activationTenantLabel: "門市代碼 (Tenant ID)",
@@ -2643,6 +2654,17 @@ const I18N = {
     unlinkTitle: "Hủy ghép đôi thiết bị / Đổi điểm bán",
     unlinkDesc: "Sau khi hủy, thiết bị sẽ ngừng đồng bộ đơn của quán này. Cần nhập mã PIN quản lý để xác nhận.",
     btnUnlinkStore: "Đổi Quán / Hủy Ghép Đôi",
+    posLogoutTitle: "Đăng xuất POS khỏi thiết bị",
+    posLogoutDesc: "Sau khi đăng xuất, cần nhập lại mã PIN quản lý để truy cập đơn hàng và cài đặt.",
+    btnPosLogout: "Đăng xuất POS",
+    posWebLoginTitle: "Đăng nhập POS",
+    posWebLoginSub: "Vui lòng nhập mã PIN quản lý để mở khóa và xử lý đơn hàng",
+    activationPinOnlyPlaceholder: "Nhập mã PIN quản lý",
+    btnSubmitPosLogin: "Đăng nhập POS",
+    posLoginPinRequired: "Vui lòng nhập mã PIN quản lý.",
+    posLoginRateLimited: "Nhập sai mã PIN quá nhiều lần. Vui lòng thử lại sau.",
+    posPinShowAria: "Hiện mã PIN",
+    posPinHideAria: "Ẩn mã PIN",
     modalActivationTitle: "Kích Hoạt Điểm Bán",
     modalActivationSub: "Vui lòng nhập Mã Quán (Tenant ID) và Mã PIN Quản Lý để liên kết thiết bị POS",
     activationTenantLabel: "Mã Điểm Bán (Tenant ID)",
@@ -4118,6 +4140,13 @@ function applyLanguageToDOM() {
   const btnUnlSt = document.getElementById("i18n-btn-unlink-store");
   if (btnUnlSt) btnUnlSt.innerText = dict.btnUnlinkStore;
 
+  const logoutT = document.getElementById("i18n-pos-logout-title");
+  if (logoutT) logoutT.innerText = dict.posLogoutTitle;
+  const logoutD = document.getElementById("i18n-pos-logout-desc");
+  if (logoutD) logoutD.innerText = dict.posLogoutDesc;
+  const btnLogout = document.getElementById("i18n-btn-pos-logout");
+  if (btnLogout) btnLogout.innerText = dict.btnPosLogout;
+
   // Store Activation Modal DOM mappings
   const actModT = document.getElementById("i18n-modal-activation-title");
   if (actModT) actModT.innerText = dict.modalActivationTitle;
@@ -4133,6 +4162,9 @@ function applyLanguageToDOM() {
   if (actInpP) actInpP.placeholder = dict.activationPinPlaceholder;
   const btnActTxt = document.getElementById("i18n-btn-submit-activation-text");
   if (btnActTxt) btnActTxt.innerText = dict.btnSubmitActivation;
+  if (typeof applyActivationModalTexts === "function") {
+    applyActivationModalTexts();
+  }
 
   // Bundle Editor Modal DOM mappings
   const bndlModT = document.getElementById("i18n-bundle-modal-title");

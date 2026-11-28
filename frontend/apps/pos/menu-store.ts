@@ -10,6 +10,7 @@ import {
   type ModifierLibraryGroupDto,
   type ModifierLibraryResponseDto
 } from '@shared/contracts/menu-model';
+import { createClientUuid } from '@shared/infra/http';
 import { translatePos, type PosLocale } from '@shared/i18n/pos-dictionary';
 
 export type MenuSidebarTab = 'products' | 'customizations' | 'options';
@@ -51,10 +52,7 @@ export interface MenuStoreSaveDependencies extends MenuStoreLoadDependencies {
 }
 
 function defaultUuid(): string {
-  if (typeof globalThis.crypto?.randomUUID === 'function') {
-    return globalThis.crypto.randomUUID();
-  }
-  return `id_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  return createClientUuid();
 }
 
 function pickInitialCategoryIndex(

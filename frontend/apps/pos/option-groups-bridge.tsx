@@ -253,6 +253,7 @@ export function mountOptionGroupsBridge() {
       win.savedMenuSnapshot = nextSavedSnapshot;
     },
     getAuthHeaders: readAuthHeaders,
+    fetchImpl: (win as unknown as { posApiFetch?: typeof fetch }).posApiFetch ?? window.fetch.bind(window),
     serializeCanonical: (data) =>
       typeof win.canonicalMenuSnapshot === 'function'
         ? win.canonicalMenuSnapshot(data)

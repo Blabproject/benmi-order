@@ -4,8 +4,18 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-test('Sidebar Sections: orders-menu.js defines accordion sections and classification helpers', () => {
-  const code = fs.readFileSync(path.resolve(__dirname, '../js/orders-menu.js'), 'utf-8');
+const { loadMenuEditor } = require('./helpers/menu-editor-loader.cjs');
+
+function readPosMenuSources() {
+  const dir = path.resolve(__dirname, '../frontend/apps/pos/menu');
+  return ['state.ts', 'workspace.ts', 'catalog-editor.ts', 'index.ts']
+    .map((file) => fs.readFileSync(path.join(dir, file), 'utf-8'))
+    .join('\n');
+}
+
+test('Sidebar Sections: TS POS menu defines accordion sections and classification helpers', () => {
+  const code = readPosMenuSources();
+  const css = fs.readFileSync(path.resolve(__dirname, '../css/orders.css'), 'utf-8');
   assert.ok(code.includes('collapsedMenuSections'), 'Must define collapsedMenuSections');
   assert.ok(code.includes('toggleMenuSectionCollapse'), 'Must define toggleMenuSectionCollapse');
   assert.ok(code.includes('isComboCategory'), 'Must define isComboCategory');
@@ -13,23 +23,18 @@ test('Sidebar Sections: orders-menu.js defines accordion sections and classifica
   assert.ok(code.includes('handleCreateComboFromSidebar'), 'Must define handleCreateComboFromSidebar');
   assert.ok(code.includes('handleCreateCustomFromSidebar'), 'Must define handleCreateCustomFromSidebar');
   assert.ok(code.includes('menu-sidebar-section'), 'Must render menu-sidebar-section in DOM');
-  assert.ok(code.includes('menu-sidebar-action-btn'), 'Must render menu-sidebar-action-btn in DOM');
+  assert.ok(css.includes('menu-sidebar-action-btn'), 'Must define menu-sidebar-action-btn in CSS');
 });
 
 test('Sidebar Sections: Classification logic partitions categories accurately', () => {
   const sandbox = {
     window: {},
     currentTenantFeatures: [],
-    POS_SVG: {}
+    POS_SVG: {},
+    localStorage: { getItem: () => null, setItem: () => {} }
   };
   vm.createContext(sandbox);
-
-  const menuJs = fs.readFileSync(path.resolve(__dirname, '../js/orders-menu.js'), 'utf-8');
-  // Load helpers
-  vm.runInContext(`
-    let currentMenuData = [];
-    ${menuJs.slice(menuJs.indexOf('const collapsedMenuSections'), menuJs.indexOf('function renderMenuCategories'))}
-  `, sandbox);
+  loadMenuEditor(sandbox);
 
   // Test combo category classification
   assert.equal(sandbox.isComboCategory({ type: 'catalog', slug: 'combo', title: 'Combo' }), true);
@@ -88,8 +93,8 @@ test('Sidebar Sections: orders.css has section styles, balanced braces, and touc
   assert.equal(depth, 0, 'Unclosed brace in orders.css');
 });
 
-test('Sidebar Toggle: orders-menu.js defines menuSidebarTab and setMenuSidebarTab', () => {
-  const code = fs.readFileSync(path.resolve(__dirname, '../js/orders-menu.js'), 'utf-8');
+test('Sidebar Toggle: TS POS menu defines menuSidebarTab and setMenuSidebarTab', () => {
+  const code = readPosMenuSources();
   assert.ok(code.includes('menuSidebarTab'), 'Must define menuSidebarTab');
   assert.ok(code.includes('setMenuSidebarTab'), 'Must define setMenuSidebarTab');
   assert.ok(code.includes('menu-option-card'), 'Must render menu-option-card in options mode');
@@ -106,11 +111,11 @@ test('Sidebar Toggle: orders-i18n.js has bilingual labels for products and optio
   assert.ok(i18nJs.includes('btnAddOptionGroupTop: "Thêm nhóm tùy chọn"'), 'vi has btnAddOptionGroupTop');
 });
 
-test('Sidebar Sections: orders.html has bumped cache buster for sidebar sections and toggle', () => {
+test('Sidebar Sections: orders.html loads TS POS menu module and has cache busters', () => {
   const html = fs.readFileSync(path.resolve(__dirname, '../orders.html'), 'utf-8');
-  assert.ok(/css\/orders\.css\?v=(20260928_toggle_products_options_v\d+|20260928_custom_3tier_v\d+)/.test(html), 'orders.css cache buster bumped');
-  assert.ok(/js\/orders-menu\.js\?v=(20260928_toggle_products_options_v\d+|20260928_custom_3tier_v\d+)/.test(html), 'orders-menu.js cache buster bumped');
-  assert.ok(/js\/orders-i18n\.js\?v=(20260928_toggle_products_options_v\d+|20260928_custom_3tier_v\d+)/.test(html), 'orders-i18n.js cache buster bumped');
+  assert.ok(/css\/orders\.css\?v=2026\d{4}_[a-z0-9_]+/.test(html), 'orders.css cache buster bumped');
+  assert.ok(html.includes('<script type="module" src="/frontend/apps/pos/menu/index.ts"></script>'), 'orders.html loads TS POS menu module');
+  assert.ok(/js\/orders-i18n\.js\?v=2026\d{4}_[a-z0-9_]+/.test(html), 'orders-i18n.js cache buster bumped');
   assert.ok(html.includes('menu-sidebar-segmented-toggle'), 'orders.html contains segmented toggle pill');
 });
 

@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const MenuEditorModel = require('../js/orders-menu-model.js');
+const { MenuEditorModel, modelCode } = require('./helpers/menu-editor-loader.cjs');
 
 test('CommonJS require exports API and leaves host global unchanged', () => {
   assert.equal(typeof MenuEditorModel.canonicalMenuSnapshot, 'function');
@@ -16,7 +16,7 @@ test('CommonJS require exports API and leaves host global unchanged', () => {
 });
 
 test('Browser/VM environment attaches MenuEditorModel to root and separate window object', () => {
-  const code = fs.readFileSync(path.resolve(__dirname, '../js/orders-menu-model.js'), 'utf8');
+  const code = modelCode;
 
   // Sandbox with separate window object
   const mockWindow = {};

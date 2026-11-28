@@ -58,7 +58,7 @@ function buildFetchDeps(): AiSettingsFetchDependencies {
   return {
     tenantId: readTenantId(),
     workerBase: readWorkerBase(),
-    fetcher: window.fetch.bind(window),
+    fetcher: (getPosWindow() as unknown as { posApiFetch?: typeof fetch }).posApiFetch ?? window.fetch.bind(window),
     getCurrentTenantId: readTenantId
   };
 }

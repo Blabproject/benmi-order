@@ -74,8 +74,18 @@ window.PaymentSession = (function () {
     try{location.assign(preferWeb?target.webUrl:target.url);}
     catch(error){if(preferWeb||!target.usesApp)throw error;} // Keep explicit recovery buttons if app launch is blocked.
   }
+  function createTimeoutSignal(ms){
+    if(typeof AbortSignal!=='undefined'&&typeof AbortSignal.timeout==='function')return{signal:AbortSignal.timeout(ms),clear:()=>{}};
+    if(typeof AbortController==='undefined')return{signal:undefined,clear:()=>{}};
+    const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);
+    return{signal:c.signal,clear:()=>clearTimeout(t)};
+  }
   async function api(path,session,body){
-    const response=await fetch(WORKER_BASE+path+(path.includes('?')?'&':'?')+'tenant_id='+encodeURIComponent(tenant()),{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json','X-Payment-Token':session.token},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(65000)});
+    const timeout=createTimeoutSignal(65000);
+    let response;
+    try{
+      response=await fetch(WORKER_BASE+path+(path.includes('?')?'&':'?')+'tenant_id='+encodeURIComponent(tenant()),{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json','X-Payment-Token':session.token},body:body===undefined?undefined:JSON.stringify(body),signal:timeout.signal});
+    }finally{timeout.clear();}
     const data=await response.json();if(!response.ok){const error=new Error(data.code||'PAYMENT_FAILED');error.status=response.status;throw error;}return data;
   }
   return {preserveDraft,terminal,resolve,active,archive,save,remember,forResult,matches,same,draft,signature,cleanUrl,detach,paid,restore,resultUrl,providerTarget,openProvider,api,completeDetail};

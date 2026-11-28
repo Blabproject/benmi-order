@@ -4,6 +4,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const acorn = require('acorn');
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const { getPosDistDir } = require('./helpers/pos-dist.cjs');
 
 const root = path.resolve(__dirname, '..');
 
@@ -133,7 +135,65 @@ test('Staff pickup time resets back to fresh ASAP after a manual slot and refres
   assert.equal(h.sandbox.pickupTimePickerState.selectedType, 'asap');
 });
 
-test('Vite POS bundles and legacy POS scripts avoid ES2021 syntax for Android WebView < 85 compatibility', () => {
+function walkAst(node, visitor) {
+  if (!node || typeof node !== 'object') return;
+  visitor(node);
+  for (const key of Object.keys(node)) {
+    const value = node[key];
+    if (Array.isArray(value)) {
+      for (const child of value) {
+        if (child && typeof child.type === 'string') {
+          walkAst(child, visitor);
+        }
+      }
+    } else if (value && typeof value.type === 'string') {
+      walkAst(value, visitor);
+    }
+  }
+}
+
+function assertEs2019CompatibleSyntax(code, file, { allowDynamicImport = false, sourceType = 'module' } = {}) {
+  const ast = acorn.parse(code, {
+    ecmaVersion: allowDynamicImport ? 2020 : 2019,
+    sourceType
+  });
+  walkAst(ast, node => {
+    if (node.type === 'ChainExpression') {
+      assert.fail(`${file} must not emit optional chaining (?.)`);
+    }
+    if (node.type === 'LogicalExpression' && node.operator === '??') {
+      assert.fail(`${file} must not emit nullish coalescing (??)`);
+    }
+    if (
+      node.type === 'AssignmentExpression' &&
+      (node.operator === '||=' || node.operator === '&&=' || node.operator === '??=')
+    ) {
+      assert.fail(`${file} must not emit ES2021 logical assignment (${node.operator})`);
+    }
+  });
+}
+
+function assertWebViewSafeApis(code, file) {
+  for (const banned of ['.replaceChildren(', '.replaceAll(', 'Object.hasOwn(', 'structuredClone(']) {
+    assert.equal(code.includes(banned), false, `${file} must not call ${banned}`);
+  }
+  const guardedPattern = /\b(?:AbortSignal\.timeout|crypto\.randomUUID|Promise\.allSettled)\s*\(/g;
+  for (const match of code.matchAll(guardedPattern)) {
+    const before = code.slice(Math.max(0, match.index - 140), match.index);
+    const after = code.slice(match.index, Math.min(code.length, match.index + 240));
+    const isReactViewTransition =
+      match[0].startsWith('Promise.allSettled') &&
+      file.startsWith('dist/assets/jsx-runtime-') &&
+      after.includes('__reactViewTransition');
+    if (isReactViewTransition) continue;
+    assert.ok(
+      before.includes('typeof'),
+      `${file} must guard ${match[0]} with a runtime typeof check`
+    );
+  }
+}
+
+test('Vite POS bundles and transpiled dist/js scripts stay compatible with Android WebView >= 74', () => {
   const distAssets = path.join(root, 'dist/assets');
   assert.ok(fs.existsSync(distAssets), 'dist/assets must exist (run npm run build:frontend)');
   const jsBundles = fs.readdirSync(distAssets).filter(f => f.endsWith('.js'));
@@ -141,12 +201,151 @@ test('Vite POS bundles and legacy POS scripts avoid ES2021 syntax for Android We
 
   for (const file of jsBundles) {
     const code = fs.readFileSync(path.join(distAssets, file), 'utf8');
-    acorn.parse(code, { ecmaVersion: 2019, sourceType: 'module' });
-    assert.equal(code.includes('.replaceAll('), false, `${file} must not call String.prototype.replaceAll`);
+    assertEs2019CompatibleSyntax(code, `dist/assets/${file}`, {
+      allowDynamicImport: /^index-/.test(file),
+      sourceType: 'module'
+    });
+    assertWebViewSafeApis(code, `dist/assets/${file}`);
   }
 
-  for (const legacyFile of ['js/printer-service.js', 'js/orders-live.js']) {
-    const code = fs.readFileSync(path.join(root, legacyFile), 'utf8');
-    acorn.parse(code, { ecmaVersion: 2020, sourceType: 'script' });
+  const distJs = path.join(root, 'dist/js');
+  assert.ok(fs.existsSync(distJs), 'dist/js must exist (run npm run build:frontend)');
+  const legacyDistScripts = fs.readdirSync(distJs).filter(f => f.endsWith('.js') && !f.endsWith('.min.js'));
+  assert.ok(legacyDistScripts.length > 0, 'Expected transpiled dist/js scripts');
+
+  for (const file of legacyDistScripts) {
+    const code = fs.readFileSync(path.join(distJs, file), 'utf8');
+    assertEs2019CompatibleSyntax(code, `dist/js/${file}`, {
+      allowDynamicImport: file === 'client-pricing-wasm.js',
+      sourceType: 'script'
+    });
+    assertWebViewSafeApis(code, `dist/js/${file}`);
   }
+});
+
+test('Legacy Android WebView without Chrome 86+ APIs can open Live and History order details cleanly', async t => {
+  const dist = getPosDistDir();
+  const ordersHtml = fs.readFileSync(path.join(dist, 'orders.html'), 'utf8')
+    .replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '');
+
+  const browser = await chromium.launch({
+    executablePath: process.env.CHROME_PATH || undefined,
+    headless: true
+  });
+  t.after(() => browser.close());
+
+  const page = await browser.newPage({ viewport: { width: 1024, height: 768 }, hasTouch: true });
+  page.setDefaultTimeout(8000);
+  const pageErrors = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+
+  await page.route('**/*', route => {
+    const { hostname, pathname } = new URL(route.request().url());
+    if (hostname === 'pos.test' && pathname === '/orders.html') {
+      return route.fulfill({ body: ordersHtml, contentType: 'text/html' });
+    }
+    if (hostname === 'pos.test' && /^\/(assets|css|js)\/[\w.-]+$/.test(pathname)) {
+      return route.fulfill({ path: path.join(dist, pathname.slice(1)) });
+    }
+    if (pathname.includes('/api/payments/orders/')) {
+      return route.fulfill({ json: { order_key: 'live-001', payments: [], refunds: [], paid_total: 0 } });
+    }
+    if (pathname.includes('/api/payments/summary')) {
+      return route.fulfill({ json: { net_total: 0, total_paid: 0, total_refunded: 0, paid_count: 0 } });
+    }
+    return route.fulfill({ json: {} });
+  });
+
+  // Remove Web APIs introduced after Chrome 79 to reproduce older Android System WebViews
+  await page.addInitScript(() => {
+    window.setInterval = () => 0;
+    delete Element.prototype.replaceChildren;
+    delete Document.prototype.replaceChildren;
+    delete DocumentFragment.prototype.replaceChildren;
+    delete Array.prototype.at;
+    delete Array.prototype.findLast;
+    delete Array.prototype.findLastIndex;
+    delete Object.hasOwn;
+    delete Promise.allSettled;
+    delete window.structuredClone;
+    if (window.Crypto && Crypto.prototype) {
+      delete Crypto.prototype.randomUUID;
+    }
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+      try { delete window.crypto.randomUUID; } catch (_) {}
+    }
+    if (window.AbortSignal) {
+      delete AbortSignal.timeout;
+    }
+  });
+
+  await page.goto('https://pos.test/orders.html?tenant=fixture&platform=app');
+  await page.evaluate(() => {
+    window.currentTenantFeatures = ['dine_in'];
+    const liveOrder = {
+      key: 'live-001',
+      displayKey: '1127-T001',
+      customer: 'Legacy Live Guest',
+      status: 'NEW',
+      diningOption: 'takeaway',
+      source: 'legacy',
+      content: '1 x 招牌餐點 $120',
+      subtotal: 120,
+      total: 120,
+      time: '12:00',
+      createdAt: Date.now()
+    };
+    const historyOrder = {
+      key: 'hist-002',
+      displayKey: '1127-H002',
+      customer: 'Legacy History Guest',
+      status: 'DONE',
+      diningOption: 'dine_in',
+      tableNumber: 'A1',
+      source: 'legacy',
+      content: '2 x 特調飲品 $90',
+      subtotal: 90,
+      total: 90,
+      time: '11:30',
+      createdAt: Date.now() - 3600 * 1000
+    };
+    window.__historyFixture = [historyOrder];
+    latestOrders = [liveOrder];
+    lastHistoryOrders = [historyOrder];
+    currentOrders = [historyOrder];
+    applyLanguageToDOM();
+    renderAll();
+  });
+
+  // 1. Live tile click must open #reviewModal visibly
+  await page.locator('.tile').first().click();
+  await page.waitForFunction(() => {
+    const modal = document.getElementById('reviewModal');
+    return modal && getComputedStyle(modal).display === 'flex';
+  });
+  const liveModalText = await page.locator('#reviewModal').innerText();
+  assert.match(liveModalText, /Legacy Live Guest/);
+  assert.match(liveModalText, /120/);
+
+  await page.locator('#reviewModal .order-detail-topbar-left .order-detail-circle-btn').click();
+  await page.waitForFunction(() => {
+    const modal = document.getElementById('reviewModal');
+    return modal && getComputedStyle(modal).display === 'none';
+  });
+
+  // 2. History card click must open #reviewModal visibly
+  await page.evaluate(() => {
+    switchTab('history');
+    renderHistory(window.__historyFixture);
+  });
+  await page.getByText('Legacy History Guest').first().click();
+  await page.waitForFunction(() => {
+    const modal = document.getElementById('reviewModal');
+    return modal && getComputedStyle(modal).display === 'flex';
+  });
+  const historyModalText = await page.locator('#reviewModal').innerText();
+  assert.match(historyModalText, /Legacy History Guest/);
+  assert.match(historyModalText, /90/);
+
+  assert.deepEqual(pageErrors, []);
 });

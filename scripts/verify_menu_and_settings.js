@@ -8,7 +8,7 @@ console.log("=================================================");
 const html = fs.readFileSync("orders.html", "utf8");
 const css = fs.readFileSync("css/orders.css", "utf8");
 const settingsJs = fs.readFileSync("js/orders-settings.js", "utf8");
-const menuJs = fs.readFileSync("js/orders-menu.js", "utf8");
+const workspaceTs = fs.readFileSync("frontend/apps/pos/menu/workspace.ts", "utf8");
 const coreJs = fs.readFileSync("js/orders-core.js", "utf8");
 
 // 1. Tag hierarchy check: ensure view-menu is NOT inside view-settings
@@ -65,8 +65,8 @@ console.log("✓ CSS .panel-body has flex: 1 for robust vertical stretching");
 assert(settingsJs.includes("container.scrollTo({ top: Math.max(0, relativeTop - 12), behavior: \"smooth\" });"), "FAIL: scrollToSettingSection should use container.scrollTo with bounding offset");
 console.log("✓ scrollToSettingSection uses container.scrollTo with bounding offset for smooth scrolling");
 
-// 4. Menu JS Check: loadMenuData automatically selects index 0
-assert(menuJs.includes("activeCategoryIndex = currentMenuData.length > 0 ? 0 : -1;"), "FAIL: activeCategoryIndex should select first category");
+// 4. Menu TS Check: loadMenuData automatically selects first catalog or item
+assert(workspaceTs.includes("firstCatalog >= 0 ? firstCatalog"), "FAIL: activeCategoryIndex should select first category");
 console.log("✓ loadMenuData defaults to selecting first category so items render immediately");
 
 // 5. Core JS Check: switchTab handles menu and settings

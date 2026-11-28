@@ -29,6 +29,7 @@ interface SettingsActions {
   openReportsFromSettings(): void;
   printAllTablesQrA4(): void;
   promptUnlinkStoreDevice(): void;
+  logoutPosSession(): void;
   refreshPairedBluetoothDevices(station: string): void;
   renderStoreNoticePreview(): void;
   saveAllStoreInfoSettings(): void;
