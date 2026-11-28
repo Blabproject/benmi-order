@@ -2914,6 +2914,28 @@ body.ug-open { overflow: hidden; }
     overflow: hidden !important;
   }
 
+  #view-menu[data-mobile-view="detail"] .menu-workspace-heading {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 8px 12px !important;
+    min-height: 54px !important;
+    gap: 8px !important;
+  }
+
+  #view-menu[data-mobile-view="detail"] .menu-workspace-heading-main {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  #view-menu[data-mobile-view="detail"] .menu-workspace-heading-actions {
+    width: auto !important;
+    justify-content: flex-end !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+  }
+
   #view-menu[data-mobile-view="detail"] .menu-header-nav-btn {
     display: none !important;
   }
@@ -2922,16 +2944,18 @@ body.ug-open { overflow: hidden; }
     display: inline-flex !important;
   }
 
-  #view-menu[data-mobile-view="detail"] #btn-menu-manage-cats {
+  #view-menu[data-mobile-view="detail"] #btn-menu-manage-cats,
+  #view-menu[data-mobile-view="detail"] #btn-menu-schedule-builder,
+  #view-menu[data-mobile-view="detail"] #btn-menu-ai-translate {
     display: none !important;
   }
 
-  /* Detail Header inside Editor */
+  /* Slim Action Subbar inside Detail View (no duplicate back arrow or title) */
   #view-menu[data-mobile-view="detail"] .menu-editor-header {
-    padding: 8px 12px !important;
-    min-height: 48px !important;
+    padding: 6px 12px !important;
+    min-height: 46px !important;
     height: auto !important;
-    background: #ffffff !important;
+    background: #f8fafc !important;
     border-bottom: 1px solid #e2e8f0 !important;
     display: flex !important;
     align-items: center !important;
@@ -2944,38 +2968,16 @@ body.ug-open { overflow: hidden; }
   #view-menu[data-mobile-view="detail"] .menu-editor-title-group {
     display: flex !important;
     align-items: center !important;
-    gap: 8px !important;
-    flex: 1 1 auto !important;
+    gap: 6px !important;
+    flex: 0 1 auto !important;
     min-width: 0 !important;
     flex-wrap: nowrap !important;
   }
 
-  #view-menu[data-mobile-view="detail"] .menu-editor-back-btn {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 36px !important;
-    height: 36px !important;
-    min-width: 36px !important;
-    min-height: 36px !important;
-    border-radius: 8px !important;
-    border: 1.5px solid #e2e8f0 !important;
-    background: #f8fafc !important;
-    color: #334155 !important;
-    padding: 0 !important;
-    flex-shrink: 0 !important;
-    cursor: pointer !important;
-  }
-
+  #view-menu[data-mobile-view="detail"] .menu-editor-back-btn,
   #view-menu[data-mobile-view="detail"] .menu-editor-header .panel-title,
   #view-menu[data-mobile-view="detail"] #menu-editor-title {
-    font-size: calc(15px * var(--menu-font-scale)) !important;
-    font-weight: 700 !important;
-    color: #0f172a !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    margin: 0 !important;
+    display: none !important;
   }
 
   #view-menu #menu-editor-help {
@@ -3090,21 +3092,21 @@ body.ug-open { overflow: hidden; }
     margin: 0 !important;
   }
 
-  /* Item Row Cards */
+  /* Item Row Cards (shadcn/ui Mobile Portrait Layout) */
   #view-menu .menu-item-row-card {
     display: flex !important;
     flex-direction: column !important;
     background: #ffffff !important;
-    border: 1.5px solid #e2e8f0 !important;
-    border-radius: 14px !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
     padding: 10px 12px !important;
     margin-bottom: 0 !important;
     gap: 8px !important;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
     box-sizing: border-box !important;
     width: 100% !important;
     min-height: 0 !important;
-    transition: border-color 0.15s ease !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
   }
 
   #view-menu .menu-item-drag-handle {
@@ -3114,7 +3116,7 @@ body.ug-open { overflow: hidden; }
   #view-menu .menu-item-row-left {
     display: flex !important;
     flex-direction: row !important;
-    align-items: flex-start !important;
+    align-items: center !important;
     gap: 10px !important;
     width: 100% !important;
     min-width: 0 !important;
@@ -3122,13 +3124,18 @@ body.ug-open { overflow: hidden; }
   }
 
   #view-menu .menu-item-thumb-box {
-    width: 52px !important;
-    height: 52px !important;
-    min-width: 52px !important;
-    min-height: 52px !important;
+    width: 46px !important;
+    height: 46px !important;
+    min-width: 46px !important;
+    min-height: 46px !important;
     border-radius: 10px !important;
     flex-shrink: 0 !important;
     overflow: hidden !important;
+    border-width: 1px !important;
+  }
+
+  #view-menu .menu-item-thumb-box .thumb-upload-text {
+    display: none !important;
   }
 
   #view-menu .menu-item-details-col {
@@ -3149,16 +3156,22 @@ body.ug-open { overflow: hidden; }
 
   #view-menu .menu-item-name-input {
     width: 100% !important;
-    height: 36px !important;
-    min-height: 36px !important;
-    font-size: calc(14.5px * var(--menu-font-scale)) !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    font-size: calc(15px * var(--menu-font-scale)) !important;
     font-weight: 700 !important;
     color: #0f172a !important;
-    padding: 0 8px !important;
+    padding: 0 4px !important;
     border-radius: 6px !important;
-    border: 1px solid #cbd5e1 !important;
-    background: #ffffff !important;
+    border: 1px solid transparent !important;
+    background: transparent !important;
     box-sizing: border-box !important;
+  }
+
+  #view-menu .menu-item-name-input:focus {
+    border-color: var(--primary, #00b900) !important;
+    background: #ffffff !important;
+    padding: 0 8px !important;
   }
 
   #view-menu .menu-item-meta-col {
@@ -3166,32 +3179,38 @@ body.ug-open { overflow: hidden; }
     align-items: center !important;
     gap: 6px !important;
     flex-wrap: wrap !important;
+    padding: 0 2px !important;
   }
 
-  #view-menu .item-mod-pill.empty-mods {
+  #view-menu .item-mod-pill.empty-mods,
+  #view-menu .item-mod-pill.custom-mods {
     display: none !important;
   }
 
   #view-menu .item-mod-pill {
-    font-size: calc(11px * var(--menu-font-scale)) !important;
-    padding: 2px 6px !important;
-    border-radius: 4px !important;
+    font-size: calc(11.5px * var(--menu-font-scale)) !important;
+    padding: 3px 8px !important;
+    border-radius: 6px !important;
+    line-height: 1.25 !important;
   }
 
   #view-menu .menu-item-options-btn {
-    height: 32px !important;
-    min-height: 32px !important;
+    height: 30px !important;
+    min-height: 30px !important;
     min-width: 0 !important;
-    padding: 0 10px !important;
-    font-size: calc(11.5px * var(--menu-font-scale)) !important;
+    padding: 0 9px !important;
+    font-size: calc(12px * var(--menu-font-scale)) !important;
     font-weight: 600 !important;
-    border-radius: 6px !important;
-    gap: 4px !important;
+    border-radius: 7px !important;
+    border: 1px solid #e2e8f0 !important;
+    background: #f8fafc !important;
+    color: #334155 !important;
+    gap: 5px !important;
     display: inline-flex !important;
     align-items: center !important;
   }
 
-  /* Bottom Row of Card: Price, Stock Toggle, Quick Actions */
+  /* Bottom Row of Card: Uniform 40px shadcn Action Strip */
   #view-menu .menu-item-row-right {
     display: flex !important;
     flex-direction: row !important;
@@ -3217,22 +3236,24 @@ body.ug-open { overflow: hidden; }
   }
 
   #view-menu .menu-item-price-wrapper {
-    height: 36px !important;
-    min-height: 36px !important;
-    padding: 0 8px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    width: 88px !important;
+    min-width: 88px !important;
+    padding: 0 9px !important;
     border-radius: 8px !important;
     background: #f8fafc !important;
-    border: 1px solid #cbd5e1 !important;
+    border: 1px solid #e2e8f0 !important;
     display: inline-flex !important;
     align-items: center !important;
     gap: 2px !important;
   }
 
   #view-menu .menu-item-price-input {
-    width: 54px !important;
-    height: 28px !important;
-    min-height: 28px !important;
-    font-size: calc(14px * var(--menu-font-scale)) !important;
+    width: 56px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    font-size: calc(14.5px * var(--menu-font-scale)) !important;
     font-weight: 700 !important;
     padding: 0 2px !important;
     border: none !important;
@@ -3246,7 +3267,8 @@ body.ug-open { overflow: hidden; }
     flex-direction: column !important;
     align-items: center !important;
     gap: 0 !important;
-    flex-shrink: 0 !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
   }
 
   #view-menu .stock-toggle-sub {
@@ -3254,38 +3276,42 @@ body.ug-open { overflow: hidden; }
   }
 
   #view-menu .menu-item-stock-toggle {
-    height: 36px !important;
-    min-height: 36px !important;
-    padding: 0 10px !important;
-    font-size: calc(12px * var(--menu-font-scale)) !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 0 12px !important;
+    font-size: calc(12.5px * var(--menu-font-scale)) !important;
     font-weight: 700 !important;
     border-radius: 8px !important;
+    border-width: 1px !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 4px !important;
+    justify-content: center !important;
+    gap: 6px !important;
     cursor: pointer !important;
-    width: auto !important;
-    min-width: 76px !important;
+    width: 100% !important;
+    max-width: 128px !important;
+    min-width: 84px !important;
   }
 
   #view-menu .menu-item-quick-actions {
     display: flex !important;
     align-items: center !important;
-    gap: 4px !important;
+    gap: 6px !important;
     flex-shrink: 0 !important;
   }
 
   #view-menu .menu-item-action-icon-btn {
-    width: 36px !important;
-    height: 36px !important;
-    min-width: 36px !important;
-    min-height: 36px !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
     border-radius: 8px !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     border: 1px solid #e2e8f0 !important;
     background: #ffffff !important;
+    color: #475569 !important;
     padding: 0 !important;
   }
 

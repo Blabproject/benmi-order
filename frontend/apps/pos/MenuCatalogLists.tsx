@@ -1,6 +1,9 @@
 import { useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
+import { Badge } from '@shared/ui/badge';
+import { Button } from '@shared/ui/button';
+import { Card } from '@shared/ui/card';
 import { ChevronRightIcon, ModifyIcon, PlusIcon } from '@shared/ui/PosIcons';
 
 type Translate = (key: string) => string;
@@ -130,7 +133,7 @@ function ProductList(props: ProductListProps) {
     const modifierText = modifierCount ? `${modifierCount} ${t('customItemModifiers')}`
       : inheritedCount ? `${inheritedCount} ${t('inheritedCatModifiers')}` : t('noModifiersApplied');
     const tooltip = bundle ? `${t('bundleBadge')} (${bundleCount}${language === 'vi' ? ' ' : ''}${t('bundleGroupUnit')})` : undefined;
-    return <div key={index} className={`menu-item-row-card menu-catalog-row${bundle ? ' is-bundle-row' : ''}`}
+    return <Card key={index} flush className={`menu-item-row-card menu-catalog-row${bundle ? ' is-bundle-row' : ''}`}
       id={`menu-item-card-${categoryIndex}-${index}`} data-item-index={index} tabIndex={0} role="group"
       aria-label={`${t('itemDetailTitle')}: ${name}`} aria-keyshortcuts="Enter Space" title={tooltip}
       onClick={event => props.onOpen(event, index)} onKeyDown={event => props.onOpen(event, index)}>
@@ -146,21 +149,26 @@ function ProductList(props: ProductListProps) {
               onInput={props.onChange} placeholder={t('newItemPlaceholder')} aria-label={t('colItemName')} />
           </div>
           <div className="menu-item-meta-col">
-            {bundle && <span className="menu-combo-badge">{t('bundleBadge')}</span>}
-            {staffOnly && <span className="menu-item-staff-only-badge">{t('staffOnlyBadge')}</span>}
-            {badge && <span className="menu-item-quick-badge">{badge}</span>}
-            <span className={`item-mod-pill ${modifierCount ? 'custom-mods' : inheritedCount ? 'inherited-mods' : 'empty-mods'}`} title={modifierText}>
+            {bundle && <Badge variant="amber" shape="square" className="menu-combo-badge">{t('bundleBadge')}</Badge>}
+            {staffOnly && <Badge variant="blue" shape="square" className="menu-item-staff-only-badge">{t('staffOnlyBadge')}</Badge>}
+            {badge && <Badge variant="destructive" shape="square" className="menu-item-quick-badge">{badge}</Badge>}
+            <Badge
+              variant={modifierCount ? 'blue' : inheritedCount ? 'secondary' : 'outline'}
+              shape="rounded"
+              className={`item-mod-pill ${modifierCount ? 'custom-mods' : inheritedCount ? 'inherited-mods' : 'empty-mods'}`}
+              title={modifierText}
+            >
               {modifierCount > 0 && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>}
               <span>{modifierText}</span>
-            </span>
-            <button type="button" id={`menu-item-options-${categoryIndex}-${index}`} className="menu-item-options-btn" onClick={() => props.onOptions(index)}>
+            </Badge>
+            <Button variant="secondary" id={`menu-item-options-${categoryIndex}-${index}`} className="menu-item-options-btn" onClick={() => props.onOptions(index)}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m0 4v6m-6-8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v4m6-2a2 2 0 100 4m0-4a2 2 0 110 4m0-4V4m0 12v4" />
               </svg>
               <span>{t('btnItemModifiersShort') || t('btnItemModifiers')}</span>
               {modifierCount > 0 && <span className="opt-count-pill">{modifierCount}</span>}
-            </button>
-            {bundle && <button type="button" className="menu-item-options-btn" onClick={() => props.onBundle(index)}>{t('menuBundleSettings')}</button>}
+            </Button>
+            {bundle && <Button variant="secondary" className="menu-item-options-btn" onClick={() => props.onBundle(index)}>{t('menuBundleSettings')}</Button>}
           </div>
         </div>
       </div>
@@ -174,25 +182,25 @@ function ProductList(props: ProductListProps) {
           </div>
         </div>
         <div className="menu-item-status-block">
-          <button type="button" className={`menu-item-stock-toggle ${isOos ? 'is-oos' : 'is-instock'}`}
+          <Button variant="outline" className={`menu-item-stock-toggle ${isOos ? 'is-oos' : 'is-instock'}`}
             id={`menu-item-stock-${categoryIndex}-${index}`} aria-haspopup="dialog" aria-controls="stockModal"
             onClick={() => props.onStock(index)} title={status} aria-label={`${name}: ${status}`}>
             <span className="stock-toggle-dot" /><span>{status}</span>
-          </button>
+          </Button>
           <span className="stock-toggle-sub">{t(isOos ? 'menuPausedStatus' : 'menuServingStatus')}</span>
         </div>
         <div className="menu-item-quick-actions">
-          <button type="button" className="menu-item-action-icon-btn" onClick={() => props.onEdit(index)} title={t('itemDetailTitle')} aria-label={t('itemDetailTitle')}>
+          <Button variant="outline" className="menu-item-action-icon-btn" onClick={() => props.onEdit(index)} title={t('itemDetailTitle')} aria-label={t('itemDetailTitle')}>
             <ModifyIcon size={15} />
-          </button>
-          <button type="button" className="menu-item-action-icon-btn delete-btn" onClick={() => props.onDelete(index)} title={t('btnItemDelete')} aria-label={t('btnItemDelete')}>
+          </Button>
+          <Button variant="outline" className="menu-item-action-icon-btn delete-btn" onClick={() => props.onDelete(index)} title={t('btnItemDelete')} aria-label={t('btnItemDelete')}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
-          </button>
+          </Button>
         </div>
       </div>
-    </div>;
+    </Card>;
   });
 }
 

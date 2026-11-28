@@ -133,7 +133,7 @@ export default defineConfig({
     postcss: {
       plugins: [tailwindcss({
         content: [
-          './frontend/apps/pos/{PosHistoryPanel,history-bridge,settings-bridge,PosDisplaySettings,PosAiSettingsPanel,ItemDetailForm}.tsx',
+          './frontend/apps/pos/{PosHistoryPanel,history-bridge,settings-bridge,PosDisplaySettings,PosAiSettingsPanel,ItemDetailForm,MenuCatalogLists}.tsx',
           './frontend/apps/pos/{settings,schedule}/**/*.tsx',
           './frontend/apps/staff-order/*.tsx',
           './frontend/shared/ui/*.tsx'
