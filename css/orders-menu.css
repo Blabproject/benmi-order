@@ -2514,6 +2514,7 @@ body.ug-open { overflow: hidden; }
     margin: 0 !important;
   }
 
+  #view-menu#view-menu #menu-standard-workspace #btn-menu-save,
   #view-menu #menu-standard-workspace #btn-menu-save,
   #view-menu #btn-menu-save {
     height: 34px !important;
@@ -2525,6 +2526,7 @@ body.ug-open { overflow: hidden; }
     border-radius: 8px !important;
   }
 
+  #view-menu#view-menu #menu-standard-workspace #btn-menu-manage-cats,
   #view-menu #menu-standard-workspace #btn-menu-manage-cats,
   #view-menu #btn-menu-manage-cats {
     height: 34px !important;
@@ -2999,6 +3001,7 @@ body.ug-open { overflow: hidden; }
     display: none !important;
   }
 
+  #view-menu#view-menu #menu-standard-workspace .cat-title-action-btn,
   #view-menu #menu-standard-workspace .cat-title-action-btn,
   #view-menu .cat-title-action-btn {
     width: 34px !important;
@@ -3025,6 +3028,7 @@ body.ug-open { overflow: hidden; }
     flex-shrink: 0 !important;
   }
 
+  #view-menu#view-menu #menu-standard-workspace #btn-menu-create-unified,
   #view-menu #menu-standard-workspace #btn-menu-create-unified,
   #view-menu #btn-menu-create-unified {
     height: 34px !important;
@@ -3045,6 +3049,7 @@ body.ug-open { overflow: hidden; }
     display: none !important;
   }
 
+  #view-menu#view-menu #menu-standard-workspace #btn-option-add,
   #view-menu #menu-standard-workspace #btn-option-add,
   #view-menu #btn-option-add {
     height: 34px !important;
@@ -3130,6 +3135,7 @@ body.ug-open { overflow: hidden; }
     flex: 0 0 auto !important;
   }
 
+  #view-menu#view-menu #menu-standard-workspace .menu-item-thumb-box,
   #view-menu #menu-standard-workspace .menu-item-thumb-box,
   #view-menu .menu-item-thumb-box {
     width: 44px !important;
@@ -3162,6 +3168,7 @@ body.ug-open { overflow: hidden; }
     gap: 6px !important;
   }
 
+  #view-menu#view-menu #menu-standard-workspace .menu-item-name-input,
   #view-menu #menu-standard-workspace .menu-item-name-input,
   #view-menu .menu-item-name-input {
     width: 100% !important;
@@ -3204,6 +3211,7 @@ body.ug-open { overflow: hidden; }
     line-height: 1.25 !important;
   }
 
+  #view-menu#view-menu #menu-standard-workspace .menu-item-options-btn,
   #view-menu #menu-standard-workspace .menu-item-options-btn,
   #view-menu .menu-item-options-btn {
     height: 28px !important;
@@ -3246,6 +3254,7 @@ body.ug-open { overflow: hidden; }
     display: none !important;
   }
 
+  #view-menu#view-menu #menu-standard-workspace .menu-item-price-wrapper,
   #view-menu #menu-standard-workspace .menu-item-price-wrapper,
   #view-menu .menu-item-price-wrapper {
     height: 34px !important;
@@ -3261,6 +3270,7 @@ body.ug-open { overflow: hidden; }
     gap: 2px !important;
   }
 
+  #view-menu#view-menu #menu-standard-workspace .menu-item-price-input,
   #view-menu #menu-standard-workspace .menu-item-price-input,
   #view-menu .menu-item-price-input {
     width: 54px !important;
@@ -3288,6 +3298,7 @@ body.ug-open { overflow: hidden; }
     display: none !important;
   }
 
+  #view-menu#view-menu #menu-standard-workspace .menu-item-stock-toggle,
   #view-menu #menu-standard-workspace .menu-item-stock-toggle,
   #view-menu .menu-item-stock-toggle {
     height: 34px !important;
@@ -3314,6 +3325,7 @@ body.ug-open { overflow: hidden; }
     flex-shrink: 0 !important;
   }
 
+  #view-menu#view-menu #menu-standard-workspace .menu-item-action-icon-btn,
   #view-menu #menu-standard-workspace .menu-item-action-icon-btn,
   #view-menu .menu-item-action-icon-btn {
     width: 34px !important;
@@ -3362,6 +3374,8 @@ body.ug-open { overflow: hidden; }
     gap: 6px !important;
   }
 
+  #view-menu#view-menu #menu-standard-workspace .cust-category-modifiers-actions .btn-select-toggle,
+  #view-menu#view-menu #menu-standard-workspace .cust-category-modifiers-actions .btn-add-mod-cta,
   #view-menu #menu-standard-workspace .cust-category-modifiers-actions .btn-select-toggle,
   #view-menu #menu-standard-workspace .cust-category-modifiers-actions .btn-add-mod-cta,
   #view-menu .cust-category-modifiers-actions .btn-select-toggle,
@@ -3381,8 +3395,10 @@ body.ug-open { overflow: hidden; }
     margin-top: 8px !important;
   }
 
+  #view-menu#view-menu #menu-standard-workspace .cust-mod-chip,
   #view-menu #menu-standard-workspace .cust-mod-chip,
   #view-menu .cust-mod-chip {
+    height: 32px !important;
     min-height: 32px !important;
     min-width: 0 !important;
     padding: 4px 10px !important;
