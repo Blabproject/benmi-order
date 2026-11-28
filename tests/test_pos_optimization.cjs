@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || '/Users/duc.cao/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const { modelCode, menuCode } = require('./helpers/menu-editor-loader.cjs');
 const root = path.resolve(__dirname, '..');
 (async () => {
   const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
@@ -19,7 +20,9 @@ const root = path.resolve(__dirname, '..');
       window.alert = message => { window.lastAlert = message; };
       window.confirm = () => true;
     });
-    for (const file of ['js/order-legacy-adapter.js', 'js/printer-service.js', 'js/orders-menu.js', 'js/orders-settings.js']) await page.addScriptTag({ content: fs.readFileSync(path.join(root, file), 'utf8') });
+    for (const file of ['js/order-legacy-adapter.js', 'js/printer-service.js', 'js/orders-settings.js']) await page.addScriptTag({ content: fs.readFileSync(path.join(root, file), 'utf8') });
+    await page.addScriptTag({ content: modelCode });
+    await page.addScriptTag({ content: menuCode });
     const printing = await page.evaluate(() => {
       window.currentTenantBrandName = '小巷餐廳';
       const order = { key: 'K0909-001', customer: '王小姐', time: '2026-09-09 12:30', total: 180,

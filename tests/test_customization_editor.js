@@ -5,8 +5,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
-const { loadMenuEditor } = require('./helpers/menu-editor-loader.cjs');
-const MenuEditorModel = require('../js/orders-menu-model.js');
+const { loadMenuEditor, MenuEditorModel } = require('./helpers/menu-editor-loader.cjs');
 
 console.log("=================================================");
 console.log("🧪 Running Customization Editor & Sub-options Test");
@@ -43,8 +42,7 @@ for (const key of requiredKeys) {
 }
 console.log("✓ All required I18N keys present in both zh-TW and vi.");
 
-// 2. Load and verify orders-menu.js functions
-const menuJs = fs.readFileSync(path.join(__dirname, '../js/orders-menu.js'), 'utf8');
+// 2. Verify compiled menu TypeScript bundle functions in VM sandbox
 
 // Create mock DOM & environment
 const mockSandbox = {

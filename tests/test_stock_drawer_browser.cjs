@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium, webkit } = require('playwright');
+const { modelCode, menuCode } = require('./helpers/menu-editor-loader.cjs');
 
 const root = path.resolve(__dirname, '..');
 const orders = fs.readFileSync(path.join(root, 'orders.html'), 'utf8');
@@ -31,9 +32,9 @@ for (const name of browserNames) {
           <button id="menu-option-stock-1-0-0" onclick="openStockModalForCustomization(1,0,0)">小辣</button>
           <div id="menu-editor-body"></div></main>${drawer}</body></html>`);
         for (const file of ['css/orders.css', 'css/orders-stock.css']) await page.addStyleTag({ path: path.join(root, file) });
-        for (const file of ['js/orders-i18n.js', 'js/orders-menu-model.js', 'js/orders-menu.js']) {
-          await page.addScriptTag({ path: path.join(root, file) });
-        }
+        await page.addScriptTag({ path: path.join(root, 'js/orders-i18n.js') });
+        await page.addScriptTag({ content: modelCode });
+        await page.addScriptTag({ content: menuCode });
         await page.evaluate(lang => {
           window.WORKER_BASE = 'http://stock.test';
           window.getTenantIdFromUrl = () => 'stock_fixture';

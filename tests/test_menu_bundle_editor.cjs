@@ -17,8 +17,7 @@ console.log("=== Running Menu Bundle Editor Test Suite ===");
 // 1. Load I18N and Core
 const i18nCode = fs.readFileSync(path.join(__dirname, '../js/orders-i18n.js'), 'utf8');
 const coreCode = fs.readFileSync(path.join(__dirname, '../js/orders-core.js'), 'utf8');
-const { modelCode, menuCode } = require('./helpers/menu-editor-loader.cjs');
-const wizardCode = fs.readFileSync(path.join(__dirname, '../js/orders-bundle-wizard.js'), 'utf8');
+const { modelCode, menuCode, wizardCode } = require('./helpers/menu-editor-loader.cjs');
 
 // Mock browser environment
 const mockElements = new Map();
@@ -346,8 +345,7 @@ assert.ok(cssContent.includes('.bundle-stepper-btn'), "orders.css must contain .
 assert.ok(htmlContent.includes('id="bundleGuideModal"'), "orders.html must contain #bundleGuideModal");
 assert.ok(htmlContent.includes('id="btn-open-bundle-guide"'), "orders.html must contain #btn-open-bundle-guide");
 assert.ok(/orders\.css\?v=\w+/.test(htmlContent), "orders.css cache buster bumped");
-assert.ok(/orders-menu\.js\?v=\w+/.test(htmlContent), "orders-menu.js cache buster bumped");
-assert.ok(/orders-bundle-wizard\.js\?v=\w+/.test(htmlContent), "orders-bundle-wizard.js cache buster bumped");
+assert.ok(htmlContent.includes('src="/frontend/apps/pos/menu/index.ts"'), "orders.html includes TypeScript POS menu entry");
 console.log("✓ Modal markup, CSS classes, Danger Zone, Guide Modal, and cache-busting verified.");
 
 console.log("\n====================================================");

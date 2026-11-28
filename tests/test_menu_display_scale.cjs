@@ -68,25 +68,25 @@ test('I18N dictionaries contain store closed status in zh-TW and vi', () => {
   assert.match(i18nJs, /statusOptClosedDesc:\s*"Dừng nhận đơn hôm nay, tự động mở lại vào ngày mở quán tiếp theo"/);
 });
 
-test('orders.html has updated cache-busters for menu and display scaling', () => {
+test('orders.html has updated cache-busters and TS menu entry for display scaling', () => {
   const html = read('orders.html');
 
   assert.ok(/css\/orders\.css\?v=2026\d{4}\w+/.test(html), 'orders.css must have bumped cache-buster');
   assert.ok(/css\/orders-menu\.css\?v=2026\d{4}\w+/.test(html), 'orders-menu.css must have bumped cache-buster');
   assert.ok(/js\/orders-i18n\.js\?v=2026\d{4}\w+/.test(html), 'orders-i18n.js must have bumped cache-buster');
   assert.ok(/js\/orders-settings\.js\?v=2026\d{4}\w+/.test(html), 'orders-settings.js must have bumped cache-buster');
-  assert.ok(/js\/orders-menu\.js\?v=2026\d{4}\w+/.test(html), 'orders-menu.js must have bumped cache-buster');
+  assert.ok(html.includes('src="/frontend/apps/pos/menu/index.ts"'), 'orders.html must load POS menu TS entry');
 });
 
 test('Menu items catalog card seamlessly integrates without nested duplicate panel borders', () => {
   const css = read('css/orders-menu.css');
-  const js = read('js/orders-menu.js');
+  const ts = read('frontend/apps/pos/menu/catalog-editor.ts');
 
   // css asserts menu-products-card is borderless and seamless
   assert.match(css, /\.menu-products-card[\s\S]*?border:\s*0\s*!important/);
   assert.match(css, /\.menu-products-card[\s\S]*?border-radius:\s*0\s*!important/);
   assert.match(css, /\.cust-group-card:not\(\.menu-products-card\)/);
 
-  // js asserts catalogCard is not classified as cust-group-card
-  assert.match(js, /catalogCard\.className\s*=\s*["']menu-products-card["']/);
+  // ts asserts catalogCard is not classified as cust-group-card
+  assert.match(ts, /catalogCard\.className\s*=\s*["']menu-products-card["']/);
 });

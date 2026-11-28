@@ -20,7 +20,7 @@ if (!require.extensions['.ts']) {
 }
 
 const MenuSchedule = require('../js/menu-schedule.js');
-const MenuEditorModel = require('../js/orders-menu-model.js');
+const { MenuEditorModel } = require('./helpers/menu-editor-loader.cjs');
 const { validateCatalogScheduleForItems, loadTenantOperatingShifts } = require('../benmi-worker-official/src/modules/operating-shifts.ts');
 const { loadOptionCatalog } = require('../benmi-worker-official/src/modules/option-groups.ts');
 const { getTenantBootstrap } = require('../benmi-worker-official/src/modules/bootstrap.ts');

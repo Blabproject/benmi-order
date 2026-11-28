@@ -3,7 +3,7 @@ import type { PosLocale } from '@shared/i18n/pos-dictionary';
 export interface BundleGroupRuleDto {
   id?: string;
   name?: string;
-  label?: string;
+  label?: string | Record<string, string>;
   min?: number;
   max?: number;
   allowRepeat?: boolean;
@@ -96,6 +96,7 @@ export interface MenuItemDraft {
   sort_order?: number;
   availabilityMode?: 'inherit' | 'all_shifts' | 'selected_shifts' | string;
   shiftIds?: string[];
+  i18n?: Record<string, unknown>;
   originalName?: string;
   [key: string]: unknown;
 }
@@ -114,6 +115,7 @@ export interface MenuCategoryDraft {
   hideWhenUnavailable?: boolean;
   shiftIds?: string[];
   sortOrder?: number;
+  i18n?: Record<string, unknown>;
   groups?: MenuOptionGroupDraft[];
   items: MenuItemDraft[];
   [key: string]: unknown;
@@ -139,6 +141,7 @@ export interface BootstrapMenuItemDto {
   shiftIds?: string[];
   shift_ids?: string[];
   modifierGroups?: ItemModifierGroupDraft[];
+  i18n?: Record<string, unknown>;
 }
 
 export interface BootstrapMenuCategoryDto {
@@ -160,6 +163,7 @@ export interface BootstrapMenuCategoryDto {
   modifierGroups?: Array<{ id?: string }>;
   sortOrder?: number;
   sort_order?: number;
+  i18n?: Record<string, unknown>;
   items: BootstrapMenuItemDto[];
 }
 
@@ -286,6 +290,7 @@ export interface SerializedMenuItemPayload {
   availability_mode?: string;
   shift_ids?: string[];
   modifier_groups?: ItemModifierGroupDraft[];
+  i18n?: Record<string, unknown>;
 }
 
 export interface SerializedMenuCategoryPayload {
@@ -298,10 +303,12 @@ export interface SerializedMenuCategoryPayload {
   __hide_when_unavailable?: number;
   __shift_ids?: string[];
   __sort_order: number;
+  __i18n?: Record<string, unknown>;
   [itemName: string]:
     | string
     | number
     | string[]
+    | Record<string, unknown>
     | SerializedMenuItemPayload
     | undefined;
 }
@@ -493,6 +500,7 @@ export function normalizeBootstrapMenuCategories(
       sortOrder: Number(
         cat.sortOrder !== undefined ? cat.sortOrder : cat.sort_order !== undefined ? cat.sort_order : cIdx + 1
       ),
+      ...(cat.i18n && typeof cat.i18n === 'object' && Object.keys(cat.i18n).length > 0 ? { i18n: cat.i18n } : {}),
       items: (cat.items ?? []).map(it => ({
         id: it.id || null,
         name: it.name,
@@ -512,7 +520,8 @@ export function normalizeBootstrapMenuCategories(
             ? [...it.shift_ids]
             : [],
         modifierGroups: Array.isArray(it.modifierGroups) ? it.modifierGroups : [],
-        originalName: it.name
+        originalName: it.name,
+        ...(it.i18n && typeof it.i18n === 'object' && Object.keys(it.i18n).length > 0 ? { i18n: it.i18n } : {})
       }))
     });
   }
@@ -861,6 +870,9 @@ export function serializeMenuData(
       __shift_ids: Array.isArray(cat.shiftIds) ? [...cat.shiftIds] : [],
       __sort_order: currentOrder
     };
+    if (cat.i18n && typeof cat.i18n === 'object' && Object.keys(cat.i18n).length > 0) {
+      catPayload.__i18n = cat.i18n;
+    }
 
     for (const [itemIdx, item] of (cat.items ?? []).entries()) {
       const trimmedName = item.name ? item.name.trim() : '';
@@ -890,6 +902,9 @@ export function serializeMenuData(
       if (item.description !== undefined) {
         const trimmedDesc = String(item.description || '').trim();
         serializedItem.description = trimmedDesc || null;
+      }
+      if (item.i18n && typeof item.i18n === 'object' && Object.keys(item.i18n).length > 0) {
+        serializedItem.i18n = item.i18n;
       }
       const rawAvailMode = item.availabilityMode ?? item.availability_mode;
       serializedItem.availability_mode =

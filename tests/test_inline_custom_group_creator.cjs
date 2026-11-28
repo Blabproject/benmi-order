@@ -3,10 +3,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-test('Inline Custom Group Creator: orders-menu.js should not call prompt() for addCustomizationGroup or renameCustomizationGroup', () => {
-  const code = fs.readFileSync(path.resolve(__dirname, '../js/orders-menu.js'), 'utf-8');
-  assert.ok(!code.includes('prompt(t("promptAddCustomGroup"))'), 'Should not use browser prompt for adding customization group');
-  assert.ok(!code.includes('prompt(t("promptRenameCustomGroup")'), 'Should not use browser prompt for renaming customization group');
+test('Inline Custom Group Creator: customizations-legacy.ts should not call prompt() for addCustomizationGroup or renameCustomizationGroup', () => {
+  const code = fs.readFileSync(path.resolve(__dirname, '../frontend/apps/pos/menu/customizations-legacy.ts'), 'utf-8');
+  assert.ok(!code.includes('prompt(tr("promptAddCustomGroup"))') && !code.includes('prompt(t("promptAddCustomGroup"))'), 'Should not use browser prompt for adding customization group');
+  assert.ok(!code.includes('prompt(tr("promptRenameCustomGroup")') && !code.includes('prompt(t("promptRenameCustomGroup")'), 'Should not use browser prompt for renaming customization group');
   assert.ok(code.includes('openNewCustomGroupCreator'), 'Must define openNewCustomGroupCreator');
   assert.ok(code.includes('saveNewCustomizationGroup'), 'Must define saveNewCustomizationGroup');
   assert.ok(code.includes('startRenameCustomizationGroup'), 'Must define startRenameCustomizationGroup');
@@ -26,9 +26,9 @@ test('Inline Custom Group Creator: orders.css has .cust-new-group-card defined',
   assert.ok(css.includes('.cust-new-group-card'), 'orders.css must define .cust-new-group-card');
 });
 
-test('Inline Custom Group Creator: orders.html has bumped cache busters', () => {
+test('Inline Custom Group Creator: orders.html has bumped cache busters and TS menu module', () => {
   const html = fs.readFileSync(path.resolve(__dirname, '../orders.html'), 'utf-8');
   assert.ok(/css\/orders\.css\?v=[a-zA-Z0-9_]+/.test(html), 'orders.css cache buster must be bumped');
-  assert.ok(/js\/orders-menu\.js\?v=[a-zA-Z0-9_]+/.test(html), 'orders-menu.js cache buster must be bumped');
+  assert.ok(html.includes('src="/frontend/apps/pos/menu/index.ts"'), 'orders.html must load POS menu TS entry');
   assert.ok(/js\/orders-i18n\.js\?v=[a-zA-Z0-9_]+/.test(html), 'orders-i18n.js cache buster must be bumped');
 });
