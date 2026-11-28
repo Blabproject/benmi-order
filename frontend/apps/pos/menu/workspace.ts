@@ -58,13 +58,19 @@ export function canonicalMenuSnapshot(data: unknown): string {
 }
 
 export function updateMenuWorkspace(): void {
+  const showDisplayOrder = Boolean(menuState.isCategoryManagerOpen);
+  const showCategoryAdvanced = !showDisplayOrder && Boolean(menuState.isCategoryAdvancedOpen);
+  const hideStandardWorkspace = showDisplayOrder || showCategoryAdvanced;
   const orderScreen = document.getElementById('menu-display-order-screen');
-  if (orderScreen) orderScreen.hidden = !menuState.isCategoryManagerOpen;
+  if (orderScreen) orderScreen.hidden = !showDisplayOrder;
+  const advancedScreen = document.getElementById('menu-category-advanced-screen');
+  if (advancedScreen) advancedScreen.hidden = !showCategoryAdvanced;
   for (const id of ['menu-workspace-heading', 'menu-standard-workspace']) {
     const section = document.getElementById(id);
-    if (section) section.hidden = menuState.isCategoryManagerOpen;
+    if (section) section.hidden = hideStandardWorkspace;
   }
-  document.getElementById('btn-menu-manage-cats')?.classList.toggle('active', menuState.isCategoryManagerOpen);
+  document.getElementById('btn-menu-manage-cats')?.classList.toggle('active', showDisplayOrder);
+  document.getElementById('btn-category-advanced-settings')?.classList.toggle('active', showCategoryAdvanced);
   const host = getHost();
   const optionsMode = menuState.menuSidebarTab === 'options' && Boolean(host.UnifiedMenu?.enabled);
   const body = document.getElementById('menu-editor-body');
@@ -127,7 +133,8 @@ export function updateMenuSaveState(): void {
   const text = tr(menuState.isMenuSaving ? 'menuSaving' : menuState.isMenuDirty ? 'btnMenuSave' : 'menuSaved');
   for (const [id, labelId] of [
     ['btn-menu-save', 'btn-menu-save-text'],
-    ['btn-menu-order-save', 'btn-menu-order-save-text']
+    ['btn-menu-order-save', 'btn-menu-order-save-text'],
+    ['btn-menu-cat-adv-save', 'btn-menu-cat-adv-save-text']
   ] as const) {
     const btn = document.getElementById(id) as HTMLButtonElement | null;
     const label = document.getElementById(labelId);
@@ -143,17 +150,25 @@ export function updateMenuSaveState(): void {
     }
   }
 
-  const statusWrap = document.getElementById('menu-order-save-status');
-  const statusText = document.getElementById('menu-order-save-status-text');
-  if (statusWrap && statusText) {
-    if (menuState.isMenuDirty) {
-      statusWrap.className = 'menu-order-save-status is-dirty';
-      statusText.textContent = tr('statusUnsaved');
-    } else {
-      statusWrap.className = 'menu-order-save-status is-saved';
-      statusText.textContent = tr('statusAutoSaved');
+  for (const [wrapId, textId, savedKey] of [
+    ['menu-order-save-status', 'menu-order-save-status-text', 'statusAutoSaved'],
+    ['menu-cat-adv-save-status', 'menu-cat-adv-save-status-text', 'catAdvancedSyncDone']
+  ] as const) {
+    const statusWrap = document.getElementById(wrapId);
+    const statusText = document.getElementById(textId);
+    if (statusWrap && statusText) {
+      if (menuState.isMenuDirty) {
+        statusWrap.className = 'menu-order-save-status is-dirty';
+        statusText.textContent = tr('statusUnsaved');
+      } else {
+        statusWrap.className = 'menu-order-save-status is-saved';
+        statusText.textContent = tr(savedKey) || tr('statusAutoSaved');
+      }
     }
   }
+
+  const advBackButton = document.getElementById('btn-menu-cat-adv-back') as HTMLButtonElement | null;
+  if (advBackButton) advBackButton.disabled = menuState.isMenuSaving;
 
   const revertBtn = document.getElementById('btn-menu-order-revert') as HTMLButtonElement | null;
   if (revertBtn) {
@@ -271,6 +286,7 @@ export function confirmLeaveMenu(): boolean {
 
 export function openMenuSettings(): void {
   if (menuState.isMenuDirty) invokeHook('syncMenuDataFromDOM', syncMenuDataFromDOM);
+  menuState.isCategoryAdvancedOpen = false;
   const host = getHost();
   host.activeTab = 'menu';
   setMenuMobileView('master');
@@ -579,7 +595,7 @@ export async function saveMenuData(skipConfirm = false): Promise<void> {
   invokeHook('updateMenuSaveState', updateMenuSaveState);
   const editor = document.getElementById('menu-editor-body') as (HTMLElement & { inert: boolean }) | null;
   if (editor) editor.inert = true;
-  document.querySelectorAll<HTMLElement & { inert: boolean }>('.menu-header-actions, #menu-categories, #menu-order-panels').forEach(el => {
+  document.querySelectorAll<HTMLElement & { inert: boolean }>('.menu-header-actions, #menu-categories, #menu-order-panels, #menu-category-advanced-body').forEach(el => {
     el.inert = true;
   });
 
@@ -602,6 +618,9 @@ export async function saveMenuData(skipConfirm = false): Promise<void> {
     if (menuState.isCategoryManagerOpen) {
       invokeHook('captureMenuDisplayOrder', () => undefined);
     }
+    if (menuState.isCategoryAdvancedOpen) {
+      invokeHook('renderCategoryAdvancedSettingsView', () => undefined);
+    }
     try {
       const tid = resolveTenantId();
       localStorage.removeItem('tenant_customizations_' + tid);
@@ -620,7 +639,7 @@ export async function saveMenuData(skipConfirm = false): Promise<void> {
   } finally {
     menuState.isMenuSaving = false;
     if (editor) editor.inert = false;
-    document.querySelectorAll<HTMLElement & { inert: boolean }>('.menu-header-actions, #menu-categories, #menu-order-panels').forEach(el => {
+    document.querySelectorAll<HTMLElement & { inert: boolean }>('.menu-header-actions, #menu-categories, #menu-order-panels, #menu-category-advanced-body').forEach(el => {
       el.inert = false;
     });
     invokeHook('updateMenuSaveState', updateMenuSaveState);

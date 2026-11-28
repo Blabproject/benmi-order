@@ -1562,7 +1562,13 @@ const I18N = {
     prereqBadgeTag: "需搭配主餐",
     prereqFreeBadgeTag: "可單點",
     ugPrerequisiteSection: "加購條件限制",
-    ugPrerequisiteMode: "點餐條件"
+    ugPrerequisiteMode: "點餐條件",
+    catAdvancedBtn: "進階選項",
+    catAdvancedPageTitle: "進階選項 · {cat}",
+    catAdvancedOverridesTitle: "單品個別規則覆寫",
+    catAdvancedOverridesDesc: "下列餐點設定了與分類不同的獨立加購規則；點擊即可開啟餐點詳情調整",
+    catAdvancedOverridesEmpty: "此分類所有餐點目前皆套用上方的分類統一規則",
+    catAdvancedSyncDone: "已同步"
   },
   "vi": {
     posLoginTitle: 'Đăng nhập quản lý quán', posLoginHint: 'Nhập PIN quản lý để thao tác đơn hàng.', posLoginPIN: 'PIN quản lý', posLoginSubmit: 'Đăng nhập', posLoginCancel: 'Hủy', posLoginFailed: 'Đăng nhập thất bại. Kiểm tra PIN và thử lại.', posLoginLimited: 'Đã thử quá nhiều lần. Vui lòng thử lại sau.',
@@ -3123,7 +3129,13 @@ const I18N = {
     prereqBadgeTag: "Cần món chính",
     prereqFreeBadgeTag: "Gọi lẻ",
     ugPrerequisiteSection: "Điều kiện gọi kèm",
-    ugPrerequisiteMode: "Quy tắc gọi kèm"
+    ugPrerequisiteMode: "Quy tắc gọi kèm",
+    catAdvancedBtn: "Tùy chọn nâng cao",
+    catAdvancedPageTitle: "Tùy chọn nâng cao · {cat}",
+    catAdvancedOverridesTitle: "Ghi đè riêng theo từng món",
+    catAdvancedOverridesDesc: "Các món dưới đây đang dùng quy tắc gọi kèm riêng khác với danh mục; chạm để mở chi tiết món chỉnh sửa",
+    catAdvancedOverridesEmpty: "Tất cả món trong danh mục hiện đang áp dụng chung cài đặt phía trên",
+    catAdvancedSyncDone: "Đã đồng bộ"
   }
 };
 
@@ -3173,6 +3185,9 @@ function setLanguage(lang) {
       if (typeof renderMenuCategories === "function") renderMenuCategories();
       if (typeof renderMenuCategoryEditor === "function" && typeof activeCategoryIndex !== "undefined" && activeCategoryIndex >= 0) {
         renderMenuCategoryEditor(activeCategoryIndex);
+      }
+      if (window.isCategoryAdvancedOpen && typeof renderCategoryAdvancedSettingsView === "function" && typeof activeCategoryIndex !== "undefined" && activeCategoryIndex >= 0) {
+        renderCategoryAdvancedSettingsView(activeCategoryIndex);
       }
       if (typeof updateMenuSaveState === "function") updateMenuSaveState();
       if (typeof renderItemModifiersEditor === "function" && document.getElementById("itemModifiersModal")?.style.display === "flex") {

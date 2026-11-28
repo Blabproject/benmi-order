@@ -73,6 +73,8 @@ export interface PosMenuRuntimeState {
   menuMobileView: 'master' | 'detail';
   draggedCategoryIndex: number | null;
   isCategoryManagerOpen: boolean;
+  isCategoryAdvancedOpen: boolean;
+  categoryBeforeAdvancedSettings: number;
   categoryBeforeDisplayOrder: number;
   displayOrderCategory: MenuCategoryDraft | null;
   displayOrderInitial: DisplayOrderCaptureEntry[];
@@ -140,6 +142,8 @@ export const menuState: PosMenuRuntimeState = {
   menuMobileView: 'master',
   draggedCategoryIndex: null,
   isCategoryManagerOpen: false,
+  isCategoryAdvancedOpen: false,
+  categoryBeforeAdvancedSettings: -1,
   categoryBeforeDisplayOrder: -1,
   displayOrderCategory: null,
   displayOrderInitial: [],
@@ -300,6 +304,12 @@ export function installMenuStateAccessors(): void {
       get: () => menuState.isCategoryManagerOpen,
       set: (value: boolean) => {
         menuState.isCategoryManagerOpen = Boolean(value);
+      }
+    },
+    isCategoryAdvancedOpen: {
+      get: () => menuState.isCategoryAdvancedOpen,
+      set: (value: boolean) => {
+        menuState.isCategoryAdvancedOpen = Boolean(value);
       }
     },
     menuModifierLibrary: {

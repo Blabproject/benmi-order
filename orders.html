@@ -11,7 +11,7 @@
   <script src="js/orders-display.js?v=20261121_settings_react_v1"></script>
   <link rel="stylesheet" href="css/orders.css?v=20261128_pos_web_login_v1" />
   <link rel="stylesheet" href="css/orders-stock.css?v=20261107_stock_drawer_v1" />
-  <link rel="stylesheet" href="css/orders-menu.css?v=20261128_prereq_rules_v1" />
+  <link rel="stylesheet" href="css/orders-menu.css?v=20261128_prereq_adv_page_v1" />
     <script>
       (function () {
         document.documentElement.style.setProperty('--primary', '#00b900');
@@ -316,6 +316,16 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="5" y2="19"></line><line x1="5" x2="19" y1="12" y2="12"></line></svg>
                 <span id="i18n-btn-add-cat-top-text">新增分類</span>
               </button>
+              <button type="button" class="btn btn-ghost menu-action-btn menu-cat-advanced-btn" id="btn-category-advanced-settings" onclick="openCategoryAdvancedSettings()" style="min-height:48px; display:none;" hidden title="進階選項 / Tùy chọn nâng cao">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/>
+                  <line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/>
+                  <line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/>
+                  <line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/>
+                </svg>
+                <span id="i18n-btn-cat-advanced-text">進階選項</span>
+                <span class="menu-cat-advanced-count" id="btn-category-advanced-count" hidden>0</span>
+              </button>
               <button type="button" class="btn btn-yellow menu-action-btn" id="btn-menu-create-unified" onclick="handleMenuCreateClick()" style="min-height:48px; display:none;" title="新增項目 / Thêm mới">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="5" y2="19"></line><line x1="5" x2="19" y1="12" y2="12"></line></svg>
                 <span id="i18n-btn-create-unified-text">建立新項目</span>
@@ -395,6 +405,40 @@
 
         <p id="menu-order-description" class="menu-order-description" style="display:none;"></p>
         <div id="menu-order-panels" class="menu-order-columns"></div>
+      </section>
+      <section id="menu-category-advanced-screen" class="menu-display-order-screen menu-category-advanced-screen" hidden aria-labelledby="menu-cat-adv-title">
+        <div class="menu-order-header">
+          <div class="menu-order-header-left">
+            <button type="button" class="btn menu-order-back-btn" id="btn-menu-cat-adv-back" onclick="closeCategoryAdvancedSettings()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 19-7-7 7-7"/></svg>
+              <span id="btn-menu-cat-adv-back-text">返回</span>
+            </button>
+            <div class="menu-order-title-block">
+              <div class="menu-order-title-row">
+                <h2 id="menu-cat-adv-title" tabindex="-1">分類進階選項</h2>
+                <span class="menu-cat-adv-status-pill" id="menu-cat-adv-rule-pill" hidden></span>
+              </div>
+              <div class="menu-order-breadcrumb" id="menu-cat-adv-breadcrumb">
+                <span id="menu-cat-adv-bc-menu">菜單管理</span> • <span class="bc-store-name" id="menu-cat-adv-cat-name">-</span>
+              </div>
+            </div>
+          </div>
+          <div class="menu-order-header-actions">
+            <div class="menu-order-save-status is-saved" id="menu-cat-adv-save-status">
+              <svg class="save-status-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 13l4 4L19 7"/>
+              </svg>
+              <span id="menu-cat-adv-save-status-text">已同步</span>
+            </div>
+            <button type="button" class="btn btn-primary menu-order-save-btn" id="btn-menu-cat-adv-save" disabled onclick="saveMenuData()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 13l4 4L19 7"/>
+              </svg>
+              <span id="btn-menu-cat-adv-save-text">儲存變更</span>
+            </button>
+          </div>
+        </div>
+        <div id="menu-category-advanced-body" class="menu-category-advanced-body"></div>
       </section>
       </div>
     </div>
@@ -1328,7 +1372,7 @@
 
   <!-- Benmi POS Modular Architecture Scripts -->
   <script src="js/menu-schedule.js?v=20261121_collection_qr_v1"></script>
-  <script src="js/orders-i18n.js?v=20261128_prereq_rules_v1"></script>
+  <script src="js/orders-i18n.js?v=20261128_prereq_adv_page_v1"></script>
   <script src="js/orders-core.js?v=20261128_pos_web_login_v2"></script>
   <script src="js/orders-audio.js?v=20261128_pos_web_login_v1"></script>
   <script src="js/order-legacy-adapter.js?v=20261029_history_items_summary_v1"></script>

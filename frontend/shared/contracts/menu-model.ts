@@ -406,11 +406,21 @@ export function canonicalMenuSnapshot(data: unknown): string {
         if (k.startsWith('_') || k === 'prerequisiteRule') continue;
         const v = record[k];
         if (
+          (k === 'prerequisiteItemIds' || k === 'prerequisiteCategoryIds') &&
+          (v === undefined || v === null || (Array.isArray(v) && v.length === 0))
+        ) {
+          continue;
+        }
+        if (k === 'prerequisiteMode') {
+          const isCat = Array.isArray(record.items) || record.type === 'catalog';
+          const isDefault = isCat ? (!v || v === 'none') : (!v || v === 'inherit');
+          if (!isDefault) res[k] = v;
+          continue;
+        }
+        if (
           (k === 'modifierGroups' ||
             k === 'appliedItems' ||
             k === 'appliedCategories' ||
-            k === 'prerequisiteItemIds' ||
-            k === 'prerequisiteCategoryIds' ||
             k === 'sub_options') &&
           (v === undefined || v === null || (Array.isArray(v) && v.length === 0))
         ) {

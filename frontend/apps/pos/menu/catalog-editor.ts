@@ -93,6 +93,7 @@ export function setMenuSidebarTab(tab: string): void {
   }
 
   menuState.isCategoryManagerOpen = false;
+  menuState.isCategoryAdvancedOpen = false;
   menuState.isCustomGroupCreatorOpen = false;
   setMenuMobileView('master');
 
@@ -160,6 +161,7 @@ export function handleCreateComboFromSidebar(): void {
   }
 
   menuState.isCategoryManagerOpen = false;
+  menuState.isCategoryAdvancedOpen = false;
   menuState.isCustomGroupCreatorOpen = false;
   setMenuMobileView('master');
   menuState.activeCategoryIndex = comboCatIdx;
@@ -220,6 +222,7 @@ export function selectMenuCatalogCategory(index: number): void {
     invokeHook('syncMenuDataFromDOM', syncMenuDataFromDOM);
   }
   menuState.isCategoryManagerOpen = false;
+  menuState.isCategoryAdvancedOpen = false;
   menuState.isCustomGroupCreatorOpen = false;
   menuState.activeCategoryIndex = index;
   invokeHook('renderMenuCategories', renderMenuCategories);
@@ -690,6 +693,9 @@ export function renderMenuCategoryEditor(index?: number): void {
 
   const renameBtn = document.getElementById('btn-category-rename');
   const deleteBtn = document.getElementById('btn-category-delete');
+  const advBtn = document.getElementById('btn-category-advanced-settings');
+  const advBtnLabel = document.getElementById('i18n-btn-cat-advanced-text');
+  const advBtnCount = document.getElementById('btn-category-advanced-count');
   const createBtn = document.getElementById('btn-menu-create-unified');
   const createBtnText = document.getElementById('i18n-btn-create-unified-text');
   const addCatTopBtn = document.getElementById('btn-menu-add-cat-top');
@@ -710,9 +716,17 @@ export function renderMenuCategoryEditor(index?: number): void {
       deleteBtn.style.display = 'none';
       deleteBtn.hidden = true;
     }
+    if (advBtn) {
+      advBtn.style.display = 'none';
+      advBtn.hidden = true;
+    }
     if (createBtn) {
       createBtn.style.display = 'none';
       createBtn.hidden = true;
+    }
+    if (advBtn) {
+      advBtn.style.display = 'none';
+      advBtn.hidden = true;
     }
     const catActions = document.getElementById('cat-title-actions');
     if (catActions) {
@@ -752,6 +766,10 @@ export function renderMenuCategoryEditor(index?: number): void {
       createBtn.style.display = 'none';
       createBtn.hidden = true;
     }
+    if (advBtn) {
+      advBtn.style.display = 'none';
+      advBtn.hidden = true;
+    }
     const catActions = document.getElementById('cat-title-actions');
     if (catActions) {
       catActions.style.display = '';
@@ -770,6 +788,30 @@ export function renderMenuCategoryEditor(index?: number): void {
     createBtn.hidden = false;
     if (createBtnText) createBtnText.textContent = tr(isCombo ? 'menuAddBundle' : 'menuAddItem');
     createBtn.title = tr(isCombo ? 'menuAddBundle' : 'menuAddItem');
+  }
+
+  if (advBtn) {
+    if (cat.type === 'catalog') {
+      const catTargets =
+        (Array.isArray(cat.prerequisiteItemIds) ? cat.prerequisiteItemIds.length : 0) +
+        (Array.isArray(cat.prerequisiteCategoryIds) ? cat.prerequisiteCategoryIds.length : 0);
+      const overrideCount = (cat.items || []).filter(
+        it => it.prerequisiteMode === 'require_any' || (it.prerequisiteMode === 'none' && cat.prerequisiteMode === 'require_any')
+      ).length;
+      const badgeCount = cat.prerequisiteMode === 'require_any' ? Math.max(1, catTargets) : overrideCount;
+      advBtn.style.display = 'inline-flex';
+      advBtn.hidden = false;
+      advBtn.classList.toggle('has-active-rules', badgeCount > 0);
+      if (advBtnLabel) advBtnLabel.textContent = tr('catAdvancedBtn');
+      advBtn.title = tr('catAdvancedBtn');
+      if (advBtnCount) {
+        advBtnCount.hidden = badgeCount <= 0;
+        advBtnCount.textContent = String(badgeCount);
+      }
+    } else {
+      advBtn.style.display = 'none';
+      advBtn.hidden = true;
+    }
   }
 
   if (renameBtn) {
@@ -889,120 +931,6 @@ export function renderMenuCategoryEditor(index?: number): void {
       `;
     }
     catalogCard.appendChild(modCard);
-  }
-
-  if (cat.type === 'catalog') {
-    const prereqCard = document.createElement('div');
-    prereqCard.className = 'cust-category-prereq-card';
-    const catKey = cat.id || String(targetIndex);
-    const isRequireAny = cat.prerequisiteMode === 'require_any';
-    const selectedItemIds = Array.isArray(cat.prerequisiteItemIds) ? cat.prerequisiteItemIds : [];
-    const selectedCatIds = Array.isArray(cat.prerequisiteCategoryIds) ? cat.prerequisiteCategoryIds : [];
-    const totalTargets = selectedItemIds.length + selectedCatIds.length;
-    const isExpanded = menuState.expandedCategoryPrereq.has(catKey);
-
-    const summaryText = isRequireAny
-      ? tr('prereqSummaryActive', { count: totalTargets })
-      : tr('prereqSummaryNone');
-
-    if (!isExpanded && !isRequireAny) {
-      prereqCard.classList.add('is-compact');
-      prereqCard.innerHTML = `
-        <div class="cust-prereq-compact-row">
-          <div class="cust-prereq-compact-left">
-            <span class="cust-prereq-title-inline">${esc(tr('prereqCardTitle'))}</span>
-            <span class="cust-prereq-status-pill is-none">${esc(summaryText)}</span>
-          </div>
-          <button type="button" class="btn-prereq-expand" onclick="toggleCategoryPrereqCollapse(${targetIndex})">
-            <span>${esc(tr('prereqBtnConfigure'))}</span>
-          </button>
-        </div>
-      `;
-    } else {
-      const otherCatalogCats = (menuState.currentMenuData || []).filter(
-        (other, idx) => idx !== targetIndex && !isCustomizationCategory(other)
-      );
-      let catChipsHtml = '';
-      let itemChipsHtml = '';
-      otherCatalogCats.forEach(otherCat => {
-        const canonicalCatId = String(otherCat.databaseId || otherCat.catId || otherCat.id);
-        const isCatChecked =
-          selectedCatIds.includes(canonicalCatId) ||
-          selectedCatIds.includes(otherCat.id) ||
-          Boolean(otherCat.slug && selectedCatIds.includes(otherCat.slug));
-        const safeCatId = esc(canonicalCatId).replace(/'/g, "\\'");
-        catChipsHtml += `
-          <label class="cust-prereq-chip ${isCatChecked ? 'selected' : ''}">
-            <input type="checkbox" ${isCatChecked ? 'checked' : ''} onchange="toggleCategoryPrerequisiteTarget(${targetIndex}, 'category', '${safeCatId}', this.checked)">
-            <span>${esc(otherCat.title)}</span>
-          </label>
-        `;
-        (otherCat.items || []).forEach(otherItem => {
-          const itemId = String(otherItem.id || `${otherCat.id}:${otherItem.name}`);
-          if (!otherItem.name) return;
-          const isItemChecked = selectedItemIds.includes(itemId);
-          const safeItemId = esc(itemId).replace(/'/g, "\\'");
-          itemChipsHtml += `
-            <label class="cust-prereq-chip ${isItemChecked ? 'selected' : ''}">
-              <input type="checkbox" ${isItemChecked ? 'checked' : ''} onchange="toggleCategoryPrerequisiteTarget(${targetIndex}, 'item', '${safeItemId}', this.checked)">
-              <span><small class="cust-prereq-chip-cat">${esc(otherCat.title)}</small>${esc(otherItem.name)}</span>
-            </label>
-          `;
-        });
-      });
-
-      const targetsHtml = isRequireAny
-        ? `
-          <div class="cust-prereq-targets-panel">
-            <div class="cust-prereq-targets-hint">${esc(tr('prereqSelectTargetsLabel'))}</div>
-            ${
-              totalTargets === 0
-                ? `<div class="cust-prereq-empty-warn" role="status">${esc(tr('prereqNoneSelectedHint'))}</div>`
-                : ''
-            }
-            ${
-              catChipsHtml
-                ? `<div class="cust-prereq-group-label">${esc(tr('prereqSectionCategories'))}</div>
-                   <div class="cust-prereq-chips-grid">${catChipsHtml}</div>`
-                : ''
-            }
-            ${
-              itemChipsHtml
-                ? `<div class="cust-prereq-group-label">${esc(tr('prereqSectionItems'))}</div>
-                   <div class="cust-prereq-chips-grid">${itemChipsHtml}</div>`
-                : ''
-            }
-          </div>
-        `
-        : '';
-
-      prereqCard.innerHTML = `
-        <div class="cust-prereq-header">
-          <div class="cust-prereq-title-wrap">
-            <div class="cust-prereq-title-row">
-              <span class="cust-prereq-title-inline">${esc(tr('prereqCardTitle'))}</span>
-              <span class="cust-prereq-status-pill ${isRequireAny ? 'is-active' : 'is-none'}">${esc(summaryText)}</span>
-            </div>
-            <div class="cust-prereq-desc">${esc(tr('prereqCardDesc'))}</div>
-          </div>
-          ${
-            !isRequireAny
-              ? `<button type="button" class="btn-prereq-expand" onclick="toggleCategoryPrereqCollapse(${targetIndex})">${esc(tr('prereqBtnCollapse'))}</button>`
-              : ''
-          }
-        </div>
-        <div class="cust-prereq-mode-bar" role="radiogroup" aria-label="${esc(tr('prereqCardTitle'))}">
-          <button type="button" class="cust-prereq-mode-btn ${!isRequireAny ? 'active' : ''}" aria-pressed="${String(!isRequireAny)}" onclick="setCategoryPrerequisiteMode(${targetIndex}, 'none')">
-            <span>${esc(tr('prereqModeNone'))}</span>
-          </button>
-          <button type="button" class="cust-prereq-mode-btn ${isRequireAny ? 'active' : ''}" aria-pressed="${String(isRequireAny)}" onclick="setCategoryPrerequisiteMode(${targetIndex}, 'require_any')">
-            <span>${esc(tr('prereqModeRequireAny'))}</span>
-          </button>
-        </div>
-        ${targetsHtml}
-      `;
-    }
-    catalogCard.appendChild(prereqCard);
   }
 
   const itemsContainer = document.createElement('div');
@@ -1142,15 +1070,204 @@ export function toggleCategoryHideWhenUnavailable(catIndex: number, isChecked: b
   invokeHook('renderMenuCategoryEditor', renderMenuCategoryEditor, catIndex);
 }
 
-export function toggleCategoryPrereqCollapse(catIndex: number): void {
-  const cat = menuState.currentMenuData?.[catIndex];
-  const catKey = cat ? cat.id || String(catIndex) : String(catIndex);
-  if (menuState.expandedCategoryPrereq.has(catKey)) {
-    menuState.expandedCategoryPrereq.delete(catKey);
-  } else {
-    menuState.expandedCategoryPrereq.add(catKey);
+export function openCategoryAdvancedSettings(catIndex?: number): void {
+  if (!menuState.isMenuLoadedCompletely || !menuState.currentMenuData || menuState.isMenuSaving) return;
+  const targetIndex = catIndex === undefined ? menuState.activeCategoryIndex : catIndex;
+  const cat = menuState.currentMenuData[targetIndex];
+  if (!cat || isCustomizationCategory(cat) || cat.type !== 'catalog') return;
+  invokeHook('syncMenuDataFromDOM', syncMenuDataFromDOM);
+  menuState.categoryBeforeAdvancedSettings = targetIndex;
+  menuState.activeCategoryIndex = targetIndex;
+  menuState.isCategoryManagerOpen = false;
+  menuState.isCategoryAdvancedOpen = true;
+  renderCategoryAdvancedSettingsView(targetIndex);
+  document.getElementById('menu-cat-adv-title')?.focus();
+}
+
+export function closeCategoryAdvancedSettings(): void {
+  if (menuState.isMenuSaving) return;
+  menuState.isCategoryAdvancedOpen = false;
+  const data = menuState.currentMenuData || [];
+  const restoreIdx = data[menuState.categoryBeforeAdvancedSettings]
+    ? menuState.categoryBeforeAdvancedSettings
+    : menuState.activeCategoryIndex;
+  menuState.activeCategoryIndex = restoreIdx;
+  updateMenuWorkspace();
+  invokeHook('renderMenuCategories', renderMenuCategories);
+  if (restoreIdx >= 0) {
+    invokeHook('renderMenuCategoryEditor', renderMenuCategoryEditor, restoreIdx);
   }
-  invokeHook('renderMenuCategoryEditor', renderMenuCategoryEditor, catIndex);
+  document.getElementById('btn-category-advanced-settings')?.focus();
+}
+
+export function editCategoryAdvancedOverrideItem(catIndex: number, itemIndex: number): void {
+  closeCategoryAdvancedSettings();
+  invokeHook('openItemDetailModal', () => undefined, catIndex, itemIndex);
+}
+
+function buildCategoryPrerequisiteCardHtml(cat: MenuCategoryDraft, targetIndex: number): string {
+  const isRequireAny = cat.prerequisiteMode === 'require_any';
+  const selectedItemIds = Array.isArray(cat.prerequisiteItemIds) ? cat.prerequisiteItemIds : [];
+  const selectedCatIds = Array.isArray(cat.prerequisiteCategoryIds) ? cat.prerequisiteCategoryIds : [];
+  const totalTargets = selectedItemIds.length + selectedCatIds.length;
+  const summaryText = isRequireAny
+    ? tr('prereqSummaryActive', { count: totalTargets })
+    : tr('prereqSummaryNone');
+
+  const otherCatalogCats = (menuState.currentMenuData || []).filter(
+    (other, idx) => idx !== targetIndex && !isCustomizationCategory(other)
+  );
+  let catChipsHtml = '';
+  let itemChipsHtml = '';
+  otherCatalogCats.forEach(otherCat => {
+    const canonicalCatId = String(otherCat.databaseId || otherCat.catId || otherCat.id);
+    const isCatChecked =
+      selectedCatIds.includes(canonicalCatId) ||
+      selectedCatIds.includes(otherCat.id) ||
+      Boolean(otherCat.slug && selectedCatIds.includes(otherCat.slug));
+    const safeCatId = esc(canonicalCatId).replace(/'/g, "\\'");
+    catChipsHtml += `
+      <label class="cust-prereq-chip ${isCatChecked ? 'selected' : ''}">
+        <input type="checkbox" ${isCatChecked ? 'checked' : ''} onchange="toggleCategoryPrerequisiteTarget(${targetIndex}, 'category', '${safeCatId}', this.checked)">
+        <span>${esc(otherCat.title)}</span>
+      </label>
+    `;
+    (otherCat.items || []).forEach(otherItem => {
+      const itemId = String(otherItem.id || `${otherCat.id}:${otherItem.name}`);
+      if (!otherItem.name) return;
+      const isItemChecked = selectedItemIds.includes(itemId);
+      const safeItemId = esc(itemId).replace(/'/g, "\\'");
+      itemChipsHtml += `
+        <label class="cust-prereq-chip ${isItemChecked ? 'selected' : ''}">
+          <input type="checkbox" ${isItemChecked ? 'checked' : ''} onchange="toggleCategoryPrerequisiteTarget(${targetIndex}, 'item', '${safeItemId}', this.checked)">
+          <span><small class="cust-prereq-chip-cat">${esc(otherCat.title)}</small>${esc(otherItem.name)}</span>
+        </label>
+      `;
+    });
+  });
+
+  const targetsHtml = isRequireAny
+    ? `
+      <div class="cust-prereq-targets-panel">
+        <div class="cust-prereq-targets-hint">${esc(tr('prereqSelectTargetsLabel'))}</div>
+        ${
+          totalTargets === 0
+            ? `<div class="cust-prereq-empty-warn" role="status">${esc(tr('prereqNoneSelectedHint'))}</div>`
+            : ''
+        }
+        ${
+          catChipsHtml
+            ? `<div class="cust-prereq-group-label">${esc(tr('prereqSectionCategories'))}</div>
+               <div class="cust-prereq-chips-grid">${catChipsHtml}</div>`
+            : ''
+        }
+        ${
+          itemChipsHtml
+            ? `<div class="cust-prereq-group-label">${esc(tr('prereqSectionItems'))}</div>
+               <div class="cust-prereq-chips-grid">${itemChipsHtml}</div>`
+            : ''
+        }
+      </div>
+    `
+    : '';
+
+  return `
+    <div class="cust-category-prereq-card menu-cat-adv-card">
+      <div class="cust-prereq-header">
+        <div class="cust-prereq-title-wrap">
+          <div class="cust-prereq-title-row">
+            <span class="cust-prereq-title-inline">${esc(tr('prereqCardTitle'))}</span>
+            <span class="cust-prereq-status-pill ${isRequireAny ? 'is-active' : 'is-none'}">${esc(summaryText)}</span>
+          </div>
+          <div class="cust-prereq-desc">${esc(tr('prereqCardDesc'))}</div>
+        </div>
+      </div>
+      <div class="cust-prereq-mode-bar" role="radiogroup" aria-label="${esc(tr('prereqCardTitle'))}">
+        <button type="button" class="cust-prereq-mode-btn ${!isRequireAny ? 'active' : ''}" aria-pressed="${String(!isRequireAny)}" onclick="setCategoryPrerequisiteMode(${targetIndex}, 'none')">
+          <span>${esc(tr('prereqModeNone'))}</span>
+        </button>
+        <button type="button" class="cust-prereq-mode-btn ${isRequireAny ? 'active' : ''}" aria-pressed="${String(isRequireAny)}" onclick="setCategoryPrerequisiteMode(${targetIndex}, 'require_any')">
+          <span>${esc(tr('prereqModeRequireAny'))}</span>
+        </button>
+      </div>
+      ${targetsHtml}
+    </div>
+  `;
+}
+
+export function renderCategoryAdvancedSettingsView(catIndex?: number): void {
+  updateMenuWorkspace();
+  const targetIndex = catIndex === undefined ? menuState.activeCategoryIndex : catIndex;
+  const cat = menuState.currentMenuData?.[targetIndex];
+  const container = document.getElementById('menu-category-advanced-body');
+  if (!container || !cat) return;
+
+  const titleEl = document.getElementById('menu-cat-adv-title');
+  if (titleEl) titleEl.textContent = tr('catAdvancedPageTitle', { cat: cat.title });
+  const backTextEl = document.getElementById('btn-menu-cat-adv-back-text');
+  if (backTextEl) backTextEl.textContent = tr('btnBack');
+  const bcMenuEl = document.getElementById('menu-cat-adv-bc-menu');
+  if (bcMenuEl) bcMenuEl.textContent = tr('menuSortBreadcrumbMenu');
+  const bcCatNameEl = document.getElementById('menu-cat-adv-cat-name');
+  if (bcCatNameEl) bcCatNameEl.textContent = cat.title;
+
+  const isRequireAny = cat.prerequisiteMode === 'require_any';
+  const totalTargets =
+    (Array.isArray(cat.prerequisiteItemIds) ? cat.prerequisiteItemIds.length : 0) +
+    (Array.isArray(cat.prerequisiteCategoryIds) ? cat.prerequisiteCategoryIds.length : 0);
+  const pillEl = document.getElementById('menu-cat-adv-rule-pill');
+  if (pillEl) {
+    pillEl.hidden = false;
+    pillEl.className = `cust-prereq-status-pill ${isRequireAny ? 'is-active' : 'is-none'}`;
+    pillEl.textContent = isRequireAny
+      ? tr('prereqSummaryActive', { count: totalTargets })
+      : tr('prereqSummaryNone');
+  }
+
+  const overrideRowsHtml = (cat.items || [])
+    .map((item, idx) => {
+      const mode = item.prerequisiteMode || 'inherit';
+      if (mode === 'inherit') return '';
+      const badgeLabel = mode === 'require_any' ? tr('prereqBadgeTag') : tr('prereqModeNone');
+      const badgeClass = mode === 'require_any' ? 'is-active' : 'is-free';
+      return `
+        <button type="button" class="menu-cat-adv-override-row" onclick="editCategoryAdvancedOverrideItem(${targetIndex}, ${idx})">
+          <span class="menu-cat-adv-override-name">${esc(item.name || tr('newItemPlaceholder'))}</span>
+          <span class="menu-cat-adv-override-right">
+            <span class="cust-prereq-status-pill ${badgeClass}">${esc(badgeLabel)}</span>
+            <span class="menu-cat-adv-override-arrow" aria-hidden="true">›</span>
+          </span>
+        </button>
+      `;
+    })
+    .filter(Boolean)
+    .join('');
+
+  container.innerHTML = `
+    <div class="menu-cat-adv-container">
+      ${buildCategoryPrerequisiteCardHtml(cat, targetIndex)}
+      <div class="cust-category-prereq-card menu-cat-adv-card">
+        <div class="cust-prereq-header">
+          <div class="cust-prereq-title-wrap">
+            <div class="cust-prereq-title-row">
+              <span class="cust-prereq-title-inline">${esc(tr('catAdvancedOverridesTitle'))}</span>
+            </div>
+            <div class="cust-prereq-desc">${esc(tr('catAdvancedOverridesDesc'))}</div>
+          </div>
+        </div>
+        ${
+          overrideRowsHtml
+            ? `<div class="menu-cat-adv-overrides-list">${overrideRowsHtml}</div>`
+            : `<div class="menu-cat-adv-overrides-empty">${esc(tr('catAdvancedOverridesEmpty'))}</div>`
+        }
+      </div>
+    </div>
+  `;
+  invokeHook('checkMenuDirty', () => false);
+}
+
+export function toggleCategoryPrereqCollapse(catIndex: number): void {
+  openCategoryAdvancedSettings(catIndex);
 }
 
 export function setCategoryPrerequisiteMode(catIndex: number, mode: string): void {
@@ -1168,7 +1285,11 @@ export function setCategoryPrerequisiteMode(catIndex: number, mode: string): voi
     cat.prerequisiteCategoryIds = [];
   }
   invokeHook('markMenuDirty', markMenuDirty);
-  invokeHook('renderMenuCategoryEditor', renderMenuCategoryEditor, catIndex);
+  if (menuState.isCategoryAdvancedOpen) {
+    renderCategoryAdvancedSettingsView(catIndex);
+  } else {
+    invokeHook('renderMenuCategoryEditor', renderMenuCategoryEditor, catIndex);
+  }
 }
 
 export function toggleCategoryPrerequisiteTarget(
@@ -1193,7 +1314,11 @@ export function toggleCategoryPrerequisiteTarget(
     cat.prerequisiteItemIds = Array.from(next);
   }
   invokeHook('markMenuDirty', markMenuDirty);
-  invokeHook('renderMenuCategoryEditor', renderMenuCategoryEditor, catIndex);
+  if (menuState.isCategoryAdvancedOpen) {
+    renderCategoryAdvancedSettingsView(catIndex);
+  } else {
+    invokeHook('renderMenuCategoryEditor', renderMenuCategoryEditor, catIndex);
+  }
 }
 
 export function selectAllCategoryModifiers(catIndex: number, selectAll: boolean): void {

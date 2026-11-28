@@ -470,3 +470,18 @@ test('Client LIFF guided bottom sheet adds parent + add-on in 1 tap and cleans u
   assert.equal(window.cart['addons_豆腐'] || 0, 0);
   assert.equal(catBadge.classList.contains('is-locked'), true);
 });
+
+test('orders.html exposes category advanced settings button beside Add Item and sub-page container', () => {
+  const ordersHtml = fs.readFileSync(path.resolve(__dirname, '../orders.html'), 'utf8');
+  const { JSDOM } = require('jsdom');
+  const dom = new JSDOM(ordersHtml);
+  const { document } = dom.window;
+  const advBtn = document.getElementById('btn-category-advanced-settings');
+  const addBtn = document.getElementById('btn-menu-create-unified');
+  const advScreen = document.getElementById('menu-category-advanced-screen');
+  assert.ok(advBtn, 'orders.html should have #btn-category-advanced-settings');
+  assert.ok(addBtn, 'orders.html should have #btn-menu-create-unified');
+  assert.equal(advBtn.nextElementSibling?.id, addBtn.id, 'advanced button must sit next to + Add Item');
+  assert.ok(advScreen, 'orders.html should have #menu-category-advanced-screen sub-page');
+  dom.window.close();
+});

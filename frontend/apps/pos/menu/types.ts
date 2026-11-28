@@ -214,6 +214,7 @@ export interface PosMenuWindow extends Window {
   menuSidebarTab?: 'products' | 'options';
   menuMobileView?: 'master' | 'detail';
   isCategoryManagerOpen?: boolean;
+  isCategoryAdvancedOpen?: boolean;
   menuModifierLibrary?: ModifierLibraryGroupDto[];
   _tenantImageList?: Set<string> | null;
   _collapsedCategoryMods?: Set<string>;

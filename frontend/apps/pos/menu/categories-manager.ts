@@ -121,6 +121,7 @@ export function openCategoriesManager(): void {
     menuState.displayOrderCategory = null;
   }
   captureMenuDisplayOrder();
+  menuState.isCategoryAdvancedOpen = false;
   menuState.isCategoryManagerOpen = true;
   menuState.activeCategoryIndex = -1;
   // Stale inline inputs must not write into newly reordered item indexes.

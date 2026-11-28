@@ -153,6 +153,7 @@ function syncWorkspaceChrome(store: OptionGroupsStore) {
   for (const id of [
     'btn-category-rename',
     'btn-category-delete',
+    'btn-category-advanced-settings',
     'btn-menu-create-unified',
     'cat-title-actions',
   ]) {

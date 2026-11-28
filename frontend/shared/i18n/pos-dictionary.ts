@@ -457,7 +457,13 @@ const POS_DICTIONARY = {
     prereqBadgeTag: '需搭配主餐',
     prereqFreeBadgeTag: '可單點',
     ugPrerequisiteSection: '加購條件限制',
-    ugPrerequisiteMode: '點餐條件'
+    ugPrerequisiteMode: '點餐條件',
+    catAdvancedBtn: '進階選項',
+    catAdvancedPageTitle: '進階選項 · {cat}',
+    catAdvancedOverridesTitle: '單品個別規則覆寫',
+    catAdvancedOverridesDesc: '下列餐點設定了與分類不同的獨立加購規則；點擊即可開啟餐點詳情調整',
+    catAdvancedOverridesEmpty: '此分類所有餐點目前皆套用上方的分類統一規則',
+    catAdvancedSyncDone: '已同步'
   },
   vi: {
     sandboxBadge: 'Môi trường thử nghiệm POS (Tách biệt)',
@@ -915,7 +921,13 @@ const POS_DICTIONARY = {
     prereqBadgeTag: 'Cần món chính',
     prereqFreeBadgeTag: 'Gọi lẻ',
     ugPrerequisiteSection: 'Điều kiện gọi kèm',
-    ugPrerequisiteMode: 'Quy tắc gọi kèm'
+    ugPrerequisiteMode: 'Quy tắc gọi kèm',
+    catAdvancedBtn: 'Tùy chọn nâng cao',
+    catAdvancedPageTitle: 'Tùy chọn nâng cao · {cat}',
+    catAdvancedOverridesTitle: 'Ghi đè riêng theo từng món',
+    catAdvancedOverridesDesc: 'Các món dưới đây đang dùng quy tắc gọi kèm riêng khác với danh mục; chạm để mở chi tiết món chỉnh sửa',
+    catAdvancedOverridesEmpty: 'Tất cả món trong danh mục hiện đang áp dụng chung cài đặt phía trên',
+    catAdvancedSyncDone: 'Đã đồng bộ'
   }
 } as const satisfies Record<PosLocale, Record<string, string>>;
 
