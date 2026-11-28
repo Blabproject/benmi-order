@@ -1197,7 +1197,6 @@ function applyPickupConfig() {
     const diningWrapper = document.getElementById('dining-option-wrapper');
     const checkoutDiningGroup = document.getElementById('checkout-dining-option-group');
     const selectedShift = typeof getSelectedMenuCollectionShift === 'function' ? getSelectedMenuCollectionShift() : null;
-    const showLegacyDiningToggle = Boolean(window.enableLegacyDiningToggle);
 
     const ch = window.currentQrChannel || null;
     const chPolicy = ch ? (ch.diningPolicy || 'customer_choice') : null;
@@ -1283,7 +1282,7 @@ function applyPickupConfig() {
     } else if (window.isStaffOrderMode && hasDineInFeature && storeAllowsDineIn) {
         syncCustomerChoiceButtons(window.currentDiningOption === 'dine_in' ? 'dine_in' : 'takeaway', false, false, null);
     } else {
-        const isDineInAllowed = showLegacyDiningToggle && hasDineInFeature && storeAllowsDineIn;
+        const isDineInAllowed = hasDineInFeature && storeAllowsDineIn;
         if (!isDineInAllowed) {
             if (!selectedShift || selectedShift.diningPolicy !== 'dine_in_only' || !hasDineInFeature || !storeAllowsDineIn) {
                 window.currentDiningOption = offPremiseChoice;
@@ -1291,6 +1290,7 @@ function applyPickupConfig() {
             syncCustomerChoiceButtons(window.currentDiningOption, false, deliveryAllowed, null, false);
         } else {
             const cur = window.currentDiningOption === 'dine_in' ? 'dine_in' : offPremiseChoice;
+            window.currentDiningOption = cur;
             syncCustomerChoiceButtons(cur, true, true, null);
         }
     }

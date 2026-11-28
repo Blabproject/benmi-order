@@ -1396,6 +1396,37 @@ test('Frontend Tag banner renders clean Tag label without table subtitle for ?ch
   assert.equal(autoColBtns.length, 3);
   assert.equal(autoColBtns[0].dataset.collectionId, '');
   assert.equal(case8.doc.getElementById('btn-dining-dinein').getAttribute('aria-disabled'), null);
+
+  // Case 9: Direct LIFF URL without ?ch= or shifts exposes Takeaway/Dine-in switcher when dine_in feature and allowDineIn are enabled
+  const case9 = await runScenario({
+    search: '?tenant_id=qiaqiamawan1&lang=zh-TW',
+    cachedTable: null,
+    tableStatusResponse: { ok: true, table: { exists: false, is_active: true, label: '' }, active_order: null },
+    initialQrChannel: null,
+    qrChannels: [],
+    shifts: []
+  });
+  case9.w.storeConfig.features = ['dine_in'];
+  case9.w.storeConfig.allowDineIn = true;
+  case9.w.eval(case9.realApplyPickup);
+  case9.w.resolveQrChannelAndInitialCollection(case9.w.storeConfig);
+  case9.w.applyPickupConfig();
+  assert.equal(case9.doc.getElementById('dining-option-wrapper').style.display, 'block');
+  assert.equal(case9.doc.getElementById('checkout-dining-option-group').style.display, 'block');
+  assert.equal(case9.doc.getElementById('btn-dining-dinein').hidden, false);
+  assert.equal(case9.doc.getElementById('checkout-btn-dinein').hidden, false);
+  case9.w.setCustomerDiningOption('dine_in');
+  assert.equal(case9.w.currentDiningOption, 'dine_in');
+  assert.equal(case9.doc.getElementById('btn-dining-dinein').classList.contains('active'), true);
+  assert.equal(case9.doc.getElementById('checkout-btn-dinein').classList.contains('active'), true);
+  assert.equal(case9.doc.getElementById('dinein-table-input-group').style.display, 'block');
+
+  // Case 10: Direct LIFF URL hides Dine-in switcher when allowDineIn is false
+  case9.w.storeConfig.allowDineIn = false;
+  case9.w.applyPickupConfig();
+  assert.equal(case9.doc.getElementById('dining-option-wrapper').style.display, 'none');
+  assert.equal(case9.doc.getElementById('checkout-dining-option-group').style.display, 'none');
+  assert.equal(case9.w.currentDiningOption, 'takeaway');
 });
 
 test('Worker getTableStatus and LINE receipt restrict append mode to active Table Management orders only', async () => {
