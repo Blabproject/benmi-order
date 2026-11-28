@@ -1,4 +1,5 @@
 pub mod graph;
+pub mod prerequisites;
 pub mod round_builder;
 pub mod types;
 pub mod validator;

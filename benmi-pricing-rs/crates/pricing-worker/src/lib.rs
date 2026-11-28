@@ -1,3 +1,4 @@
+use pricing_core::prerequisites::OrderPrerequisites;
 use pricing_core::{
     build_detail_round, project_option_rule, validate_option_graph, validate_unified_order_items,
     view, BuildRoundInput, DetailRound, OptionCatalog,
@@ -16,6 +17,8 @@ struct BuildRoundReq {
     previous_round: Option<DetailRound>,
     #[serde(default)]
     now_ms: Option<i64>,
+    #[serde(default)]
+    prerequisites: Option<OrderPrerequisites>,
 }
 
 #[derive(Deserialize)]
@@ -60,12 +63,26 @@ pub async fn main(mut req: Request, _env: Env, _ctx: Context) -> Result<Response
 
         let now_ms = payload.now_ms.unwrap_or_else(|| Date::now().as_millis() as i64);
 
+        if let Some(item_index) = payload
+            .prerequisites
+            .as_ref()
+            .and_then(OrderPrerequisites::first_unmet_item_index)
+        {
+            return Ok(Response::from_json(&serde_json::json!({
+                "success": false,
+                "code": "PREREQUISITE_ITEM_REQUIRED",
+                "itemIndex": item_index,
+                "prerequisitesChecked": true
+            }))?.with_status(400));
+        }
+
         if payload.input.appended_total.is_none() && payload.input.new_total.is_none() && payload.input.total.is_none() {
             return Response::from_json(&serde_json::json!({
                 "success": false,
                 "error": "ORDER_PRICE_CHANGED",
                 "code": "ORDER_PRICE_CHANGED",
-                "status": 409
+                "status": 409,
+                "prerequisitesChecked": true
             }));
         }
 
@@ -86,7 +103,8 @@ pub async fn main(mut req: Request, _env: Env, _ctx: Context) -> Result<Response
                 return Response::from_json(&serde_json::json!({
                     "success": true,
                     "round": round,
-                    "lines": lines
+                    "lines": lines,
+                    "prerequisitesChecked": true
                 }));
             }
             Err(e) => {
@@ -95,7 +113,8 @@ pub async fn main(mut req: Request, _env: Env, _ctx: Context) -> Result<Response
                 let mut resp = Response::from_json(&serde_json::json!({
                     "success": false,
                     "code": code,
-                    "error": code
+                    "error": code,
+                    "prerequisitesChecked": true
                 }))?;
                 resp = resp.with_status(status);
                 return Ok(resp);

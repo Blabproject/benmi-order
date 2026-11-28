@@ -34,6 +34,22 @@ pub fn is_wasm_ready() -> bool {
 }
 
 #[wasm_bindgen]
+pub fn evaluate_purchase_prerequisite(
+    rule: JsValue,
+    excluded_item_id: &str,
+    items: JsValue,
+) -> Result<JsValue, JsValue> {
+    use pricing_core::prerequisites::{evaluate_prerequisite, PrerequisiteOrderItem, PrerequisiteRule};
+
+    let rule: PrerequisiteRule = serde_wasm_bindgen::from_value(rule)
+        .map_err(|error| JsValue::from_str(&error.to_string()))?;
+    let items: Vec<PrerequisiteOrderItem> = serde_wasm_bindgen::from_value(items)
+        .map_err(|error| JsValue::from_str(&error.to_string()))?;
+    let evaluation = evaluate_prerequisite(&rule, excluded_item_id, &items);
+    serde_wasm_bindgen::to_value(&evaluation).map_err(|error| JsValue::from_str(&error.to_string()))
+}
+
+#[wasm_bindgen]
 pub fn calculate_category_bundle(rule_val: JsValue, items_val: JsValue) -> Result<JsValue, JsValue> {
     let rule: Option<BundleRuleInput> = if rule_val.is_null() || rule_val.is_undefined() {
         None
